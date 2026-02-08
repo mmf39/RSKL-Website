@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RSKL Player Detail</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg"></div>
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="badge">RSKL Fantasy League</div>
+        <h1 id="player-name">Player</h1>
+        <p class="sub" id="player-sub">Game-by-game stats.</p>
+        <div class="meta">
+          <span id="last-updated">Last updated: —</span>
+          <div class="nav-links">
+            <a class="btn ghost" href="/">Dashboard</a>
+            <a class="btn ghost" href="/schedule.html">Schedule</a>
+            <a class="btn ghost" href="/player.html">Player Stats</a>
+            <a class="btn ghost" href="/standings.html">Standings</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Player Summary</h2>
+        </div>
+        <div class="player-summary">
+          <div class="summary-card">
+            <span>Total Score</span>
+            <strong id="sum-total">—</strong>
+          </div>
+          <div class="summary-card">
+            <span>Average Score</span>
+            <strong id="sum-avg-score">—</strong>
+          </div>
+          <div class="summary-card">
+            <span>Average Rank</span>
+            <strong id="sum-avg-rank">—</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Game Log</h2>
+        </div>
+        <div class="table-wrap">
+          <table id="player-games">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      Built for the RSKL league • Powered by Google Sheets
+    </footer>
+
+    <div id="boxscore-modal" class="modal" hidden>
+      <div class="modal-backdrop" data-close="true"></div>
+      <div class="modal-card" role="dialog" aria-modal="true">
+        <div class="modal-head">
+          <h2>Box Score</h2>
+          <button class="modal-close" data-close="true">Close</button>
+        </div>
+        <div id="boxscore-details" class="boxscore-details"></div>
+      </div>
+    </div>
+
+    <script src="player-detail.js"></script>
+  </body>
+</html>

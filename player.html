@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RSKL Player Stats</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg"></div>
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="badge">RSKL Fantasy League</div>
+        <h1>Player Stats</h1>
+        <p class="sub">Search a player to see game-by-game stats.</p>
+        <div class="meta">
+          <span id="last-updated">Last updated: —</span>
+          <div class="nav-links">
+            <a class="btn ghost" href="/">Dashboard</a>
+            <a class="btn ghost" href="/schedule.html">Schedule</a>
+            <a class="btn ghost" href="/player.html">Player Stats</a>
+            <a class="btn ghost" href="/standings.html">Standings</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Top 25 (Avg/Game)</h2>
+          <div class="controls">
+            <label for="player-filter" class="label">Filter</label>
+            <select id="player-filter">
+              <option value="avg_score">Score Average</option>
+              <option value="total_score">Total Score</option>
+              <option value="avg_rank">Rank Average</option>
+            </select>
+            <label for="player-search" class="label">Player</label>
+            <input id="player-search" type="text" placeholder="Type a player name" />
+          </div>
+        </div>
+        <div id="player-results" class="player-results"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      Built for the RSKL league • Powered by Google Sheets
+    </footer>
+
+    <script src="player.js"></script>
+  </body>
+</html>

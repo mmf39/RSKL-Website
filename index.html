@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RSKL Fantasy League</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg"></div>
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="badge">RSKL Fantasy League</div>
+        <h1>Live League Dashboard</h1>
+        <p class="sub">
+          Auto-syncs from the official Google Sheet. Fresh data, zero manual work.
+        </p>
+        <div class="meta">
+          <span id="last-updated">Last updated: —</span>
+          <div class="nav-links">
+            <a class="btn ghost" href="/">Dashboard</a>
+            <a class="btn ghost" href="/schedule.html">Schedule</a>
+            <a class="btn ghost" href="/player.html">Player Stats</a>
+            <a class="btn ghost" href="/standings.html">Standings</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Live Scoring</h2>
+        </div>
+        <div id="live-scoring" class="live-row">Loading…</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Teams</h2>
+        </div>
+        <div id="teams-grid" class="teams-grid"></div>
+      </section>
+
+
+      <section class="panel subtle">
+        <div class="panel-head">
+          <h2>Data Source</h2>
+        </div>
+        <p>
+          This site reads directly from the published CSV feeds of your Google Sheet.
+          If you update the sheet, the site updates automatically every 5 minutes or
+          any time you hit “Refresh Now.”
+        </p>
+        <p class="source">
+          Standings: <a id="standings-link" target="_blank" rel="noreferrer">Open CSV</a>
+        </p>
+        <p class="source">
+          Teams: <a id="teams-link" target="_blank" rel="noreferrer">Open CSV</a>
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      Built for the RSKL league • Powered by Google Sheets
+    </footer>
+
+    <div id="live-modal" class="modal" hidden>
+      <div class="modal-backdrop" data-close="true"></div>
+      <div class="modal-card" role="dialog" aria-modal="true">
+        <div class="modal-head">
+          <h2>Live Box Score</h2>
+          <button class="modal-close" data-close="true">Close</button>
+        </div>
+        <div id="live-details" class="boxscore-details"></div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>

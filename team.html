@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RSKL Team Roster</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg"></div>
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="badge">RSKL Fantasy League</div>
+        <h1 id="team-title">Team Roster</h1>
+        <p class="sub" id="team-sub">Loading roster…</p>
+        <div class="meta">
+          <span id="last-updated">Last updated: —</span>
+          <div class="nav-links">
+            <a class="btn ghost" href="/">Dashboard</a>
+            <a class="btn ghost" href="/schedule.html">Schedule</a>
+            <a class="btn ghost" href="/player.html">Player Stats</a>
+            <a class="btn ghost" href="/standings.html">Standings</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container roster-layout">
+      <section class="panel compact-panel">
+        <div class="panel-head">
+          <h2>Roster</h2>
+        </div>
+        <div class="table-wrap">
+          <table id="roster-table">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel compact-panel standings-mini">
+        <div class="panel-head">
+          <h2>Standings</h2>
+        </div>
+        <div class="mini-row"><span>Team</span><strong id="stat-team">—</strong></div>
+        <div class="mini-row"><span>GP</span><strong id="stat-gp">—</strong></div>
+        <div class="mini-row"><span>Wins</span><strong id="stat-wins">—</strong></div>
+        <div class="mini-row"><span>Loss</span><strong id="stat-loss">—</strong></div>
+        <div class="mini-row"><span>GB</span><strong id="stat-gb">—</strong></div>
+        <div class="mini-row"><span>Win %</span><strong id="stat-winpct">—</strong></div>
+      </section>
+
+      <section class="panel compact-panel">
+        <div class="panel-head">
+          <h2>Team Schedule</h2>
+        </div>
+        <div class="table-wrap">
+          <table id="team-schedule">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      Built for the RSKL league • Powered by Google Sheets
+    </footer>
+
+    <div id="boxscore-modal" class="modal" hidden>
+      <div class="modal-backdrop" data-close="true"></div>
+      <div class="modal-card" role="dialog" aria-modal="true">
+        <div class="modal-head">
+          <h2>Box Score</h2>
+          <button class="modal-close" data-close="true">Close</button>
+        </div>
+        <div id="boxscore-details" class="boxscore-details"></div>
+      </div>
+    </div>
+
+    <script src="team.js"></script>
+  </body>
+</html>
