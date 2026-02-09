@@ -200,8 +200,15 @@ els.body.addEventListener("click", (event) => {
   if (!rowEl) {
     return;
   }
-  const index = Number(rowEl.dataset.index);
-  const scheduleRow = cachedScheduleRows[index];
+  const rowIndex = Number(rowEl.dataset.index);
+  if (rowIndex === 0) {
+    return;
+  }
+  const cell = event.target.closest("td");
+  if (cell && (cell.cellIndex === 0 || cell.cellIndex === 1)) {
+    return;
+  }
+  const scheduleRow = cachedScheduleRows[rowIndex];
   const scheduleDate = scheduleRow ? scheduleRow[1] : "";
   const team1Name = scheduleRow ? scheduleRow[2] : "";
   const team2Name = scheduleRow ? scheduleRow[3] : "";

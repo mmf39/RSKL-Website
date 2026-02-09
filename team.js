@@ -201,9 +201,11 @@ function sliceRange(rows, range) {
 async function loadRoster() {
   const teamName = getTeamName();
   els.title.textContent = teamName ? `${teamName} Roster` : "Team Roster";
-  els.sub.textContent = teamName
-    ? `Roster for ${teamName}`
-    : "Missing team name.";
+  if (els.sub) {
+    els.sub.textContent = teamName
+      ? `Roster for ${teamName}`
+      : "Missing team name.";
+  }
 
   try {
     const [rosterRes, standingsRes, scheduleRes, boxscoreRes] = await Promise.all([

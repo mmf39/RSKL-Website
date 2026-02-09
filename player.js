@@ -171,6 +171,8 @@ function renderLeaderboard(list, query, metric) {
     sorted.sort((a, b) => b.total - a.total);
   } else if (metric === "avg_rank") {
     sorted.sort((a, b) => a.avgRank - b.avgRank);
+  } else if (metric === "gp") {
+    sorted.sort((a, b) => b.games - a.games);
   } else {
     sorted.sort((a, b) => b.avg - a.avg);
   }
@@ -180,6 +182,8 @@ function renderLeaderboard(list, query, metric) {
       ? "total"
       : metric === "avg_rank"
       ? "avg rank"
+      : metric === "gp"
+      ? "gp"
       : "avg";
 
   els.results.innerHTML = `
@@ -195,9 +199,11 @@ function renderLeaderboard(list, query, metric) {
                   ? item.total.toFixed(0)
                   : metric === "avg_rank"
                   ? item.avgRank.toFixed(2)
+                  : metric === "gp"
+                  ? item.games
                   : item.avg.toFixed(2)
               } ${metricLabel}</div>
-              <div class="leader-sub">${item.games} games</div>
+              <div class="leader-sub">${item.games} GP</div>
             </div>
           `
         )

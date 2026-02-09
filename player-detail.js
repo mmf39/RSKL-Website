@@ -12,6 +12,7 @@ const els = {
   sumTotal: document.getElementById("sum-total"),
   sumAvgScore: document.getElementById("sum-avg-score"),
   sumAvgRank: document.getElementById("sum-avg-rank"),
+  sumGp: document.getElementById("sum-gp"),
 };
 
 function parseCSV(text) {
@@ -117,6 +118,7 @@ function updateSummary(rows) {
     els.sumTotal.textContent = "—";
     els.sumAvgScore.textContent = "—";
     els.sumAvgRank.textContent = "—";
+    els.sumGp.textContent = "—";
     return;
   }
   let total = 0;
@@ -144,14 +146,17 @@ function updateSummary(rows) {
   els.sumAvgRank.textContent = rankGames
     ? (rankTotal / rankGames).toFixed(2)
     : "—";
+  els.sumGp.textContent = String(scoreGames);
 }
 
 async function loadPlayer() {
   const playerName = getPlayerName();
   els.name.textContent = playerName || "Player";
-  els.sub.textContent = playerName
-    ? `Game-by-game stats for ${playerName}`
-    : "Missing player name.";
+  if (els.sub) {
+    els.sub.textContent = playerName
+      ? `Game-by-game stats for ${playerName}`
+      : "Missing player name.";
+  }
 
   if (playerName.toUpperCase().startsWith("GM")) {
     renderTable([]);

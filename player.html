@@ -6,13 +6,13 @@
     <title>RSKL Player Stats</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body class="player-page">
     <div class="bg"></div>
     <header class="hero">
       <div class="hero-inner">
         <div class="badge">RSKL Fantasy League</div>
         <h1>Player Stats</h1>
-        <p class="sub">Search a player to see game-by-game stats.</p>
+        
         <div class="meta">
           <span id="last-updated">Last updated: —</span>
           <div class="nav-links">
@@ -35,6 +35,7 @@
               <option value="avg_score">Score Average</option>
               <option value="total_score">Total Score</option>
               <option value="avg_rank">Rank Average</option>
+              <option value="gp">GP</option>
             </select>
             <label for="player-search" class="label">Player</label>
             <input id="player-search" type="text" placeholder="Type a player name" />
