@@ -2,6 +2,8 @@ const ROSTER_CSV_URL = "/api/roster";
 const STANDINGS_CSV_URL = "/api/standings";
 const SCHEDULE_CSV_URL = "/api/schedule";
 const BOXSCORE_CSV_URL = "/api/boxscore";
+const ARCHIVE_URL = "/api/archive";
+const SEASON_KEY = "season";
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
   Bullets: "E2:F13",
@@ -10,6 +12,48 @@ const TEAM_RANGES = {
   Yetis: "E17:F28",
   Illegals: "H17:I28",
 };
+
+const ARCHIVE_RANGES = {
+  standings: "A1:F7",
+  teams: "H1:O27",
+  schedule_regular: "G31:I79",
+  schedule_post: "A31:D43",
+  boxscore: "L31:R149",
+};
+
+const ARCHIVE_TEAM_ROSTERS = {
+  "Gus N Em": "H1:I12",
+  Cheerios: "H16:I27",
+  Bullets: "K1:L12",
+  Yetis: "K16:L27",
+  Turkeys: "N1:O12",
+  Illegals: "N16:O27",
+};
+
+const ARCHIVE_TEAM_STANDINGS = {
+  Turkeys: "A2:F2",
+  "Gus N Em": "A3:F3",
+  Bullets: "A4:F4",
+  Cheerios: "A5:F5",
+  Yetis: "A6:F6",
+  Illegals: "A7:F7",
+};
+
+function getSeason() {
+  return localStorage.getItem(SEASON_KEY) || "c2s2";
+}
+
+function initSeasonSelect() {
+  const select = document.getElementById("season-select");
+  if (!select) {
+    return;
+  }
+  select.value = getSeason();
+  select.addEventListener("change", () => {
+    localStorage.setItem(SEASON_KEY, select.value);
+    location.reload();
+  });
+}
 
 const STANDINGS_RANGES = {
   Turkeys: "H3:M3",
@@ -208,48 +252,83 @@ async function loadRoster() {
   }
 
   try {
-    const [rosterRes, standingsRes, scheduleRes, boxscoreRes] = await Promise.all([
-      fetch(ROSTER_CSV_URL, { cache: "no-store" }),
-      fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
-      fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
-      fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
-    ]);
+    const season = getSeason();
+    if (season === "c2s2") {
+      const [rosterRes, standingsRes, scheduleRes, boxscoreRes] = await Promise.all([
+        fetch(ROSTER_CSV_URL, { cache: "no-store" }),
+        fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
+        fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
+        fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
+      ]);
 
-    if (!rosterRes.ok) {
-      throw new Error(`Fetch failed: ${rosterRes.status}`);
-    }
-    if (!standingsRes.ok) {
-      throw new Error(`Fetch failed: ${standingsRes.status}`);
-    }
-    if (!scheduleRes.ok) {
-      throw new Error(`Fetch failed: ${scheduleRes.status}`);
-    }
-    if (!boxscoreRes.ok) {
-      throw new Error(`Fetch failed: ${boxscoreRes.status}`);
-    }
+      if (!rosterRes.ok) {
+        throw new Error(`Fetch failed: ${rosterRes.status}`);
+      }
+      if (!standingsRes.ok) {
+        throw new Error(`Fetch failed: ${standingsRes.status}`);
+      }
+      if (!scheduleRes.ok) {
+        throw new Error(`Fetch failed: ${scheduleRes.status}`);
+      }
+      if (!boxscoreRes.ok) {
+        throw new Error(`Fetch failed: ${boxscoreRes.status}`);
+      }
 
-    const rows = parseCSV(await rosterRes.text());
-    if (!rows.length) {
-      throw new Error("No data found.");
-    }
+      const rows = parseCSV(await rosterRes.text());
+      if (!rows.length) {
+        throw new Error("No data found.");
+      }
 
-    const range = TEAM_RANGES[teamName];
-    if (!range) {
-      throw new Error("Team roster range not found.");
-    }
+      const range = TEAM_RANGES[teamName];
+      if (!range) {
+        throw new Error("Team roster range not found.");
+      }
 
-    const sliced = sliceRange(rows, range);
-    if (!sliced.length) {
-      throw new Error("No roster data in that range.");
-    }
+      const sliced = sliceRange(rows, range);
+      if (!sliced.length) {
+        throw new Error("No roster data in that range.");
+      }
 
-    renderTable(sliced[0], sliced.slice(1));
-    updateStandingsFromRanges(teamName, parseCSV(await standingsRes.text()));
-    updateTeamSchedule(
-      teamName,
-      parseCSV(await scheduleRes.text()),
-      parseCSV(await boxscoreRes.text())
-    );
+      renderTable(sliced[0], sliced.slice(1));
+      updateStandingsFromRanges(teamName, parseCSV(await standingsRes.text()));
+      updateTeamSchedule(
+        teamName,
+        parseCSV(await scheduleRes.text()),
+        parseCSV(await boxscoreRes.text()),
+        season
+      );
+    } else {
+      const [archiveRes] = await Promise.all([
+        fetch(ARCHIVE_URL, { cache: "no-store" }),
+      ]);
+      if (!archiveRes.ok) {
+        throw new Error(`Fetch failed: ${archiveRes.status}`);
+      }
+      const archive = parseCSV(await archiveRes.text());
+      const standingsTable = sliceRange(archive, ARCHIVE_RANGES.standings);
+      const scheduleRange =
+        season === "c2s1-post"
+          ? ARCHIVE_RANGES.schedule_post
+          : ARCHIVE_RANGES.schedule_regular;
+      const scheduleTable = sliceRange(archive, scheduleRange);
+      const boxscoreTable = sliceRange(archive, ARCHIVE_RANGES.boxscore);
+
+      const rosterRange = ARCHIVE_TEAM_ROSTERS[teamName];
+      let rosterRows = rosterRange ? sliceRange(archive, rosterRange) : [];
+      if (rosterRows.length) {
+        rosterRows = rosterRows
+          .filter((row) => String(row[0] || "").trim() !== teamName)
+          .map((row) => [row[0], ""]);
+      }
+      renderTable(["Player"], rosterRows.map((row) => [row[0]]));
+
+      const standingsRange = ARCHIVE_TEAM_STANDINGS[teamName];
+      const standingsRow = standingsRange
+        ? sliceRange(archive, standingsRange)[0]
+        : null;
+      updateStandingsFromRow(standingsRow || []);
+      updateTeamSchedule(teamName, scheduleTable, boxscoreTable, season);
+    }
     updateLastUpdated();
   } catch (error) {
     els.body.innerHTML = `<tr><td>${escapeHtml(error.message)}</td></tr>`;
@@ -276,33 +355,51 @@ function updateStandingsFromRanges(teamName, standingsRows) {
   els.statWinPct.textContent = winPct || "—";
 }
 
+function updateStandingsFromRow(values) {
+  if (!values || !values.length) {
+    return;
+  }
+  const [team, gp, wins, loss, gb, winPct] = values;
+  els.statTeam.textContent = team || "—";
+  els.statGp.textContent = gp || "—";
+  els.statWins.textContent = wins || "—";
+  els.statLoss.textContent = loss || "—";
+  els.statGb.textContent = gb || "—";
+  els.statWinPct.textContent = winPct || "—";
+}
+
 let teamScheduleRows = [];
 let boxScoreRows = [];
 
-function updateTeamSchedule(teamName, scheduleRows, boxScoreData) {
+function updateTeamSchedule(teamName, scheduleRows, boxScoreData, season) {
   if (!scheduleRows.length) {
     return;
   }
   const headers = scheduleRows[0];
   const dataRows = scheduleRows.slice(1);
   const filtered = dataRows.filter((row) => {
-    const team1 = String(row[2] || "").trim();
-    const team2 = String(row[3] || "").trim();
+    const team1 =
+      season === "c2s1-regular" ? String(row[1] || "").trim() : String(row[2] || "").trim();
+    const team2 =
+      season === "c2s1-regular" ? String(row[2] || "").trim() : String(row[3] || "").trim();
     return team1 === teamName || team2 === teamName;
   });
 
-  const trimmedHeaders = headers.slice(0, 4);
-  const trimmedRows = filtered.map((row) => row.slice(0, 4));
+  const trimmedHeaders = headers.slice(0, headers.length);
+  const trimmedRows = filtered.map((row) => row.slice(0, headers.length));
   teamScheduleRows = filtered;
   boxScoreRows = boxScoreData.slice(0, 1000);
   renderSchedule(trimmedHeaders, trimmedRows);
 }
 
-function buildBoxScore(teamName, scheduleRow) {
+function buildBoxScore(teamName, scheduleRow, season) {
   if (!scheduleRow || !boxScoreRows.length) {
     return null;
   }
-  const dateToken = String(scheduleRow[1] || "").trim();
+  const dateToken =
+    season === "c2s1-regular"
+      ? String(scheduleRow[0] || "").trim()
+      : String(scheduleRow[1] || "").trim();
   const team1Name = scheduleRow[2] || "";
   const team2Name = scheduleRow[3] || "";
 
@@ -430,7 +527,7 @@ els.scheduleBody.addEventListener("click", (event) => {
   }
   const index = Number(rowEl.dataset.index);
   const scheduleRow = teamScheduleRows[index];
-  const boxScore = buildBoxScore(getTeamName(), scheduleRow);
+  const boxScore = buildBoxScore(getTeamName(), scheduleRow, getSeason());
   renderBoxScoreModal(boxScore);
 });
 
@@ -440,4 +537,5 @@ document.addEventListener("click", (event) => {
   }
 });
 
+initSeasonSelect();
 loadRoster();

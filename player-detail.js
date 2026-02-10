@@ -1,5 +1,13 @@
 const PLAYER_STATS_URL = "/api/player-stats";
 const BOXSCORE_CSV_URL = "/api/boxscore";
+const ARCHIVE_URL = "/api/archive";
+const PLAYER_SEASON_KEY = "playerSeason";
+const SEASON_KEY = "season";
+
+const ARCHIVE_RANGES = {
+  player_stats: "A45:F117",
+  boxscore: "L31:R149",
+};
 
 const els = {
   name: document.getElementById("player-name"),
@@ -65,6 +73,35 @@ function parseCSV(text) {
   return rows;
 }
 
+function colToIndex(letter) {
+  return letter.toUpperCase().charCodeAt(0) - 65;
+}
+
+function parseRange(range) {
+  const match = range.match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/i);
+  if (!match) {
+    return null;
+  }
+  const [, startCol, startRow, endCol, endRow] = match;
+  return {
+    startCol: colToIndex(startCol),
+    endCol: colToIndex(endCol),
+    startRow: Number(startRow) - 1,
+    endRow: Number(endRow) - 1,
+  };
+}
+
+function sliceRange(rows, range) {
+  const parsed = parseRange(range);
+  if (!parsed) {
+    return [];
+  }
+  const slicedRows = rows.slice(parsed.startRow, parsed.endRow + 1);
+  return slicedRows.map((row) =>
+    row.slice(parsed.startCol, parsed.endCol + 1)
+  );
+}
+
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, "&amp;")
@@ -88,6 +125,79 @@ function updateLastUpdated() {
 function getPlayerName() {
   const params = new URLSearchParams(window.location.search);
   return params.get("player") || "";
+}
+
+function getSeason() {
+  const playerSeason = localStorage.getItem(PLAYER_SEASON_KEY);
+  if (playerSeason) {
+    return playerSeason;
+  }
+  const season = localStorage.getItem(SEASON_KEY);
+  if (season === "c2s1-post") {
+    return "c2s1-playoffs";
+  }
+  if (season === "c2s1-regular") {
+    return "c2s1-regular";
+  }
+  return "c2s2-regular";
+}
+
+function initSeasonSelect() {
+  const panelSelect = document.getElementById("player-season-select");
+  const navSelect = document.getElementById("season-select");
+  const current = getSeason();
+
+  if (panelSelect) {
+    panelSelect.value = current;
+  }
+  if (navSelect) {
+    navSelect.value =
+      current === "c2s1-playoffs"
+        ? "c2s1-post"
+        : current === "c2s1-regular"
+        ? "c2s1-regular"
+        : "c2s2";
+  }
+
+  if (!localStorage.getItem(PLAYER_SEASON_KEY)) {
+    localStorage.setItem(PLAYER_SEASON_KEY, current);
+  }
+  localStorage.setItem(
+    SEASON_KEY,
+    current === "c2s1-playoffs"
+      ? "c2s1-post"
+      : current === "c2s1-regular"
+      ? "c2s1-regular"
+      : "c2s2"
+  );
+
+  const onChange = (value) => {
+    localStorage.setItem(PLAYER_SEASON_KEY, value);
+    localStorage.setItem(
+      SEASON_KEY,
+      value === "c2s1-playoffs"
+        ? "c2s1-post"
+        : value === "c2s1-regular"
+        ? "c2s1-regular"
+        : "c2s2"
+    );
+    location.reload();
+  };
+
+  if (panelSelect) {
+    panelSelect.addEventListener("change", () => onChange(panelSelect.value));
+  }
+  if (navSelect) {
+    navSelect.addEventListener("change", () => {
+      const mapped =
+        navSelect.value === "c2s1-post"
+          ? "c2s1-playoffs"
+          : navSelect.value === "c2s1-regular"
+          ? "c2s1-regular"
+          : "c2s2-regular";
+      onChange(mapped);
+    });
+  }
 }
 
 function renderTable(rows) {
@@ -166,31 +276,53 @@ async function loadPlayer() {
   }
 
   try {
-    const [playerRes, boxRes] = await Promise.all([
-      fetch(PLAYER_STATS_URL, { cache: "no-store" }),
-      fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
-    ]);
-    if (!playerRes.ok) {
-      throw new Error(`Fetch failed: ${playerRes.status}`);
+    const season = getSeason();
+    let dataRows = [];
+    let boxRows = [];
+    if (season === "c2s2-regular") {
+      const [playerRes, boxRes] = await Promise.all([
+        fetch(PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
+      ]);
+      if (!playerRes.ok) {
+        throw new Error(`Fetch failed: ${playerRes.status}`);
+      }
+      if (!boxRes.ok) {
+        throw new Error(`Fetch failed: ${boxRes.status}`);
+      }
+      const rows = parseCSV(await playerRes.text());
+      if (!rows.length) {
+        throw new Error("No data found.");
+      }
+      dataRows = rows.slice(1);
+      boxRows = parseCSV(await boxRes.text());
+    } else if (season === "c2s1-playoffs") {
+      const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Fetch failed: ${response.status}`);
+      }
+      const archive = parseCSV(await response.text());
+      dataRows = sliceRange(archive, ARCHIVE_RANGES.player_stats).slice(1);
+      boxRows = sliceRange(archive, ARCHIVE_RANGES.boxscore);
+    } else {
+      dataRows = [];
+      boxRows = [];
     }
-    if (!boxRes.ok) {
-      throw new Error(`Fetch failed: ${boxRes.status}`);
-    }
-    const rows = parseCSV(await playerRes.text());
-    if (!rows.length) {
-      throw new Error("No data found.");
-    }
-    const dataRows = rows.slice(1);
     const normalize = (value) => String(value || "").trim().toLowerCase();
     const target = normalize(playerName);
     const filtered = playerName
       ? dataRows.filter((row) => normalize(row[2]) === target)
       : [];
 
-    renderTable(filtered);
-    updateSummary(filtered);
+    if (season === "c2s1-regular") {
+      els.body.innerHTML = `<tr><td>No stats available for C2S1 Regular Season.</td></tr>`;
+      updateSummary([]);
+    } else {
+      renderTable(filtered);
+      updateSummary(filtered);
+    }
     window.__playerRows = filtered;
-    window.__boxScoreRows = parseCSV(await boxRes.text());
+    window.__boxScoreRows = boxRows;
     updateLastUpdated();
   } catch (error) {
     els.body.innerHTML = `<tr><td>${escapeHtml(error.message)}</td></tr>`;
@@ -345,4 +477,5 @@ document.addEventListener("click", (event) => {
   }
 });
 
+initSeasonSelect();
 loadPlayer();

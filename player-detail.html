@@ -20,6 +20,11 @@
             <a class="btn ghost" href="/schedule.html">Schedule</a>
             <a class="btn ghost" href="/player.html">Player Stats</a>
             <a class="btn ghost" href="/standings.html">Standings</a>
+            <select id="season-select" class="season-select">
+              <option value="c2s2">C2S2 (Current)</option>
+              <option value="c2s1-regular">C2S1 Regular Season</option>
+              <option value="c2s1-post">C2S1 Postseason</option>
+            </select>
           </div>
         </div>
       </div>
@@ -29,6 +34,14 @@
       <section class="panel">
         <div class="panel-head">
           <h2>Player Summary</h2>
+          <div class="controls">
+            <label for="player-season-select" class="label">Season</label>
+            <select id="player-season-select">
+              <option value="c2s2-regular">C2S2 Regular Season</option>
+              <option value="c2s1-playoffs">C2S1 Playoffs</option>
+              <option value="c2s1-regular">C2S1 Regular Season</option>
+            </select>
+          </div>
         </div>
         <div class="player-summary">
           <div class="summary-card">

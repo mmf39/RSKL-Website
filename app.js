@@ -2,11 +2,14 @@ const STANDINGS_CSV_URL = "/api/standings-dashboard";
 const STANDINGS_RECORDS_URL = "/api/standings";
 const TEAMS_CSV_URL = "/api/teams";
 const LIVE_SCORING_URL = "/api/live-scoring";
+const ARCHIVE_URL = "/api/archive";
+const SEASON_KEY = "season";
 
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
+  refresh: document.getElementById("refresh"),
   teamsGrid: document.getElementById("teams-grid"),
   standingsLink: document.getElementById("standings-link"),
   teamsLink: document.getElementById("teams-link"),
@@ -71,6 +74,22 @@ function parseCSV(text) {
   return rows;
 }
 
+function getSeason() {
+  return localStorage.getItem(SEASON_KEY) || "c2s2";
+}
+
+function initSeasonSelect() {
+  const select = document.getElementById("season-select");
+  if (!select) {
+    return;
+  }
+  select.value = getSeason();
+  select.addEventListener("change", () => {
+    localStorage.setItem(SEASON_KEY, select.value);
+    location.reload();
+  });
+}
+
 function colToIndex(letter) {
   return letter.toUpperCase().charCodeAt(0) - 65;
 }
@@ -128,6 +147,16 @@ const TEAM_RECORD_RANGES = {
   Illegals: { record: "J8:K8", winPct: "M8:M8" },
 };
 
+const ARCHIVE_RANGES = {
+  standings: "A1:F7",
+  teams: "H1:O27",
+  schedule_regular: "G31:I79",
+  schedule_post: "A31:D43",
+  bracket: "A9:F15",
+  boxscore: "L31:R149",
+  player_stats: "A45:F117",
+};
+
 function renderTeamsCards(standingsRecordRows) {
   const teamNames = Object.keys(TEAM_RANGES).slice(0, TEAMS_LIMIT);
   if (!teamNames.length) {
@@ -165,6 +194,50 @@ function renderTeamsCards(standingsRecordRows) {
           <div class="team-record small">
             <span>Win %</span>
             <strong>${escapeHtml(winPct || "—")}</strong>
+          </div>
+        </a>
+      `;
+    })
+    .join("");
+}
+
+function renderTeamsCardsArchive(standingsRows) {
+  const headers = standingsRows[0] || [];
+  const dataRows = standingsRows.slice(1);
+  const lower = headers.map((h) => h.toLowerCase());
+  const teamIdx = lower.findIndex((h) => h.includes("team"));
+  const winsIdx = lower.findIndex((h) => h.includes("win"));
+  const lossIdx = lower.findIndex((h) => h.includes("loss"));
+  const winPctIdx = lower.findIndex((h) => h.includes("win %") || h.includes("win%"));
+
+  const teams = dataRows
+    .map((row) => ({
+      name: row[teamIdx !== -1 ? teamIdx : 0],
+      wins: row[winsIdx],
+      losses: row[lossIdx],
+      winPct: row[winPctIdx],
+    }))
+    .filter((row) => row.name);
+
+  els.teamsGrid.innerHTML = teams
+    .slice(0, TEAMS_LIMIT)
+    .map((team) => {
+      const link = `team.html?team=${encodeURIComponent(team.name)}`;
+      const record =
+        team.wins !== undefined && team.losses !== undefined
+          ? `${team.wins}-${team.losses}`
+          : "—";
+      const winPct = team.winPct ?? "—";
+      return `
+        <a class="team-card" href="${link}">
+          <div class="team-title">${escapeHtml(team.name)}</div>
+          <div class="team-record">
+            <span>Record</span>
+            <strong>${escapeHtml(record)}</strong>
+          </div>
+          <div class="team-record small">
+            <span>Win %</span>
+            <strong>${escapeHtml(winPct)}</strong>
           </div>
         </a>
       `;
@@ -352,14 +425,22 @@ async function fetchSheet(url) {
 
 async function loadData() {
   try {
-    const [standingsRecordData, liveData, scheduleData] = await Promise.all([
-      fetchSheet(STANDINGS_RECORDS_URL),
-      fetchSheet(LIVE_SCORING_URL),
-      fetchSheet("/api/schedule"),
-    ]);
-
-    renderTeamsCards(standingsRecordData);
-    renderLiveScoring(liveData, scheduleData);
+    const season = getSeason();
+    if (season === "c2s2") {
+      const [standingsRecordData, liveData, scheduleData] = await Promise.all([
+        fetchSheet(STANDINGS_RECORDS_URL),
+        fetchSheet(LIVE_SCORING_URL),
+        fetchSheet("/api/schedule"),
+      ]);
+      renderTeamsCards(standingsRecordData);
+      renderLiveScoring(liveData, scheduleData);
+      els.liveRow.parentElement.style.display = "";
+    } else {
+      const archive = await fetchSheet(ARCHIVE_URL);
+      const standings = sliceRange(archive, ARCHIVE_RANGES.standings);
+      renderTeamsCardsArchive(standings);
+      els.liveRow.parentElement.style.display = "none";
+    }
     updateLastUpdated();
   } catch (error) {
     els.teamsGrid.innerHTML = "";
@@ -378,8 +459,13 @@ function updateLastUpdated() {
   els.lastUpdated.textContent = `Last updated: ${formatted}`;
 }
 
+initSeasonSelect();
 loadData();
 setInterval(loadData, AUTO_REFRESH_MS);
+
+if (els.refresh) {
+  els.refresh.addEventListener("click", loadData);
+}
 
 document.addEventListener("click", (event) => {
   if (event.target.matches("[data-close=\"true\"]")) {

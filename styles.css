@@ -125,6 +125,15 @@ h1 {
   margin-left: auto;
 }
 
+.season-select {
+  background: #000000;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+}
+
 .live-row {
   display: flex;
   justify-content: space-between;

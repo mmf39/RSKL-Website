@@ -1,4 +1,7 @@
 const PLAYER_STATS_URL = "/api/player-stats";
+const ARCHIVE_URL = "/api/archive";
+const PLAYER_SEASON_KEY = "playerSeason";
+const SEASON_KEY = "season";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -9,6 +12,83 @@ const els = {
 
 let playerRows = [];
 let leaderboardRows = [];
+
+const ARCHIVE_RANGES = {
+  player_stats: "A45:F117",
+};
+
+function getPlayerSeason() {
+  const playerSeason = localStorage.getItem(PLAYER_SEASON_KEY);
+  if (playerSeason) {
+    return playerSeason;
+  }
+  const season = localStorage.getItem(SEASON_KEY);
+  if (season === "c2s1-post") {
+    return "c2s1-playoffs";
+  }
+  if (season === "c2s1-regular") {
+    return "c2s1-regular";
+  }
+  return "c2s2-regular";
+}
+
+function initPlayerSeasonSelect() {
+  const panelSelect = document.getElementById("player-season-select");
+  const navSelect = document.getElementById("season-select");
+  const current = getPlayerSeason();
+
+  if (panelSelect) {
+    panelSelect.value = current;
+  }
+  if (navSelect) {
+    navSelect.value =
+      current === "c2s1-playoffs"
+        ? "c2s1-post"
+        : current === "c2s1-regular"
+        ? "c2s1-regular"
+        : "c2s2";
+  }
+
+  if (!localStorage.getItem(PLAYER_SEASON_KEY)) {
+    localStorage.setItem(PLAYER_SEASON_KEY, current);
+  }
+  localStorage.setItem(
+    SEASON_KEY,
+    current === "c2s1-playoffs"
+      ? "c2s1-post"
+      : current === "c2s1-regular"
+      ? "c2s1-regular"
+      : "c2s2"
+  );
+
+  const onChange = (value) => {
+    localStorage.setItem(PLAYER_SEASON_KEY, value);
+    localStorage.setItem(
+      SEASON_KEY,
+      value === "c2s1-playoffs"
+        ? "c2s1-post"
+        : value === "c2s1-regular"
+        ? "c2s1-regular"
+        : "c2s2"
+    );
+    location.reload();
+  };
+
+  if (panelSelect) {
+    panelSelect.addEventListener("change", () => onChange(panelSelect.value));
+  }
+  if (navSelect) {
+    navSelect.addEventListener("change", () => {
+      const mapped =
+        navSelect.value === "c2s1-post"
+          ? "c2s1-playoffs"
+          : navSelect.value === "c2s1-regular"
+          ? "c2s1-regular"
+          : "c2s2-regular";
+      onChange(mapped);
+    });
+  }
+}
 
 function parseCSV(text) {
   const rows = [];
@@ -58,6 +138,35 @@ function parseCSV(text) {
   }
 
   return rows;
+}
+
+function colToIndex(letter) {
+  return letter.toUpperCase().charCodeAt(0) - 65;
+}
+
+function parseRange(range) {
+  const match = range.match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/i);
+  if (!match) {
+    return null;
+  }
+  const [, startCol, startRow, endCol, endRow] = match;
+  return {
+    startCol: colToIndex(startCol),
+    endCol: colToIndex(endCol),
+    startRow: Number(startRow) - 1,
+    endRow: Number(endRow) - 1,
+  };
+}
+
+function sliceRange(rows, range) {
+  const parsed = parseRange(range);
+  if (!parsed) {
+    return [];
+  }
+  const slicedRows = rows.slice(parsed.startRow, parsed.endRow + 1);
+  return slicedRows.map((row) =>
+    row.slice(parsed.startCol, parsed.endCol + 1)
+  );
 }
 
 function escapeHtml(value) {
@@ -214,18 +323,35 @@ function renderLeaderboard(list, query, metric) {
 
 async function loadPlayerStats() {
   try {
-    const response = await fetch(PLAYER_STATS_URL, { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(`Fetch failed: ${response.status}`);
+    const season = getPlayerSeason();
+    if (season === "c2s2-regular") {
+      const response = await fetch(PLAYER_STATS_URL, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Fetch failed: ${response.status}`);
+      }
+      const rows = parseCSV(await response.text());
+      if (!rows.length) {
+        throw new Error("No data found.");
+      }
+      playerRows = rows.slice(1);
+    } else if (season === "c2s1-playoffs") {
+      const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Fetch failed: ${response.status}`);
+      }
+      const archive = parseCSV(await response.text());
+      const sliced = sliceRange(archive, ARCHIVE_RANGES.player_stats);
+      playerRows = sliced.slice(1);
+    } else {
+      playerRows = [];
     }
-    const rows = parseCSV(await response.text());
-    if (!rows.length) {
-      throw new Error("No data found.");
-    }
-    playerRows = rows.slice(1);
     updateLastUpdated();
     leaderboardRows = buildLeaderboard(playerRows);
-    renderLeaderboard(leaderboardRows, "", els.filter.value);
+    if (season === "c2s1-regular") {
+      els.results.innerHTML = "<p>No stats available for C2S1 Regular Season.</p>";
+    } else {
+      renderLeaderboard(leaderboardRows, "", els.filter.value);
+    }
   } catch (error) {
     els.results.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
   }
@@ -241,4 +367,5 @@ els.filter.addEventListener("change", () => {
   renderLeaderboard(leaderboardRows, query, els.filter.value);
 });
 
+initPlayerSeasonSelect();
 loadPlayerStats();

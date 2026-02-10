@@ -32,6 +32,9 @@ PLAYER_STATS_URL = (
 LIVE_SCORING_URL = (
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=1486072019&single=true&output=csv"
 )
+ARCHIVE_URL = (
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1077518539&single=true&output=csv"
+)
 
 MIME = {
     ".html": "text/html; charset=utf-8",
@@ -99,6 +102,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/live-scoring":
             proxy_csv(self, LIVE_SCORING_URL)
+            return
+        if path == "/api/archive":
+            proxy_csv(self, ARCHIVE_URL)
             return
 
         if path == "/":

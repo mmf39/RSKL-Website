@@ -1,5 +1,7 @@
 const SCHEDULE_CSV_URL = "/api/schedule";
 const BOXSCORE_CSV_URL = "/api/boxscore";
+const ARCHIVE_URL = "/api/archive";
+const SEASON_KEY = "season";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -16,6 +18,28 @@ let cachedRows = [];
 let cachedFullRows = [];
 let cachedBoxScoreRows = [];
 let cachedScheduleRows = [];
+
+const ARCHIVE_RANGES = {
+  schedule_regular: "G31:I79",
+  schedule_post: "A31:D43",
+  boxscore: "L31:R149",
+};
+
+function getSeason() {
+  return localStorage.getItem(SEASON_KEY) || "c2s2";
+}
+
+function initSeasonSelect() {
+  const select = document.getElementById("season-select");
+  if (!select) {
+    return;
+  }
+  select.value = getSeason();
+  select.addEventListener("change", () => {
+    localStorage.setItem(SEASON_KEY, select.value);
+    location.reload();
+  });
+}
 
 function parseCSV(text) {
   const rows = [];
@@ -65,6 +89,35 @@ function parseCSV(text) {
   }
 
   return rows;
+}
+
+function colToIndex(letter) {
+  return letter.toUpperCase().charCodeAt(0) - 65;
+}
+
+function parseRange(range) {
+  const match = range.match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/i);
+  if (!match) {
+    return null;
+  }
+  const [, startCol, startRow, endCol, endRow] = match;
+  return {
+    startCol: colToIndex(startCol),
+    endCol: colToIndex(endCol),
+    startRow: Number(startRow) - 1,
+    endRow: Number(endRow) - 1,
+  };
+}
+
+function sliceRange(rows, range) {
+  const parsed = parseRange(range);
+  if (!parsed) {
+    return [];
+  }
+  const slicedRows = rows.slice(parsed.startRow, parsed.endRow + 1);
+  return slicedRows.map((row) =>
+    row.slice(parsed.startCol, parsed.endCol + 1)
+  );
 }
 
 function escapeHtml(value) {
@@ -171,24 +224,55 @@ function updateLastUpdated() {
 
 async function loadSchedule() {
   try {
-    const response = await fetch(SCHEDULE_CSV_URL, { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(`Fetch failed: ${response.status}`);
+    const season = getSeason();
+    let rows = [];
+    let boxScoreRows = [];
+    let dateIndex = 1;
+    let team1Index = 2;
+    let team2Index = 3;
+
+    if (season === "c2s2") {
+      const response = await fetch(SCHEDULE_CSV_URL, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Fetch failed: ${response.status}`);
+      }
+      rows = parseCSV(await response.text());
+      const boxRes = await fetch(BOXSCORE_CSV_URL, { cache: "no-store" });
+      boxScoreRows = parseCSV(await boxRes.text()).slice(0, 1000);
+      dateIndex = 1;
+      team1Index = 2;
+      team2Index = 3;
+    } else {
+      const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Fetch failed: ${response.status}`);
+      }
+      const archive = parseCSV(await response.text());
+      const range =
+        season === "c2s1-post"
+          ? ARCHIVE_RANGES.schedule_post
+          : ARCHIVE_RANGES.schedule_regular;
+      rows = sliceRange(archive, range);
+      boxScoreRows = sliceRange(archive, ARCHIVE_RANGES.boxscore);
+      if (season === "c2s1-post") {
+        dateIndex = 1;
+        team1Index = 2;
+        team2Index = 3;
+      } else {
+        dateIndex = 0;
+        team1Index = 1;
+        team2Index = 2;
+      }
     }
-    const rows = parseCSV(await response.text());
+
     if (!rows.length) {
       throw new Error("No data found.");
     }
 
     const limitedFull = rows.slice(0, 1000);
-    const limitedTable = limitedFull.map((row) => row.slice(0, 4));
-    const headers = limitedTable[0] || [];
-    const dataRows = limitedTable.slice(1);
-    const fullDataRows = limitedFull.slice(1);
-    const boxScoreRows = parseCSV(
-      await (await fetch(BOXSCORE_CSV_URL, { cache: "no-store" })).text()
-    ).slice(0, 1000);
-    renderTable(headers, dataRows, fullDataRows, boxScoreRows, dataRows);
+    const headers = limitedFull[0] || [];
+    const dataRows = limitedFull.slice(1);
+    renderTable(headers, dataRows, dataRows, boxScoreRows, dataRows);
     updateLastUpdated();
   } catch (error) {
     els.body.innerHTML = `<tr><td>${escapeHtml(error.message)}</td></tr>`;
@@ -201,17 +285,18 @@ els.body.addEventListener("click", (event) => {
     return;
   }
   const rowIndex = Number(rowEl.dataset.index);
-  if (rowIndex === 0) {
-    return;
-  }
   const cell = event.target.closest("td");
   if (cell && (cell.cellIndex === 0 || cell.cellIndex === 1)) {
     return;
   }
   const scheduleRow = cachedScheduleRows[rowIndex];
-  const scheduleDate = scheduleRow ? scheduleRow[1] : "";
-  const team1Name = scheduleRow ? scheduleRow[2] : "";
-  const team2Name = scheduleRow ? scheduleRow[3] : "";
+  const season = getSeason();
+  const dateIndex = season === "c2s1-regular" ? 0 : 1;
+  const team1Index = season === "c2s1-regular" ? 1 : 2;
+  const team2Index = season === "c2s1-regular" ? 2 : 3;
+  const scheduleDate = scheduleRow ? scheduleRow[dateIndex] : "";
+  const team1Name = scheduleRow ? scheduleRow[team1Index] : "";
+  const team2Name = scheduleRow ? scheduleRow[team2Index] : "";
   const dateToken = scheduleDate ? scheduleDate.trim() : "";
 
   const isDateRow = (row) => {
@@ -322,4 +407,5 @@ document.addEventListener("click", (event) => {
   }
 });
 
+initSeasonSelect();
 loadSchedule();
