@@ -11,6 +11,10 @@ const TEAM_RANGES = {
   Cheerios: "B17:C28",
   Yetis: "E17:F28",
   Illegals: "H17:I28",
+  "The Lions": "B32:C43",
+  "The Future": "E32:F43",
+  "The Snipers": "H32:I43",
+  "The Phantoms": "B45:C56",
 };
 
 const ARCHIVE_RANGES = {
@@ -62,12 +66,17 @@ const STANDINGS_RANGES = {
   Cheerios: "H6:M6",
   Yetis: "H7:M7",
   Illegals: "H8:M8",
+  "The Lions": "H9:M9",
+  "The Future": "H10:M10",
+  "The Phantoms": "H11:M11",
+  "The Snipers": "H12:M12",
 };
 
 const els = {
   title: document.getElementById("team-title"),
   sub: document.getElementById("team-sub"),
   lastUpdated: document.getElementById("last-updated"),
+  logo: document.getElementById("team-logo"),
   head: document.querySelector("#roster-table thead"),
   body: document.querySelector("#roster-table tbody"),
   statGp: document.getElementById("stat-gp"),
@@ -244,6 +253,19 @@ function sliceRange(rows, range) {
 
 async function loadRoster() {
   const teamName = getTeamName();
+  if (els.logo) {
+    if (teamName === "The Future") {
+      els.logo.src = "/assets/the-future.png";
+      els.logo.alt = "The Future logo";
+      els.logo.style.display = "block";
+    } else if (teamName === "The Lions") {
+      els.logo.src = "/assets/the-lions.png";
+      els.logo.alt = "The Lions logo";
+      els.logo.style.display = "block";
+    } else {
+      els.logo.style.display = "none";
+    }
+  }
   els.title.textContent = teamName ? `${teamName} Roster` : "Team Roster";
   if (els.sub) {
     els.sub.textContent = teamName

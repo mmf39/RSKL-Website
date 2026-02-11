@@ -12,6 +12,14 @@ const els = {
 
 let playerRows = [];
 let leaderboardRows = [];
+let playerColumns = {
+  date: 0,
+  team: 1,
+  player: 2,
+  score: 3,
+  rank: 4,
+  opponent: 5,
+};
 
 const ARCHIVE_RANGES = {
   player_stats: "A45:F117",
@@ -52,14 +60,16 @@ function initPlayerSeasonSelect() {
   if (!localStorage.getItem(PLAYER_SEASON_KEY)) {
     localStorage.setItem(PLAYER_SEASON_KEY, current);
   }
-  localStorage.setItem(
-    SEASON_KEY,
-    current === "c2s1-playoffs"
-      ? "c2s1-post"
-      : current === "c2s1-regular"
-      ? "c2s1-regular"
-      : "c2s2"
-  );
+  if (!localStorage.getItem(SEASON_KEY)) {
+    localStorage.setItem(
+      SEASON_KEY,
+      current === "c2s1-playoffs"
+        ? "c2s1-post"
+        : current === "c2s1-regular"
+        ? "c2s1-regular"
+        : "c2s2"
+    );
+  }
 
   const onChange = (value) => {
     localStorage.setItem(PLAYER_SEASON_KEY, value);
@@ -178,6 +188,37 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function detectPlayerColumns(headerRow) {
+  const columns = {
+    date: 0,
+    team: 1,
+    player: 2,
+    score: 3,
+    rank: 4,
+    opponent: 5,
+  };
+  if (!headerRow || !headerRow.length) {
+    return columns;
+  }
+  const lowered = headerRow.map((cell) => String(cell || "").toLowerCase());
+  const pick = (label) => lowered.indexOf(label);
+  const dateIdx = pick("date");
+  const teamIdx = pick("team");
+  const playerIdx = pick("player");
+  const scoreIdx = pick("score") !== -1 ? pick("score") : pick("points");
+  const rankIdx = pick("rank");
+  const opponentIdx = pick("opponent");
+
+  if (dateIdx !== -1) columns.date = dateIdx;
+  if (teamIdx !== -1) columns.team = teamIdx;
+  if (playerIdx !== -1) columns.player = playerIdx;
+  if (scoreIdx !== -1) columns.score = scoreIdx;
+  if (rankIdx !== -1) columns.rank = rankIdx;
+  if (opponentIdx !== -1) columns.opponent = opponentIdx;
+
+  return columns;
+}
+
 function updateLastUpdated() {
   const now = new Date();
   const formatted = now.toLocaleString(undefined, {
@@ -197,7 +238,7 @@ function renderResults(rows, query) {
 
   const grouped = new Map();
   rows.forEach((row) => {
-    const opponent = row[5] || "Unknown";
+    const opponent = row[playerColumns.opponent] || "Unknown";
     if (!grouped.has(opponent)) {
       grouped.set(opponent, []);
     }
@@ -210,10 +251,10 @@ function renderResults(rows, query) {
         .map(
           (row) => `
             <div class="player-game">
-              <div class="player-game-title">${escapeHtml(row[0])} • ${escapeHtml(row[1])}</div>
+              <div class="player-game-title">${escapeHtml(row[playerColumns.date])} • ${escapeHtml(row[playerColumns.team])}</div>
               <div class="player-game-meta">
-                <span>Score: ${escapeHtml(row[3])}</span>
-                <span>Rank: ${escapeHtml(row[4])}</span>
+                <span>Score: ${escapeHtml(row[playerColumns.score])}</span>
+                <span>Rank: ${escapeHtml(row[playerColumns.rank])}</span>
               </div>
             </div>
           `
@@ -233,19 +274,27 @@ function renderResults(rows, query) {
 function buildLeaderboard(rows) {
   const totals = new Map();
   rows.forEach((row) => {
-    const name = String(row[2] || "").trim();
+    const name = String(row[playerColumns.player] || "").trim();
+    const team = String(row[playerColumns.team] || "").trim();
     if (!name) {
       return;
     }
-    const score = Number(String(row[3] || "").replace(/[^0-9.\-]/g, ""));
-    const rank = Number(String(row[4] || "").replace(/[^0-9.\-]/g, ""));
+    const score = Number(
+      String(row[playerColumns.score] || "").replace(/[^0-9.\-]/g, "")
+    );
+    const rank = Number(
+      String(row[playerColumns.rank] || "").replace(/[^0-9.\-]/g, "")
+    );
     if (Number.isNaN(score)) {
       return;
     }
     if (!totals.has(name)) {
-      totals.set(name, { sum: 0, games: 0, rankSum: 0, rankGames: 0 });
+      totals.set(name, { sum: 0, games: 0, rankSum: 0, rankGames: 0, team });
     }
     const entry = totals.get(name);
+    if (!entry.team && team) {
+      entry.team = team;
+    }
     entry.sum += score;
     entry.games += 1;
     if (!Number.isNaN(rank)) {
@@ -261,6 +310,7 @@ function buildLeaderboard(rows) {
       avg: value.games ? value.sum / value.games : 0,
       avgRank: value.rankGames ? value.rankSum / value.rankGames : 0,
       games: value.games,
+      team: value.team || "",
     }))
     .slice(0, 25);
 }
@@ -295,6 +345,16 @@ function renderLeaderboard(list, query, metric) {
       ? "gp"
       : "avg";
 
+  const teamLogo = (team) => {
+    if (team === "The Future") {
+      return '<img class="standings-logo" src="/assets/the-future.png" alt="The Future logo" />';
+    }
+    if (team === "The Lions") {
+      return '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />';
+    }
+    return "";
+  };
+
   els.results.innerHTML = `
     <div class="leader-grid">
       ${sorted
@@ -303,6 +363,10 @@ function renderLeaderboard(list, query, metric) {
             <div class="player-leader-row">
               <div class="leader-rank">#${index + 1}</div>
               <a class="leader-name" href="player-detail.html?player=${encodeURIComponent(item.name)}">${escapeHtml(item.name)}</a>
+              <div class="leader-team">
+                ${teamLogo(item.team)}
+                <a class="leader-team-link" href="team.html?team=${encodeURIComponent(item.team)}">${escapeHtml(item.team || "—")}</a>
+              </div>
               <div class="leader-value">${
                 metric === "total_score"
                   ? item.total.toFixed(0)
@@ -333,6 +397,8 @@ async function loadPlayerStats() {
       if (!rows.length) {
         throw new Error("No data found.");
       }
+      const header = rows[0] || [];
+      playerColumns = detectPlayerColumns(header);
       playerRows = rows.slice(1);
     } else if (season === "c2s1-playoffs") {
       const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
@@ -341,6 +407,8 @@ async function loadPlayerStats() {
       }
       const archive = parseCSV(await response.text());
       const sliced = sliceRange(archive, ARCHIVE_RANGES.player_stats);
+      const header = sliced[0] || [];
+      playerColumns = detectPlayerColumns(header);
       playerRows = sliced.slice(1);
     } else {
       playerRows = [];

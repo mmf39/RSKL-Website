@@ -18,7 +18,7 @@ const els = {
   liveDetails: document.getElementById("live-details"),
 };
 
-const TEAMS_LIMIT = 6;
+const TEAMS_LIMIT = 10;
 
 
 els.standingsLink.href = STANDINGS_CSV_URL;
@@ -136,6 +136,10 @@ const TEAM_RANGES = {
   Cheerios: "B17:C28",
   Yetis: "E17:F28",
   Illegals: "H17:I28",
+  "The Lions": "B32:C43",
+  "The Future": "E32:F43",
+  "The Snipers": "H32:I43",
+  "The Phantoms": "B45:C56",
 };
 
 const TEAM_RECORD_RANGES = {
@@ -145,6 +149,10 @@ const TEAM_RECORD_RANGES = {
   Cheerios: { record: "J6:K6", winPct: "M6:M6" },
   Yetis: { record: "J7:K7", winPct: "M7:M7" },
   Illegals: { record: "J8:K8", winPct: "M8:M8" },
+  "The Lions": { record: "J9:K9", winPct: "M9:M9" },
+  "The Future": { record: "J10:K10", winPct: "M10:M10" },
+  "The Phantoms": { record: "J11:K11", winPct: "M11:M11" },
+  "The Snipers": { record: "J12:K12", winPct: "M12:M12" },
 };
 
 const ARCHIVE_RANGES = {
@@ -167,6 +175,12 @@ function renderTeamsCards(standingsRecordRows) {
   els.teamsGrid.innerHTML = teamNames
     .map((name) => {
       const link = `team.html?team=${encodeURIComponent(name)}`;
+      const logo =
+        name === "The Future"
+          ? '<img class="team-logo" src="/assets/the-future.png" alt="The Future logo" />'
+          : name === "The Lions"
+          ? '<img class="team-logo" src="/assets/the-lions.png" alt="The Lions logo" />'
+          : "";
       const ranges = TEAM_RECORD_RANGES[name];
       const recordSlice =
         ranges && standingsRecordRows.length
@@ -186,6 +200,7 @@ function renderTeamsCards(standingsRecordRows) {
           : "—";
       return `
         <a class="team-card" href="${link}">
+          ${logo}
           <div class="team-title">${escapeHtml(name)}</div>
           <div class="team-record">
             <span>Record</span>

@@ -172,11 +172,17 @@ function renderStandings() {
     .map((row, index) => {
       const teamName = row[0] || row[1] || "Team";
       const link = `team.html?team=${encodeURIComponent(teamName)}`;
+      const logo =
+        teamName === "The Future"
+          ? '<img class="standings-logo" src="/assets/the-future.png" alt="The Future logo" />'
+          : teamName === "The Lions"
+          ? '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />'
+          : "";
       return `
         <a class="leader-row" href="${link}">
           <div class="leader-rank">#${index + 1}</div>
           <div>
-            <div class="leader-name">${escapeHtml(teamName)}</div>
+            <div class="leader-name">${logo}${escapeHtml(teamName)}</div>
           </div>
           <div class="leader-meta">
             ${statIndices
