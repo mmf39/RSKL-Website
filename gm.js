@@ -255,20 +255,54 @@ els.update.addEventListener("click", async () => {
   await loadPlayers();
   renderTradePlayerManager();
   if (SHEET_UPDATE_URL !== "REPLACE_WITH_APPS_SCRIPT_URL") {
-    try {
+    const tagVariants = Array.from(
+      new Set([rawTag, withAt, normalized].filter(Boolean))
+    );
+
+    const trySync = async (oldTag) => {
       const params = new URLSearchParams({
-        oldTag: rawTag,
+        oldTag,
         newTag: newPlayerTag,
         newDisplay: displayName,
       });
       const response = await fetch(`${SHEET_UPDATE_URL}?${params.toString()}`);
       const text = await response.text();
       if (!response.ok) {
-        setResult(`Sheet update failed: ${response.status}`, true);
-      } else if (text && text.includes("\"ok\":false")) {
-        setResult(`Sheet update failed: ${text}`, true);
+        return { ok: false, status: response.status, text };
+      }
+      try {
+        const json = JSON.parse(text);
+        return { ok: true, json };
+      } catch (error) {
+        return { ok: false, status: response.status, text };
+      }
+    };
+
+    try {
+      let synced = false;
+      let lastError = "";
+
+      for (const variant of tagVariants) {
+        const result = await trySync(variant);
+        if (!result.ok) {
+          lastError = result.text || `HTTP ${result.status}`;
+          continue;
+        }
+        const payload = result.json || {};
+        if (payload.ok && payload.updated) {
+          synced = true;
+          break;
+        }
+        lastError =
+          payload && payload.updated === false
+            ? "Player updated, but sheet did not find the tag."
+            : "Sheet update failed.";
+      }
+
+      if (synced) {
+        setResult("Player updated. Sheet synced.");
       } else {
-        setResult(`Player updated. Sheet synced.`);
+        setResult(lastError || "Sheet update failed.", true);
       }
     } catch (error) {
       setResult(`Sheet update failed: ${error.message}`, true);
