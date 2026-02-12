@@ -26,19 +26,32 @@ const els = {
   tabs: document.querySelectorAll(".gm-tab"),
   tabPanels: document.querySelectorAll(".gm-tab-panel"),
   gmTeamLabel: document.getElementById("gm-team-label"),
-  tradeView: document.getElementById("trade-view"),
   tradePlayers: document.getElementById("trade-players"),
   tradePicksList: document.getElementById("trade-picks-list"),
   tradeNotes: document.getElementById("trade-notes"),
   tradeSave: document.getElementById("trade-save"),
   tradeStatus: document.getElementById("trade-status"),
   tradePlayerList: document.getElementById("trade-player-list"),
+  tradeViewList: document.getElementById("trade-view-list"),
 };
 
 let playersCache = [];
 let picksCache = [];
 let gmTeam = "";
 let gmUserId = "";
+
+const TEAM_NAMES = [
+  "Gus N Em",
+  "Bullets",
+  "Turkeys",
+  "Cheerios",
+  "Yetis",
+  "Illegals",
+  "The Lions",
+  "The Future",
+  "The Snipers",
+  "The Phantoms",
+];
 
 function updateLastUpdated() {
   const now = new Date();
@@ -77,7 +90,8 @@ async function refreshSession() {
     await loadPlayers();
     await loadPicks();
     await loadGmTeam();
-    setupTradeTeamView();
+    await loadOwnTradeBlock();
+    await loadOtherTradeBlocks();
   } else {
     gmUserId = "";
     gmTeam = "";
@@ -102,23 +116,6 @@ async function loadGmTeam() {
   gmTeam = data?.team_name || "";
   if (els.gmTeamLabel) {
     els.gmTeamLabel.textContent = gmTeam || "—";
-  }
-}
-
-function setupTradeTeamView() {
-  if (!els.tradeView) {
-    return;
-  }
-  if (gmTeam) {
-    els.tradeView.value = gmTeam;
-    loadTradeBlock(gmTeam);
-    const isOwnTeam = true;
-    if (els.tradeNotes) {
-      els.tradeNotes.disabled = !isOwnTeam;
-    }
-    if (els.tradeSave) {
-      els.tradeSave.disabled = !isOwnTeam;
-    }
   }
 }
 
@@ -342,12 +339,12 @@ els.tabs.forEach((tab) => {
   });
 });
 
-function renderTradePlayersList(team) {
+function renderTradePlayersList(team, selectedPlayers) {
   if (!els.tradePlayerList) {
     return;
   }
   if (!team) {
-    els.tradePlayerList.innerHTML = "<div class=\"gm-empty\">Select a team.</div>";
+    els.tradePlayerList.innerHTML = "<div class=\"gm-empty\">No players found.</div>";
     return;
   }
   const list = playersCache.filter(
@@ -357,11 +354,7 @@ function renderTradePlayersList(team) {
     els.tradePlayerList.innerHTML = "<div class=\"gm-empty\">No players found.</div>";
     return;
   }
-  const selected = new Set(
-    Array.from(
-      els.tradePlayerList.querySelectorAll("input[type=checkbox]:checked")
-    ).map((input) => input.value)
-  );
+  const selected = new Set(selectedPlayers || []);
   els.tradePlayerList.innerHTML = list
     .map((player) => {
       const tag = player.player_tag || "";
@@ -381,7 +374,7 @@ function renderTradePicksList(team, selectedPicks) {
     return;
   }
   if (!team) {
-    els.tradePicksList.innerHTML = "<div class=\"gm-empty\">Select a team.</div>";
+    els.tradePicksList.innerHTML = "<div class=\"gm-empty\">No picks found.</div>";
     return;
   }
   const list = picksCache.filter(
@@ -405,44 +398,19 @@ function renderTradePicksList(team, selectedPicks) {
     .join("");
 }
 
-async function loadTradeBlock(team) {
-  if (!team) {
-    els.tradePicksList.innerHTML = "";
-    els.tradeNotes.value = "";
-    renderTradePlayersList("");
-    renderTradePicksList("", []);
+async function loadOwnTradeBlock() {
+  if (!gmTeam) {
     return;
   }
-  const isOwnTeam = team === gmTeam;
   const { data, error } = await supabase
     .from("trade_blocks")
     .select("players, picks, notes")
-    .eq("team_name", team)
+    .eq("team_name", gmTeam)
     .single();
   if (error || !data) {
+    renderTradePlayersList(gmTeam, []);
+    renderTradePicksList(gmTeam, []);
     els.tradeNotes.value = "";
-    renderTradePlayersList(team);
-    renderTradePicksList(team, []);
-    if (els.tradePlayerList) {
-      els.tradePlayerList
-        .querySelectorAll("input[type=checkbox]")
-        .forEach((input) => {
-          input.disabled = !isOwnTeam;
-        });
-    }
-    if (els.tradePicksList) {
-      els.tradePicksList
-        .querySelectorAll("input[type=checkbox]")
-        .forEach((input) => {
-          input.disabled = !isOwnTeam;
-        });
-    }
-    if (els.tradeNotes) {
-      els.tradeNotes.disabled = !isOwnTeam;
-    }
-    if (els.tradeSave) {
-      els.tradeSave.disabled = !isOwnTeam;
-    }
     setTradeStatus("No trade block available.");
     return;
   }
@@ -454,59 +422,69 @@ async function loadTradeBlock(team) {
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
-  renderTradePlayersList(team);
-  renderTradePicksList(team, selectedPicks);
-  if (els.tradePlayerList) {
-    els.tradePlayerList
-      .querySelectorAll("input[type=checkbox]")
-      .forEach((input) => {
-        input.checked = selectedPlayers.includes(input.value);
-        input.disabled = !isOwnTeam;
-      });
-  }
+  renderTradePlayersList(gmTeam, selectedPlayers);
+  renderTradePicksList(gmTeam, selectedPicks);
   els.tradeNotes.value = data?.notes || "";
-  if (els.tradeNotes) {
-    els.tradeNotes.disabled = !isOwnTeam;
-  }
-  if (els.tradePicksList) {
-    els.tradePicksList
-      .querySelectorAll("input[type=checkbox]")
-      .forEach((input) => {
-        input.disabled = !isOwnTeam;
-      });
-  }
-  if (els.tradeSave) {
-    els.tradeSave.disabled = !isOwnTeam;
-  }
   setTradeStatus("");
 }
 
-if (els.tradeView) {
-  els.tradeView.addEventListener("change", () => {
-    const team = els.tradeView.value;
-    loadTradeBlock(team);
-    const isOwnTeam = team && team === gmTeam;
-    if (els.tradePlayerList) {
-      els.tradePlayerList
-        .querySelectorAll("input[type=checkbox]")
-        .forEach((input) => {
-          input.disabled = !isOwnTeam;
-        });
-    }
-    if (els.tradePicksList) {
-      els.tradePicksList
-        .querySelectorAll("input[type=checkbox]")
-        .forEach((input) => {
-          input.disabled = !isOwnTeam;
-        });
-    }
-    if (els.tradeNotes) {
-      els.tradeNotes.disabled = !isOwnTeam;
-    }
-    if (els.tradeSave) {
-      els.tradeSave.disabled = !isOwnTeam;
-    }
-  });
+async function loadOtherTradeBlocks() {
+  if (!els.tradeViewList) {
+    return;
+  }
+  const teams = TEAM_NAMES.filter((team) => team !== gmTeam);
+  if (!teams.length) {
+    els.tradeViewList.innerHTML = "<div class=\"gm-empty\">No other teams.</div>";
+    return;
+  }
+  const { data, error } = await supabase
+    .from("trade_blocks")
+    .select("team_name, players, picks, notes")
+    .in("team_name", teams);
+  if (error) {
+    els.tradeViewList.innerHTML = "<div class=\"gm-empty\">Unable to load trade blocks.</div>";
+    return;
+  }
+  const byTeam = new Map((data || []).map((row) => [row.team_name, row]));
+  els.tradeViewList.innerHTML = teams
+    .map((team) => {
+      const block = byTeam.get(team);
+      if (!block) {
+        return `
+          <div class="gm-readonly-card">
+            <div class="gm-readonly-title">${team}</div>
+            <div class="gm-empty">No trade block available.</div>
+          </div>
+        `;
+      }
+      const players = String(block.players || "")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const picks = String(block.picks || "")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const notes = String(block.notes || "").trim();
+      return `
+        <div class="gm-readonly-card">
+          <div class="gm-readonly-title">${team}</div>
+          <div class="gm-readonly-group">
+            <div class="label">Players</div>
+            <div>${players.length ? players.join(", ") : "No trade block available."}</div>
+          </div>
+          <div class="gm-readonly-group">
+            <div class="label">Picks</div>
+            <div>${picks.length ? picks.join(", ") : "No trade block available."}</div>
+          </div>
+          <div class="gm-readonly-group">
+            <div class="label">Notes</div>
+            <div>${notes || "No trade block available."}</div>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
 }
 
 if (els.tradeSave) {
@@ -537,6 +515,7 @@ if (els.tradeSave) {
       return;
     }
     setTradeStatus("Trade block saved.");
+    await loadOtherTradeBlocks();
   });
 }
 
