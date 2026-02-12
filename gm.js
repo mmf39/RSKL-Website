@@ -3,7 +3,8 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const SUPABASE_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co";
 const SUPABASE_ANON_KEY =
   "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
-const SHEET_UPDATE_URL = "/api/sheet-update";
+const SHEET_UPDATE_URL =
+  "https://script.google.com/macros/s/AKfycbybgKT1WjHN7G13XiymsMNM6eO_sOtfchPsWGJfPZwLvEFJ6_QsYJ9pBt7jNWTkM9msXA/exec";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
