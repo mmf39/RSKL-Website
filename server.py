@@ -116,7 +116,17 @@ class Handler(BaseHTTPRequestHandler):
             proxy_csv(self, AWARDS_URL)
             return
         if path == "/api/sheet-update":
-            send(self, 405, "Method not allowed")
+            try:
+                url = SHEET_UPDATE_URL
+                if parsed.query:
+                    url = f"{SHEET_UPDATE_URL}?{parsed.query}"
+                with urllib.request.urlopen(url) as response:
+                    data = response.read()
+                    send(self, response.getcode(), data, "application/json; charset=utf-8")
+            except urllib.error.HTTPError as err:
+                send(self, err.code, f"Upstream error {err.code}")
+            except Exception as err:  # pylint: disable=broad-except
+                send(self, 500, f"Proxy error: {err}")
             return
 
         if path == "/":

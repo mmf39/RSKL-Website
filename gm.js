@@ -255,15 +255,12 @@ els.update.addEventListener("click", async () => {
     renderTradePlayerManager();
     if (SHEET_UPDATE_URL !== "REPLACE_WITH_APPS_SCRIPT_URL") {
       try {
-        const response = await fetch(SHEET_UPDATE_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            oldTag: rawTag,
-            newTag: newPlayerTag,
-            newDisplay: displayName,
-          }),
+        const params = new URLSearchParams({
+          oldTag: rawTag,
+          newTag: newPlayerTag,
+          newDisplay: displayName,
         });
+        const response = await fetch(`${SHEET_UPDATE_URL}?${params.toString()}`);
         const text = await response.text();
         if (!response.ok) {
           setResult(`Sheet update failed: ${response.status}`, true);

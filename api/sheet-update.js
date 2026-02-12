@@ -54,6 +54,13 @@ function forward(url, payload, redirects, res) {
 }
 
 module.exports = (req, res) => {
+  if (req.method === "GET") {
+    const url = new URL(req.url, "http://localhost");
+    const target = `${SCRIPT_URL}?${url.searchParams.toString()}`;
+    forward(target, "{}", 5, res);
+    return;
+  }
+
   if (req.method !== "POST") {
     res.statusCode = 405;
     res.end("Method not allowed");
