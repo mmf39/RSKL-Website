@@ -250,31 +250,30 @@ els.update.addEventListener("click", async () => {
     setResult(error.message, true);
     return;
   }
-  if (data && data.length) {
-    setResult("Player updated.");
-    await loadPlayers();
-    renderTradePlayerManager();
-    if (SHEET_UPDATE_URL !== "REPLACE_WITH_APPS_SCRIPT_URL") {
-      try {
-        const params = new URLSearchParams({
-          oldTag: rawTag,
-          newTag: newPlayerTag,
-          newDisplay: displayName,
-        });
-        const response = await fetch(`${SHEET_UPDATE_URL}?${params.toString()}`);
-        const text = await response.text();
-        if (!response.ok) {
-          setResult(`Sheet update failed: ${response.status}`, true);
-        } else if (text && text.includes("\"ok\":false")) {
-          setResult(`Sheet update failed: ${text}`, true);
-        }
-      } catch (error) {
-        setResult(`Sheet update failed: ${error.message}`, true);
+
+  setResult("Player updated. Syncing sheet...");
+  await loadPlayers();
+  renderTradePlayerManager();
+  if (SHEET_UPDATE_URL !== "REPLACE_WITH_APPS_SCRIPT_URL") {
+    try {
+      const params = new URLSearchParams({
+        oldTag: rawTag,
+        newTag: newPlayerTag,
+        newDisplay: displayName,
+      });
+      const response = await fetch(`${SHEET_UPDATE_URL}?${params.toString()}`);
+      const text = await response.text();
+      if (!response.ok) {
+        setResult(`Sheet update failed: ${response.status}`, true);
+      } else if (text && text.includes("\"ok\":false")) {
+        setResult(`Sheet update failed: ${text}`, true);
+      } else {
+        setResult(`Player updated. Sheet synced.`);
       }
+    } catch (error) {
+      setResult(`Sheet update failed: ${error.message}`, true);
     }
-    return;
   }
-  setResult("No matching player tag found. Use the exact tag from Supabase.", true);
 });
 
 function renderSuggestions(list) {
