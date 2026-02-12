@@ -20,8 +20,6 @@ const els = {
   displayName: document.getElementById("display-name"),
   update: document.getElementById("update-player"),
   result: document.getElementById("gm-result"),
-  teamSelect: document.getElementById("team-select"),
-  teamPlayers: document.getElementById("team-players"),
 };
 
 let playersCache = [];
@@ -156,7 +154,7 @@ function renderSuggestions(list) {
 async function loadPlayers() {
   const { data, error } = await supabase
     .from("players")
-    .select("player_tag, display_name, team_name")
+    .select("player_tag, display_name")
     .order("player_tag", { ascending: true });
   if (error) {
     setStatus(error.message, true);
@@ -219,32 +217,6 @@ function renderTeamPlayers(list) {
     .join("");
 }
 
-if (els.teamSelect) {
-  els.teamSelect.addEventListener("change", () => {
-    const team = els.teamSelect.value;
-    if (!team) {
-      renderTeamPlayers([]);
-      return;
-    }
-    const filtered = playersCache.filter(
-      (player) => String(player.team_name || "") === team
-    );
-    renderTeamPlayers(filtered);
-  });
-}
-
-if (els.teamPlayers) {
-  els.teamPlayers.addEventListener("click", (event) => {
-    const item = event.target.closest(".gm-list-item");
-    if (!item) {
-      return;
-    }
-    const tag = item.dataset.tag || "";
-    const name = item.dataset.name || "";
-    els.playerTag.value = tag;
-    els.displayName.value = name;
-  });
-}
 
 updateLastUpdated();
 refreshSession();
