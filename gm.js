@@ -92,14 +92,17 @@ els.logout.addEventListener("click", async () => {
 });
 
 els.update.addEventListener("click", async () => {
-  const playerTag = els.playerTag.value.trim();
+  let playerTag = els.playerTag.value.trim();
   const displayName = els.displayName.value.trim();
   if (!playerTag || !displayName) {
     setResult("Enter player tag and new display name.", true);
     return;
   }
+  if (!playerTag.startsWith("@")) {
+    playerTag = `@${playerTag}`;
+  }
   setResult("Updating...");
-  const { error } = await supabase
+  const { error, data } = await supabase
     .from("players")
     .update({ display_name: displayName, updated_at: new Date().toISOString() })
     .eq("player_tag", playerTag);
@@ -108,7 +111,25 @@ els.update.addEventListener("click", async () => {
     setResult(error.message, true);
     return;
   }
-  setResult("Player updated.");
+  if (data && data.length) {
+    setResult("Player updated.");
+    return;
+  }
+
+  const { error: fallbackError, data: fallbackData } = await supabase
+    .from("players")
+    .update({ display_name: displayName, updated_at: new Date().toISOString() })
+    .ilike("player_tag", playerTag);
+
+  if (fallbackError) {
+    setResult(fallbackError.message, true);
+    return;
+  }
+  if (fallbackData && fallbackData.length) {
+    setResult("Player updated.");
+    return;
+  }
+  setResult("No matching player tag found.", true);
 });
 
 function renderSuggestions(list) {
