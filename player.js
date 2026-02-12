@@ -416,6 +416,12 @@ function renderLeaderboard(list, query, metric) {
     if (team === "Cheerios") {
       return '<img class="standings-logo" src="/assets/cheerios.png" alt="Cheerios logo" />';
     }
+    if (team === "Illegals") {
+      return '<img class="standings-logo" src="/assets/illegals.png" alt="Illegals logo" />';
+    }
+    if (team === "Bullets") {
+      return '<img class="standings-logo" src="/assets/bullets.png" alt="Bullets logo" />';
+    }
     return "";
   };
 

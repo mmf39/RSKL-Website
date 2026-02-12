@@ -378,6 +378,10 @@ function renderPlayerTeam(teamName) {
       ? '<img class="player-team-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />'
       : teamName === "Cheerios"
       ? '<img class="player-team-logo" src="/assets/cheerios.png" alt="Cheerios logo" />'
+      : teamName === "Illegals"
+      ? '<img class="player-team-logo" src="/assets/illegals.png" alt="Illegals logo" />'
+      : teamName === "Bullets"
+      ? '<img class="player-team-logo" src="/assets/bullets.png" alt="Bullets logo" />'
       : "";
   els.teamValue.innerHTML = `${logo}<a class="leader-team-link" href="team.html?team=${encodeURIComponent(
     teamName

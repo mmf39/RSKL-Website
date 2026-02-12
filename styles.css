@@ -475,6 +475,16 @@ input[type="text"] {
   font-size: 0.9rem;
 }
 
+.footer-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.footer-link:hover {
+  text-decoration: underline;
+}
+
 .roster-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 320px);

@@ -319,6 +319,14 @@ async function loadRoster() {
       els.logo.src = "/assets/cheerios.png";
       els.logo.alt = "Cheerios logo";
       els.logo.style.display = "block";
+    } else if (teamName === "Illegals") {
+      els.logo.src = "/assets/illegals.png";
+      els.logo.alt = "Illegals logo";
+      els.logo.style.display = "block";
+    } else if (teamName === "Bullets") {
+      els.logo.src = "/assets/bullets.png";
+      els.logo.alt = "Bullets logo";
+      els.logo.style.display = "block";
     } else {
       els.logo.style.display = "none";
     }

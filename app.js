@@ -187,6 +187,12 @@ function getTeamLogo(name) {
   if (name === "Cheerios") {
     return '<img class="team-logo" src="/assets/cheerios.png" alt="Cheerios logo" />';
   }
+  if (name === "Illegals") {
+    return '<img class="team-logo" src="/assets/illegals.png" alt="Illegals logo" />';
+  }
+  if (name === "Bullets") {
+    return '<img class="team-logo" src="/assets/bullets.png" alt="Bullets logo" />';
+  }
   return "";
 }
 

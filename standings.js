@@ -187,6 +187,10 @@ function renderStandings() {
           ? '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />'
           : teamName === "Cheerios"
           ? '<img class="standings-logo" src="/assets/cheerios.png" alt="Cheerios logo" />'
+          : teamName === "Illegals"
+          ? '<img class="standings-logo" src="/assets/illegals.png" alt="Illegals logo" />'
+          : teamName === "Bullets"
+          ? '<img class="standings-logo" src="/assets/bullets.png" alt="Bullets logo" />'
           : "";
       return `
         <a class="leader-row" href="${link}">
