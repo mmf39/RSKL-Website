@@ -3,6 +3,8 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const SUPABASE_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co";
 const SUPABASE_ANON_KEY =
   "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
+const SHEET_UPDATE_URL =
+  "https://script.google.com/macros/s/AKfycbybgKT1WjHN7G13XiymsMNM6eO_sOtfchPsWGJfPZwLvEFJ6_QsYJ9pBt7jNWTkM9msXA/exec";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -252,6 +254,21 @@ els.update.addEventListener("click", async () => {
     setResult("Player updated.");
     await loadPlayers();
     renderTradePlayerManager();
+    if (SHEET_UPDATE_URL !== "REPLACE_WITH_APPS_SCRIPT_URL") {
+      try {
+        await fetch(SHEET_UPDATE_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            oldTag: rawTag,
+            newTag: newPlayerTag,
+            newDisplay: displayName,
+          }),
+        });
+      } catch (error) {
+        // ignore sheet update failures
+      }
+    }
     return;
   }
   setResult("No matching player tag found. Use the exact tag from Supabase.", true);
