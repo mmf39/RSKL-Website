@@ -616,26 +616,30 @@ async function loadOtherTradeBlocks() {
     .join("");
 }
 
-if (els.tradeSave) {
-  els.tradeSave.addEventListener("click", async () => {
-    if (!gmTeam) {
-      setTradeStatus("No GM team assigned.", true);
-      return;
-    }
-    setTradeStatus("Saving...");
-    const selectedPlayers = Array.from(
-      els.tradePlayerList.querySelectorAll("input[type=checkbox]:checked")
-    ).map((input) => input.value);
-    const selectedPicks = Array.from(
-      els.tradePicksList.querySelectorAll("input[type=checkbox]:checked")
-    ).map((input) => input.value);
-    const payload = {
-      team_name: gmTeam,
-      players: selectedPlayers.join("\n"),
-      picks: selectedPicks.join("\n"),
-      notes: els.tradeNotes.value.trim(),
-      updated_at: new Date().toISOString(),
-    };
+  if (els.tradeSave) {
+    els.tradeSave.addEventListener("click", async () => {
+      if (!gmTeam) {
+        setTradeStatus("No GM team assigned.", true);
+        return;
+      }
+      setTradeStatus("Saving...");
+      const selectedPlayers = Array.from(
+        els.tradePlayerList.querySelectorAll("input[type=checkbox]:checked")
+      ).map((input) => input.value);
+      const selectedPicks = Array.from(
+        els.tradePicksList.querySelectorAll("input[type=checkbox]:checked")
+      ).map((input) => input.value);
+      const pickLabels = selectedPicks.map((pickId) => {
+        const match = picksCache.find((pick) => pick.id === pickId);
+        return match ? match.label : pickId;
+      });
+      const payload = {
+        team_name: gmTeam,
+        players: selectedPlayers.join("\n"),
+        picks: pickLabels.join("\n"),
+        notes: els.tradeNotes.value.trim(),
+        updated_at: new Date().toISOString(),
+      };
     const { error } = await supabase.from("trade_blocks").upsert(payload, {
       onConflict: "team_name",
     });
