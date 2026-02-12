@@ -352,6 +352,21 @@ function renderLeaderboard(list, query, metric) {
     if (team === "The Lions") {
       return '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />';
     }
+    if (team === "The Snipers") {
+      return '<img class="standings-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />';
+    }
+    if (team === "The Phantoms") {
+      return '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';
+    }
+    if (team === "Yetis") {
+      return '<img class="standings-logo" src="/assets/yetis.png" alt="Yetis logo" />';
+    }
+    if (team === "Gus N Em") {
+      return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />';
+    }
+    if (team === "Cheerios") {
+      return '<img class="standings-logo" src="/assets/cheerios.png" alt="Cheerios logo" />';
+    }
     return "";
   };
 

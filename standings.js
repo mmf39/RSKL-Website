@@ -177,6 +177,16 @@ function renderStandings() {
           ? '<img class="standings-logo" src="/assets/the-future.png" alt="The Future logo" />'
           : teamName === "The Lions"
           ? '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />'
+          : teamName === "The Snipers"
+          ? '<img class="standings-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />'
+          : teamName === "The Phantoms"
+          ? '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />'
+          : teamName === "Yetis"
+          ? '<img class="standings-logo" src="/assets/yetis.png" alt="Yetis logo" />'
+          : teamName === "Gus N Em"
+          ? '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />'
+          : teamName === "Cheerios"
+          ? '<img class="standings-logo" src="/assets/cheerios.png" alt="Cheerios logo" />'
           : "";
       return `
         <a class="leader-row" href="${link}">

@@ -1,6 +1,7 @@
 const PLAYER_STATS_URL = "/api/player-stats";
 const BOXSCORE_CSV_URL = "/api/boxscore";
 const ARCHIVE_URL = "/api/archive";
+const AWARDS_URL = "/api/awards";
 const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
 
@@ -44,6 +45,8 @@ const els = {
   sumAvgRank: document.getElementById("sum-avg-rank"),
   sumGp: document.getElementById("sum-gp"),
   teamValue: document.getElementById("player-team-value"),
+  awardsPanel: document.getElementById("player-awards-panel"),
+  awards: document.getElementById("player-awards"),
 };
 
 let playerColumns = {
@@ -333,6 +336,16 @@ function renderPlayerTeam(teamName) {
       ? '<img class="player-team-logo" src="/assets/the-future.png" alt="The Future logo" />'
       : teamName === "The Lions"
       ? '<img class="player-team-logo" src="/assets/the-lions.png" alt="The Lions logo" />'
+      : teamName === "The Snipers"
+      ? '<img class="player-team-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />'
+      : teamName === "The Phantoms"
+      ? '<img class="player-team-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />'
+      : teamName === "Yetis"
+      ? '<img class="player-team-logo" src="/assets/yetis.png" alt="Yetis logo" />'
+      : teamName === "Gus N Em"
+      ? '<img class="player-team-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />'
+      : teamName === "Cheerios"
+      ? '<img class="player-team-logo" src="/assets/cheerios.png" alt="Cheerios logo" />'
       : "";
   els.teamValue.innerHTML = `${logo}<a class="leader-team-link" href="team.html?team=${encodeURIComponent(
     teamName
@@ -410,6 +423,79 @@ function findTeamFromStats(rows) {
   return row ? String(row[playerColumns.team] || "").trim() : "";
 }
 
+function renderAwards(items) {
+  if (!els.awards || !els.awardsPanel) {
+    return;
+  }
+  if (!items.length) {
+    els.awardsPanel.hidden = true;
+    els.awards.innerHTML = "";
+    return;
+  }
+  els.awardsPanel.hidden = false;
+  els.awards.innerHTML = `
+    <div class="awards-grid">
+      ${items
+        .map(
+          (item) => `
+            <div class="awards-card">
+              <div class="awards-title">${escapeHtml(item.award)}</div>
+              <div class="awards-winner">${escapeHtml(item.season)}</div>
+            </div>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+async function loadAwards(playerName) {
+  if (!playerName) {
+    renderAwards([]);
+    return;
+  }
+  try {
+    const response = await fetch(AWARDS_URL, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Fetch failed: ${response.status}`);
+    }
+    const rows = parseCSV(await response.text());
+    if (!rows.length) {
+      renderAwards([]);
+      return;
+    }
+    const seasonMap = [
+      { key: "C1S1", range: "B3:B15" },
+      { key: "C1S2", range: "C3:D24" },
+      { key: "C1S3", range: "E3:F28" },
+      { key: "C1S4", range: "G3:H27" },
+      { key: "C1S5", range: "I3:J28" },
+      { key: "C1S6", range: "K3:L27" },
+      { key: "C2S1", range: "M3:N29" },
+    ];
+    const target = normalizeName(playerName);
+    const found = [];
+
+    seasonMap.forEach((season) => {
+      const sliced = sliceRange(rows, season.range);
+      sliced.forEach((row) => {
+        const award = String(row[0] || "").trim();
+        const winner = String(row[1] || row[0] || "").trim();
+        if (!award || !winner) {
+          return;
+        }
+        if (matchesName(winner, target)) {
+          found.push({ season: season.key, award });
+        }
+      });
+    });
+
+    renderAwards(found);
+  } catch (error) {
+    renderAwards([]);
+  }
+}
+
 async function loadPlayer() {
   const playerName = getPlayerName();
   els.name.textContent = playerName || "Player";
@@ -423,6 +509,7 @@ async function loadPlayer() {
     renderTable([]);
     updateSummary([]);
     els.body.innerHTML = `<tr><td>No stats for GM entries.</td></tr>`;
+    renderAwards([]);
     return;
   }
 
@@ -489,6 +576,7 @@ async function loadPlayer() {
     window.__playerRows = filtered;
     window.__boxScoreRows = boxRows;
     updateLastUpdated();
+    loadAwards(playerName);
   } catch (error) {
     els.body.innerHTML = `<tr><td>${escapeHtml(error.message)}</td></tr>`;
   }

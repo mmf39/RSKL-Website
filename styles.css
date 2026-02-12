@@ -821,6 +821,109 @@ input[type="text"] {
   text-decoration: underline;
 }
 
+.awards-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.awards-card {
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(255, 140, 0, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.awards-card-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.awards-card-link:hover {
+  border-color: rgba(255, 140, 0, 0.7);
+}
+
+.awards-title {
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.01em;
+}
+
+.awards-winner {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.champion-box {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255, 140, 0, 0.45);
+  border-radius: var(--radius-sm);
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.champion-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.champion-list {
+  display: grid;
+  gap: 10px;
+}
+
+.champion-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 140, 0, 0.2);
+  justify-items: center;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+}
+
+.champion-row.single {
+  grid-template-columns: 1fr;
+}
+
+.champion-single {
+  font-weight: 700;
+  color: var(--accent);
+  text-align: center;
+  justify-self: center;
+}
+
+.champion-award {
+  font-weight: 600;
+  color: var(--accent);
+  text-align: center;
+}
+
+.champion-winner {
+  font-weight: 600;
+  color: var(--ink);
+  text-align: center;
+  justify-self: center;
+}
+
+.champion-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.champion-link:hover {
+  text-decoration: underline;
+}
 .roster-link {
   color: var(--accent-2);
   text-decoration: none;

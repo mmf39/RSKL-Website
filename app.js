@@ -165,6 +165,31 @@ const ARCHIVE_RANGES = {
   player_stats: "A45:F117",
 };
 
+function getTeamLogo(name) {
+  if (name === "The Future") {
+    return '<img class="team-logo" src="/assets/the-future.png" alt="The Future logo" />';
+  }
+  if (name === "The Lions") {
+    return '<img class="team-logo" src="/assets/the-lions.png" alt="The Lions logo" />';
+  }
+  if (name === "The Snipers") {
+    return '<img class="team-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />';
+  }
+  if (name === "The Phantoms") {
+    return '<img class="team-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';
+  }
+  if (name === "Yetis") {
+    return '<img class="team-logo" src="/assets/yetis.png" alt="Yetis logo" />';
+  }
+  if (name === "Gus N Em") {
+    return '<img class="team-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />';
+  }
+  if (name === "Cheerios") {
+    return '<img class="team-logo" src="/assets/cheerios.png" alt="Cheerios logo" />';
+  }
+  return "";
+}
+
 function renderTeamsCards(standingsRecordRows) {
   const teamNames = Object.keys(TEAM_RANGES).slice(0, TEAMS_LIMIT);
   if (!teamNames.length) {
@@ -175,12 +200,7 @@ function renderTeamsCards(standingsRecordRows) {
   els.teamsGrid.innerHTML = teamNames
     .map((name) => {
       const link = `team.html?team=${encodeURIComponent(name)}`;
-      const logo =
-        name === "The Future"
-          ? '<img class="team-logo" src="/assets/the-future.png" alt="The Future logo" />'
-          : name === "The Lions"
-          ? '<img class="team-logo" src="/assets/the-lions.png" alt="The Lions logo" />'
-          : "";
+      const logo = getTeamLogo(name);
       const ranges = TEAM_RECORD_RANGES[name];
       const recordSlice =
         ranges && standingsRecordRows.length
@@ -238,6 +258,7 @@ function renderTeamsCardsArchive(standingsRows) {
     .slice(0, TEAMS_LIMIT)
     .map((team) => {
       const link = `team.html?team=${encodeURIComponent(team.name)}`;
+      const logo = getTeamLogo(team.name);
       const record =
         team.wins !== undefined && team.losses !== undefined
           ? `${team.wins}-${team.losses}`
@@ -245,6 +266,7 @@ function renderTeamsCardsArchive(standingsRows) {
       const winPct = team.winPct ?? "—";
       return `
         <a class="team-card" href="${link}">
+          ${logo}
           <div class="team-title">${escapeHtml(team.name)}</div>
           <div class="team-record">
             <span>Record</span>

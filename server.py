@@ -35,6 +35,9 @@ LIVE_SCORING_URL = (
 ARCHIVE_URL = (
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1077518539&single=true&output=csv"
 )
+AWARDS_URL = (
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1527593475&single=true&output=csv"
+)
 
 MIME = {
     ".html": "text/html; charset=utf-8",
@@ -43,7 +46,7 @@ MIME = {
     ".json": "application/json; charset=utf-8",
 }
 
-CACHE_TTL_SECONDS = 90
+CACHE_TTL_SECONDS = 900
 CACHE = {}
 
 
@@ -105,6 +108,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/archive":
             proxy_csv(self, ARCHIVE_URL)
+            return
+        if path == "/api/awards":
+            proxy_csv(self, AWARDS_URL)
             return
 
         if path == "/":

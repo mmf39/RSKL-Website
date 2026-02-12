@@ -262,6 +262,26 @@ async function loadRoster() {
       els.logo.src = "/assets/the-lions.png";
       els.logo.alt = "The Lions logo";
       els.logo.style.display = "block";
+    } else if (teamName === "The Snipers") {
+      els.logo.src = "/assets/the-snipers.png";
+      els.logo.alt = "The Snipers logo";
+      els.logo.style.display = "block";
+    } else if (teamName === "The Phantoms") {
+      els.logo.src = "/assets/the-phantoms.png";
+      els.logo.alt = "The Phantoms logo";
+      els.logo.style.display = "block";
+    } else if (teamName === "Yetis") {
+      els.logo.src = "/assets/yetis.png";
+      els.logo.alt = "Yetis logo";
+      els.logo.style.display = "block";
+    } else if (teamName === "Gus N Em") {
+      els.logo.src = "/assets/gus-n-em.png";
+      els.logo.alt = "Gus N Em logo";
+      els.logo.style.display = "block";
+    } else if (teamName === "Cheerios") {
+      els.logo.src = "/assets/cheerios.png";
+      els.logo.alt = "Cheerios logo";
+      els.logo.style.display = "block";
     } else {
       els.logo.style.display = "none";
     }
