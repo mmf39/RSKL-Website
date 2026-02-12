@@ -108,7 +108,7 @@ els.update.addEventListener("click", async () => {
   }
   setResult("Updating...");
   const orQuery = variants
-    .map((tag) => `player_tag.ilike.${tag}`)
+    .map((tag) => `player_tag.ilike.*${tag}*`)
     .join(",");
   const { error, data } = await supabase
     .from("players")
