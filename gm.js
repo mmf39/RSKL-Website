@@ -32,6 +32,7 @@ const els = {
   tradeNotes: document.getElementById("trade-notes"),
   tradeSave: document.getElementById("trade-save"),
   tradeStatus: document.getElementById("trade-status"),
+  tradePlayerList: document.getElementById("trade-player-list"),
 };
 
 let playersCache = [];
@@ -74,6 +75,7 @@ async function refreshSession() {
     setStatus(`Signed in as ${session.user.email}`);
     await loadPlayers();
     await loadGmTeam();
+    setupTradeTeamView();
   } else {
     gmUserId = "";
     gmTeam = "";
@@ -98,6 +100,16 @@ async function loadGmTeam() {
   gmTeam = data?.team_name || "";
   if (els.gmTeamLabel) {
     els.gmTeamLabel.textContent = gmTeam || "—";
+  }
+}
+
+function setupTradeTeamView() {
+  if (!els.tradeView) {
+    return;
+  }
+  if (gmTeam) {
+    els.tradeView.value = gmTeam;
+    loadTradeBlock(gmTeam);
   }
 }
 
@@ -310,11 +322,56 @@ els.tabs.forEach((tab) => {
   });
 });
 
+function renderTradePlayersList(team) {
+  if (!els.tradePlayerList) {
+    return;
+  }
+  if (!team) {
+    els.tradePlayerList.innerHTML = "<div class=\"gm-empty\">Select a team.</div>";
+    return;
+  }
+  const list = playersCache.filter(
+    (player) => String(player.team_name || "") === team
+  );
+  if (!list.length) {
+    els.tradePlayerList.innerHTML = "<div class=\"gm-empty\">No players found.</div>";
+    return;
+  }
+  const selected = new Set(
+    els.tradePlayers.value
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+  );
+  els.tradePlayerList.innerHTML = list
+    .map((player) => {
+      const tag = player.player_tag || "";
+      const checked = selected.has(tag) ? "checked" : "";
+      return `
+        <label class="gm-check">
+          <input type="checkbox" value="${tag}" ${checked} />
+          <span>${tag}</span>
+        </label>
+      `;
+    })
+    .join("");
+}
+
+if (els.tradePlayerList) {
+  els.tradePlayerList.addEventListener("change", () => {
+    const selected = Array.from(
+      els.tradePlayerList.querySelectorAll("input[type=checkbox]:checked")
+    ).map((input) => input.value);
+    els.tradePlayers.value = selected.join("\n");
+  });
+}
+
 async function loadTradeBlock(team) {
   if (!team) {
     els.tradePlayers.value = "";
     els.tradePicks.value = "";
     els.tradeNotes.value = "";
+    renderTradePlayersList("");
     return;
   }
   const { data, error } = await supabase
@@ -326,16 +383,19 @@ async function loadTradeBlock(team) {
     els.tradePlayers.value = "";
     els.tradePicks.value = "";
     els.tradeNotes.value = "";
+    renderTradePlayersList(team);
     return;
   }
   els.tradePlayers.value = data?.players || "";
   els.tradePicks.value = data?.picks || "";
   els.tradeNotes.value = data?.notes || "";
+  renderTradePlayersList(team);
 }
 
 if (els.tradeView) {
   els.tradeView.addEventListener("change", () => {
-    loadTradeBlock(els.tradeView.value);
+    const team = els.tradeView.value;
+    loadTradeBlock(team);
   });
 }
 

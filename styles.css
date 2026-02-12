@@ -966,6 +966,25 @@ input[type="text"] {
   color: var(--accent);
 }
 
+.gm-checklist {
+  display: grid;
+  gap: 8px;
+}
+
+.gm-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 140, 0, 0.2);
+}
+
+.gm-check input {
+  accent-color: var(--accent);
+}
+
 .gm-list {
   display: grid;
   gap: 10px;
