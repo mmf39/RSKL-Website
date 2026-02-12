@@ -19,7 +19,11 @@ const els = {
   displayName: document.getElementById("display-name"),
   update: document.getElementById("update-player"),
   result: document.getElementById("gm-result"),
+  playerSearch: document.getElementById("player-search"),
+  playerList: document.getElementById("player-list"),
 };
+
+let playersCache = [];
 
 function updateLastUpdated() {
   const now = new Date();
@@ -49,6 +53,7 @@ async function refreshSession() {
     els.panel.hidden = false;
     els.logout.hidden = false;
     setStatus(`Signed in as ${session.user.email}`);
+    loadPlayers();
   } else {
     els.panel.hidden = true;
     els.logout.hidden = true;
@@ -106,6 +111,70 @@ els.update.addEventListener("click", async () => {
   }
   setResult("Player updated.");
 });
+
+function renderPlayers(list) {
+  if (!els.playerList) {
+    return;
+  }
+  if (!list.length) {
+    els.playerList.innerHTML = "<div class=\"gm-empty\">No players found.</div>";
+    return;
+  }
+  els.playerList.innerHTML = list
+    .map(
+      (player) => `
+        <button class="gm-list-item" data-tag="${player.player_tag || ""}" data-name="${player.display_name || ""}">
+          <span>${player.player_tag || "—"}</span>
+          <span>${player.display_name || ""}</span>
+        </button>
+      `
+    )
+    .join("");
+}
+
+async function loadPlayers() {
+  const { data, error } = await supabase
+    .from("players")
+    .select("player_tag, display_name")
+    .order("player_tag", { ascending: true });
+  if (error) {
+    els.playerList.innerHTML = `<div class="gm-empty">${error.message}</div>`;
+    return;
+  }
+  playersCache = data || [];
+  renderPlayers(playersCache);
+}
+
+if (els.playerSearch) {
+  els.playerSearch.addEventListener("input", () => {
+    const query = els.playerSearch.value.trim().toLowerCase();
+    if (!query) {
+      renderPlayers(playersCache);
+      return;
+    }
+    const filtered = playersCache.filter((player) => {
+      const tag = String(player.player_tag || "").toLowerCase();
+      const name = String(player.display_name || "").toLowerCase();
+      return tag.includes(query) || name.includes(query);
+    });
+    renderPlayers(filtered);
+  });
+}
+
+if (els.playerList) {
+  els.playerList.addEventListener("click", (event) => {
+    const item = event.target.closest(".gm-list-item");
+    if (!item) {
+      return;
+    }
+    const tag = item.dataset.tag || "";
+    const name = item.dataset.name || "";
+    els.playerTag.value = tag;
+    if (!els.displayName.value) {
+      els.displayName.value = name;
+    }
+  });
+}
 
 updateLastUpdated();
 refreshSession();
