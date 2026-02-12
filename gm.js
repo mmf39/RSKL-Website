@@ -228,6 +228,20 @@ els.update.addEventListener("click", async () => {
   const normalized = playerTag.replace(/^@/, "");
   const withAt = normalized ? `@${normalized}` : "";
   const variants = [rawTag, withAt, normalized].filter(Boolean);
+  // Resolve the exact current tag before update so sheet sync uses the
+  // original value, even after Supabase changes player_tag.
+  const preUpdateMatch = playersCache.find((player) => {
+    const tag = String(player.player_tag || "");
+    const clean = tag.replace(/^@/, "");
+    const name = String(player.display_name || "");
+    return (
+      variants.includes(tag) ||
+      variants.includes(clean) ||
+      variants.includes(`@${clean}`) ||
+      name.toLowerCase() === rawTag.toLowerCase()
+    );
+  });
+  const oldTagForSheet = preUpdateMatch?.player_tag || rawTag;
   let newPlayerTag = displayName.trim();
   if (!newPlayerTag.startsWith("@")) {
     newPlayerTag = `@${newPlayerTag}`;
@@ -255,21 +269,8 @@ els.update.addEventListener("click", async () => {
   await loadPlayers();
   renderTradePlayerManager();
   if (SHEET_UPDATE_URL !== "REPLACE_WITH_APPS_SCRIPT_URL") {
-    const resolved = playersCache.find((player) => {
-      const tag = String(player.player_tag || "");
-      const clean = tag.replace(/^@/, "");
-      return (
-        tag === rawTag ||
-        tag === withAt ||
-        tag === normalized ||
-        clean === rawTag ||
-        clean === withAt ||
-        clean === normalized
-      );
-    });
-    const resolvedTag = resolved?.player_tag || rawTag;
     const tagVariants = Array.from(
-      new Set([resolvedTag, rawTag, withAt, normalized].filter(Boolean))
+      new Set([oldTagForSheet, rawTag, withAt, normalized].filter(Boolean))
     );
 
     const trySync = async (oldTag) => {
