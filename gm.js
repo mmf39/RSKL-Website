@@ -105,7 +105,8 @@ els.update.addEventListener("click", async () => {
   const { error, data } = await supabase
     .from("players")
     .update({ display_name: displayName, updated_at: new Date().toISOString() })
-    .eq("player_tag", playerTag);
+    .eq("player_tag", playerTag)
+    .select();
 
   if (error) {
     setResult(error.message, true);
@@ -119,7 +120,8 @@ els.update.addEventListener("click", async () => {
   const { error: fallbackError, data: fallbackData } = await supabase
     .from("players")
     .update({ display_name: displayName, updated_at: new Date().toISOString() })
-    .ilike("player_tag", playerTag);
+    .ilike("player_tag", playerTag)
+    .select();
 
   if (fallbackError) {
     setResult(fallbackError.message, true);
