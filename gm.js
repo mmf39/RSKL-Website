@@ -98,14 +98,18 @@ els.update.addEventListener("click", async () => {
     setResult("Enter player tag and new display name.", true);
     return;
   }
-  if (!playerTag.startsWith("@")) {
-    playerTag = `@${playerTag}`;
-  }
+  const rawTag = playerTag;
+  const normalized = playerTag.replace(/^@/, "");
+  const withAt = normalized ? `@${normalized}` : "";
+  const variants = [rawTag, withAt, normalized].filter(Boolean);
   setResult("Updating...");
+  const orQuery = variants
+    .map((tag) => `player_tag.ilike.${tag}`)
+    .join(",");
   const { error, data } = await supabase
     .from("players")
     .update({ display_name: displayName, updated_at: new Date().toISOString() })
-    .eq("player_tag", playerTag)
+    .or(orQuery)
     .select();
 
   if (error) {
@@ -116,22 +120,7 @@ els.update.addEventListener("click", async () => {
     setResult("Player updated.");
     return;
   }
-
-  const { error: fallbackError, data: fallbackData } = await supabase
-    .from("players")
-    .update({ display_name: displayName, updated_at: new Date().toISOString() })
-    .ilike("player_tag", playerTag)
-    .select();
-
-  if (fallbackError) {
-    setResult(fallbackError.message, true);
-    return;
-  }
-  if (fallbackData && fallbackData.length) {
-    setResult("Player updated.");
-    return;
-  }
-  setResult("No matching player tag found.", true);
+  setResult("No matching player tag found. Use the exact tag from Supabase.", true);
 });
 
 function renderSuggestions(list) {
