@@ -27,7 +27,6 @@ const els = {
   tabPanels: document.querySelectorAll(".gm-tab-panel"),
   gmTeamLabel: document.getElementById("gm-team-label"),
   tradeView: document.getElementById("trade-view"),
-  tradePlayers: document.getElementById("trade-players"),
   tradePicks: document.getElementById("trade-picks"),
   tradeNotes: document.getElementById("trade-notes"),
   tradeSave: document.getElementById("trade-save"),
@@ -338,10 +337,9 @@ function renderTradePlayersList(team) {
     return;
   }
   const selected = new Set(
-    els.tradePlayers.value
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean)
+    Array.from(
+      els.tradePlayerList.querySelectorAll("input[type=checkbox]:checked")
+    ).map((input) => input.value)
   );
   els.tradePlayerList.innerHTML = list
     .map((player) => {
@@ -357,18 +355,8 @@ function renderTradePlayersList(team) {
     .join("");
 }
 
-if (els.tradePlayerList) {
-  els.tradePlayerList.addEventListener("change", () => {
-    const selected = Array.from(
-      els.tradePlayerList.querySelectorAll("input[type=checkbox]:checked")
-    ).map((input) => input.value);
-    els.tradePlayers.value = selected.join("\n");
-  });
-}
-
 async function loadTradeBlock(team) {
   if (!team) {
-    els.tradePlayers.value = "";
     els.tradePicks.value = "";
     els.tradeNotes.value = "";
     renderTradePlayersList("");
@@ -380,16 +368,27 @@ async function loadTradeBlock(team) {
     .eq("team_name", team)
     .single();
   if (error) {
-    els.tradePlayers.value = "";
     els.tradePicks.value = "";
     els.tradeNotes.value = "";
     renderTradePlayersList(team);
     return;
   }
-  els.tradePlayers.value = data?.players || "";
   els.tradePicks.value = data?.picks || "";
   els.tradeNotes.value = data?.notes || "";
+  const selected = new Set(
+    String(data?.players || "")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+  );
   renderTradePlayersList(team);
+  if (els.tradePlayerList) {
+    els.tradePlayerList
+      .querySelectorAll("input[type=checkbox]")
+      .forEach((input) => {
+        input.checked = selected.has(input.value);
+      });
+  }
 }
 
 if (els.tradeView) {
@@ -406,9 +405,12 @@ if (els.tradeSave) {
       return;
     }
     setTradeStatus("Saving...");
+    const selectedPlayers = Array.from(
+      els.tradePlayerList.querySelectorAll("input[type=checkbox]:checked")
+    ).map((input) => input.value);
     const payload = {
       team_name: gmTeam,
-      players: els.tradePlayers.value.trim(),
+      players: selectedPlayers.join("\n"),
       picks: els.tradePicks.value.trim(),
       notes: els.tradeNotes.value.trim(),
       updated_at: new Date().toISOString(),
