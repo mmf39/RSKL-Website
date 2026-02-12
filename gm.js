@@ -256,7 +256,7 @@ if (els.update) {
       nameLower === queryLower
     );
   });
-  if (!preUpdateMatch?.id || !preUpdateMatch?.player_tag) {
+  if (!preUpdateMatch?.player_tag) {
     setResult("Player not found. Select from the team list, then update.", true);
     return;
   }
@@ -273,7 +273,7 @@ if (els.update) {
       display_name: displayName,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", preUpdateMatch.id)
+    .eq("player_tag", preUpdateMatch.player_tag)
     .select();
 
   if (error) {
@@ -364,7 +364,7 @@ function renderSuggestions(list) {
 async function loadPlayers() {
   const { data, error } = await supabase
     .from("players")
-    .select("id, player_tag, display_name, team_name")
+    .select("player_tag, display_name, team_name")
     .order("player_tag", { ascending: true });
   if (error) {
     setStatus(error.message, true);
