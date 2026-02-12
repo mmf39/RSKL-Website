@@ -471,6 +471,10 @@ async function loadOtherTradeBlocks() {
         .split("\n")
         .map((line) => line.trim())
         .filter(Boolean);
+      const pickLabels = picks.map((pickId) => {
+        const match = picksCache.find((pick) => pick.id === pickId);
+        return match ? match.label : pickId;
+      });
       const notes = String(block.notes || "").trim();
       return `
         <div class="gm-readonly-card">
@@ -481,7 +485,7 @@ async function loadOtherTradeBlocks() {
           </div>
           <div class="gm-readonly-group">
             <div class="label">Picks</div>
-            <div>${picks.length ? picks.join(", ") : "No trade block available."}</div>
+            <div>${pickLabels.length ? pickLabels.join(", ") : "No trade block available."}</div>
           </div>
           <div class="gm-readonly-group">
             <div class="label">Notes</div>
