@@ -116,7 +116,7 @@ function renderSuggestions(list) {
     return;
   }
   if (!list.length) {
-    els.suggestions.innerHTML = "";
+    els.suggestions.innerHTML = "<div class=\"gm-suggestion-empty\">No players found.</div>";
     return;
   }
   els.suggestions.innerHTML = list
@@ -137,6 +137,7 @@ async function loadPlayers() {
     .select("player_tag, display_name")
     .order("player_tag", { ascending: true });
   if (error) {
+    setStatus(error.message, true);
     return;
   }
   playersCache = data || [];
@@ -146,7 +147,9 @@ if (els.playerTag) {
   els.playerTag.addEventListener("input", () => {
     const query = els.playerTag.value.trim().toLowerCase();
     if (!query) {
-      renderSuggestions([]);
+      if (els.suggestions) {
+        els.suggestions.innerHTML = "";
+      }
       return;
     }
     const filtered = playersCache.filter((player) => {
