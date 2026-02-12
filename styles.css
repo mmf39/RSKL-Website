@@ -903,30 +903,6 @@ input[type="text"] {
   color: #fca5a5;
 }
 
-.gm-list {
-  display: grid;
-  gap: 10px;
-}
-
-.gm-list-item {
-  background: rgba(15, 23, 42, 0.75);
-  border: 1px solid rgba(255, 140, 0, 0.2);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  text-align: left;
-  color: var(--ink);
-}
-
-.gm-list-item:hover {
-  border-color: rgba(255, 140, 0, 0.6);
-}
-
-.gm-empty {
-  color: var(--muted);
-}
 
 .champion-box {
   background: rgba(15, 23, 42, 0.9);
