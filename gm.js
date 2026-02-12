@@ -256,7 +256,7 @@ els.update.addEventListener("click", async () => {
     renderTradePlayerManager();
     if (SHEET_UPDATE_URL !== "REPLACE_WITH_APPS_SCRIPT_URL") {
       try {
-        await fetch(SHEET_UPDATE_URL, {
+        const response = await fetch(SHEET_UPDATE_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -265,8 +265,14 @@ els.update.addEventListener("click", async () => {
             newDisplay: displayName,
           }),
         });
+        const text = await response.text();
+        if (!response.ok) {
+          setResult(`Sheet update failed: ${response.status}`, true);
+        } else if (text && text.includes("\"ok\":false")) {
+          setResult(`Sheet update failed: ${text}`, true);
+        }
       } catch (error) {
-        // ignore sheet update failures
+        setResult(`Sheet update failed: ${error.message}`, true);
       }
     }
     return;
