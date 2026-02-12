@@ -66,6 +66,7 @@
           <div class="gm-tabs">
             <button class="gm-tab active" data-tab="players">Change Players</button>
             <button class="gm-tab" data-tab="trade">Trade Block</button>
+            <button class="gm-tab" data-tab="picks" id="commish-tab" hidden>Pick Manager</button>
           </div>
         </div>
 
@@ -122,7 +123,9 @@
             <div class="label">Other Teams (Read Only)</div>
             <div id="trade-view-list" class="gm-readonly-list"></div>
           </div>
+        </div>
 
+        <div class="gm-tab-panel" data-panel="picks" hidden>
           <div class="gm-card">
             <div class="label">Trade Pick Manager</div>
             <label class="label" for="pick-select">Pick</label>

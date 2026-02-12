@@ -37,6 +37,7 @@ const els = {
   pickUpdate: document.getElementById("pick-update"),
   pickStatus: document.getElementById("pick-status"),
   pickList: document.getElementById("pick-list"),
+  commishTab: document.getElementById("commish-tab"),
 };
 
 let playersCache = [];
@@ -116,6 +117,21 @@ async function refreshSession() {
 
 function toggleCommissionerTools() {
   const isCommish = gmUserId === COMMISSIONER_ID;
+  if (els.commishTab) {
+    els.commishTab.hidden = !isCommish;
+  }
+  if (!isCommish) {
+    els.tabs.forEach((btn) => btn.classList.remove("active"));
+    const playersTab = Array.from(els.tabs).find(
+      (btn) => btn.dataset.tab === "players"
+    );
+    if (playersTab) {
+      playersTab.classList.add("active");
+    }
+    els.tabPanels.forEach((panel) => {
+      panel.hidden = panel.dataset.panel !== "players";
+    });
+  }
   if (els.pickSelect) {
     els.pickSelect.disabled = !isCommish;
   }
