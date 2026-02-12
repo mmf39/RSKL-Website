@@ -16,10 +16,13 @@ const els = {
   status: document.getElementById("gm-status"),
   panel: document.getElementById("gm-panel"),
   playerTag: document.getElementById("player-tag"),
+  suggestions: document.getElementById("player-suggestions"),
   displayName: document.getElementById("display-name"),
   update: document.getElementById("update-player"),
   result: document.getElementById("gm-result"),
 };
+
+let playersCache = [];
 
 function updateLastUpdated() {
   const now = new Date();
@@ -49,6 +52,7 @@ async function refreshSession() {
     els.panel.hidden = false;
     els.logout.hidden = false;
     setStatus(`Signed in as ${session.user.email}`);
+    loadPlayers();
   } else {
     els.panel.hidden = true;
     els.logout.hidden = true;
@@ -106,6 +110,69 @@ els.update.addEventListener("click", async () => {
   }
   setResult("Player updated.");
 });
+
+function renderSuggestions(list) {
+  if (!els.suggestions) {
+    return;
+  }
+  if (!list.length) {
+    els.suggestions.innerHTML = "";
+    return;
+  }
+  els.suggestions.innerHTML = list
+    .map(
+      (player) => `
+        <button class="gm-suggestion" data-tag="${player.player_tag || ""}" data-name="${player.display_name || ""}">
+          <span>${player.player_tag || "—"}</span>
+          <span>${player.display_name || ""}</span>
+        </button>
+      `
+    )
+    .join("");
+}
+
+async function loadPlayers() {
+  const { data, error } = await supabase
+    .from("players")
+    .select("player_tag, display_name")
+    .order("player_tag", { ascending: true });
+  if (error) {
+    return;
+  }
+  playersCache = data || [];
+}
+
+if (els.playerTag) {
+  els.playerTag.addEventListener("input", () => {
+    const query = els.playerTag.value.trim().toLowerCase();
+    if (!query) {
+      renderSuggestions([]);
+      return;
+    }
+    const filtered = playersCache.filter((player) => {
+      const tag = String(player.player_tag || "").toLowerCase();
+      const name = String(player.display_name || "").toLowerCase();
+      return tag.includes(query) || name.includes(query);
+    });
+    renderSuggestions(filtered.slice(0, 8));
+  });
+}
+
+if (els.suggestions) {
+  els.suggestions.addEventListener("click", (event) => {
+    const item = event.target.closest(".gm-suggestion");
+    if (!item) {
+      return;
+    }
+    const tag = item.dataset.tag || "";
+    const name = item.dataset.name || "";
+    els.playerTag.value = tag;
+    if (!els.displayName.value) {
+      els.displayName.value = name;
+    }
+    renderSuggestions([]);
+  });
+}
 
 updateLastUpdated();
 refreshSession();
