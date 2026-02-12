@@ -26,13 +26,17 @@ const els = {
   tabs: document.querySelectorAll(".gm-tab"),
   tabPanels: document.querySelectorAll(".gm-tab-panel"),
   gmTeamLabel: document.getElementById("gm-team-label"),
-  tradePlayers: document.getElementById("trade-players"),
   tradePicksList: document.getElementById("trade-picks-list"),
   tradeNotes: document.getElementById("trade-notes"),
   tradeSave: document.getElementById("trade-save"),
   tradeStatus: document.getElementById("trade-status"),
   tradePlayerList: document.getElementById("trade-player-list"),
   tradeViewList: document.getElementById("trade-view-list"),
+  pickSelect: document.getElementById("pick-select"),
+  pickTeamSelect: document.getElementById("pick-team-select"),
+  pickUpdate: document.getElementById("pick-update"),
+  pickStatus: document.getElementById("pick-status"),
+  pickList: document.getElementById("pick-list"),
 };
 
 let playersCache = [];
@@ -53,9 +57,7 @@ const TEAM_NAMES = [
   "The Phantoms",
 ];
 
-function normalizeTeam(value) {
-  return String(value || "").trim().toLowerCase();
-}
+const COMMISSIONER_ID = "610f64e4-a439-44cb-ab92-386f9f728563";
 
 function updateLastUpdated() {
   const now = new Date();
@@ -83,6 +85,11 @@ function setTradeStatus(message, isError = false) {
   els.tradeStatus.className = `gm-status ${isError ? "error" : ""}`;
 }
 
+function setPickStatus(message, isError = false) {
+  els.pickStatus.textContent = message;
+  els.pickStatus.className = `gm-status ${isError ? "error" : ""}`;
+}
+
 async function refreshSession() {
   const { data } = await supabase.auth.getSession();
   const session = data?.session;
@@ -96,12 +103,30 @@ async function refreshSession() {
     await loadGmTeam();
     await loadOwnTradeBlock();
     await loadOtherTradeBlocks();
+    renderPickManager();
+    toggleCommissionerTools();
   } else {
     gmUserId = "";
     gmTeam = "";
     els.panel.hidden = true;
     els.logout.hidden = true;
     setStatus("Not signed in.");
+  }
+}
+
+function toggleCommissionerTools() {
+  const isCommish = gmUserId === COMMISSIONER_ID;
+  if (els.pickSelect) {
+    els.pickSelect.disabled = !isCommish;
+  }
+  if (els.pickTeamSelect) {
+    els.pickTeamSelect.disabled = !isCommish;
+  }
+  if (els.pickUpdate) {
+    els.pickUpdate.disabled = !isCommish;
+  }
+  if (els.pickStatus && !isCommish) {
+    els.pickStatus.textContent = "Commissioner only.";
   }
 }
 
@@ -243,12 +268,72 @@ async function loadPlayers() {
 async function loadPicks() {
   const { data, error } = await supabase
     .from("draft_picks")
-    .select("id, label, current_team")
+    .select("id, label, current_team, original_team")
     .order("label", { ascending: true });
   if (error) {
     return;
   }
   picksCache = data || [];
+}
+
+function renderPickManager() {
+  if (!els.pickSelect || !els.pickList) {
+    return;
+  }
+  els.pickSelect.innerHTML = picksCache
+    .map((pick) => {
+      const via =
+        pick.original_team && pick.original_team !== pick.current_team
+          ? ` via ${pick.original_team}`
+          : "";
+      return `<option value="${pick.id}">${pick.label}${via} (${pick.current_team})</option>`;
+    })
+    .join("");
+  els.pickList.innerHTML = picksCache
+    .map((pick) => {
+      const via =
+        pick.original_team && pick.original_team !== pick.current_team
+          ? ` via ${pick.original_team}`
+          : "";
+      return `
+        <div class="gm-readonly-card">
+          <div class="gm-readonly-title">${pick.label}${via}</div>
+          <div class="gm-readonly-group">
+            <div class="label">Current Team</div>
+            <div>${pick.current_team}</div>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+if (els.pickUpdate) {
+  els.pickUpdate.addEventListener("click", async () => {
+    if (gmUserId !== COMMISSIONER_ID) {
+      setPickStatus("Commissioner only.", true);
+      return;
+    }
+    const pickId = els.pickSelect.value;
+    const newTeam = els.pickTeamSelect.value;
+    if (!pickId || !newTeam) {
+      setPickStatus("Select a pick and a team.", true);
+      return;
+    }
+    setPickStatus("Updating...");
+    const { error } = await supabase
+      .from("draft_picks")
+      .update({ current_team: newTeam })
+      .eq("id", pickId);
+    if (error) {
+      setPickStatus(error.message, true);
+      return;
+    }
+    setPickStatus("Pick updated.");
+    await loadPicks();
+    renderPickManager();
+    await loadOtherTradeBlocks();
+  });
 }
 
 if (els.playerTag) {
@@ -312,9 +397,8 @@ if (els.teamSelect) {
       renderTeamPlayers([]);
       return;
     }
-    const target = normalizeTeam(team);
     const filtered = playersCache.filter(
-      (player) => normalizeTeam(player.team_name) === target
+      (player) => String(player.team_name || "") === team
     );
     renderTeamPlayers(filtered);
   });
@@ -352,9 +436,8 @@ function renderTradePlayersList(team, selectedPlayers) {
     els.tradePlayerList.innerHTML = "<div class=\"gm-empty\">No players found.</div>";
     return;
   }
-  const target = normalizeTeam(team);
   const list = playersCache.filter(
-    (player) => normalizeTeam(player.team_name) === target
+    (player) => String(player.team_name || "") === team
   );
   if (!list.length) {
     els.tradePlayerList.innerHTML = "<div class=\"gm-empty\">No players found.</div>";
@@ -394,10 +477,14 @@ function renderTradePicksList(team, selectedPicks) {
   els.tradePicksList.innerHTML = list
     .map((pick) => {
       const checked = selected.has(pick.id) ? "checked" : "";
+      const via =
+        pick.original_team && pick.original_team !== pick.current_team
+          ? ` via ${pick.original_team}`
+          : "";
       return `
         <label class="gm-check">
           <input type="checkbox" value="${pick.id}" ${checked} />
-          <span>${pick.label}</span>
+          <span>${pick.label}${via}</span>
         </label>
       `;
     })
@@ -473,7 +560,14 @@ async function loadOtherTradeBlocks() {
         .filter(Boolean);
       const pickLabels = picks.map((pickId) => {
         const match = picksCache.find((pick) => pick.id === pickId);
-        return match ? match.label : pickId;
+        if (!match) {
+          return pickId;
+        }
+        const via =
+          match.original_team && match.original_team !== match.current_team
+            ? ` via ${match.original_team}`
+            : "";
+        return `${match.label}${via}`;
       });
       const notes = String(block.notes || "").trim();
       return `
