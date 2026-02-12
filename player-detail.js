@@ -439,8 +439,12 @@ function renderAwards(items) {
         .map(
           (item) => `
             <div class="awards-card">
-              <div class="awards-title">${escapeHtml(item.award)}</div>
-              <div class="awards-winner">${escapeHtml(item.season)}</div>
+              <div class="awards-title awards-title-center">${escapeHtml(
+                item.player
+              )}</div>
+              <div class="awards-winner awards-winner-center">${escapeHtml(
+                `${item.season} ${item.award}`
+              )}</div>
             </div>
           `
         )
@@ -473,6 +477,14 @@ async function loadAwards(playerName) {
       { key: "C1S6", range: "K3:L27" },
       { key: "C2S1", range: "M3:N29" },
     ];
+    const championMap = [
+      { key: "C1S2", range: "C15:D24" },
+      { key: "C1S3", range: "E15:F28" },
+      { key: "C1S4", range: "G16:H27" },
+      { key: "C1S5", range: "I16:J28" },
+      { key: "C1S6", range: "K16:L27" },
+      { key: "C2S1", range: "M16:N29" },
+    ];
     const target = normalizeName(playerName);
     const found = [];
 
@@ -480,12 +492,36 @@ async function loadAwards(playerName) {
       const sliced = sliceRange(rows, season.range);
       sliced.forEach((row) => {
         const award = String(row[0] || "").trim();
-        const winner = String(row[1] || row[0] || "").trim();
+        const winner = String(row[1] || "").trim();
         if (!award || !winner) {
           return;
         }
         if (matchesName(winner, target)) {
-          found.push({ season: season.key, award });
+          found.push({ player: playerName, season: season.key, award });
+        }
+      });
+    });
+
+    championMap.forEach((season) => {
+      const sliced = sliceRange(rows, season.range);
+      sliced.forEach((row) => {
+        const label = String(row[0] || "").trim();
+        const winner = String(row[1] || "").trim();
+        if (!label) {
+          return;
+        }
+        if (!winner && matchesName(label, target)) {
+          found.push({
+            player: playerName,
+            season: season.key,
+            award: "Champion",
+          });
+        } else if (winner && matchesName(winner, target)) {
+          found.push({
+            player: playerName,
+            season: season.key,
+            award: "Champion",
+          });
         }
       });
     });
