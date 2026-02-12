@@ -38,6 +38,9 @@ ARCHIVE_URL = (
 AWARDS_URL = (
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1527593475&single=true&output=csv"
 )
+SHEET_UPDATE_URL = (
+    "https://script.google.com/macros/s/AKfycbybgKT1WjHN7G13XiymsMNM6eO_sOtfchPsWGJfPZwLvEFJ6_QsYJ9pBt7jNWTkM9msXA/exec"
+)
 
 MIME = {
     ".html": "text/html; charset=utf-8",
@@ -112,6 +115,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/awards":
             proxy_csv(self, AWARDS_URL)
             return
+        if path == "/api/sheet-update":
+            send(self, 405, "Method not allowed")
+            return
 
         if path == "/":
             file_path = os.path.join(ROOT, "index.html")
@@ -131,6 +137,29 @@ class Handler(BaseHTTPRequestHandler):
         content_type = MIME.get(ext, "application/octet-stream")
         with open(file_path, "rb") as f:
             send(self, 200, f.read(), content_type)
+
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        path = parsed.path
+
+        if path == "/api/sheet-update":
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length) if length else b"{}"
+            try:
+                req = urllib.request.Request(
+                    SHEET_UPDATE_URL,
+                    data=body,
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with urllib.request.urlopen(req) as response:
+                    data = response.read()
+                    send(self, response.getcode(), data, "application/json; charset=utf-8")
+            except urllib.error.HTTPError as err:
+                send(self, err.code, f"Upstream error {err.code}")
+            except Exception as err:  # pylint: disable=broad-except
+                send(self, 500, f"Proxy error: {err}")
+            return
 
 
 if __name__ == "__main__":
