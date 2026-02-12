@@ -255,8 +255,21 @@ els.update.addEventListener("click", async () => {
   await loadPlayers();
   renderTradePlayerManager();
   if (SHEET_UPDATE_URL !== "REPLACE_WITH_APPS_SCRIPT_URL") {
+    const resolved = playersCache.find((player) => {
+      const tag = String(player.player_tag || "");
+      const clean = tag.replace(/^@/, "");
+      return (
+        tag === rawTag ||
+        tag === withAt ||
+        tag === normalized ||
+        clean === rawTag ||
+        clean === withAt ||
+        clean === normalized
+      );
+    });
+    const resolvedTag = resolved?.player_tag || rawTag;
     const tagVariants = Array.from(
-      new Set([rawTag, withAt, normalized].filter(Boolean))
+      new Set([resolvedTag, rawTag, withAt, normalized].filter(Boolean))
     );
 
     const trySync = async (oldTag) => {
