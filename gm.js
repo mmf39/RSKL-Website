@@ -16,6 +16,7 @@ const els = {
   status: document.getElementById("gm-status"),
   panel: document.getElementById("gm-panel"),
   playerTag: document.getElementById("player-tag"),
+  playerTagNew: document.getElementById("player-tag-new"),
   suggestions: document.getElementById("player-suggestions"),
   displayName: document.getElementById("display-name"),
   update: document.getElementById("update-player"),
@@ -93,22 +94,30 @@ els.logout.addEventListener("click", async () => {
 
 els.update.addEventListener("click", async () => {
   let playerTag = els.playerTag.value.trim();
+  let newPlayerTag = els.playerTagNew.value.trim();
   const displayName = els.displayName.value.trim();
-  if (!playerTag || !displayName) {
-    setResult("Enter current tag and new display name.", true);
+  if (!playerTag || !displayName || !newPlayerTag) {
+    setResult("Enter current tag, new tag, and new display name.", true);
     return;
   }
   const rawTag = playerTag;
   const normalized = playerTag.replace(/^@/, "");
   const withAt = normalized ? `@${normalized}` : "";
   const variants = [rawTag, withAt, normalized].filter(Boolean);
+  if (!newPlayerTag.startsWith("@")) {
+    newPlayerTag = `@${newPlayerTag}`;
+  }
   setResult("Updating...");
   const orQuery = variants
     .map((tag) => `player_tag.ilike.${tag}`)
     .join(",");
   const { error, data } = await supabase
     .from("players")
-    .update({ display_name: displayName, updated_at: new Date().toISOString() })
+    .update({
+      player_tag: newPlayerTag,
+      display_name: displayName,
+      updated_at: new Date().toISOString(),
+    })
     .or(orQuery)
     .select();
 
