@@ -146,15 +146,27 @@ class Handler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length) if length else b"{}"
             try:
-                req = urllib.request.Request(
-                    SHEET_UPDATE_URL,
-                    data=body,
-                    headers={"Content-Type": "application/json"},
-                    method="POST",
-                )
-                with urllib.request.urlopen(req) as response:
+                url = SHEET_UPDATE_URL
+                redirects = 5
+                while redirects >= 0:
+                    req = urllib.request.Request(
+                        url,
+                        data=body,
+                        headers={"Content-Type": "application/json"},
+                        method="POST",
+                    )
+                    response = urllib.request.urlopen(req)
+                    status = response.getcode()
+                    if status in (301, 302, 303, 307, 308):
+                        location = response.headers.get("Location")
+                        if not location or redirects == 0:
+                            break
+                        url = location
+                        redirects -= 1
+                        continue
                     data = response.read()
-                    send(self, response.getcode(), data, "application/json; charset=utf-8")
+                    send(self, status, data, "application/json; charset=utf-8")
+                    return
             except urllib.error.HTTPError as err:
                 send(self, err.code, f"Upstream error {err.code}")
             except Exception as err:  # pylint: disable=broad-except
