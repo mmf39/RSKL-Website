@@ -953,6 +953,10 @@ input[type="text"] {
   gap: 16px;
 }
 
+.gm-tab-panel[hidden] {
+  display: none;
+}
+
 .gm-row {
   display: flex;
   gap: 16px;
