@@ -2,6 +2,8 @@ const PLAYER_STATS_URL = "/api/player-stats";
 const BOXSCORE_CSV_URL = "/api/boxscore";
 const ARCHIVE_URL = "/api/archive";
 const AWARDS_URL = "/api/awards";
+const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
+const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
 
@@ -57,6 +59,7 @@ let playerColumns = {
   rank: 4,
   opponent: 5,
 };
+let playerNameOverrides = new Map();
 
 function parseCSV(text) {
   const rows = [];
@@ -184,6 +187,35 @@ function normalizeName(value) {
     .replace(/\s+/g, " ")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
+}
+
+function normalizePlayerKey(value) {
+  return String(value || "")
+    .trim()
+    .replace(/^@/, "")
+    .toLowerCase();
+}
+
+async function loadPlayerOverrides() {
+  try {
+    const response = await fetch(SUPABASE_PLAYERS_URL, {
+      headers: {
+        apikey: SUPABASE_API_KEY,
+        Authorization: `Bearer ${SUPABASE_API_KEY}`,
+      },
+    });
+    if (!response.ok) {
+      return;
+    }
+    const data = await response.json();
+    playerNameOverrides = new Map(
+      (data || [])
+        .filter((row) => row.player_tag && row.display_name)
+        .map((row) => [normalizePlayerKey(row.player_tag), row.display_name])
+    );
+  } catch (error) {
+    // ignore override failures
+  }
 }
 
 function matchesName(cellValue, target) {
@@ -534,10 +566,13 @@ async function loadAwards(playerName) {
 
 async function loadPlayer() {
   const playerName = getPlayerName();
-  els.name.textContent = playerName || "Player";
+  await loadPlayerOverrides();
+  const displayName =
+    playerNameOverrides.get(normalizePlayerKey(playerName)) || playerName;
+  els.name.textContent = displayName || "Player";
   if (els.sub) {
-    els.sub.textContent = playerName
-      ? `Game-by-game stats for ${playerName}`
+    els.sub.textContent = displayName
+      ? `Game-by-game stats for ${displayName}`
       : "Missing player name.";
   }
 

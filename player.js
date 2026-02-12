@@ -2,6 +2,8 @@ const PLAYER_STATS_URL = "/api/player-stats";
 const ARCHIVE_URL = "/api/archive";
 const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
+const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
+const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -12,6 +14,7 @@ const els = {
 
 let playerRows = [];
 let leaderboardRows = [];
+let playerNameOverrides = new Map();
 let playerColumns = {
   date: 0,
   team: 1,
@@ -188,6 +191,35 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function normalizePlayerKey(value) {
+  return String(value || "")
+    .trim()
+    .replace(/^@/, "")
+    .toLowerCase();
+}
+
+async function loadPlayerOverrides() {
+  try {
+    const response = await fetch(SUPABASE_PLAYERS_URL, {
+      headers: {
+        apikey: SUPABASE_API_KEY,
+        Authorization: `Bearer ${SUPABASE_API_KEY}`,
+      },
+    });
+    if (!response.ok) {
+      return;
+    }
+    const data = await response.json();
+    playerNameOverrides = new Map(
+      (data || [])
+        .filter((row) => row.player_tag && row.display_name)
+        .map((row) => [normalizePlayerKey(row.player_tag), row.display_name])
+    );
+  } catch (error) {
+    // ignore override failures
+  }
+}
+
 function detectPlayerColumns(headerRow) {
   const columns = {
     date: 0,
@@ -274,7 +306,9 @@ function renderResults(rows, query) {
 function buildLeaderboard(rows) {
   const totals = new Map();
   rows.forEach((row) => {
-    const name = String(row[playerColumns.player] || "").trim();
+    const rawName = String(row[playerColumns.player] || "").trim();
+    const displayName =
+      playerNameOverrides.get(normalizePlayerKey(rawName)) || rawName;
     const team = String(row[playerColumns.team] || "").trim();
     if (!name) {
       return;
@@ -288,10 +322,20 @@ function buildLeaderboard(rows) {
     if (Number.isNaN(score)) {
       return;
     }
-    if (!totals.has(name)) {
-      totals.set(name, { sum: 0, games: 0, rankSum: 0, rankGames: 0, team });
+    if (!totals.has(rawName)) {
+      totals.set(rawName, {
+        sum: 0,
+        games: 0,
+        rankSum: 0,
+        rankGames: 0,
+        team,
+        displayName,
+      });
     }
-    const entry = totals.get(name);
+    const entry = totals.get(rawName);
+    if (displayName) {
+      entry.displayName = displayName;
+    }
     if (!entry.team && team) {
       entry.team = team;
     }
@@ -304,8 +348,9 @@ function buildLeaderboard(rows) {
   });
 
   return Array.from(totals.entries())
-    .map(([name, value]) => ({
-      name,
+    .map(([tag, value]) => ({
+      tag,
+      displayName: value.displayName || tag,
       total: value.sum,
       avg: value.games ? value.sum / value.games : 0,
       avgRank: value.rankGames ? value.rankSum / value.rankGames : 0,
@@ -317,7 +362,11 @@ function buildLeaderboard(rows) {
 
 function renderLeaderboard(list, query, metric) {
   const filtered = query
-    ? list.filter((item) => item.name.toLowerCase().includes(query))
+    ? list.filter((item) => {
+        const name = String(item.displayName || "").toLowerCase();
+        const tag = String(item.tag || "").toLowerCase();
+        return name.includes(query) || tag.includes(query);
+      })
     : list;
 
   if (!filtered.length) {
@@ -377,7 +426,7 @@ function renderLeaderboard(list, query, metric) {
           (item, index) => `
             <div class="player-leader-row">
               <div class="leader-rank">#${index + 1}</div>
-              <a class="leader-name" href="player-detail.html?player=${encodeURIComponent(item.name)}">${escapeHtml(item.name)}</a>
+              <a class="leader-name" href="player-detail.html?player=${encodeURIComponent(item.tag)}">${escapeHtml(item.displayName)}</a>
               <div class="leader-team">
                 ${teamLogo(item.team)}
                 <a class="leader-team-link" href="team.html?team=${encodeURIComponent(item.team)}">${escapeHtml(item.team || "—")}</a>
@@ -402,6 +451,7 @@ function renderLeaderboard(list, query, metric) {
 
 async function loadPlayerStats() {
   try {
+    await loadPlayerOverrides();
     const season = getPlayerSeason();
     if (season === "c2s2-regular") {
       const response = await fetch(PLAYER_STATS_URL, { cache: "no-store" });
