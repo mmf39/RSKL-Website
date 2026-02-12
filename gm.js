@@ -53,6 +53,10 @@ const TEAM_NAMES = [
   "The Phantoms",
 ];
 
+function normalizeTeam(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 function updateLastUpdated() {
   const now = new Date();
   const formatted = now.toLocaleString(undefined, {
@@ -308,8 +312,9 @@ if (els.teamSelect) {
       renderTeamPlayers([]);
       return;
     }
+    const target = normalizeTeam(team);
     const filtered = playersCache.filter(
-      (player) => String(player.team_name || "") === team
+      (player) => normalizeTeam(player.team_name) === target
     );
     renderTeamPlayers(filtered);
   });
@@ -347,8 +352,9 @@ function renderTradePlayersList(team, selectedPlayers) {
     els.tradePlayerList.innerHTML = "<div class=\"gm-empty\">No players found.</div>";
     return;
   }
+  const target = normalizeTeam(team);
   const list = playersCache.filter(
-    (player) => String(player.team_name || "") === team
+    (player) => normalizeTeam(player.team_name) === target
   );
   if (!list.length) {
     els.tradePlayerList.innerHTML = "<div class=\"gm-empty\">No players found.</div>";
