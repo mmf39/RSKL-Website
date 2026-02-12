@@ -36,6 +36,20 @@
             <input id="gm-email" class="text-input" type="email" placeholder="gm@example.com" />
             <label class="label" for="gm-password">Password</label>
             <input id="gm-password" class="text-input" type="password" placeholder="Password" />
+            <label class="label" for="gm-team">Team (Sign Up)</label>
+            <select id="gm-team" class="text-input">
+              <option value="">Select your team</option>
+              <option value="Gus N Em">Gus N Em</option>
+              <option value="Bullets">Bullets</option>
+              <option value="Turkeys">Turkeys</option>
+              <option value="Cheerios">Cheerios</option>
+              <option value="Yetis">Yetis</option>
+              <option value="Illegals">Illegals</option>
+              <option value="The Lions">The Lions</option>
+              <option value="The Future">The Future</option>
+              <option value="The Snipers">The Snipers</option>
+              <option value="The Phantoms">The Phantoms</option>
+            </select>
             <div class="gm-actions">
               <button id="gm-login" class="btn">Sign In</button>
               <button id="gm-signup" class="btn ghost">Sign Up</button>
@@ -48,16 +62,77 @@
 
       <section class="panel" id="gm-panel" hidden>
         <div class="panel-head">
-          <h2>Update Player Username</h2>
+          <h2>GM Tools</h2>
+          <div class="gm-tabs">
+            <button class="gm-tab active" data-tab="players">Change Players</button>
+            <button class="gm-tab" data-tab="trade">Trade Block</button>
+          </div>
         </div>
-        <div class="gm-card">
-          <label class="label" for="player-tag">Player Tag (current)</label>
-          <input id="player-tag" class="text-input" type="text" placeholder="@player" />
-          <div id="player-suggestions" class="gm-suggestions"></div>
-          <label class="label" for="display-name">New Display Name</label>
-          <input id="display-name" class="text-input" type="text" placeholder="New name" />
-          <button id="update-player" class="btn">Update Player</button>
-          <div id="gm-result" class="gm-status"></div>
+
+        <div class="gm-tab-panel" data-panel="players">
+          <div class="gm-card">
+            <label class="label" for="team-select">Team</label>
+            <select id="team-select" class="text-input">
+              <option value="">Select a team</option>
+              <option value="Gus N Em">Gus N Em</option>
+              <option value="Bullets">Bullets</option>
+              <option value="Turkeys">Turkeys</option>
+              <option value="Cheerios">Cheerios</option>
+              <option value="Yetis">Yetis</option>
+              <option value="Illegals">Illegals</option>
+              <option value="The Lions">The Lions</option>
+              <option value="The Future">The Future</option>
+              <option value="The Snipers">The Snipers</option>
+              <option value="The Phantoms">The Phantoms</option>
+            </select>
+            <div id="team-players" class="gm-list"></div>
+            <label class="label" for="player-tag">Player Tag (current)</label>
+            <input id="player-tag" class="text-input" type="text" placeholder="@player" />
+            <div id="player-suggestions" class="gm-suggestions"></div>
+            <label class="label" for="display-name">New Display Name</label>
+            <input id="display-name" class="text-input" type="text" placeholder="New name" />
+            <button id="update-player" class="btn">Update Player</button>
+            <div id="gm-result" class="gm-status"></div>
+          </div>
+        </div>
+
+        <div class="gm-tab-panel" data-panel="trade" hidden>
+          <div class="gm-card">
+            <div class="gm-row">
+              <div>
+                <div class="label">Your Team</div>
+                <div id="gm-team-label" class="gm-team-label">—</div>
+              </div>
+              <div>
+                <label class="label" for="trade-view">View Team</label>
+                <select id="trade-view" class="text-input">
+                  <option value="">Select a team</option>
+                  <option value="Gus N Em">Gus N Em</option>
+                  <option value="Bullets">Bullets</option>
+                  <option value="Turkeys">Turkeys</option>
+                  <option value="Cheerios">Cheerios</option>
+                  <option value="Yetis">Yetis</option>
+                  <option value="Illegals">Illegals</option>
+                  <option value="The Lions">The Lions</option>
+                  <option value="The Future">The Future</option>
+                  <option value="The Snipers">The Snipers</option>
+                  <option value="The Phantoms">The Phantoms</option>
+                </select>
+              </div>
+            </div>
+
+            <label class="label" for="trade-players">Players (one per line)</label>
+            <textarea id="trade-players" class="text-input" rows="6" placeholder="@player1\n@player2"></textarea>
+
+            <label class="label" for="trade-picks">Draft Picks (one per line)</label>
+            <textarea id="trade-picks" class="text-input" rows="4" placeholder="2026 1st\n2027 2nd"></textarea>
+
+            <label class="label" for="trade-notes">Notes</label>
+            <textarea id="trade-notes" class="text-input" rows="4" placeholder="Notes..."></textarea>
+
+            <button id="trade-save" class="btn">Save Trade Block</button>
+            <div id="trade-status" class="gm-status"></div>
+          </div>
         </div>
       </section>
     </main>

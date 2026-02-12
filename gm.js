@@ -10,6 +10,7 @@ const els = {
   lastUpdated: document.getElementById("last-updated"),
   email: document.getElementById("gm-email"),
   password: document.getElementById("gm-password"),
+  team: document.getElementById("gm-team"),
   login: document.getElementById("gm-login"),
   signup: document.getElementById("gm-signup"),
   logout: document.getElementById("gm-logout"),
@@ -20,9 +21,22 @@ const els = {
   displayName: document.getElementById("display-name"),
   update: document.getElementById("update-player"),
   result: document.getElementById("gm-result"),
+  teamSelect: document.getElementById("team-select"),
+  teamPlayers: document.getElementById("team-players"),
+  tabs: document.querySelectorAll(".gm-tab"),
+  tabPanels: document.querySelectorAll(".gm-tab-panel"),
+  gmTeamLabel: document.getElementById("gm-team-label"),
+  tradeView: document.getElementById("trade-view"),
+  tradePlayers: document.getElementById("trade-players"),
+  tradePicks: document.getElementById("trade-picks"),
+  tradeNotes: document.getElementById("trade-notes"),
+  tradeSave: document.getElementById("trade-save"),
+  tradeStatus: document.getElementById("trade-status"),
 };
 
 let playersCache = [];
+let gmTeam = "";
+let gmUserId = "";
 
 function updateLastUpdated() {
   const now = new Date();
@@ -45,18 +59,45 @@ function setResult(message, isError = false) {
   els.result.className = `gm-status ${isError ? "error" : ""}`;
 }
 
+function setTradeStatus(message, isError = false) {
+  els.tradeStatus.textContent = message;
+  els.tradeStatus.className = `gm-status ${isError ? "error" : ""}`;
+}
+
 async function refreshSession() {
   const { data } = await supabase.auth.getSession();
   const session = data?.session;
   if (session) {
+    gmUserId = session.user.id;
     els.panel.hidden = false;
     els.logout.hidden = false;
     setStatus(`Signed in as ${session.user.email}`);
-    loadPlayers();
+    await loadPlayers();
+    await loadGmTeam();
   } else {
+    gmUserId = "";
+    gmTeam = "";
     els.panel.hidden = true;
     els.logout.hidden = true;
     setStatus("Not signed in.");
+  }
+}
+
+async function loadGmTeam() {
+  if (!gmUserId) {
+    return;
+  }
+  const { data, error } = await supabase
+    .from("gm_users")
+    .select("team_name")
+    .eq("user_id", gmUserId)
+    .single();
+  if (error) {
+    return;
+  }
+  gmTeam = data?.team_name || "";
+  if (els.gmTeamLabel) {
+    els.gmTeamLabel.textContent = gmTeam || "—";
   }
 }
 
@@ -74,14 +115,27 @@ els.login.addEventListener("click", async () => {
 });
 
 els.signup.addEventListener("click", async () => {
+  const team = els.team.value.trim();
+  if (!team) {
+    setStatus("Select your team before signing up.", true);
+    return;
+  }
   setStatus("Creating account...");
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: els.email.value.trim(),
     password: els.password.value,
   });
   if (error) {
     setStatus(error.message, true);
     return;
+  }
+  const user = data?.user;
+  if (user) {
+    await supabase.from("gm_users").insert({
+      user_id: user.id,
+      is_gm: true,
+      team_name: team,
+    });
   }
   setStatus("Account created. Check email if confirmation is required.");
 });
@@ -126,6 +180,7 @@ els.update.addEventListener("click", async () => {
   }
   if (data && data.length) {
     setResult("Player updated.");
+    await loadPlayers();
     return;
   }
   setResult("No matching player tag found. Use the exact tag from Supabase.", true);
@@ -154,7 +209,7 @@ function renderSuggestions(list) {
 async function loadPlayers() {
   const { data, error } = await supabase
     .from("players")
-    .select("player_tag, display_name")
+    .select("player_tag, display_name, team_name")
     .order("player_tag", { ascending: true });
   if (error) {
     setStatus(error.message, true);
@@ -217,6 +272,97 @@ function renderTeamPlayers(list) {
     .join("");
 }
 
+if (els.teamSelect) {
+  els.teamSelect.addEventListener("change", () => {
+    const team = els.teamSelect.value;
+    if (!team) {
+      renderTeamPlayers([]);
+      return;
+    }
+    const filtered = playersCache.filter(
+      (player) => String(player.team_name || "") === team
+    );
+    renderTeamPlayers(filtered);
+  });
+}
+
+if (els.teamPlayers) {
+  els.teamPlayers.addEventListener("click", (event) => {
+    const item = event.target.closest(".gm-list-item");
+    if (!item) {
+      return;
+    }
+    const tag = item.dataset.tag || "";
+    const name = item.dataset.name || "";
+    els.playerTag.value = tag;
+    els.displayName.value = name;
+  });
+}
+
+els.tabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    els.tabs.forEach((btn) => btn.classList.remove("active"));
+    tab.classList.add("active");
+    const target = tab.dataset.tab;
+    els.tabPanels.forEach((panel) => {
+      panel.hidden = panel.dataset.panel !== target;
+    });
+  });
+});
+
+async function loadTradeBlock(team) {
+  if (!team) {
+    els.tradePlayers.value = "";
+    els.tradePicks.value = "";
+    els.tradeNotes.value = "";
+    return;
+  }
+  const { data, error } = await supabase
+    .from("trade_blocks")
+    .select("players, picks, notes")
+    .eq("team_name", team)
+    .single();
+  if (error) {
+    els.tradePlayers.value = "";
+    els.tradePicks.value = "";
+    els.tradeNotes.value = "";
+    return;
+  }
+  els.tradePlayers.value = data?.players || "";
+  els.tradePicks.value = data?.picks || "";
+  els.tradeNotes.value = data?.notes || "";
+}
+
+if (els.tradeView) {
+  els.tradeView.addEventListener("change", () => {
+    loadTradeBlock(els.tradeView.value);
+  });
+}
+
+if (els.tradeSave) {
+  els.tradeSave.addEventListener("click", async () => {
+    if (!gmTeam) {
+      setTradeStatus("No GM team assigned.", true);
+      return;
+    }
+    setTradeStatus("Saving...");
+    const payload = {
+      team_name: gmTeam,
+      players: els.tradePlayers.value.trim(),
+      picks: els.tradePicks.value.trim(),
+      notes: els.tradeNotes.value.trim(),
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from("trade_blocks").upsert(payload, {
+      onConflict: "team_name",
+    });
+    if (error) {
+      setTradeStatus(error.message, true);
+      return;
+    }
+    setTradeStatus("Trade block saved.");
+  });
+}
 
 updateLastUpdated();
 refreshSession();

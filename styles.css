@@ -929,6 +929,68 @@ input[type="text"] {
   font-size: 0.95rem;
 }
 
+.gm-tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gm-tab {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 140, 0, 0.3);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+
+.gm-tab.active {
+  border-color: rgba(255, 140, 0, 0.8);
+  color: var(--accent);
+}
+
+.gm-tab-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.gm-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.gm-team-label {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.gm-list {
+  display: grid;
+  gap: 10px;
+}
+
+.gm-list-item {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 140, 0, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  text-align: left;
+  color: var(--ink);
+}
+
+.gm-list-item:hover {
+  border-color: rgba(255, 140, 0, 0.6);
+}
+
+.gm-empty {
+  color: var(--muted);
+}
+
 
 
 .champion-box {
