@@ -27,7 +27,8 @@ const els = {
   tabPanels: document.querySelectorAll(".gm-tab-panel"),
   gmTeamLabel: document.getElementById("gm-team-label"),
   tradeView: document.getElementById("trade-view"),
-  tradePicks: document.getElementById("trade-picks"),
+  tradePlayers: document.getElementById("trade-players"),
+  tradePicksList: document.getElementById("trade-picks-list"),
   tradeNotes: document.getElementById("trade-notes"),
   tradeSave: document.getElementById("trade-save"),
   tradeStatus: document.getElementById("trade-status"),
@@ -35,6 +36,7 @@ const els = {
 };
 
 let playersCache = [];
+let picksCache = [];
 let gmTeam = "";
 let gmUserId = "";
 
@@ -73,6 +75,7 @@ async function refreshSession() {
     els.logout.hidden = false;
     setStatus(`Signed in as ${session.user.email}`);
     await loadPlayers();
+    await loadPicks();
     await loadGmTeam();
     setupTradeTeamView();
   } else {
@@ -229,6 +232,17 @@ async function loadPlayers() {
   playersCache = data || [];
 }
 
+async function loadPicks() {
+  const { data, error } = await supabase
+    .from("draft_picks")
+    .select("id, label, current_team")
+    .order("label", { ascending: true });
+  if (error) {
+    return;
+  }
+  picksCache = data || [];
+}
+
 if (els.playerTag) {
   els.playerTag.addEventListener("input", () => {
     const query = els.playerTag.value.trim().toLowerCase();
@@ -355,11 +369,41 @@ function renderTradePlayersList(team) {
     .join("");
 }
 
+function renderTradePicksList(team, selectedPicks) {
+  if (!els.tradePicksList) {
+    return;
+  }
+  if (!team) {
+    els.tradePicksList.innerHTML = "<div class=\"gm-empty\">Select a team.</div>";
+    return;
+  }
+  const list = picksCache.filter(
+    (pick) => String(pick.current_team || "") === team
+  );
+  if (!list.length) {
+    els.tradePicksList.innerHTML = "<div class=\"gm-empty\">No picks found.</div>";
+    return;
+  }
+  const selected = new Set(selectedPicks || []);
+  els.tradePicksList.innerHTML = list
+    .map((pick) => {
+      const checked = selected.has(pick.id) ? "checked" : "";
+      return `
+        <label class="gm-check">
+          <input type="checkbox" value="${pick.id}" ${checked} />
+          <span>${pick.label}</span>
+        </label>
+      `;
+    })
+    .join("");
+}
+
 async function loadTradeBlock(team) {
   if (!team) {
-    els.tradePicks.value = "";
+    els.tradePicksList.innerHTML = "";
     els.tradeNotes.value = "";
     renderTradePlayersList("");
+    renderTradePicksList("", []);
     return;
   }
   const { data, error } = await supabase
@@ -368,27 +412,29 @@ async function loadTradeBlock(team) {
     .eq("team_name", team)
     .single();
   if (error) {
-    els.tradePicks.value = "";
     els.tradeNotes.value = "";
     renderTradePlayersList(team);
+    renderTradePicksList(team, []);
     return;
   }
-  els.tradePicks.value = data?.picks || "";
-  els.tradeNotes.value = data?.notes || "";
-  const selected = new Set(
-    String(data?.players || "")
-      .split("\n")
-      .map((line) => line.trim())
-      .filter(Boolean)
-  );
+  const selectedPlayers = String(data?.players || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const selectedPicks = String(data?.picks || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
   renderTradePlayersList(team);
+  renderTradePicksList(team, selectedPicks);
   if (els.tradePlayerList) {
     els.tradePlayerList
       .querySelectorAll("input[type=checkbox]")
       .forEach((input) => {
-        input.checked = selected.has(input.value);
+        input.checked = selectedPlayers.includes(input.value);
       });
   }
+  els.tradeNotes.value = data?.notes || "";
 }
 
 if (els.tradeView) {
@@ -408,10 +454,13 @@ if (els.tradeSave) {
     const selectedPlayers = Array.from(
       els.tradePlayerList.querySelectorAll("input[type=checkbox]:checked")
     ).map((input) => input.value);
+    const selectedPicks = Array.from(
+      els.tradePicksList.querySelectorAll("input[type=checkbox]:checked")
+    ).map((input) => input.value);
     const payload = {
       team_name: gmTeam,
       players: selectedPlayers.join("\n"),
-      picks: els.tradePicks.value.trim(),
+      picks: selectedPicks.join("\n"),
       notes: els.tradeNotes.value.trim(),
       updated_at: new Date().toISOString(),
     };
