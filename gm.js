@@ -112,6 +112,13 @@ function setupTradeTeamView() {
   if (gmTeam) {
     els.tradeView.value = gmTeam;
     loadTradeBlock(gmTeam);
+    const isOwnTeam = true;
+    if (els.tradeNotes) {
+      els.tradeNotes.disabled = !isOwnTeam;
+    }
+    if (els.tradeSave) {
+      els.tradeSave.disabled = !isOwnTeam;
+    }
   }
 }
 
@@ -406,15 +413,37 @@ async function loadTradeBlock(team) {
     renderTradePicksList("", []);
     return;
   }
+  const isOwnTeam = team === gmTeam;
   const { data, error } = await supabase
     .from("trade_blocks")
     .select("players, picks, notes")
     .eq("team_name", team)
     .single();
-  if (error) {
+  if (error || !data) {
     els.tradeNotes.value = "";
     renderTradePlayersList(team);
     renderTradePicksList(team, []);
+    if (els.tradePlayerList) {
+      els.tradePlayerList
+        .querySelectorAll("input[type=checkbox]")
+        .forEach((input) => {
+          input.disabled = !isOwnTeam;
+        });
+    }
+    if (els.tradePicksList) {
+      els.tradePicksList
+        .querySelectorAll("input[type=checkbox]")
+        .forEach((input) => {
+          input.disabled = !isOwnTeam;
+        });
+    }
+    if (els.tradeNotes) {
+      els.tradeNotes.disabled = !isOwnTeam;
+    }
+    if (els.tradeSave) {
+      els.tradeSave.disabled = !isOwnTeam;
+    }
+    setTradeStatus("No trade block available.");
     return;
   }
   const selectedPlayers = String(data?.players || "")
@@ -432,15 +461,51 @@ async function loadTradeBlock(team) {
       .querySelectorAll("input[type=checkbox]")
       .forEach((input) => {
         input.checked = selectedPlayers.includes(input.value);
+        input.disabled = !isOwnTeam;
       });
   }
   els.tradeNotes.value = data?.notes || "";
+  if (els.tradeNotes) {
+    els.tradeNotes.disabled = !isOwnTeam;
+  }
+  if (els.tradePicksList) {
+    els.tradePicksList
+      .querySelectorAll("input[type=checkbox]")
+      .forEach((input) => {
+        input.disabled = !isOwnTeam;
+      });
+  }
+  if (els.tradeSave) {
+    els.tradeSave.disabled = !isOwnTeam;
+  }
+  setTradeStatus("");
 }
 
 if (els.tradeView) {
   els.tradeView.addEventListener("change", () => {
     const team = els.tradeView.value;
     loadTradeBlock(team);
+    const isOwnTeam = team && team === gmTeam;
+    if (els.tradePlayerList) {
+      els.tradePlayerList
+        .querySelectorAll("input[type=checkbox]")
+        .forEach((input) => {
+          input.disabled = !isOwnTeam;
+        });
+    }
+    if (els.tradePicksList) {
+      els.tradePicksList
+        .querySelectorAll("input[type=checkbox]")
+        .forEach((input) => {
+          input.disabled = !isOwnTeam;
+        });
+    }
+    if (els.tradeNotes) {
+      els.tradeNotes.disabled = !isOwnTeam;
+    }
+    if (els.tradeSave) {
+      els.tradeSave.disabled = !isOwnTeam;
+    }
   });
 }
 
