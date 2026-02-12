@@ -66,6 +66,10 @@ const TEAM_NAMES = [
 
 const COMMISSIONER_ID = "610f64e4-a439-44cb-ab92-386f9f728563";
 
+function normalizeTeam(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 function updateLastUpdated() {
   const now = new Date();
   const formatted = now.toLocaleString(undefined, {
@@ -470,8 +474,9 @@ if (els.teamSelect) {
       renderTeamPlayers([]);
       return;
     }
+    const target = normalizeTeam(team);
     const filtered = playersCache.filter(
-      (player) => String(player.team_name || "") === team
+      (player) => normalizeTeam(player.team_name) === target
     );
     renderTeamPlayers(filtered);
   });
@@ -509,8 +514,9 @@ function renderTradePlayersList(team, selectedPlayers) {
     els.tradePlayerList.innerHTML = "<div class=\"gm-empty\">No players found.</div>";
     return;
   }
+  const target = normalizeTeam(team);
   const list = playersCache.filter(
-    (player) => String(player.team_name || "") === team
+    (player) => normalizeTeam(player.team_name) === target
   );
   if (!list.length) {
     els.tradePlayerList.innerHTML = "<div class=\"gm-empty\">No players found.</div>";
