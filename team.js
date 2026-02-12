@@ -4,7 +4,7 @@ const SCHEDULE_CSV_URL = "/api/schedule";
 const BOXSCORE_CSV_URL = "/api/boxscore";
 const ARCHIVE_URL = "/api/archive";
 const SEASON_KEY = "season";
-const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
+const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name,team_name";
 const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
@@ -95,6 +95,7 @@ const els = {
 };
 
 let playerNameOverrides = new Map();
+let playerTeamOverrides = new Map();
 
 function parseCSV(text) {
   const rows = [];
@@ -174,24 +175,73 @@ async function loadPlayerOverrides() {
       return;
     }
     const data = await response.json();
-    playerNameOverrides = new Map(
-      (data || [])
-        .filter((row) => row.player_tag && row.display_name)
-        .map((row) => [normalizePlayerKey(row.player_tag), row.display_name])
-    );
+    playerNameOverrides = new Map();
+    playerTeamOverrides = new Map();
+    (data || []).forEach((row) => {
+      const key = normalizePlayerKey(row.player_tag);
+      if (!key) {
+        return;
+      }
+      if (row.display_name) {
+        playerNameOverrides.set(key, row.display_name);
+      }
+      if (row.team_name) {
+        playerTeamOverrides.set(key, String(row.team_name).trim());
+      }
+    });
   } catch (error) {
     // ignore override failures
   }
 }
 
-function renderTable(headers, dataRows) {
+function renderTable(headers, dataRows, teamName) {
   els.head.innerHTML = `
     <tr>
       ${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}
     </tr>
   `;
 
-  els.body.innerHTML = dataRows
+  const normalizedTeam = String(teamName || "").trim();
+  const rows = dataRows.filter((row) => {
+    const value = row[0] ?? "";
+    const nameText = String(value).trim();
+    if (!nameText) {
+      return false;
+    }
+    if (nameText.toUpperCase().startsWith("GM")) {
+      return true;
+    }
+    const overrideTeam = playerTeamOverrides.get(normalizePlayerKey(nameText));
+    if (overrideTeam && normalizedTeam && overrideTeam !== normalizedTeam) {
+      return false;
+    }
+    return true;
+  });
+
+  if (normalizedTeam) {
+    const existing = new Set(
+      rows
+        .map((row) => String(row[0] || "").trim())
+        .filter(Boolean)
+        .map(normalizePlayerKey)
+    );
+    playerTeamOverrides.forEach((team, key) => {
+      if (team !== normalizedTeam) {
+        return;
+      }
+      if (existing.has(key)) {
+        return;
+      }
+      const displayName = playerNameOverrides.get(key) || key;
+      const extra = [displayName];
+      if (headers.length > 1) {
+        extra.push("");
+      }
+      rows.push(extra);
+    });
+  }
+
+  els.body.innerHTML = rows
     .map(
       (row) => `
         <tr>
@@ -376,7 +426,7 @@ async function loadRoster() {
         throw new Error("No roster data in that range.");
       }
 
-      renderTable(sliced[0], sliced.slice(1));
+      renderTable(sliced[0], sliced.slice(1), teamName);
       updateStandingsFromRanges(teamName, parseCSV(await standingsRes.text()));
       updateTeamSchedule(
         teamName,
@@ -407,7 +457,7 @@ async function loadRoster() {
           .filter((row) => String(row[0] || "").trim() !== teamName)
           .map((row) => [row[0], ""]);
       }
-      renderTable(["Player"], rosterRows.map((row) => [row[0]]));
+      renderTable(["Player"], rosterRows.map((row) => [row[0]]), teamName);
 
       const standingsRange = ARCHIVE_TEAM_STANDINGS[teamName];
       const standingsRow = standingsRange

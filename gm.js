@@ -43,7 +43,7 @@ const els = {
   tradePlayerTeam: document.getElementById("trade-player-team"),
   tradePlayerUpdate: document.getElementById("trade-player-update"),
   tradePlayerStatus: document.getElementById("trade-player-status"),
-  tradePlayerAdminList: document.getElementById("trade-player-list"),
+  tradePlayerAdminList: document.getElementById("trade-player-admin-list"),
 };
 
 let playersCache = [];
