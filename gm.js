@@ -69,7 +69,11 @@ const TEAM_NAMES = [
 const COMMISSIONER_ID = "610f64e4-a439-44cb-ab92-386f9f728563";
 
 function normalizeTeam(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[^a-z0-9 ]/g, "");
 }
 
 function updateLastUpdated() {
@@ -143,14 +147,17 @@ async function loadGmTeam() {
   const { data, error } = await supabase
     .from("gm_users")
     .select("team_name")
-    .eq("user_id", gmUserId)
-    .single();
+    .eq("user_id", gmUserId);
   if (error) {
     return;
   }
-  gmTeam = data?.team_name || "";
+  const row = Array.isArray(data) ? data.find((r) => r?.team_name) : null;
+  gmTeam = row?.team_name || "";
   if (els.gmTeamLabel) {
     els.gmTeamLabel.textContent = gmTeam || "—";
+  }
+  if (!gmTeam) {
+    setTradeStatus("No team assigned to this GM account.", true);
   }
 }
 
