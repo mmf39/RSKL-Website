@@ -38,6 +38,12 @@ const els = {
   pickStatus: document.getElementById("pick-status"),
   pickList: document.getElementById("pick-list"),
   commishTab: document.getElementById("commish-tab"),
+  commishTradesTab: document.getElementById("commish-trades-tab"),
+  tradePlayerSelect: document.getElementById("trade-player-select"),
+  tradePlayerTeam: document.getElementById("trade-player-team"),
+  tradePlayerUpdate: document.getElementById("trade-player-update"),
+  tradePlayerStatus: document.getElementById("trade-player-status"),
+  tradePlayerAdminList: document.getElementById("trade-player-list"),
 };
 
 let playersCache = [];
@@ -57,10 +63,6 @@ const TEAM_NAMES = [
   "The Snipers",
   "The Phantoms",
 ];
-
-function normalizeTeam(value) {
-  return String(value || "").trim().toLowerCase();
-}
 
 const COMMISSIONER_ID = "610f64e4-a439-44cb-ab92-386f9f728563";
 
@@ -95,6 +97,11 @@ function setPickStatus(message, isError = false) {
   els.pickStatus.className = `gm-status ${isError ? "error" : ""}`;
 }
 
+function setTradePlayerStatus(message, isError = false) {
+  els.tradePlayerStatus.textContent = message;
+  els.tradePlayerStatus.className = `gm-status ${isError ? "error" : ""}`;
+}
+
 async function refreshSession() {
   const { data } = await supabase.auth.getSession();
   const session = data?.session;
@@ -109,6 +116,7 @@ async function refreshSession() {
     await loadOwnTradeBlock();
     await loadOtherTradeBlocks();
     renderPickManager();
+    renderTradePlayerManager();
     toggleCommissionerTools();
   } else {
     gmUserId = "";
@@ -116,37 +124,6 @@ async function refreshSession() {
     els.panel.hidden = true;
     els.logout.hidden = true;
     setStatus("Not signed in.");
-  }
-}
-
-function toggleCommissionerTools() {
-  const isCommish = gmUserId === COMMISSIONER_ID;
-  if (els.commishTab) {
-    els.commishTab.hidden = !isCommish;
-  }
-  if (!isCommish) {
-    els.tabs.forEach((btn) => btn.classList.remove("active"));
-    const playersTab = Array.from(els.tabs).find(
-      (btn) => btn.dataset.tab === "players"
-    );
-    if (playersTab) {
-      playersTab.classList.add("active");
-    }
-    els.tabPanels.forEach((panel) => {
-      panel.hidden = panel.dataset.panel !== "players";
-    });
-  }
-  if (els.pickSelect) {
-    els.pickSelect.disabled = !isCommish;
-  }
-  if (els.pickTeamSelect) {
-    els.pickTeamSelect.disabled = !isCommish;
-  }
-  if (els.pickUpdate) {
-    els.pickUpdate.disabled = !isCommish;
-  }
-  if (els.pickStatus && !isCommish) {
-    els.pickStatus.textContent = "Commissioner only.";
   }
 }
 
@@ -162,9 +139,31 @@ async function loadGmTeam() {
   if (error) {
     return;
   }
-  gmTeam = String(data?.team_name || "").trim();
+  gmTeam = data?.team_name || "";
   if (els.gmTeamLabel) {
     els.gmTeamLabel.textContent = gmTeam || "—";
+  }
+}
+
+function toggleCommissionerTools() {
+  const isCommish = gmUserId === COMMISSIONER_ID;
+  if (els.commishTab) {
+    els.commishTab.hidden = !isCommish;
+  }
+  if (els.commishTradesTab) {
+    els.commishTradesTab.hidden = !isCommish;
+  }
+  if (!isCommish) {
+    els.tabs.forEach((btn) => btn.classList.remove("active"));
+    const playersTab = Array.from(els.tabs).find(
+      (btn) => btn.dataset.tab === "players"
+    );
+    if (playersTab) {
+      playersTab.classList.add("active");
+    }
+    els.tabPanels.forEach((panel) => {
+      panel.hidden = panel.dataset.panel !== "players";
+    });
   }
 }
 
@@ -248,6 +247,7 @@ els.update.addEventListener("click", async () => {
   if (data && data.length) {
     setResult("Player updated.");
     await loadPlayers();
+    renderTradePlayerManager();
     return;
   }
   setResult("No matching player tag found. Use the exact tag from Supabase.", true);
@@ -326,6 +326,59 @@ function renderPickManager() {
       `;
     })
     .join("");
+}
+
+function renderTradePlayerManager() {
+  if (!els.tradePlayerSelect || !els.tradePlayerAdminList) {
+    return;
+  }
+  els.tradePlayerSelect.innerHTML = playersCache
+    .map(
+      (player) =>
+        `<option value="${player.player_tag}">${player.player_tag} (${player.team_name || ""})</option>`
+    )
+    .join("");
+  els.tradePlayerAdminList.innerHTML = playersCache
+    .map(
+      (player) => `
+        <div class="gm-readonly-card">
+          <div class="gm-readonly-title">${player.player_tag}</div>
+          <div class="gm-readonly-group">
+            <div class="label">Team</div>
+            <div>${player.team_name || ""}</div>
+          </div>
+        </div>
+      `
+    )
+    .join("");
+}
+
+if (els.tradePlayerUpdate) {
+  els.tradePlayerUpdate.addEventListener("click", async () => {
+    if (gmUserId !== COMMISSIONER_ID) {
+      setTradePlayerStatus("Commissioner only.", true);
+      return;
+    }
+    const playerTag = els.tradePlayerSelect.value;
+    const newTeam = els.tradePlayerTeam.value;
+    if (!playerTag || !newTeam) {
+      setTradePlayerStatus("Select a player and team.", true);
+      return;
+    }
+    setTradePlayerStatus("Updating...");
+    const { error } = await supabase
+      .from("players")
+      .update({ team_name: newTeam, updated_at: new Date().toISOString() })
+      .eq("player_tag", playerTag);
+    if (error) {
+      setTradePlayerStatus(error.message, true);
+      return;
+    }
+    setTradePlayerStatus("Player updated.");
+    await loadPlayers();
+    renderTradePlayerManager();
+    await loadOtherTradeBlocks();
+  });
 }
 
 if (els.pickUpdate) {
@@ -417,9 +470,8 @@ if (els.teamSelect) {
       renderTeamPlayers([]);
       return;
     }
-    const target = normalizeTeam(team);
     const filtered = playersCache.filter(
-      (player) => normalizeTeam(player.team_name) === target
+      (player) => String(player.team_name || "") === team
     );
     renderTeamPlayers(filtered);
   });
@@ -457,9 +509,8 @@ function renderTradePlayersList(team, selectedPlayers) {
     els.tradePlayerList.innerHTML = "<div class=\"gm-empty\">No players found.</div>";
     return;
   }
-  const target = normalizeTeam(team);
   const list = playersCache.filter(
-    (player) => normalizeTeam(player.team_name) === target
+    (player) => String(player.team_name || "") === team
   );
   if (!list.length) {
     els.tradePlayerList.innerHTML = "<div class=\"gm-empty\">No players found.</div>";
@@ -498,8 +549,7 @@ function renderTradePicksList(team, selectedPicks) {
   const selected = new Set(selectedPicks || []);
   els.tradePicksList.innerHTML = list
     .map((pick) => {
-      const checked =
-        selected.has(pick.id) || selected.has(pick.label) ? "checked" : "";
+      const checked = selected.has(pick.id) ? "checked" : "";
       const via =
         pick.original_team && pick.original_team !== pick.current_team
           ? ` via ${pick.original_team}`
@@ -582,9 +632,7 @@ async function loadOtherTradeBlocks() {
         .map((line) => line.trim())
         .filter(Boolean);
       const pickLabels = picks.map((pickId) => {
-        const match = picksCache.find(
-          (pick) => pick.id === pickId || pick.label === pickId
-        );
+        const match = picksCache.find((pick) => pick.id === pickId);
         if (!match) {
           return pickId;
         }
@@ -616,30 +664,26 @@ async function loadOtherTradeBlocks() {
     .join("");
 }
 
-  if (els.tradeSave) {
-    els.tradeSave.addEventListener("click", async () => {
-      if (!gmTeam) {
-        setTradeStatus("No GM team assigned.", true);
-        return;
-      }
-      setTradeStatus("Saving...");
-      const selectedPlayers = Array.from(
-        els.tradePlayerList.querySelectorAll("input[type=checkbox]:checked")
-      ).map((input) => input.value);
-      const selectedPicks = Array.from(
-        els.tradePicksList.querySelectorAll("input[type=checkbox]:checked")
-      ).map((input) => input.value);
-      const pickLabels = selectedPicks.map((pickId) => {
-        const match = picksCache.find((pick) => pick.id === pickId);
-        return match ? match.label : pickId;
-      });
-      const payload = {
-        team_name: gmTeam,
-        players: selectedPlayers.join("\n"),
-        picks: pickLabels.join("\n"),
-        notes: els.tradeNotes.value.trim(),
-        updated_at: new Date().toISOString(),
-      };
+if (els.tradeSave) {
+  els.tradeSave.addEventListener("click", async () => {
+    if (!gmTeam) {
+      setTradeStatus("No GM team assigned.", true);
+      return;
+    }
+    setTradeStatus("Saving...");
+    const selectedPlayers = Array.from(
+      els.tradePlayerList.querySelectorAll("input[type=checkbox]:checked")
+    ).map((input) => input.value);
+    const selectedPicks = Array.from(
+      els.tradePicksList.querySelectorAll("input[type=checkbox]:checked")
+    ).map((input) => input.value);
+    const payload = {
+      team_name: gmTeam,
+      players: selectedPlayers.join("\n"),
+      picks: selectedPicks.join("\n"),
+      notes: els.tradeNotes.value.trim(),
+      updated_at: new Date().toISOString(),
+    };
     const { error } = await supabase.from("trade_blocks").upsert(payload, {
       onConflict: "team_name",
     });

@@ -67,6 +67,7 @@
             <button class="gm-tab active" data-tab="players">Change Players</button>
             <button class="gm-tab" data-tab="trade">Trade Block</button>
             <button class="gm-tab" data-tab="picks" id="commish-tab" hidden>Pick Manager</button>
+            <button class="gm-tab" data-tab="trades" id="commish-trades-tab" hidden>Trades</button>
           </div>
         </div>
 
@@ -147,6 +148,31 @@
             <button id="pick-update" class="btn">Update Pick Owner</button>
             <div id="pick-status" class="gm-status"></div>
             <div id="pick-list" class="gm-readonly-list"></div>
+          </div>
+        </div>
+
+        <div class="gm-tab-panel" data-panel="trades" hidden>
+          <div class="gm-card">
+            <div class="label">Player Trade Manager</div>
+            <label class="label" for="trade-player-select">Player</label>
+            <select id="trade-player-select" class="text-input"></select>
+            <label class="label" for="trade-player-team">Move To Team</label>
+            <select id="trade-player-team" class="text-input">
+              <option value="">Select a team</option>
+              <option value="Gus N Em">Gus N Em</option>
+              <option value="Bullets">Bullets</option>
+              <option value="Turkeys">Turkeys</option>
+              <option value="Cheerios">Cheerios</option>
+              <option value="Yetis">Yetis</option>
+              <option value="Illegals">Illegals</option>
+              <option value="The Lions">The Lions</option>
+              <option value="The Future">The Future</option>
+              <option value="The Snipers">The Snipers</option>
+              <option value="The Phantoms">The Phantoms</option>
+            </select>
+            <button id="trade-player-update" class="btn">Update Player Team</button>
+            <div id="trade-player-status" class="gm-status"></div>
+            <div id="trade-player-list" class="gm-readonly-list"></div>
           </div>
         </div>
       </section>
