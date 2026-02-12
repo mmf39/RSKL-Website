@@ -64,41 +64,13 @@
         <div class="panel-head">
           <h2>GM Tools</h2>
           <div class="gm-tabs">
-            <button class="gm-tab active" data-tab="players">Change Players</button>
-            <button class="gm-tab" data-tab="trade">Trade Block</button>
+            <button class="gm-tab active" data-tab="trade">Trade Block</button>
             <button class="gm-tab" data-tab="picks" id="commish-tab" hidden>Pick Manager</button>
             <button class="gm-tab" data-tab="trades" id="commish-trades-tab" hidden>Trades</button>
           </div>
         </div>
 
-        <div class="gm-tab-panel" data-panel="players">
-          <div class="gm-card">
-            <label class="label" for="team-select">Team</label>
-            <select id="team-select" class="text-input">
-              <option value="">Select a team</option>
-              <option value="Gus N Em">Gus N Em</option>
-              <option value="Bullets">Bullets</option>
-              <option value="Turkeys">Turkeys</option>
-              <option value="Cheerios">Cheerios</option>
-              <option value="Yetis">Yetis</option>
-              <option value="Illegals">Illegals</option>
-              <option value="The Lions">The Lions</option>
-              <option value="The Future">The Future</option>
-              <option value="The Snipers">The Snipers</option>
-              <option value="The Phantoms">The Phantoms</option>
-            </select>
-            <div id="team-players" class="gm-list"></div>
-            <label class="label" for="player-tag">Player Tag (current)</label>
-            <input id="player-tag" class="text-input" type="text" placeholder="@player" />
-            <div id="player-suggestions" class="gm-suggestions"></div>
-            <label class="label" for="display-name">New Display Name</label>
-            <input id="display-name" class="text-input" type="text" placeholder="New name" />
-            <button id="update-player" class="btn">Update Player</button>
-            <div id="gm-result" class="gm-status"></div>
-          </div>
-        </div>
-
-        <div class="gm-tab-panel" data-panel="trade" hidden>
+        <div class="gm-tab-panel" data-panel="trade">
           <div class="gm-card">
             <div class="gm-row">
               <div>

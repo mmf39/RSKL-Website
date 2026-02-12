@@ -89,6 +89,9 @@ function setStatus(message, isError = false) {
 }
 
 function setResult(message, isError = false) {
+  if (!els.result) {
+    return;
+  }
   els.result.textContent = message;
   els.result.className = `gm-status ${isError ? "error" : ""}`;
 }
@@ -161,14 +164,14 @@ function toggleCommissionerTools() {
   }
   if (!isCommish) {
     els.tabs.forEach((btn) => btn.classList.remove("active"));
-    const playersTab = Array.from(els.tabs).find(
-      (btn) => btn.dataset.tab === "players"
+    const tradeTab = Array.from(els.tabs).find(
+      (btn) => btn.dataset.tab === "trade"
     );
-    if (playersTab) {
-      playersTab.classList.add("active");
+    if (tradeTab) {
+      tradeTab.classList.add("active");
     }
     els.tabPanels.forEach((panel) => {
-      panel.hidden = panel.dataset.panel !== "players";
+      panel.hidden = panel.dataset.panel !== "trade";
     });
   }
 }
@@ -217,7 +220,8 @@ els.logout.addEventListener("click", async () => {
   await refreshSession();
 });
 
-els.update.addEventListener("click", async () => {
+if (els.update) {
+  els.update.addEventListener("click", async () => {
   let playerTag = els.playerTag.value.trim();
   const displayName = els.displayName.value.trim();
   if (!playerTag || !displayName) {
@@ -228,36 +232,41 @@ els.update.addEventListener("click", async () => {
   const normalized = playerTag.replace(/^@/, "");
   const withAt = normalized ? `@${normalized}` : "";
   const variants = [rawTag, withAt, normalized].filter(Boolean);
+  const variantsLower = variants.map((v) => String(v).toLowerCase());
   // Resolve the exact current tag before update so sheet sync uses the
   // original value, even after Supabase changes player_tag.
   const preUpdateMatch = playersCache.find((player) => {
     const tag = String(player.player_tag || "");
     const clean = tag.replace(/^@/, "");
-    const name = String(player.display_name || "");
+    const tagLower = tag.toLowerCase();
+    const cleanLower = clean.toLowerCase();
+    const nameLower = String(player.display_name || "").toLowerCase();
+    const queryLower = rawTag.toLowerCase();
     return (
-      variants.includes(tag) ||
-      variants.includes(clean) ||
-      variants.includes(`@${clean}`) ||
-      name.toLowerCase() === rawTag.toLowerCase()
+      variantsLower.includes(tagLower) ||
+      variantsLower.includes(cleanLower) ||
+      variantsLower.includes(`@${cleanLower}`) ||
+      nameLower === queryLower
     );
   });
-  const oldTagForSheet = preUpdateMatch?.player_tag || rawTag;
+  if (!preUpdateMatch?.id || !preUpdateMatch?.player_tag) {
+    setResult("Player not found. Select from the team list, then update.", true);
+    return;
+  }
+  const oldTagForSheet = preUpdateMatch.player_tag;
   let newPlayerTag = displayName.trim();
   if (!newPlayerTag.startsWith("@")) {
     newPlayerTag = `@${newPlayerTag}`;
   }
   setResult("Updating...");
-  const orQuery = variants
-    .map((tag) => `player_tag.ilike.*${tag}*`)
-    .join(",");
-  const { error, data } = await supabase
+  const { error } = await supabase
     .from("players")
     .update({
       player_tag: newPlayerTag,
       display_name: displayName,
       updated_at: new Date().toISOString(),
     })
-    .or(orQuery)
+    .eq("id", preUpdateMatch.id)
     .select();
 
   if (error) {
@@ -322,7 +331,8 @@ els.update.addEventListener("click", async () => {
       setResult(`Sheet update failed: ${error.message}`, true);
     }
   }
-});
+  });
+}
 
 function renderSuggestions(list) {
   if (!els.suggestions) {
@@ -347,7 +357,7 @@ function renderSuggestions(list) {
 async function loadPlayers() {
   const { data, error } = await supabase
     .from("players")
-    .select("player_tag, display_name, team_name")
+    .select("id, player_tag, display_name, team_name")
     .order("player_tag", { ascending: true });
   if (error) {
     setStatus(error.message, true);
