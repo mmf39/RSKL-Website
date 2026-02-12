@@ -492,7 +492,8 @@ function renderTradePicksList(team, selectedPicks) {
   const selected = new Set(selectedPicks || []);
   els.tradePicksList.innerHTML = list
     .map((pick) => {
-      const checked = selected.has(pick.id) ? "checked" : "";
+      const checked =
+        selected.has(pick.id) || selected.has(pick.label) ? "checked" : "";
       const via =
         pick.original_team && pick.original_team !== pick.current_team
           ? ` via ${pick.original_team}`
@@ -575,7 +576,9 @@ async function loadOtherTradeBlocks() {
         .map((line) => line.trim())
         .filter(Boolean);
       const pickLabels = picks.map((pickId) => {
-        const match = picksCache.find((pick) => pick.id === pickId);
+        const match = picksCache.find(
+          (pick) => pick.id === pickId || pick.label === pickId
+        );
         if (!match) {
           return pickId;
         }
