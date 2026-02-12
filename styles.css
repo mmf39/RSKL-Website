@@ -861,6 +861,48 @@ input[type="text"] {
   text-align: center;
 }
 
+.gm-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.gm-card {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 140, 0, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.text-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 140, 0, 0.35);
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--ink);
+}
+
+.text-input::placeholder {
+  color: rgba(226, 232, 240, 0.6);
+}
+
+.gm-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.gm-status {
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.gm-status.error {
+  color: #fca5a5;
+}
+
 .champion-box {
   background: rgba(15, 23, 42, 0.9);
   border: 1px solid rgba(255, 140, 0, 0.45);

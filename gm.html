@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GM Admin</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg"></div>
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="badge">Real Sports Karma League</div>
+        <h1>GM Admin</h1>
+        <div class="meta">
+          <span id="last-updated">Last updated: —</span>
+          <div class="nav-links">
+            <a class="btn ghost" href="/">Dashboard</a>
+            <a class="btn ghost" href="/schedule.html">Schedule</a>
+            <a class="btn ghost" href="/player.html">Player Stats</a>
+            <a class="btn ghost" href="/standings.html">Standings</a>
+            <a class="btn ghost" href="/awards.html">Awards</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>GM Login</h2>
+        </div>
+        <div class="gm-grid">
+          <div class="gm-card">
+            <label class="label" for="gm-email">Email</label>
+            <input id="gm-email" class="text-input" type="email" placeholder="gm@example.com" />
+            <label class="label" for="gm-password">Password</label>
+            <input id="gm-password" class="text-input" type="password" placeholder="Password" />
+            <div class="gm-actions">
+              <button id="gm-login" class="btn">Sign In</button>
+              <button id="gm-signup" class="btn ghost">Sign Up</button>
+              <button id="gm-logout" class="btn ghost" hidden>Sign Out</button>
+            </div>
+            <div id="gm-status" class="gm-status"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="gm-panel" hidden>
+        <div class="panel-head">
+          <h2>Update Player Username</h2>
+        </div>
+        <div class="gm-card">
+          <label class="label" for="player-tag">Player Tag (current)</label>
+          <input id="player-tag" class="text-input" type="text" placeholder="@player" />
+          <label class="label" for="display-name">New Display Name</label>
+          <input id="display-name" class="text-input" type="text" placeholder="New name" />
+          <button id="update-player" class="btn">Update Player</button>
+          <div id="gm-result" class="gm-status"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      Built for the RSKL league • Powered by Google Sheets
+    </footer>
+
+    <script src="gm.js" type="module"></script>
+  </body>
+</html>
