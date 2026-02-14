@@ -46,6 +46,8 @@ const els = {
   sumAvgScore: document.getElementById("sum-avg-score"),
   sumAvgRank: document.getElementById("sum-avg-rank"),
   sumGp: document.getElementById("sum-gp"),
+  sumRelMean: document.getElementById("sum-rel-mean"),
+  sumRelMedian: document.getElementById("sum-rel-median"),
   teamValue: document.getElementById("player-team-value"),
   awardsPanel: document.getElementById("player-awards-panel"),
   awards: document.getElementById("player-awards"),
@@ -285,6 +287,51 @@ function updateLastUpdated() {
   els.lastUpdated.textContent = `Last updated: ${formatted}`;
 }
 
+function parseNumber(value) {
+  const num = Number(String(value || "").replace(/[^0-9.\-]/g, ""));
+  return Number.isNaN(num) ? null : num;
+}
+
+function median(numbers) {
+  if (!numbers.length) {
+    return null;
+  }
+  const sorted = [...numbers].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+  return sorted[mid];
+}
+
+function buildDailyBaselines(rows) {
+  const byDate = new Map();
+  rows.forEach((row) => {
+    const dateKey = String(row[playerColumns.date] || "").trim();
+    const score = parseNumber(row[playerColumns.score]);
+    if (!dateKey || score === null) {
+      return;
+    }
+    if (!byDate.has(dateKey)) {
+      byDate.set(dateKey, []);
+    }
+    byDate.get(dateKey).push(score);
+  });
+
+  const baselines = new Map();
+  byDate.forEach((scores, dateKey) => {
+    if (!scores.length) {
+      return;
+    }
+    const sum = scores.reduce((acc, n) => acc + n, 0);
+    baselines.set(dateKey, {
+      mean: scores.length ? sum / scores.length : null,
+      median: median(scores),
+    });
+  });
+  return baselines;
+}
+
 function getPlayerName() {
   const params = new URLSearchParams(window.location.search);
   return params.get("player") || "";
@@ -411,31 +458,47 @@ function renderTable(rows) {
     .join("");
 }
 
-function updateSummary(rows) {
+function updateSummary(rows, baselines) {
   if (!rows.length) {
     els.sumTotal.textContent = "—";
     els.sumAvgScore.textContent = "—";
     els.sumAvgRank.textContent = "—";
     els.sumGp.textContent = "—";
+    if (els.sumRelMean) {
+      els.sumRelMean.textContent = "—";
+    }
+    if (els.sumRelMedian) {
+      els.sumRelMedian.textContent = "—";
+    }
     return;
   }
   let total = 0;
   let scoreGames = 0;
   let rankTotal = 0;
   let rankGames = 0;
+  let relMeanSum = 0;
+  let relMeanGames = 0;
+  let relMedianSum = 0;
+  let relMedianGames = 0;
 
   rows.forEach((row) => {
-    const score = Number(
-      String(row[playerColumns.score] || "").replace(/[^0-9.\-]/g, "")
-    );
-    const rank = Number(
-      String(row[playerColumns.rank] || "").replace(/[^0-9.\-]/g, "")
-    );
-    if (!Number.isNaN(score)) {
+    const score = parseNumber(row[playerColumns.score]);
+    const rank = parseNumber(row[playerColumns.rank]);
+    if (score !== null) {
       total += score;
       scoreGames += 1;
+      const dateKey = String(row[playerColumns.date] || "").trim();
+      const baseline = baselines ? baselines.get(dateKey) : null;
+      if (baseline && baseline.mean && baseline.mean > 0) {
+        relMeanSum += score / baseline.mean;
+        relMeanGames += 1;
+      }
+      if (baseline && baseline.median && baseline.median > 0) {
+        relMedianSum += score / baseline.median;
+        relMedianGames += 1;
+      }
     }
-    if (!Number.isNaN(rank)) {
+    if (rank !== null) {
       rankTotal += rank;
       rankGames += 1;
     }
@@ -449,6 +512,16 @@ function updateSummary(rows) {
     ? (rankTotal / rankGames).toFixed(2)
     : "—";
   els.sumGp.textContent = String(scoreGames);
+  if (els.sumRelMean) {
+    els.sumRelMean.textContent = relMeanGames
+      ? (relMeanSum / relMeanGames).toFixed(3)
+      : "—";
+  }
+  if (els.sumRelMedian) {
+    els.sumRelMedian.textContent = relMedianGames
+      ? (relMedianSum / relMedianGames).toFixed(3)
+      : "—";
+  }
 }
 
 function findTeamFromStats(rows) {
@@ -632,14 +705,15 @@ async function loadPlayer() {
         )
       : [];
 
+    const baselines = buildDailyBaselines(dataRows);
     if (season === "c2s1-regular") {
       els.body.innerHTML = `<tr><td>No stats available for C2S1 Regular Season.</td></tr>`;
-      updateSummary([]);
+      updateSummary([], baselines);
       const teamName = await findTeamForPlayer(season, playerName);
       renderPlayerTeam(teamName);
     } else {
       renderTable(filtered);
-      updateSummary(filtered);
+      updateSummary(filtered, baselines);
       const teamFromStats = findTeamFromStats(filtered);
       if (teamFromStats) {
         renderPlayerTeam(teamFromStats);

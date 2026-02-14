@@ -262,6 +262,51 @@ function updateLastUpdated() {
   els.lastUpdated.textContent = `Last updated: ${formatted}`;
 }
 
+function parseNumber(value) {
+  const num = Number(String(value || "").replace(/[^0-9.\-]/g, ""));
+  return Number.isNaN(num) ? null : num;
+}
+
+function median(numbers) {
+  if (!numbers.length) {
+    return null;
+  }
+  const sorted = [...numbers].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+  return sorted[mid];
+}
+
+function buildDailyBaselines(rows) {
+  const byDate = new Map();
+  rows.forEach((row) => {
+    const dateKey = String(row[playerColumns.date] || "").trim();
+    const score = parseNumber(row[playerColumns.score]);
+    if (!dateKey || score === null) {
+      return;
+    }
+    if (!byDate.has(dateKey)) {
+      byDate.set(dateKey, []);
+    }
+    byDate.get(dateKey).push(score);
+  });
+
+  const baselines = new Map();
+  byDate.forEach((scores, dateKey) => {
+    if (!scores.length) {
+      return;
+    }
+    const sum = scores.reduce((acc, n) => acc + n, 0);
+    baselines.set(dateKey, {
+      mean: scores.length ? sum / scores.length : null,
+      median: median(scores),
+    });
+  });
+  return baselines;
+}
+
 function renderResults(rows, query) {
   if (!rows.length) {
     els.results.innerHTML = "<p>No games found for that player.</p>";
@@ -304,22 +349,19 @@ function renderResults(rows, query) {
 }
 
 function buildLeaderboard(rows) {
+  const baselines = buildDailyBaselines(rows);
   const totals = new Map();
   rows.forEach((row) => {
     const rawName = String(row[playerColumns.player] || "").trim();
     const displayName =
       playerNameOverrides.get(normalizePlayerKey(rawName)) || rawName;
     const team = String(row[playerColumns.team] || "").trim();
-    if (!name) {
+    if (!rawName) {
       return;
     }
-    const score = Number(
-      String(row[playerColumns.score] || "").replace(/[^0-9.\-]/g, "")
-    );
-    const rank = Number(
-      String(row[playerColumns.rank] || "").replace(/[^0-9.\-]/g, "")
-    );
-    if (Number.isNaN(score)) {
+    const score = parseNumber(row[playerColumns.score]);
+    const rank = parseNumber(row[playerColumns.rank]);
+    if (score === null) {
       return;
     }
     if (!totals.has(rawName)) {
@@ -328,6 +370,10 @@ function buildLeaderboard(rows) {
         games: 0,
         rankSum: 0,
         rankGames: 0,
+        relMeanSum: 0,
+        relMeanGames: 0,
+        relMedianSum: 0,
+        relMedianGames: 0,
         team,
         displayName,
       });
@@ -341,7 +387,17 @@ function buildLeaderboard(rows) {
     }
     entry.sum += score;
     entry.games += 1;
-    if (!Number.isNaN(rank)) {
+    const dateKey = String(row[playerColumns.date] || "").trim();
+    const baseline = baselines.get(dateKey);
+    if (baseline && baseline.mean && baseline.mean > 0) {
+      entry.relMeanSum += score / baseline.mean;
+      entry.relMeanGames += 1;
+    }
+    if (baseline && baseline.median && baseline.median > 0) {
+      entry.relMedianSum += score / baseline.median;
+      entry.relMedianGames += 1;
+    }
+    if (rank !== null) {
       entry.rankSum += rank;
       entry.rankGames += 1;
     }
@@ -354,6 +410,10 @@ function buildLeaderboard(rows) {
       total: value.sum,
       avg: value.games ? value.sum / value.games : 0,
       avgRank: value.rankGames ? value.rankSum / value.rankGames : 0,
+      relMean: value.relMeanGames ? value.relMeanSum / value.relMeanGames : 0,
+      relMedian: value.relMedianGames
+        ? value.relMedianSum / value.relMedianGames
+        : 0,
       games: value.games,
       team: value.team || "",
     }))
@@ -379,6 +439,10 @@ function renderLeaderboard(list, query, metric) {
     sorted.sort((a, b) => b.total - a.total);
   } else if (metric === "avg_rank") {
     sorted.sort((a, b) => a.avgRank - b.avgRank);
+  } else if (metric === "rel_median") {
+    sorted.sort((a, b) => b.relMedian - a.relMedian);
+  } else if (metric === "rel_mean") {
+    sorted.sort((a, b) => b.relMean - a.relMean);
   } else if (metric === "gp") {
     sorted.sort((a, b) => b.games - a.games);
   } else {
@@ -390,6 +454,10 @@ function renderLeaderboard(list, query, metric) {
       ? "total"
       : metric === "avg_rank"
       ? "avg rank"
+      : metric === "rel_median"
+      ? "REL (median)"
+      : metric === "rel_mean"
+      ? "REL (mean)"
       : metric === "gp"
       ? "gp"
       : "avg";
@@ -442,6 +510,10 @@ function renderLeaderboard(list, query, metric) {
                   ? item.total.toFixed(0)
                   : metric === "avg_rank"
                   ? item.avgRank.toFixed(2)
+                  : metric === "rel_median"
+                  ? item.relMedian.toFixed(3)
+                  : metric === "rel_mean"
+                  ? item.relMean.toFixed(3)
                   : metric === "gp"
                   ? item.games
                   : item.avg.toFixed(2)

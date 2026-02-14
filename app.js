@@ -9,7 +9,6 @@ const AUTO_REFRESH_MS = 5 * 60 * 1000;
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
-  refresh: document.getElementById("refresh"),
   teamsGrid: document.getElementById("teams-grid"),
   standingsLink: document.getElementById("standings-link"),
   teamsLink: document.getElementById("teams-link"),
@@ -505,10 +504,6 @@ function updateLastUpdated() {
 initSeasonSelect();
 loadData();
 setInterval(loadData, AUTO_REFRESH_MS);
-
-if (els.refresh) {
-  els.refresh.addEventListener("click", loadData);
-}
 
 document.addEventListener("click", (event) => {
   if (event.target.matches("[data-close=\"true\"]")) {
