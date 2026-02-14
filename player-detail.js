@@ -52,6 +52,14 @@ const els = {
   teamValue: document.getElementById("player-team-value"),
   awardsPanel: document.getElementById("player-awards-panel"),
   awards: document.getElementById("player-awards"),
+  summaryCards: Array.from(document.querySelectorAll(".summary-card-link")),
+  rankGp: document.getElementById("rank-gp"),
+  rankTotal: document.getElementById("rank-total"),
+  rankAvgScore: document.getElementById("rank-avg-score"),
+  rankAvgRank: document.getElementById("rank-avg-rank"),
+  rankRelMean: document.getElementById("rank-rel-mean"),
+  rankRelMedian: document.getElementById("rank-rel-median"),
+  rankWar: document.getElementById("rank-war"),
 };
 
 let playerColumns = {
@@ -337,6 +345,125 @@ function buildDailyBaselines(rows) {
     });
   });
   return baselines;
+}
+
+function buildLeaderboardEntries(rows) {
+  const baselines = buildDailyBaselines(rows);
+  const totals = new Map();
+  rows.forEach((row) => {
+    const rawName = String(row[playerColumns.player] || "").trim();
+    const team = String(row[playerColumns.team] || "").trim();
+    const score = parseNumber(row[playerColumns.score]);
+    const rank = parseNumber(row[playerColumns.rank]);
+    if (!rawName || score === null) {
+      return;
+    }
+    if (!totals.has(rawName)) {
+      totals.set(rawName, {
+        total: 0,
+        games: 0,
+        rankSum: 0,
+        rankGames: 0,
+        relMeanSum: 0,
+        relMeanGames: 0,
+        relMedianSum: 0,
+        relMedianGames: 0,
+        war: 0,
+        team,
+      });
+    }
+    const entry = totals.get(rawName);
+    entry.total += score;
+    entry.games += 1;
+    if (rank !== null) {
+      entry.rankSum += rank;
+      entry.rankGames += 1;
+    }
+    const dateKey = String(row[playerColumns.date] || "").trim();
+    const baseline = baselines.get(dateKey);
+    if (baseline && baseline.mean && baseline.mean > 0) {
+      entry.relMeanSum += score / baseline.mean;
+      entry.relMeanGames += 1;
+    }
+    if (baseline && baseline.median && baseline.median > 0) {
+      entry.relMedianSum += score / baseline.median;
+      entry.relMedianGames += 1;
+      const replacementScore = 0.9 * baseline.median;
+      const avgMargin = 0.92 * baseline.median;
+      if (avgMargin > 0) {
+        entry.war += (score - replacementScore) / avgMargin;
+      }
+    }
+  });
+
+  return Array.from(totals.entries()).map(([player, value]) => ({
+    player,
+    team: value.team || "",
+    total: value.total,
+    games: value.games,
+    avgScore: value.games ? value.total / value.games : 0,
+    avgRank: value.rankGames ? value.rankSum / value.rankGames : Infinity,
+    relMean: value.relMeanGames ? value.relMeanSum / value.relMeanGames : 0,
+    relMedian: value.relMedianGames ? value.relMedianSum / value.relMedianGames : 0,
+    war: value.war,
+  }));
+}
+
+function getRank(entries, playerName, selector, ascending = false) {
+  const target = normalizeName(playerName);
+  const sorted = [...entries].sort((a, b) => {
+    const av = selector(a);
+    const bv = selector(b);
+    return ascending ? av - bv : bv - av;
+  });
+  const idx = sorted.findIndex((entry) => normalizeName(entry.player) === target);
+  return idx === -1 ? "—" : String(idx + 1);
+}
+
+function renderLeagueRanks(dataRows, playerName) {
+  const nodes = [
+    els.rankGp,
+    els.rankTotal,
+    els.rankAvgScore,
+    els.rankAvgRank,
+    els.rankRelMean,
+    els.rankRelMedian,
+    els.rankWar,
+  ].filter(Boolean);
+  if (!dataRows.length || !playerName) {
+    nodes.forEach((node) => {
+      node.textContent = "League rank: —";
+    });
+    return;
+  }
+  const entries = buildLeaderboardEntries(dataRows);
+  if (!entries.length) {
+    nodes.forEach((node) => {
+      node.textContent = "League rank: —";
+    });
+    return;
+  }
+  if (els.rankGp) {
+    els.rankGp.textContent = `League rank: ${getRank(entries, playerName, (e) => e.games)}`;
+  }
+  if (els.rankTotal) {
+    els.rankTotal.textContent = `League rank: ${getRank(entries, playerName, (e) => e.total)}`;
+  }
+  if (els.rankAvgScore) {
+    els.rankAvgScore.textContent = `League rank: ${getRank(entries, playerName, (e) => e.avgScore)}`;
+  }
+  if (els.rankAvgRank) {
+    els.rankAvgRank.textContent = `League rank: ${getRank(entries, playerName, (e) => e.avgRank, true)}`;
+  }
+  if (els.rankRelMean) {
+    els.rankRelMean.textContent = `League rank: ${getRank(entries, playerName, (e) => e.relMean)}`;
+  }
+  if (els.rankRelMedian) {
+    els.rankRelMedian.textContent = `League rank: ${getRank(entries, playerName, (e) => e.relMedian)}`;
+  }
+  if (els.rankWar) {
+    els.rankWar.textContent = `League rank: ${getRank(entries, playerName, (e) => e.war)}`;
+  }
 }
 
 function getPlayerName() {
@@ -778,6 +905,7 @@ async function loadPlayer() {
       : [];
 
     const baselines = buildDailyBaselines(dataRows);
+    renderLeagueRanks(dataRows, playerName);
     if (season === "c2s1-regular") {
       els.body.innerHTML = `<tr><td>No stats available for C2S1 Regular Season.</td></tr>`;
       updateSummary([], baselines);
@@ -800,6 +928,7 @@ async function loadPlayer() {
     loadAwards(playerName);
   } catch (error) {
     els.body.innerHTML = `<tr><td>${escapeHtml(error.message)}</td></tr>`;
+    renderLeagueRanks([], playerName);
   }
 }
 
@@ -952,6 +1081,21 @@ document.addEventListener("click", (event) => {
   if (event.target.matches("[data-close=\"true\"]")) {
     els.modal.hidden = true;
   }
+});
+
+els.summaryCards.forEach((card) => {
+  card.addEventListener("click", () => {
+    const metric = card.dataset.metric || "avg_score";
+    const player = getPlayerName();
+    const season = getSeason();
+    const leaderboardSeason = season === "career" ? "c2s2-regular" : season;
+    const params = new URLSearchParams({
+      metric,
+      player,
+      season: leaderboardSeason,
+    });
+    window.location.href = `player.html?${params.toString()}`;
+  });
 });
 
 initSeasonSelect();

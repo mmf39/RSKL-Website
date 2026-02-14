@@ -43,6 +43,49 @@ function getPlayerSeason() {
   return "c2s2-regular";
 }
 
+function getLeaderboardParams() {
+  const params = new URLSearchParams(window.location.search);
+  const metric = params.get("metric") || "";
+  const player = params.get("player") || "";
+  const season = params.get("season") || "";
+  return { metric, player, season };
+}
+
+function applyLeaderboardParams() {
+  const { metric, player, season } = getLeaderboardParams();
+  const allowedMetrics = new Set([
+    "avg_score",
+    "total_score",
+    "avg_rank",
+    "rel_median",
+    "rel_mean",
+    "war",
+    "gp",
+  ]);
+  const allowedSeasons = new Set([
+    "c2s2-regular",
+    "c2s1-playoffs",
+    "c2s1-regular",
+  ]);
+  if (allowedMetrics.has(metric) && els.filter) {
+    els.filter.value = metric;
+  }
+  if (player && els.search) {
+    els.search.value = player;
+  }
+  if (allowedSeasons.has(season)) {
+    localStorage.setItem(PLAYER_SEASON_KEY, season);
+    localStorage.setItem(
+      SEASON_KEY,
+      season === "c2s1-playoffs"
+        ? "c2s1-post"
+        : season === "c2s1-regular"
+        ? "c2s1-regular"
+        : "c2s2"
+    );
+  }
+}
+
 function initPlayerSeasonSelect() {
   const panelSelect = document.getElementById("player-season-select");
   const navSelect = document.getElementById("season-select");
@@ -423,8 +466,7 @@ function buildLeaderboard(rows) {
       war: value.war,
       games: value.games,
       team: value.team || "",
-    }))
-    .slice(0, 25);
+    }));
 }
 
 function renderLeaderboard(list, query, metric) {
@@ -472,6 +514,7 @@ function renderLeaderboard(list, query, metric) {
       : metric === "gp"
       ? "gp"
       : "avg";
+  const visible = query ? sorted : sorted.slice(0, 25);
 
   const teamLogo = (team) => {
     if (team === "The Future") {
@@ -506,7 +549,7 @@ function renderLeaderboard(list, query, metric) {
 
   els.results.innerHTML = `
     <div class="leader-grid">
-      ${sorted
+      ${visible
         .map(
           (item, index) => `
             <div class="player-leader-row">
@@ -574,7 +617,8 @@ async function loadPlayerStats() {
     if (season === "c2s1-regular") {
       els.results.innerHTML = "<p>No stats available for C2S1 Regular Season.</p>";
     } else {
-      renderLeaderboard(leaderboardRows, "", els.filter.value);
+      const query = els.search.value.trim().toLowerCase();
+      renderLeaderboard(leaderboardRows, query, els.filter.value);
     }
   } catch (error) {
     els.results.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
@@ -591,5 +635,6 @@ els.filter.addEventListener("change", () => {
   renderLeaderboard(leaderboardRows, query, els.filter.value);
 });
 
+applyLeaderboardParams();
 initPlayerSeasonSelect();
 loadPlayerStats();
