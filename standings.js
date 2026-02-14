@@ -1,4 +1,5 @@
 const STANDINGS_CSV_URL = "/api/standings-dashboard";
+const SCHEDULE_CSV_URL = "/api/schedule";
 const ARCHIVE_URL = "/api/archive";
 const SEASON_KEY = "season";
 
@@ -9,6 +10,7 @@ const els = {
 
 let standingsRows = [];
 let standingsHeaders = [];
+let sosByTeam = new Map();
 
 const ARCHIVE_RANGES = {
   standings: "A1:F7",
@@ -191,6 +193,8 @@ function renderStandings() {
           ? '<img class="standings-logo" src="/assets/illegals.png" alt="Illegals logo" />'
           : teamName === "Bullets"
           ? '<img class="standings-logo" src="/assets/bullets.png" alt="Bullets logo" />'
+          : teamName === "Turkeys"
+          ? '<img class="standings-logo" src="/assets/turkeys.png" alt="Turkeys logo" />'
           : "";
       return `
         <a class="leader-row" href="${link}">
@@ -209,6 +213,12 @@ function renderStandings() {
               `
               )
               .join("")}
+            <div class="leader-chip">
+              SOS
+              <span>${escapeHtml(
+                sosByTeam.has(teamName) ? sosByTeam.get(teamName) : "—"
+              )}</span>
+            </div>
           </div>
         </a>
       `;
@@ -216,20 +226,96 @@ function renderStandings() {
     .join("");
 }
 
+function parsePct(value) {
+  const num = Number(String(value || "").replace(/[^0-9.\-]/g, ""));
+  if (Number.isNaN(num)) {
+    return null;
+  }
+  return num > 1 ? num / 100 : num;
+}
+
+function computeSosMap(
+  standingsHeader,
+  standingsDataRows,
+  scheduleRows,
+  team1Idx = 2,
+  team2Idx = 3
+) {
+  const map = new Map();
+  if (!standingsDataRows.length || !scheduleRows.length) {
+    return map;
+  }
+  const lower = standingsHeader.map((h) => String(h || "").toLowerCase());
+  const teamIdx = lower.findIndex((h) => h === "team");
+  const winIdx = lower.findIndex((h) => h === "win %" || h === "win%" || h === "pct");
+  if (teamIdx === -1 || winIdx === -1) {
+    return map;
+  }
+  const winPctByTeam = new Map();
+  standingsDataRows.forEach((row) => {
+    const team = String(row[teamIdx] || "").trim();
+    const pct = parsePct(row[winIdx]);
+    if (!team || pct === null) {
+      return;
+    }
+    winPctByTeam.set(team, pct);
+  });
+
+  const scheduleData = scheduleRows.slice(1);
+  const sums = new Map();
+  const counts = new Map();
+  scheduleData.forEach((row) => {
+    const team1 = String(row[team1Idx] || "").trim();
+    const team2 = String(row[team2Idx] || "").trim();
+    if (!team1 || !team2) {
+      return;
+    }
+    const pct1 = winPctByTeam.get(team1);
+    const pct2 = winPctByTeam.get(team2);
+    if (pct2 !== undefined) {
+      sums.set(team1, (sums.get(team1) || 0) + pct2);
+      counts.set(team1, (counts.get(team1) || 0) + 1);
+    }
+    if (pct1 !== undefined) {
+      sums.set(team2, (sums.get(team2) || 0) + pct1);
+      counts.set(team2, (counts.get(team2) || 0) + 1);
+    }
+  });
+
+  winPctByTeam.forEach((_, team) => {
+    const count = counts.get(team) || 0;
+    if (!count) {
+      map.set(team, "—");
+      return;
+    }
+    const value = (sums.get(team) || 0) / count;
+    map.set(team, value.toFixed(3));
+  });
+  return map;
+}
+
 async function loadStandings() {
   try {
     const season = getSeason();
     if (season === "c2s2") {
-      const response = await fetch(STANDINGS_CSV_URL, { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error(`Fetch failed: ${response.status}`);
+      const [standingsRes, scheduleRes] = await Promise.all([
+        fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
+        fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
+      ]);
+      if (!standingsRes.ok) {
+        throw new Error(`Fetch failed: ${standingsRes.status}`);
       }
-      const rows = parseCSV(await response.text());
+      if (!scheduleRes.ok) {
+        throw new Error(`Fetch failed: ${scheduleRes.status}`);
+      }
+      const rows = parseCSV(await standingsRes.text());
+      const scheduleRows = parseCSV(await scheduleRes.text());
       if (!rows.length) {
         throw new Error("No data found.");
       }
       standingsHeaders = rows[0];
       standingsRows = rows.slice(1);
+      sosByTeam = computeSosMap(standingsHeaders, standingsRows, scheduleRows);
       renderStandings();
     } else {
       const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
@@ -237,10 +323,24 @@ async function loadStandings() {
         throw new Error(`Fetch failed: ${response.status}`);
       }
       const rows = parseCSV(await response.text());
-      const range =
-        season === "c2s1-post" ? ARCHIVE_RANGES.bracket : ARCHIVE_RANGES.standings;
-      const sliced = sliceRange(rows, range);
-      renderTable(sliced);
+      if (season === "c2s1-regular") {
+        const standingsTable = sliceRange(rows, ARCHIVE_RANGES.standings);
+        const scheduleTable = sliceRange(rows, "G31:I79");
+        standingsHeaders = standingsTable[0] || [];
+        standingsRows = standingsTable.slice(1);
+        sosByTeam = computeSosMap(
+          standingsHeaders,
+          standingsRows,
+          scheduleTable,
+          1,
+          2
+        );
+        renderStandings();
+      } else {
+        const sliced = sliceRange(rows, ARCHIVE_RANGES.bracket);
+        sosByTeam = new Map();
+        renderTable(sliced);
+      }
     }
     updateLastUpdated();
   } catch (error) {

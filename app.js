@@ -192,6 +192,9 @@ function getTeamLogo(name) {
   if (name === "Bullets") {
     return '<img class="team-logo" src="/assets/bullets.png" alt="Bullets logo" />';
   }
+  if (name === "Turkeys") {
+    return '<img class="team-logo" src="/assets/turkeys.png" alt="Turkeys logo" />';
+  }
   return "";
 }
 

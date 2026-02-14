@@ -544,6 +544,9 @@ function renderLeaderboard(list, query, metric) {
     if (team === "Bullets") {
       return '<img class="standings-logo" src="/assets/bullets.png" alt="Bullets logo" />';
     }
+    if (team === "Turkeys") {
+      return '<img class="standings-logo" src="/assets/turkeys.png" alt="Turkeys logo" />';
+    }
     return "";
   };
 
