@@ -1086,12 +1086,10 @@ document.addEventListener("click", (event) => {
 els.summaryCards.forEach((card) => {
   card.addEventListener("click", () => {
     const metric = card.dataset.metric || "avg_score";
-    const player = getPlayerName();
     const season = getSeason();
     const leaderboardSeason = season === "career" ? "c2s2-regular" : season;
     const params = new URLSearchParams({
       metric,
-      player,
       season: leaderboardSeason,
     });
     window.location.href = `player.html?${params.toString()}`;
