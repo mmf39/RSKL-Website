@@ -48,6 +48,7 @@ const els = {
   sumGp: document.getElementById("sum-gp"),
   sumRelMean: document.getElementById("sum-rel-mean"),
   sumRelMedian: document.getElementById("sum-rel-median"),
+  sumWar: document.getElementById("sum-war"),
   teamValue: document.getElementById("player-team-value"),
   awardsPanel: document.getElementById("player-awards-panel"),
   awards: document.getElementById("player-awards"),
@@ -240,7 +241,7 @@ async function findTeamForPlayer(season, playerName) {
     return "";
   }
   const target = normalizeName(playerName);
-  if (season === "c2s2-regular") {
+  if (season === "c2s2-regular" || season === "career") {
     const response = await fetch("/api/roster", { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`Fetch failed: ${response.status}`);
@@ -255,9 +256,15 @@ async function findTeamForPlayer(season, playerName) {
         return team;
       }
     }
-    return "";
+    if (season === "c2s2-regular") {
+      return "";
+    }
   }
-  if (season === "c2s1-playoffs" || season === "c2s1-regular") {
+  if (
+    season === "c2s1-playoffs" ||
+    season === "c2s1-regular" ||
+    season === "career"
+  ) {
     const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`Fetch failed: ${response.status}`);
@@ -338,7 +345,11 @@ function getPlayerName() {
 }
 
 function normalizeSeason(value) {
-  if (value === "c2s1-playoffs" || value === "c2s1-regular") {
+  if (
+    value === "career" ||
+    value === "c2s1-playoffs" ||
+    value === "c2s1-regular"
+  ) {
     return value;
   }
   if (value === "c2s2" || value === "c2s2-regular") {
@@ -362,7 +373,9 @@ function initSeasonSelect() {
   }
   if (navSelect) {
     navSelect.value =
-      current === "c2s1-playoffs"
+      current === "career" || current === "c2s2-regular"
+        ? "c2s2"
+        : current === "c2s1-playoffs"
         ? "c2s1-post"
         : current === "c2s1-regular"
         ? "c2s1-regular"
@@ -436,7 +449,10 @@ function renderPlayerTeam(teamName) {
 }
 
 function renderTable(rows) {
-  const headers = ["Date", "Team", "Score", "Rank", "Opponent"];
+  const includeSeason = rows.some((row) => row && row.__seasonLabel);
+  const headers = includeSeason
+    ? ["Season", "Date", "Team", "Score", "Rank", "Opponent"]
+    : ["Date", "Team", "Score", "Rank", "Opponent"];
   els.head.innerHTML = `
     <tr>
       ${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}
@@ -447,6 +463,11 @@ function renderTable(rows) {
     .map(
       (row, index) => `
         <tr class="schedule-row" data-index="${index}">
+          ${
+            includeSeason
+              ? `<td>${escapeHtml(row.__seasonLabel || "")}</td>`
+              : ""
+          }
           <td>${escapeHtml(row[playerColumns.date] ?? "")}</td>
           <td>${escapeHtml(row[playerColumns.team] ?? "")}</td>
           <td>${escapeHtml(row[playerColumns.score] ?? "")}</td>
@@ -470,6 +491,9 @@ function updateSummary(rows, baselines) {
     if (els.sumRelMedian) {
       els.sumRelMedian.textContent = "—";
     }
+    if (els.sumWar) {
+      els.sumWar.textContent = "—";
+    }
     return;
   }
   let total = 0;
@@ -480,6 +504,7 @@ function updateSummary(rows, baselines) {
   let relMeanGames = 0;
   let relMedianSum = 0;
   let relMedianGames = 0;
+  let warTotal = 0;
 
   rows.forEach((row) => {
     const score = parseNumber(row[playerColumns.score]);
@@ -496,6 +521,11 @@ function updateSummary(rows, baselines) {
       if (baseline && baseline.median && baseline.median > 0) {
         relMedianSum += score / baseline.median;
         relMedianGames += 1;
+        const replacementScore = 0.9 * baseline.median;
+        const avgMargin = 0.92 * baseline.median;
+        if (avgMargin > 0) {
+          warTotal += (score - replacementScore) / avgMargin;
+        }
       }
     }
     if (rank !== null) {
@@ -521,6 +551,9 @@ function updateSummary(rows, baselines) {
     els.sumRelMedian.textContent = relMedianGames
       ? (relMedianSum / relMedianGames).toFixed(3)
       : "—";
+  }
+  if (els.sumWar) {
+    els.sumWar.textContent = warTotal.toFixed(3);
   }
 }
 
@@ -683,6 +716,45 @@ async function loadPlayer() {
       playerColumns = detectPlayerColumns(rows[0] || []);
       dataRows = rows.slice(1);
       boxRows = parseCSV(await boxRes.text());
+    } else if (season === "career") {
+      const [playerRes, boxRes, archiveRes] = await Promise.all([
+        fetch(PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
+        fetch(ARCHIVE_URL, { cache: "no-store" }),
+      ]);
+      if (!playerRes.ok) {
+        throw new Error(`Fetch failed: ${playerRes.status}`);
+      }
+      if (!boxRes.ok) {
+        throw new Error(`Fetch failed: ${boxRes.status}`);
+      }
+      if (!archiveRes.ok) {
+        throw new Error(`Fetch failed: ${archiveRes.status}`);
+      }
+      const c2s2Rows = parseCSV(await playerRes.text());
+      const c2s2Box = parseCSV(await boxRes.text());
+      const archive = parseCSV(await archiveRes.text());
+      const c2s1PlayoffRows = sliceRange(archive, ARCHIVE_RANGES.player_stats);
+      const c2s1PlayoffBox = sliceRange(archive, ARCHIVE_RANGES.boxscore);
+
+      const c2s2Header = c2s2Rows[0] || [];
+      const c2s1Header = c2s1PlayoffRows[0] || [];
+      playerColumns = detectPlayerColumns(
+        c2s2Header.length ? c2s2Header : c2s1Header
+      );
+
+      const annotate = (rows, label) =>
+        rows.map((row) => {
+          const copy = [...row];
+          copy.__seasonLabel = label;
+          return copy;
+        });
+
+      dataRows = [
+        ...annotate(c2s2Rows.slice(1), "C2S2 Regular Season"),
+        ...annotate(c2s1PlayoffRows.slice(1), "C2S1 Playoffs"),
+      ];
+      boxRows = [...c2s2Box, ...c2s1PlayoffBox];
     } else if (season === "c2s1-playoffs") {
       const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
       if (!response.ok) {
@@ -862,8 +934,11 @@ els.body.addEventListener("click", (event) => {
   if (!row) {
     return;
   }
-  const dateToken = String(row[0] || "").trim();
-  const opponent = String(row[5] || "").trim();
+  const opponent = String(row[playerColumns.opponent] || "").trim();
+  const dateValue = String(row[playerColumns.date] || "").trim();
+  const dateToken = dateValue.includes("•")
+    ? dateValue.split("•").pop().trim()
+    : dateValue;
   const boxScore = buildBoxScore(dateToken, opponent);
   if (!boxScore) {
     els.boxDetails.innerHTML = `<div class=\"boxscore-empty\">No stats available.</div>`;

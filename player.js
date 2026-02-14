@@ -374,6 +374,7 @@ function buildLeaderboard(rows) {
         relMeanGames: 0,
         relMedianSum: 0,
         relMedianGames: 0,
+        war: 0,
         team,
         displayName,
       });
@@ -396,6 +397,11 @@ function buildLeaderboard(rows) {
     if (baseline && baseline.median && baseline.median > 0) {
       entry.relMedianSum += score / baseline.median;
       entry.relMedianGames += 1;
+      const replacementScore = 0.9 * baseline.median;
+      const avgMargin = 0.92 * baseline.median;
+      if (avgMargin > 0) {
+        entry.war += (score - replacementScore) / avgMargin;
+      }
     }
     if (rank !== null) {
       entry.rankSum += rank;
@@ -414,6 +420,7 @@ function buildLeaderboard(rows) {
       relMedian: value.relMedianGames
         ? value.relMedianSum / value.relMedianGames
         : 0,
+      war: value.war,
       games: value.games,
       team: value.team || "",
     }))
@@ -443,6 +450,8 @@ function renderLeaderboard(list, query, metric) {
     sorted.sort((a, b) => b.relMedian - a.relMedian);
   } else if (metric === "rel_mean") {
     sorted.sort((a, b) => b.relMean - a.relMean);
+  } else if (metric === "war") {
+    sorted.sort((a, b) => b.war - a.war);
   } else if (metric === "gp") {
     sorted.sort((a, b) => b.games - a.games);
   } else {
@@ -458,6 +467,8 @@ function renderLeaderboard(list, query, metric) {
       ? "REL (median)"
       : metric === "rel_mean"
       ? "REL (mean)"
+      : metric === "war"
+      ? "WAR"
       : metric === "gp"
       ? "gp"
       : "avg";
@@ -514,6 +525,8 @@ function renderLeaderboard(list, query, metric) {
                   ? item.relMedian.toFixed(3)
                   : metric === "rel_mean"
                   ? item.relMean.toFixed(3)
+                  : metric === "war"
+                  ? item.war.toFixed(3)
                   : metric === "gp"
                   ? item.games
                   : item.avg.toFixed(2)
