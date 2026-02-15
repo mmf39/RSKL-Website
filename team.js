@@ -24,6 +24,7 @@ const ARCHIVE_RANGES = {
   schedule_post: "A31:D43",
   boxscore: "L31:R149",
 };
+const C2S2_SCHEDULE_RANGE = "A2:C77";
 
 const ARCHIVE_TEAM_ROSTERS = {
   "Gus N Em": "H1:I12",
@@ -311,27 +312,31 @@ function computeTeamSOS(teamName, scheduleRows, winPctMap, season) {
   if (!teamName || !scheduleRows.length || !winPctMap.size) {
     return null;
   }
+  const headers = scheduleRows[0] || [];
+  const idx = getScheduleIndexes(headers, season);
+  const winPctByNormalizedTeam = new Map();
+  winPctMap.forEach((pct, team) => {
+    winPctByNormalizedTeam.set(normalizeTeamLabel(team), pct);
+  });
   const dataRows = scheduleRows.slice(1);
   let sum = 0;
   let games = 0;
   dataRows.forEach((row) => {
-    const team1 =
-      season === "c2s1-regular"
-        ? String(row[1] || "").trim()
-        : String(row[2] || "").trim();
-    const team2 =
-      season === "c2s1-regular"
-        ? String(row[2] || "").trim()
-        : String(row[3] || "").trim();
+    const team1 = String(row[idx.team1] || "").trim();
+    const team2 = String(row[idx.team2] || "").trim();
     if (!team1 || !team2) {
       return;
     }
     const opponent =
-      team1 === teamName ? team2 : team2 === teamName ? team1 : "";
+      teamMatches(team1, teamName)
+        ? team2
+        : teamMatches(team2, teamName)
+        ? team1
+        : "";
     if (!opponent) {
       return;
     }
-    const oppPct = winPctMap.get(opponent);
+    const oppPct = winPctByNormalizedTeam.get(normalizeTeamLabel(opponent));
     if (oppPct === null || oppPct === undefined) {
       return;
     }
@@ -435,7 +440,9 @@ async function loadRoster() {
 
       renderTable(sliced[0], sliced.slice(1), teamName);
       const standingsRows = parseCSV(await standingsRes.text());
-      const scheduleRows = parseCSV(await scheduleRes.text());
+      const scheduleRows = getC2S2ScheduleRows(
+        parseCSV(await scheduleRes.text())
+      );
       updateStandingsFromRanges(teamName, standingsRows);
       const winPctMap = buildWinPctMapFromStandingsRows(standingsRows);
       const sos = computeTeamSOS(teamName, scheduleRows, winPctMap, season);
@@ -543,19 +550,49 @@ function updateStandingsFromRow(values) {
 
 let teamScheduleRows = [];
 let boxScoreRows = [];
+let scheduleIndexes = { date: 1, team1: 2, team2: 3 };
+
+function normalizeTeamLabel(value) {
+  return String(value || "")
+    .replace(/\([^)]*\)/g, "")
+    .replace(/\*/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function teamMatches(value, teamName) {
+  const a = normalizeTeamLabel(value);
+  const b = normalizeTeamLabel(teamName);
+  if (!a || !b) {
+    return false;
+  }
+  return a === b || a.includes(b) || b.includes(a);
+}
+
+function getScheduleIndexes(headers, season) {
+  if (headers.length <= 3) {
+    return { date: 0, team1: 1, team2: 2 };
+  }
+  return { date: 1, team1: 2, team2: 3 };
+}
+
+function getC2S2ScheduleRows(rows) {
+  const sliced = sliceRange(rows, C2S2_SCHEDULE_RANGE);
+  return [["Date", "Team 1", "Team 2"], ...sliced];
+}
 
 function updateTeamSchedule(teamName, scheduleRows, boxScoreData, season) {
   if (!scheduleRows.length) {
     return;
   }
   const headers = scheduleRows[0];
+  scheduleIndexes = getScheduleIndexes(headers, season);
   const dataRows = scheduleRows.slice(1);
   const filtered = dataRows.filter((row) => {
-    const team1 =
-      season === "c2s1-regular" ? String(row[1] || "").trim() : String(row[2] || "").trim();
-    const team2 =
-      season === "c2s1-regular" ? String(row[2] || "").trim() : String(row[3] || "").trim();
-    return team1 === teamName || team2 === teamName;
+    const team1 = String(row[scheduleIndexes.team1] || "").trim();
+    const team2 = String(row[scheduleIndexes.team2] || "").trim();
+    return teamMatches(team1, teamName) || teamMatches(team2, teamName);
   });
 
   const trimmedHeaders = headers.slice(0, headers.length);
@@ -569,12 +606,9 @@ function buildBoxScore(teamName, scheduleRow, season) {
   if (!scheduleRow || !boxScoreRows.length) {
     return null;
   }
-  const dateToken =
-    season === "c2s1-regular"
-      ? String(scheduleRow[0] || "").trim()
-      : String(scheduleRow[1] || "").trim();
-  const team1Name = scheduleRow[2] || "";
-  const team2Name = scheduleRow[3] || "";
+  const dateToken = String(scheduleRow[scheduleIndexes.date] || "").trim();
+  const team1Name = scheduleRow[scheduleIndexes.team1] || "";
+  const team2Name = scheduleRow[scheduleIndexes.team2] || "";
 
   const isDateRow = (row) => {
     const a = String(row[0] || "");

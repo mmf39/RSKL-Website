@@ -2,6 +2,7 @@ const STANDINGS_CSV_URL = "/api/standings-dashboard";
 const SCHEDULE_CSV_URL = "/api/schedule";
 const ARCHIVE_URL = "/api/archive";
 const SEASON_KEY = "season";
+const C2S2_SCHEDULE_RANGE = "A2:C77";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -123,6 +124,11 @@ function sliceRange(rows, range) {
   return slicedRows.map((row) =>
     row.slice(parsed.startCol, parsed.endCol + 1)
   );
+}
+
+function getC2S2ScheduleRows(rows) {
+  const sliced = sliceRange(rows, C2S2_SCHEDULE_RANGE);
+  return [["Date", "Team 1", "Team 2"], ...sliced];
 }
 
 function renderTable(rows) {
@@ -309,13 +315,21 @@ async function loadStandings() {
         throw new Error(`Fetch failed: ${scheduleRes.status}`);
       }
       const rows = parseCSV(await standingsRes.text());
-      const scheduleRows = parseCSV(await scheduleRes.text());
+      const scheduleRows = getC2S2ScheduleRows(
+        parseCSV(await scheduleRes.text())
+      );
       if (!rows.length) {
         throw new Error("No data found.");
       }
       standingsHeaders = rows[0];
       standingsRows = rows.slice(1);
-      sosByTeam = computeSosMap(standingsHeaders, standingsRows, scheduleRows);
+      sosByTeam = computeSosMap(
+        standingsHeaders,
+        standingsRows,
+        scheduleRows,
+        1,
+        2
+      );
       renderStandings();
     } else {
       const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
