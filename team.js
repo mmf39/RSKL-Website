@@ -4,8 +4,6 @@ const SCHEDULE_CSV_URL = "/api/schedule";
 const BOXSCORE_CSV_URL = "/api/boxscore";
 const ARCHIVE_URL = "/api/archive";
 const SEASON_KEY = "season";
-const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name,team_name";
-const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
   Bullets: "E2:F13",
@@ -95,9 +93,6 @@ const els = {
   boxDetails: document.getElementById("boxscore-details"),
 };
 
-let playerNameOverrides = new Map();
-let playerTeamOverrides = new Map();
-
 function parseCSV(text) {
   const rows = [];
   let row = [];
@@ -157,44 +152,6 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-function normalizePlayerKey(value) {
-  return String(value || "")
-    .trim()
-    .replace(/^@/, "")
-    .toLowerCase();
-}
-
-async function loadPlayerOverrides() {
-  try {
-    const response = await fetch(SUPABASE_PLAYERS_URL, {
-      headers: {
-        apikey: SUPABASE_API_KEY,
-        Authorization: `Bearer ${SUPABASE_API_KEY}`,
-      },
-    });
-    if (!response.ok) {
-      return;
-    }
-    const data = await response.json();
-    playerNameOverrides = new Map();
-    playerTeamOverrides = new Map();
-    (data || []).forEach((row) => {
-      const key = normalizePlayerKey(row.player_tag);
-      if (!key) {
-        return;
-      }
-      if (row.display_name) {
-        playerNameOverrides.set(key, row.display_name);
-      }
-      if (row.team_name) {
-        playerTeamOverrides.set(key, String(row.team_name).trim());
-      }
-    });
-  } catch (error) {
-    // ignore override failures
-  }
-}
-
 function renderTable(headers, dataRows, teamName) {
   els.head.innerHTML = `
     <tr>
@@ -202,45 +159,11 @@ function renderTable(headers, dataRows, teamName) {
     </tr>
   `;
 
-  const normalizedTeam = String(teamName || "").trim();
   const rows = dataRows.filter((row) => {
     const value = row[0] ?? "";
     const nameText = String(value).trim();
-    if (!nameText) {
-      return false;
-    }
-    if (nameText.toUpperCase().startsWith("GM")) {
-      return true;
-    }
-    const overrideTeam = playerTeamOverrides.get(normalizePlayerKey(nameText));
-    if (overrideTeam && normalizedTeam && overrideTeam !== normalizedTeam) {
-      return false;
-    }
-    return true;
+    return Boolean(nameText);
   });
-
-  if (normalizedTeam) {
-    const existing = new Set(
-      rows
-        .map((row) => String(row[0] || "").trim())
-        .filter(Boolean)
-        .map(normalizePlayerKey)
-    );
-    playerTeamOverrides.forEach((team, key) => {
-      if (team !== normalizedTeam) {
-        return;
-      }
-      if (existing.has(key)) {
-        return;
-      }
-      const displayName = playerNameOverrides.get(key) || key;
-      const extra = [displayName];
-      if (headers.length > 1) {
-        extra.push("");
-      }
-      rows.push(extra);
-    });
-  }
 
   els.body.innerHTML = rows
     .map(
@@ -251,17 +174,14 @@ function renderTable(headers, dataRows, teamName) {
               const value = row[i] ?? "";
               if (i === 0 && value) {
                 const nameText = String(value).trim();
-                const displayName =
-                  playerNameOverrides.get(normalizePlayerKey(nameText)) ||
-                  nameText;
                 if (nameText.toUpperCase().startsWith("GM")) {
-                  return `<td>${escapeHtml(displayName)}</td>`;
+                  return `<td>${escapeHtml(nameText)}</td>`;
                 }
                 const link = `player-detail.html?player=${encodeURIComponent(
                   nameText
                 )}`;
                 return `<td><a class="roster-link" href="${link}">${escapeHtml(
-                  displayName
+                  nameText
                 )}</a></td>`;
               }
               return `<td>${escapeHtml(value)}</td>`;
@@ -423,7 +343,6 @@ function computeTeamSOS(teamName, scheduleRows, winPctMap, season) {
 
 async function loadRoster() {
   const teamName = getTeamName();
-  await loadPlayerOverrides();
   if (els.logo) {
     if (teamName === "The Future") {
       els.logo.src = "/assets/the-future.png";
