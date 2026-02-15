@@ -436,6 +436,16 @@ input[type="text"] {
   display: none;
 }
 
+.league-hero-logo {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 8px auto 0;
+  border: 2px solid var(--accent);
+  display: block;
+}
+
 .team-card:hover {
   transform: translateY(-2px);
   border-color: var(--accent);

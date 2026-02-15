@@ -10,6 +10,8 @@ const STANDINGS_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=2115060088&single=true&output=csv";
 const TEAMS_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=847666124&single=true&output=csv";
+const DRAFT_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=894447035&single=true&output=csv";
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -65,6 +67,11 @@ const server = http.createServer((req, res) => {
 
   if (url.pathname === "/api/teams") {
     proxyCsv(res, TEAMS_URL);
+    return;
+  }
+
+  if (url.pathname === "/api/draft") {
+    proxyCsv(res, DRAFT_URL);
     return;
   }
 
