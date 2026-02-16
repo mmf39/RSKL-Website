@@ -147,17 +147,6 @@ function extractTeams(text) {
   return Array.from(new Set(found));
 }
 
-function getColumnIndex(nameHints) {
-  const lower = transactionHeaders.map((h) => String(h || "").toLowerCase());
-  for (const hint of nameHints) {
-    const idx = lower.findIndex((h) => h.includes(hint));
-    if (idx !== -1) {
-      return idx;
-    }
-  }
-  return -1;
-}
-
 function hasText(row) {
   return row.some((cell) => String(cell || "").trim() !== "");
 }
@@ -171,27 +160,25 @@ function looksLikeHeader(row) {
 }
 
 function parseTransactionRow(row) {
-  const dateIdx = getColumnIndex(["date", "day"]);
-  const typeIdx = getColumnIndex(["type", "move", "transaction"]);
-  const detailsIdx = getColumnIndex(["details", "note", "description"]);
-  const teamIdx = getColumnIndex(["team"]);
-  const playerIdx = getColumnIndex(["player"]);
+  // Fixed sheet mapping:
+  // A: Date (optional)
+  // B: Team 1
+  // C: Team 1 receives
+  // D: Team 2
+  // E: Team 2 receives
+  const date = String(row[0] || "").trim();
+  const team1 = normalizeTeamName(row[1] || "");
+  const team1Gets = String(row[2] || "").trim();
+  const team2 = normalizeTeamName(row[3] || "");
+  const team2Gets = String(row[4] || "").trim();
+  const details = `${team1 || "Team 1"} receive ${team1Gets || "—"} | ${
+    team2 || "Team 2"
+  } receive ${team2Gets || "—"}`;
+  const type = "Trade";
 
-  const fallbackDetails = row.filter(Boolean).join(" | ");
-  const details =
-    (detailsIdx !== -1 ? row[detailsIdx] : "") ||
-    (typeIdx !== -1 ? row[typeIdx] : "") ||
-    fallbackDetails;
-  const date = dateIdx !== -1 ? row[dateIdx] || "" : "";
-  const type = typeIdx !== -1 ? row[typeIdx] || "Transaction" : "Transaction";
-
-  const fromTeams = teamIdx !== -1 ? extractTeams(row[teamIdx] || "") : [];
-  const fromPlayers = playerIdx !== -1 ? extractPlayers(row[playerIdx] || "") : [];
-  const teams = Array.from(
-    new Set([...fromTeams, ...extractTeams(details)])
-  );
+  const teams = Array.from(new Set([team1, team2].filter(Boolean)));
   const players = Array.from(
-    new Set([...fromPlayers, ...extractPlayers(details)])
+    new Set([...extractPlayers(team1Gets), ...extractPlayers(team2Gets)])
   );
 
   return { date, type, details, teams, players };

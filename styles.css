@@ -507,6 +507,10 @@ input[type="text"] {
   padding: 18px;
 }
 
+.roster-panel {
+  max-width: 500px;
+}
+
 .standings-mini {
   max-width: 320px;
 }
@@ -983,6 +987,12 @@ input[type="text"] {
   border: 1px solid rgba(255, 140, 26, 0.28);
   background: rgba(15, 23, 42, 0.55);
   color: var(--accent);
+}
+
+.draft-pick-trade {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 
 .gm-grid {

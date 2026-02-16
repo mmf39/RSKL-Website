@@ -7,6 +7,8 @@ const SEASON_KEY = "season";
 const SUPABASE_DRAFT_PICKS_URL =
   "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/draft_picks?select=label,current_team,original_team&order=label.asc";
 const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
+const TRANSACTIONS_URL = "/api/sheet?name=transactions";
+const TRANSACTIONS_RANGE = "A2:E81";
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
   Bullets: "E2:F13",
@@ -359,6 +361,37 @@ function computeTeamSOS(teamName, scheduleRows, winPctMap, season) {
   return games ? sum / games : null;
 }
 
+function hasText(row) {
+  return row.some((cell) => String(cell || "").trim() !== "");
+}
+
+function normalizePickLabel(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function findTradeTextForPick(pickLabel, transactionRows) {
+  const target = normalizePickLabel(pickLabel);
+  if (!target) {
+    return "";
+  }
+  for (const row of transactionRows) {
+    const joined = row
+      .map((cell) => String(cell || "").trim())
+      .filter(Boolean)
+      .join(" | ");
+    if (!joined) {
+      continue;
+    }
+    if (normalizePickLabel(joined).includes(target)) {
+      return joined;
+    }
+  }
+  return "";
+}
+
 async function loadDraftCapital(teamName) {
   if (!els.draftCapital) {
     return;
@@ -369,16 +402,22 @@ async function loadDraftCapital(teamName) {
     return;
   }
   try {
-    const response = await fetch(SUPABASE_DRAFT_PICKS_URL, {
-      headers: {
-        apikey: SUPABASE_API_KEY,
-        Authorization: `Bearer ${SUPABASE_API_KEY}`,
-      },
-    });
-    if (!response.ok) {
-      throw new Error(`Fetch failed: ${response.status}`);
+    const [picksRes, txRes] = await Promise.all([
+      fetch(SUPABASE_DRAFT_PICKS_URL, {
+        headers: {
+          apikey: SUPABASE_API_KEY,
+          Authorization: `Bearer ${SUPABASE_API_KEY}`,
+        },
+      }),
+      fetch(TRANSACTIONS_URL, { cache: "no-store" }),
+    ]);
+    if (!picksRes.ok) {
+      throw new Error(`Fetch failed: ${picksRes.status}`);
     }
-    const data = await response.json();
+    const data = await picksRes.json();
+    const txRows = txRes.ok
+      ? sliceRange(parseCSV(await txRes.text()), TRANSACTIONS_RANGE).filter(hasText)
+      : [];
     const picks = (data || []).filter((pick) =>
       teamMatches(pick.current_team, teamName)
     );
@@ -396,7 +435,15 @@ async function loadDraftCapital(teamName) {
                 displayTeamName(pick.original_team)
               )}</span>`
             : "";
-        return `<div class="draft-pick-row">${escapeHtml(label)}${via}</div>`;
+        const tradeText =
+          pick.original_team &&
+          !teamMatches(pick.original_team, pick.current_team)
+            ? findTradeTextForPick(label, txRows)
+            : "";
+        const tradeLine = tradeText
+          ? `<div class="draft-pick-trade">Trade: ${escapeHtml(tradeText)}</div>`
+          : "";
+        return `<div class="draft-pick-row">${escapeHtml(label)}${via}${tradeLine}</div>`;
       })
       .join("");
   } catch (error) {
