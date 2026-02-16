@@ -33,6 +33,7 @@ const CHAMPION_RANGES = {
 
 const TEAM_NAMES = [
   "Gus N Em",
+  "Storm",
   "Bullets",
   "Turkeys",
   "Cheerios",

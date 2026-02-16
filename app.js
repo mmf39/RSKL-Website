@@ -130,7 +130,7 @@ function escapeHtml(value) {
 
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
-  Bullets: "E2:F13",
+  Storm: "E2:F13",
   Turkeys: "H2:I13",
   Cheerios: "B17:C28",
   Yetis: "E17:F28",
@@ -144,7 +144,7 @@ const TEAM_RANGES = {
 const TEAM_RECORD_RANGES = {
   Turkeys: { record: "J3:K3", winPct: "M3:M3" },
   "Gus N Em": { record: "J4:K4", winPct: "M4:M4" },
-  Bullets: { record: "J5:K5", winPct: "M5:M5" },
+  Storm: { record: "J5:K5", winPct: "M5:M5" },
   Cheerios: { record: "J6:K6", winPct: "M6:M6" },
   Yetis: { record: "J7:K7", winPct: "M7:M7" },
   Illegals: { record: "J8:K8", winPct: "M8:M8" },
@@ -189,8 +189,8 @@ function getTeamLogo(name) {
   if (name === "Illegals") {
     return '<img class="team-logo" src="/assets/illegals.png" alt="Illegals logo" />';
   }
-  if (name === "Bullets") {
-    return '<img class="team-logo" src="/assets/bullets.png" alt="Bullets logo" />';
+  if (name === "Bullets" || name === "Storm") {
+    return '<img class="team-logo" src="/assets/bullets.png" alt="Storm logo" />';
   }
   if (name === "Turkeys") {
     return '<img class="team-logo" src="/assets/turkeys.png" alt="Turkeys logo" />';

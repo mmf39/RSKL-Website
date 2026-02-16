@@ -207,6 +207,11 @@ function normalizePlayerKey(value) {
     .toLowerCase();
 }
 
+function displayTeamName(value) {
+  const name = String(value || "").trim();
+  return name === "Bullets" ? "Storm" : name;
+}
+
 function stripCaptainMarker(value) {
   return String(value || "")
     .replace(/\s*\(c\)\s*$/i, "")
@@ -571,31 +576,32 @@ function renderPlayerTeam(teamName) {
     els.teamValue.textContent = "—";
     return;
   }
+  const shownTeam = displayTeamName(teamName);
   const logo =
-    teamName === "The Future"
+    shownTeam === "The Future"
       ? '<img class="player-team-logo" src="/assets/the-future.png" alt="The Future logo" />'
-      : teamName === "The Lions"
+      : shownTeam === "The Lions"
       ? '<img class="player-team-logo" src="/assets/the-lions.png" alt="The Lions logo" />'
-      : teamName === "The Snipers"
+      : shownTeam === "The Snipers"
       ? '<img class="player-team-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />'
-      : teamName === "The Phantoms"
+      : shownTeam === "The Phantoms"
       ? '<img class="player-team-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />'
-      : teamName === "Yetis"
+      : shownTeam === "Yetis"
       ? '<img class="player-team-logo" src="/assets/yetis.png" alt="Yetis logo" />'
-      : teamName === "Gus N Em"
+      : shownTeam === "Gus N Em"
       ? '<img class="player-team-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />'
-      : teamName === "Cheerios"
+      : shownTeam === "Cheerios"
       ? '<img class="player-team-logo" src="/assets/cheerios.png" alt="Cheerios logo" />'
-      : teamName === "Illegals"
+      : shownTeam === "Illegals"
       ? '<img class="player-team-logo" src="/assets/illegals.png" alt="Illegals logo" />'
-      : teamName === "Bullets"
-      ? '<img class="player-team-logo" src="/assets/bullets.png" alt="Bullets logo" />'
+      : shownTeam === "Storm" || shownTeam === "Bullets"
+      ? '<img class="player-team-logo" src="/assets/bullets.png" alt="Storm logo" />'
       : teamName === "Turkeys"
       ? '<img class="player-team-logo" src="/assets/turkeys.png" alt="Turkeys logo" />'
       : "";
   els.teamValue.innerHTML = `${logo}<a class="leader-team-link" href="team.html?team=${encodeURIComponent(
-    teamName
-  )}">${escapeHtml(teamName)}</a>`;
+    shownTeam
+  )}">${escapeHtml(shownTeam)}</a>`;
 }
 
 function renderTable(rows) {

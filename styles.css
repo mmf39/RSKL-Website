@@ -946,6 +946,10 @@ input[type="text"] {
   color: var(--accent-2);
   text-decoration: none;
   font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
 }
 
 .draft-link:hover {
@@ -1205,6 +1209,61 @@ input[type="text"] {
 }
 
 .roster-link:hover {
+  text-decoration: underline;
+}
+
+.transactions-list {
+  display: grid;
+  gap: 14px;
+}
+
+.tx-card {
+  background: rgba(15, 23, 42, 0.82);
+  border: 1px solid rgba(255, 140, 26, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+
+.tx-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.tx-head strong {
+  color: var(--accent-2);
+}
+
+.tx-head span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.tx-details {
+  color: var(--ink);
+}
+
+.tx-meta {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.tx-meta span {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.tx-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.tx-link:hover {
   text-decoration: underline;
 }
 

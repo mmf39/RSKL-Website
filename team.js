@@ -7,6 +7,7 @@ const SEASON_KEY = "season";
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
   Bullets: "E2:F13",
+  Storm: "E2:F13",
   Turkeys: "H2:I13",
   Cheerios: "B17:C28",
   Yetis: "E17:F28",
@@ -30,6 +31,7 @@ const ARCHIVE_TEAM_ROSTERS = {
   "Gus N Em": "H1:I12",
   Cheerios: "H16:I27",
   Bullets: "K1:L12",
+  Storm: "K1:L12",
   Yetis: "K16:L27",
   Turkeys: "N1:O12",
   Illegals: "N16:O27",
@@ -39,6 +41,7 @@ const ARCHIVE_TEAM_STANDINGS = {
   Turkeys: "A2:F2",
   "Gus N Em": "A3:F3",
   Bullets: "A4:F4",
+  Storm: "A4:F4",
   Cheerios: "A5:F5",
   Yetis: "A6:F6",
   Illegals: "A7:F7",
@@ -46,6 +49,11 @@ const ARCHIVE_TEAM_STANDINGS = {
 
 function getSeason() {
   return localStorage.getItem(SEASON_KEY) || "c2s2";
+}
+
+function displayTeamName(value) {
+  const name = String(value || "").trim();
+  return name === "Bullets" ? "Storm" : name;
 }
 
 function initSeasonSelect() {
@@ -64,6 +72,7 @@ const STANDINGS_RANGES = {
   Turkeys: "H3:M3",
   "Gus N Em": "H4:M4",
   Bullets: "H5:M5",
+  Storm: "H5:M5",
   Cheerios: "H6:M6",
   Yetis: "H7:M7",
   Illegals: "H8:M8",
@@ -381,9 +390,9 @@ async function loadRoster() {
       els.logo.src = "/assets/illegals.png";
       els.logo.alt = "Illegals logo";
       els.logo.style.display = "block";
-    } else if (teamName === "Bullets") {
+    } else if (teamName === "Bullets" || teamName === "Storm") {
       els.logo.src = "/assets/bullets.png";
-      els.logo.alt = "Bullets logo";
+      els.logo.alt = "Storm logo";
       els.logo.style.display = "block";
     } else if (teamName === "Turkeys") {
       els.logo.src = "/assets/turkeys.png";
@@ -393,10 +402,12 @@ async function loadRoster() {
       els.logo.style.display = "none";
     }
   }
-  els.title.textContent = teamName ? `${teamName} Roster` : "Team Roster";
+  els.title.textContent = teamName
+    ? `${displayTeamName(teamName)} Roster`
+    : "Team Roster";
   if (els.sub) {
     els.sub.textContent = teamName
-      ? `Roster for ${teamName}`
+      ? `Roster for ${displayTeamName(teamName)}`
       : "Missing team name.";
   }
 
@@ -521,7 +532,7 @@ function updateStandingsFromRanges(teamName, standingsRows) {
   const values = sliced[0];
   const [team, gp, wins, loss, gb, winPct] = values;
 
-  els.statTeam.textContent = team || teamName || "—";
+  els.statTeam.textContent = displayTeamName(team || teamName || "—");
   els.statGp.textContent = gp || "—";
   els.statWins.textContent = wins || "—";
   els.statLoss.textContent = loss || "—";
@@ -537,7 +548,7 @@ function updateStandingsFromRow(values) {
     return;
   }
   const [team, gp, wins, loss, gb, winPct] = values;
-  els.statTeam.textContent = team || "—";
+  els.statTeam.textContent = displayTeamName(team || "—");
   els.statGp.textContent = gp || "—";
   els.statWins.textContent = wins || "—";
   els.statLoss.textContent = loss || "—";
@@ -553,12 +564,13 @@ let boxScoreRows = [];
 let scheduleIndexes = { date: 1, team1: 2, team2: 3 };
 
 function normalizeTeamLabel(value) {
-  return String(value || "")
+  const normalized = String(value || "")
     .replace(/\([^)]*\)/g, "")
     .replace(/\*/g, "")
     .trim()
     .toLowerCase()
     .replace(/\s+/g, " ");
+  return normalized === "bullets" ? "storm" : normalized;
 }
 
 function teamMatches(value, teamName) {

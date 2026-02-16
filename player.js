@@ -241,6 +241,11 @@ function normalizePlayerKey(value) {
     .toLowerCase();
 }
 
+function displayTeamName(value) {
+  const name = String(value || "").trim();
+  return name === "Bullets" ? "Storm" : name;
+}
+
 function stripCaptainMarker(value) {
   return String(value || "")
     .replace(/\s*\(c\)\s*$/i, "")
@@ -560,8 +565,8 @@ function renderLeaderboard(list, query, metric) {
     if (team === "Illegals") {
       return '<img class="standings-logo" src="/assets/illegals.png" alt="Illegals logo" />';
     }
-    if (team === "Bullets") {
-      return '<img class="standings-logo" src="/assets/bullets.png" alt="Bullets logo" />';
+    if (team === "Bullets" || team === "Storm") {
+      return '<img class="standings-logo" src="/assets/bullets.png" alt="Storm logo" />';
     }
     if (team === "Turkeys") {
       return '<img class="standings-logo" src="/assets/turkeys.png" alt="Turkeys logo" />';
@@ -579,7 +584,9 @@ function renderLeaderboard(list, query, metric) {
               <a class="leader-name" href="player-detail.html?player=${encodeURIComponent(item.tag)}">${escapeHtml(item.displayName)}</a>
               <div class="leader-team">
                 ${teamLogo(item.team)}
-                <a class="leader-team-link" href="team.html?team=${encodeURIComponent(item.team)}">${escapeHtml(item.team || "—")}</a>
+                <a class="leader-team-link" href="team.html?team=${encodeURIComponent(
+                  displayTeamName(item.team)
+                )}">${escapeHtml(displayTeamName(item.team) || "—")}</a>
               </div>
               <div class="leader-value">${
                 metric === "total_score"

@@ -15,6 +15,7 @@ const ROUND_RANGES = [
 
 const TEAM_NAMES = new Set([
   "Gus N Em",
+  "Storm",
   "Bullets",
   "Turkeys",
   "Cheerios",
@@ -121,6 +122,11 @@ function cleanTeamName(value) {
     .trim();
 }
 
+function displayTeamName(value) {
+  const name = cleanTeamName(value);
+  return name === "Bullets" ? "Storm" : name;
+}
+
 function normalizeTeamName(value) {
   return cleanTeamName(value).toLowerCase().replace(/\s+/g, " ");
 }
@@ -136,7 +142,7 @@ function isTeamValue(value) {
 }
 
 function getTeamLogo(team) {
-  const clean = cleanTeamName(team);
+  const clean = displayTeamName(team);
   if (clean === "The Future") {
     return '<img class="standings-logo" src="/assets/the-future.png" alt="The Future logo" />';
   }
@@ -161,8 +167,8 @@ function getTeamLogo(team) {
   if (clean === "Illegals") {
     return '<img class="standings-logo" src="/assets/illegals.png" alt="Illegals logo" />';
   }
-  if (clean === "Bullets") {
-    return '<img class="standings-logo" src="/assets/bullets.png" alt="Bullets logo" />';
+  if (clean === "Bullets" || clean === "Storm") {
+    return '<img class="standings-logo" src="/assets/bullets.png" alt="Storm logo" />';
   }
   if (clean === "Turkeys") {
     return '<img class="standings-logo" src="/assets/turkeys.png" alt="Turkeys logo" />';
@@ -180,7 +186,7 @@ function renderCell(value, header, index) {
   const likelyPlayerCol = headerLower.includes("player") || index === 2;
 
   if (likelyTeamCol && isTeamValue(text)) {
-    const team = cleanTeamName(text);
+    const team = displayTeamName(text);
     const logo = getTeamLogo(team);
     return `<a class="draft-link" href="team.html?team=${encodeURIComponent(
       team

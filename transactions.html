@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>RSKL Draft</title>
+    <title>RSKL Transactions</title>
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
@@ -14,7 +14,7 @@
     <header class="hero">
       <div class="hero-inner">
         <div class="badge">Real Sports Karma League</div>
-        <h1>Draft</h1>
+        <h1>Transactions</h1>
         <div class="meta">
           <span id="last-updated">Last updated: —</span>
           <div class="nav-links">
@@ -33,19 +33,13 @@
     <main class="container">
       <section class="panel">
         <div class="panel-head">
-          <h2>Draft Board</h2>
+          <h2>Transaction Log</h2>
           <div class="controls">
-            <label for="round-select" class="label">Round</label>
-            <select id="round-select">
-              <option value="all">All Rounds</option>
-              <option value="round-1">Round 1</option>
-              <option value="round-2">Round 2</option>
-              <option value="round-3">Round 3</option>
-              <option value="round-4">Round 4</option>
-            </select>
+            <label for="transactions-search" class="label">Search</label>
+            <input id="transactions-search" type="text" placeholder="Search team, player, or move" />
           </div>
         </div>
-        <div id="draft-sections" class="draft-rounds"></div>
+        <div id="transactions-list" class="transactions-list"></div>
       </section>
     </main>
 
@@ -53,6 +47,6 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="draft.js"></script>
+    <script src="transactions.js"></script>
   </body>
 </html>

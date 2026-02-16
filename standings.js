@@ -97,6 +97,11 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function displayTeamName(value) {
+  const name = String(value || "").trim();
+  return name === "Bullets" ? "Storm" : name;
+}
+
 function colToIndex(letter) {
   return letter.toUpperCase().charCodeAt(0) - 65;
 }
@@ -178,27 +183,28 @@ function renderStandings() {
 
   els.leaderboard.innerHTML = standingsRows
     .map((row, index) => {
-      const teamName = row[0] || row[1] || "Team";
+      const rawTeamName = row[0] || row[1] || "Team";
+      const teamName = displayTeamName(rawTeamName);
       const link = `team.html?team=${encodeURIComponent(teamName)}`;
       const logo =
-        teamName === "The Future"
+        (rawTeamName === "The Future" || teamName === "The Future")
           ? '<img class="standings-logo" src="/assets/the-future.png" alt="The Future logo" />'
-          : teamName === "The Lions"
+          : (rawTeamName === "The Lions" || teamName === "The Lions")
           ? '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />'
-          : teamName === "The Snipers"
+          : (rawTeamName === "The Snipers" || teamName === "The Snipers")
           ? '<img class="standings-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />'
-          : teamName === "The Phantoms"
+          : (rawTeamName === "The Phantoms" || teamName === "The Phantoms")
           ? '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />'
-          : teamName === "Yetis"
+          : (rawTeamName === "Yetis" || teamName === "Yetis")
           ? '<img class="standings-logo" src="/assets/yetis.png" alt="Yetis logo" />'
-          : teamName === "Gus N Em"
+          : (rawTeamName === "Gus N Em" || teamName === "Gus N Em")
           ? '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />'
-          : teamName === "Cheerios"
+          : (rawTeamName === "Cheerios" || teamName === "Cheerios")
           ? '<img class="standings-logo" src="/assets/cheerios.png" alt="Cheerios logo" />'
-          : teamName === "Illegals"
+          : (rawTeamName === "Illegals" || teamName === "Illegals")
           ? '<img class="standings-logo" src="/assets/illegals.png" alt="Illegals logo" />'
-          : teamName === "Bullets"
-          ? '<img class="standings-logo" src="/assets/bullets.png" alt="Bullets logo" />'
+          : (rawTeamName === "Bullets" || teamName === "Storm")
+          ? '<img class="standings-logo" src="/assets/bullets.png" alt="Storm logo" />'
           : teamName === "Turkeys"
           ? '<img class="standings-logo" src="/assets/turkeys.png" alt="Turkeys logo" />'
           : "";
@@ -222,7 +228,7 @@ function renderStandings() {
             <div class="leader-chip">
               SOS
               <span>${escapeHtml(
-                sosByTeam.has(teamName) ? sosByTeam.get(teamName) : "—"
+                sosByTeam.has(rawTeamName) ? sosByTeam.get(rawTeamName) : "—"
               )}</span>
             </div>
           </div>
