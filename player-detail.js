@@ -271,6 +271,57 @@ function matchesName(cellValue, target) {
   );
 }
 
+function getPlayerAliases(playerName) {
+  const aliases = new Set();
+  const base = normalizeName(playerName);
+  if (base) {
+    aliases.add(base);
+  }
+  const keyBase = normalizePlayerKey(playerName);
+  if (keyBase) {
+    aliases.add(normalizeName(keyBase));
+  }
+
+  playerNameOverrides.forEach((displayName, playerTag) => {
+    const displayNorm = normalizeName(displayName);
+    const tagNorm = normalizeName(playerTag);
+    if (!displayNorm && !tagNorm) {
+      return;
+    }
+    if (
+      (base && (displayNorm === base || tagNorm === base)) ||
+      (keyBase &&
+        (normalizePlayerKey(displayName) === keyBase ||
+          normalizePlayerKey(playerTag) === keyBase))
+    ) {
+      if (displayNorm) {
+        aliases.add(displayNorm);
+      }
+      if (tagNorm) {
+        aliases.add(tagNorm);
+      }
+    }
+  });
+
+  return Array.from(aliases).filter(Boolean);
+}
+
+function matchesAnyAlias(cellValue, aliases) {
+  if (!cellValue || !aliases.length) {
+    return false;
+  }
+  const normalizedCell = normalizeName(cellValue);
+  if (!normalizedCell) {
+    return false;
+  }
+  return aliases.some(
+    (alias) =>
+      normalizedCell === alias ||
+      normalizedCell.includes(alias) ||
+      alias.includes(normalizedCell)
+  );
+}
+
 async function findTeamForPlayer(season, playerName) {
   if (!playerName) {
     return "";
@@ -773,11 +824,10 @@ function buildTransactionsDetails(row) {
   return `${team1} receive ${team1Gets} | ${team2} receive ${team2Gets}`;
 }
 
-function findDraftEvent(playerName, draftRows) {
-  if (!playerName || !draftRows.length) {
+function findDraftEvent(playerName, draftRows, aliases) {
+  if (!playerName || !draftRows.length || !aliases.length) {
     return null;
   }
-  const target = normalizeName(playerName);
   for (const round of DRAFT_ROUND_RANGES) {
     const sliced = sliceRange(draftRows, round.range).filter((row) =>
       row.some((cell) => String(cell || "").trim() !== "")
@@ -788,7 +838,7 @@ function findDraftEvent(playerName, draftRows) {
     const body = sliced.slice(1);
     for (const row of body) {
       const selection = String(row[2] || "").trim();
-      if (!selection || !matchesName(selection, target)) {
+      if (!selection || !matchesAnyAlias(selection, aliases)) {
         continue;
       }
       return {
@@ -801,15 +851,14 @@ function findDraftEvent(playerName, draftRows) {
   return null;
 }
 
-function findTradeEvents(playerName, transactionRows) {
-  if (!playerName || !transactionRows.length) {
+function findTradeEvents(playerName, transactionRows, aliases) {
+  if (!playerName || !transactionRows.length || !aliases.length) {
     return [];
   }
-  const target = normalizeName(playerName);
   return transactionRows
     .filter((row) => {
       const combined = row.map((cell) => String(cell || "")).join(" ");
-      return matchesName(combined, target);
+      return matchesAnyAlias(combined, aliases);
     })
     .map((row) => {
       const date = String(row[0] || "").trim() || "—";
@@ -871,19 +920,20 @@ async function loadPlayerTransactions(playerName) {
       (row) => row.some((cell) => String(cell || "").trim() !== "")
     );
 
+    const aliases = getPlayerAliases(playerName);
     const events = [];
-    const draftEvent = findDraftEvent(playerName, draftRows);
+    const draftEvent = findDraftEvent(playerName, draftRows, aliases);
     if (draftEvent) {
       events.push(draftEvent);
     }
-    const trades = findTradeEvents(playerName, transactionRows);
+    const trades = findTradeEvents(playerName, transactionRows, aliases);
     if (trades.length) {
       events.push(...trades);
     } else {
       events.push({
         date: "Status",
         title: "Trade Status",
-        details: "No trades recorded.",
+        details: "No transactions recorded.",
       });
     }
     renderPlayerTransactions(events, playerName);
