@@ -22,6 +22,7 @@ const els = {
 
 let transactionRows = [];
 let transactionHeaders = [];
+const TRANSACTION_RANGE = "A2:E81";
 
 function parseCSV(text) {
   const rows = [];
@@ -71,6 +72,35 @@ function parseCSV(text) {
   }
 
   return rows;
+}
+
+function colToIndex(letter) {
+  return letter.toUpperCase().charCodeAt(0) - 65;
+}
+
+function parseRange(range) {
+  const match = range.match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/i);
+  if (!match) {
+    return null;
+  }
+  const [, startCol, startRow, endCol, endRow] = match;
+  return {
+    startCol: colToIndex(startCol),
+    endCol: colToIndex(endCol),
+    startRow: Number(startRow) - 1,
+    endRow: Number(endRow) - 1,
+  };
+}
+
+function sliceRange(rows, range) {
+  const parsed = parseRange(range);
+  if (!parsed) {
+    return [];
+  }
+  const slicedRows = rows.slice(parsed.startRow, parsed.endRow + 1);
+  return slicedRows.map((row) =>
+    row.slice(parsed.startCol, parsed.endCol + 1)
+  );
 }
 
 function escapeHtml(value) {
@@ -126,6 +156,18 @@ function getColumnIndex(nameHints) {
     }
   }
   return -1;
+}
+
+function hasText(row) {
+  return row.some((cell) => String(cell || "").trim() !== "");
+}
+
+function looksLikeHeader(row) {
+  const lower = row.map((cell) => String(cell || "").toLowerCase());
+  const hits = ["date", "type", "transaction", "details", "team", "player"].filter(
+    (token) => lower.some((cell) => cell.includes(token))
+  );
+  return hits.length >= 2;
 }
 
 function parseTransactionRow(row) {
@@ -226,11 +268,17 @@ async function loadTransactions() {
       throw new Error(`Fetch failed: ${response.status}`);
     }
     const rows = parseCSV(await response.text());
-    if (!rows.length) {
+    const sliced = sliceRange(rows, TRANSACTION_RANGE).filter(hasText);
+    if (!sliced.length) {
       throw new Error("No transaction data found.");
     }
-    transactionHeaders = rows[0] || [];
-    transactionRows = rows.slice(1);
+    if (looksLikeHeader(sliced[0])) {
+      transactionHeaders = sliced[0];
+      transactionRows = sliced.slice(1).filter(hasText);
+    } else {
+      transactionHeaders = ["Date", "Type", "Details", "Team", "Player"];
+      transactionRows = sliced.filter(hasText);
+    }
     renderTransactions();
     updateLastUpdated();
   } catch (error) {
