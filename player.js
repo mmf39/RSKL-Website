@@ -1,5 +1,5 @@
-const PLAYER_STATS_URL = "/api/player-stats";
-const ARCHIVE_URL = "/api/archive";
+const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
+const ARCHIVE_URL = "/api/sheet?name=archive";
 const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
 const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";

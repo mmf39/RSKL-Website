@@ -1,4 +1,4 @@
-const TRANSACTIONS_CSV_URL = "/api/transactions";
+const TRANSACTIONS_CSV_URL = "/api/sheet?name=transactions";
 
 const TEAM_NAMES = [
   "Gus N Em",

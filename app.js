@@ -1,8 +1,8 @@
-const STANDINGS_CSV_URL = "/api/standings-dashboard";
-const STANDINGS_RECORDS_URL = "/api/standings";
-const TEAMS_CSV_URL = "/api/teams";
-const LIVE_SCORING_URL = "/api/live-scoring";
-const ARCHIVE_URL = "/api/archive";
+const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
+const STANDINGS_RECORDS_URL = "/api/sheet?name=standings";
+const TEAMS_CSV_URL = "/api/sheet?name=teams";
+const LIVE_SCORING_URL = "/api/sheet?name=live-scoring";
+const ARCHIVE_URL = "/api/sheet?name=archive";
 const SEASON_KEY = "season";
 
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
@@ -475,7 +475,7 @@ async function loadData() {
       const [standingsRecordData, liveData, scheduleData] = await Promise.all([
         fetchSheet(STANDINGS_RECORDS_URL),
         fetchSheet(LIVE_SCORING_URL),
-        fetchSheet("/api/schedule"),
+        fetchSheet("/api/sheet?name=schedule"),
       ]);
       renderTeamsCards(standingsRecordData);
       renderLiveScoring(liveData, scheduleData);

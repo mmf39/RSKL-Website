@@ -1,6 +1,6 @@
-const STANDINGS_CSV_URL = "/api/standings-dashboard";
-const SCHEDULE_CSV_URL = "/api/schedule";
-const ARCHIVE_URL = "/api/archive";
+const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
+const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
+const ARCHIVE_URL = "/api/sheet?name=archive";
 const SEASON_KEY = "season";
 const C2S2_SCHEDULE_RANGE = "A2:C77";
 

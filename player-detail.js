@@ -1,7 +1,7 @@
-const PLAYER_STATS_URL = "/api/player-stats";
-const BOXSCORE_CSV_URL = "/api/boxscore";
-const ARCHIVE_URL = "/api/archive";
-const AWARDS_URL = "/api/awards";
+const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
+const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
+const ARCHIVE_URL = "/api/sheet?name=archive";
+const AWARDS_URL = "/api/sheet?name=awards";
 const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
 const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 const PLAYER_SEASON_KEY = "playerSeason";
@@ -267,7 +267,7 @@ async function findTeamForPlayer(season, playerName) {
   }
   const target = normalizeName(playerName);
   if (season === "c2s2-regular" || season === "career") {
-    const response = await fetch("/api/roster", { cache: "no-store" });
+    const response = await fetch("/api/sheet?name=roster", { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`Fetch failed: ${response.status}`);
     }

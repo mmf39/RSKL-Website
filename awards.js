@@ -1,4 +1,4 @@
-const AWARDS_URL = "/api/awards";
+const AWARDS_URL = "/api/sheet?name=awards";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),

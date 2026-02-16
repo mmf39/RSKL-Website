@@ -1,4 +1,4 @@
-const DRAFT_CSV_URL = "/api/draft";
+const DRAFT_CSV_URL = "/api/sheet?name=draft";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),

@@ -1,6 +1,6 @@
-const SCHEDULE_CSV_URL = "/api/schedule";
-const BOXSCORE_CSV_URL = "/api/boxscore";
-const ARCHIVE_URL = "/api/archive";
+const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
+const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
+const ARCHIVE_URL = "/api/sheet?name=archive";
 const SEASON_KEY = "season";
 
 const els = {
