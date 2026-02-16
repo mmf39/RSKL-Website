@@ -19,6 +19,7 @@ const DRAFT_ROUND_RANGES = [
 const ARCHIVE_RANGES = {
   player_stats: "A45:F117",
   boxscore: "L31:R149",
+  draft_c2s1: "A120:C175",
 };
 
 const TEAM_RANGES = {
@@ -851,6 +852,33 @@ function findDraftEvent(playerName, draftRows, aliases) {
   return null;
 }
 
+function findArchiveDraftEvent(playerName, archiveRows, aliases) {
+  if (!playerName || !archiveRows.length || !aliases.length) {
+    return null;
+  }
+  const sliced = sliceRange(archiveRows, ARCHIVE_RANGES.draft_c2s1).filter((row) =>
+    row.some((cell) => String(cell || "").trim() !== "")
+  );
+  if (!sliced.length) {
+    return null;
+  }
+  const body = sliced.slice(1);
+  for (const row of body) {
+    const pickCell = String(row[0] || "").trim();
+    const teamCell = String(row[1] || "").trim();
+    const selection = String(row[2] || "").trim();
+    if (!selection || !matchesAnyAlias(selection, aliases)) {
+      continue;
+    }
+    return {
+      date: "Draft",
+      title: "Drafted",
+      details: `C2S1 Draft • Pick ${pickCell || "—"} • ${displayTeamName(teamCell || "—")}`,
+    };
+  }
+  return null;
+}
+
 function findTradeEvents(playerName, transactionRows, aliases) {
   if (!playerName || !transactionRows.length || !aliases.length) {
     return [];
@@ -899,7 +927,7 @@ function renderPlayerTransactions(events, playerName) {
     .join("");
 }
 
-async function loadPlayerTransactions(playerName) {
+async function loadPlayerTransactions(playerName, season) {
   if (!els.transactions) {
     return;
   }
@@ -908,12 +936,27 @@ async function loadPlayerTransactions(playerName) {
     return;
   }
   try {
-    const [draftRes, transactionsRes] = await Promise.all([
-      fetch(DRAFT_URL, { cache: "no-store" }),
-      fetch(TRANSACTIONS_URL, { cache: "no-store" }),
-    ]);
-    const draftRows = draftRes.ok ? parseCSV(await draftRes.text()) : [];
-    const rawTransactions = transactionsRes.ok
+    const needsC2S2Draft = season === "c2s2-regular" || season === "career";
+    const needsArchiveDraft =
+      season === "c2s1-playoffs" || season === "c2s1-regular" || season === "career";
+    const requests = [fetch(TRANSACTIONS_URL, { cache: "no-store" })];
+    if (needsC2S2Draft) {
+      requests.push(fetch(DRAFT_URL, { cache: "no-store" }));
+    }
+    if (needsArchiveDraft) {
+      requests.push(fetch(ARCHIVE_URL, { cache: "no-store" }));
+    }
+
+    const responses = await Promise.all(requests);
+    const transactionsRes = responses[0];
+    let responseIndex = 1;
+    const draftRes = needsC2S2Draft ? responses[responseIndex++] : null;
+    const archiveRes = needsArchiveDraft ? responses[responseIndex++] : null;
+
+    const c2s2DraftRows = draftRes && draftRes.ok ? parseCSV(await draftRes.text()) : [];
+    const archiveRows =
+      archiveRes && archiveRes.ok ? parseCSV(await archiveRes.text()) : [];
+    const rawTransactions = transactionsRes && transactionsRes.ok
       ? parseCSV(await transactionsRes.text())
       : [];
     const transactionRows = sliceRange(rawTransactions, TRANSACTIONS_RANGE).filter(
@@ -922,7 +965,16 @@ async function loadPlayerTransactions(playerName) {
 
     const aliases = getPlayerAliases(playerName);
     const events = [];
-    const draftEvent = findDraftEvent(playerName, draftRows, aliases);
+    let draftEvent = null;
+    if (season === "c2s2-regular") {
+      draftEvent = findDraftEvent(playerName, c2s2DraftRows, aliases);
+    } else if (season === "c2s1-playoffs" || season === "c2s1-regular") {
+      draftEvent = findArchiveDraftEvent(playerName, archiveRows, aliases);
+    } else if (season === "career") {
+      draftEvent =
+        findDraftEvent(playerName, c2s2DraftRows, aliases) ||
+        findArchiveDraftEvent(playerName, archiveRows, aliases);
+    }
     if (draftEvent) {
       events.push(draftEvent);
     }
@@ -1146,7 +1198,7 @@ async function loadPlayer() {
     }
     window.__playerRows = filtered;
     window.__boxScoreRows = boxRows;
-    await loadPlayerTransactions(playerName);
+    await loadPlayerTransactions(playerName, season);
     updateLastUpdated();
     loadAwards(playerName);
   } catch (error) {
