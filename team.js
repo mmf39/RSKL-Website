@@ -372,11 +372,12 @@ function normalizePickLabel(value) {
     .trim();
 }
 
-function findTradeTextForPick(pickLabel, transactionRows) {
+function findTradeTextsForPick(pickLabel, transactionRows) {
   const target = normalizePickLabel(pickLabel);
   if (!target) {
-    return "";
+    return [];
   }
+  const found = [];
   for (const row of transactionRows) {
     const joined = row
       .map((cell) => String(cell || "").trim())
@@ -386,10 +387,10 @@ function findTradeTextForPick(pickLabel, transactionRows) {
       continue;
     }
     if (normalizePickLabel(joined).includes(target)) {
-      return joined;
+      found.push(joined);
     }
   }
-  return "";
+  return found;
 }
 
 async function loadDraftCapital(teamName) {
@@ -435,14 +436,17 @@ async function loadDraftCapital(teamName) {
                 displayTeamName(pick.original_team)
               )}</span>`
             : "";
-        const tradeText =
-          pick.original_team &&
-          !teamMatches(pick.original_team, pick.current_team)
-            ? findTradeTextForPick(label, txRows)
-            : "";
-        const tradeLine = tradeText
-          ? `<div class="draft-pick-trade">Trade: ${escapeHtml(tradeText)}</div>`
-          : "";
+        const tradeTexts = findTradeTextsForPick(label, txRows);
+        const tradeLine = tradeTexts.length
+          ? `<div class="draft-pick-trade">Trades: ${tradeTexts
+              .map(
+                (text, idx) =>
+                  `<a class="draft-pick-trade-link" href="transactions.html?q=${encodeURIComponent(
+                    text
+                  )}">Trade ${idx + 1}</a>`
+              )
+              .join(", ")}</div>`
+          : `<div class="draft-pick-trade">No trades involving this pick.</div>`;
         return `<div class="draft-pick-row">${escapeHtml(label)}${via}${tradeLine}</div>`;
       })
       .join("");
