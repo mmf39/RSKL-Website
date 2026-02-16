@@ -135,6 +135,41 @@ function isTeamValue(value) {
   return false;
 }
 
+function getTeamLogo(team) {
+  const clean = cleanTeamName(team);
+  if (clean === "The Future") {
+    return '<img class="standings-logo" src="/assets/the-future.png" alt="The Future logo" />';
+  }
+  if (clean === "The Lions") {
+    return '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />';
+  }
+  if (clean === "The Snipers") {
+    return '<img class="standings-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />';
+  }
+  if (clean === "The Phantoms") {
+    return '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';
+  }
+  if (clean === "Yetis") {
+    return '<img class="standings-logo" src="/assets/yetis.png" alt="Yetis logo" />';
+  }
+  if (clean === "Gus N Em") {
+    return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />';
+  }
+  if (clean === "Cheerios") {
+    return '<img class="standings-logo" src="/assets/cheerios.png" alt="Cheerios logo" />';
+  }
+  if (clean === "Illegals") {
+    return '<img class="standings-logo" src="/assets/illegals.png" alt="Illegals logo" />';
+  }
+  if (clean === "Bullets") {
+    return '<img class="standings-logo" src="/assets/bullets.png" alt="Bullets logo" />';
+  }
+  if (clean === "Turkeys") {
+    return '<img class="standings-logo" src="/assets/turkeys.png" alt="Turkeys logo" />';
+  }
+  return "";
+}
+
 function renderCell(value, header, index) {
   const text = String(value ?? "").trim();
   if (!text) {
@@ -146,9 +181,10 @@ function renderCell(value, header, index) {
 
   if (likelyTeamCol && isTeamValue(text)) {
     const team = cleanTeamName(text);
+    const logo = getTeamLogo(team);
     return `<a class="draft-link" href="team.html?team=${encodeURIComponent(
       team
-    )}">${escapeHtml(text)}</a>`;
+    )}">${logo}${escapeHtml(text)}</a>`;
   }
   if (likelyPlayerCol) {
     return `<a class="draft-link" href="player-detail.html?player=${encodeURIComponent(
