@@ -4,6 +4,9 @@ const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const SEASON_KEY = "season";
+const SUPABASE_DRAFT_PICKS_URL =
+  "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/draft_picks?select=label,current_team,original_team&order=label.asc";
+const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
   Bullets: "E2:F13",
@@ -96,6 +99,7 @@ const els = {
   statWinPct: document.getElementById("stat-winpct"),
   statSos: document.getElementById("stat-sos"),
   statTeam: document.getElementById("stat-team"),
+  draftCapital: document.getElementById("team-draft-capital"),
   scheduleHead: document.querySelector("#team-schedule thead"),
   scheduleBody: document.querySelector("#team-schedule tbody"),
   modal: document.getElementById("boxscore-modal"),
@@ -355,8 +359,55 @@ function computeTeamSOS(teamName, scheduleRows, winPctMap, season) {
   return games ? sum / games : null;
 }
 
+async function loadDraftCapital(teamName) {
+  if (!els.draftCapital) {
+    return;
+  }
+  const target = normalizeTeamLabel(teamName);
+  if (!target) {
+    els.draftCapital.innerHTML = "<div class=\"gm-empty\">No picks found.</div>";
+    return;
+  }
+  try {
+    const response = await fetch(SUPABASE_DRAFT_PICKS_URL, {
+      headers: {
+        apikey: SUPABASE_API_KEY,
+        Authorization: `Bearer ${SUPABASE_API_KEY}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`Fetch failed: ${response.status}`);
+    }
+    const data = await response.json();
+    const picks = (data || []).filter((pick) =>
+      teamMatches(pick.current_team, teamName)
+    );
+    if (!picks.length) {
+      els.draftCapital.innerHTML = "<div class=\"gm-empty\">No picks found.</div>";
+      return;
+    }
+    els.draftCapital.innerHTML = picks
+      .map((pick) => {
+        const label = String(pick.label || "").trim();
+        const via =
+          pick.original_team &&
+          !teamMatches(pick.original_team, pick.current_team)
+            ? ` <span class="muted">via ${escapeHtml(
+                displayTeamName(pick.original_team)
+              )}</span>`
+            : "";
+        return `<div class="draft-pick-row">${escapeHtml(label)}${via}</div>`;
+      })
+      .join("");
+  } catch (error) {
+    els.draftCapital.innerHTML =
+      "<div class=\"gm-empty\">Unable to load picks.</div>";
+  }
+}
+
 async function loadRoster() {
   const teamName = getTeamName();
+  await loadDraftCapital(teamName);
   if (els.logo) {
     if (teamName === "The Future") {
       els.logo.src = "/assets/the-future.png";

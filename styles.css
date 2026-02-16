@@ -972,6 +972,19 @@ input[type="text"] {
   font-size: 0.85rem;
 }
 
+.draft-picks-list {
+  display: grid;
+  gap: 8px;
+}
+
+.draft-pick-row {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 140, 26, 0.28);
+  background: rgba(15, 23, 42, 0.55);
+  color: var(--accent);
+}
+
 .gm-grid {
   display: grid;
   gap: 16px;
