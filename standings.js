@@ -204,7 +204,7 @@ function renderStandings() {
           : (rawTeamName === "Illegals" || teamName === "Illegals")
           ? '<img class="standings-logo" src="/assets/illegals.png" alt="Illegals logo" />'
           : (rawTeamName === "Bullets" || teamName === "Storm")
-          ? '<img class="standings-logo" src="/assets/bullets.png" alt="Storm logo" />'
+          ? '<img class="standings-logo" src="/assets/storm.png" alt="Storm logo" />'
           : teamName === "Turkeys"
           ? '<img class="standings-logo" src="/assets/turkeys.png" alt="Turkeys logo" />'
           : "";

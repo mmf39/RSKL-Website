@@ -566,7 +566,7 @@ function renderLeaderboard(list, query, metric) {
       return '<img class="standings-logo" src="/assets/illegals.png" alt="Illegals logo" />';
     }
     if (team === "Bullets" || team === "Storm") {
-      return '<img class="standings-logo" src="/assets/bullets.png" alt="Storm logo" />';
+      return '<img class="standings-logo" src="/assets/storm.png" alt="Storm logo" />';
     }
     if (team === "Turkeys") {
       return '<img class="standings-logo" src="/assets/turkeys.png" alt="Turkeys logo" />';

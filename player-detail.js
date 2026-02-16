@@ -595,7 +595,7 @@ function renderPlayerTeam(teamName) {
       : shownTeam === "Illegals"
       ? '<img class="player-team-logo" src="/assets/illegals.png" alt="Illegals logo" />'
       : shownTeam === "Storm" || shownTeam === "Bullets"
-      ? '<img class="player-team-logo" src="/assets/bullets.png" alt="Storm logo" />'
+      ? '<img class="player-team-logo" src="/assets/storm.png" alt="Storm logo" />'
       : teamName === "Turkeys"
       ? '<img class="player-team-logo" src="/assets/turkeys.png" alt="Turkeys logo" />'
       : "";

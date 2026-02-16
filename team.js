@@ -391,7 +391,7 @@ async function loadRoster() {
       els.logo.alt = "Illegals logo";
       els.logo.style.display = "block";
     } else if (teamName === "Bullets" || teamName === "Storm") {
-      els.logo.src = "/assets/bullets.png";
+      els.logo.src = "/assets/storm.png";
       els.logo.alt = "Storm logo";
       els.logo.style.display = "block";
     } else if (teamName === "Turkeys") {

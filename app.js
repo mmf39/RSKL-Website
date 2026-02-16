@@ -190,7 +190,7 @@ function getTeamLogo(name) {
     return '<img class="team-logo" src="/assets/illegals.png" alt="Illegals logo" />';
   }
   if (name === "Bullets" || name === "Storm") {
-    return '<img class="team-logo" src="/assets/bullets.png" alt="Storm logo" />';
+    return '<img class="team-logo" src="/assets/storm.png" alt="Storm logo" />';
   }
   if (name === "Turkeys") {
     return '<img class="team-logo" src="/assets/turkeys.png" alt="Turkeys logo" />';
