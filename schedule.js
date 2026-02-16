@@ -24,6 +24,7 @@ const ARCHIVE_RANGES = {
   schedule_post: "A31:D43",
   boxscore: "L31:R149",
 };
+const C2S2_SCHEDULE_RANGE = "A2:C77";
 
 function getSeason() {
   return localStorage.getItem(SEASON_KEY) || "c2s2";
@@ -118,6 +119,11 @@ function sliceRange(rows, range) {
   return slicedRows.map((row) =>
     row.slice(parsed.startCol, parsed.endCol + 1)
   );
+}
+
+function getC2S2ScheduleRows(rows) {
+  const sliced = sliceRange(rows, C2S2_SCHEDULE_RANGE);
+  return [["Date", "Team 1", "Team 2"], ...sliced];
 }
 
 function escapeHtml(value) {
@@ -236,12 +242,12 @@ async function loadSchedule() {
       if (!response.ok) {
         throw new Error(`Fetch failed: ${response.status}`);
       }
-      rows = parseCSV(await response.text());
+      rows = getC2S2ScheduleRows(parseCSV(await response.text()));
       const boxRes = await fetch(BOXSCORE_CSV_URL, { cache: "no-store" });
       boxScoreRows = parseCSV(await boxRes.text()).slice(0, 1000);
-      dateIndex = 1;
-      team1Index = 2;
-      team2Index = 3;
+      dateIndex = 0;
+      team1Index = 1;
+      team2Index = 2;
     } else {
       const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
       if (!response.ok) {
@@ -291,9 +297,10 @@ els.body.addEventListener("click", (event) => {
   }
   const scheduleRow = cachedScheduleRows[rowIndex];
   const season = getSeason();
-  const dateIndex = season === "c2s1-regular" ? 0 : 1;
-  const team1Index = season === "c2s1-regular" ? 1 : 2;
-  const team2Index = season === "c2s1-regular" ? 2 : 3;
+  const isThreeCol = cachedHeaders.length <= 3;
+  const dateIndex = isThreeCol || season === "c2s1-regular" ? 0 : 1;
+  const team1Index = isThreeCol || season === "c2s1-regular" ? 1 : 2;
+  const team2Index = isThreeCol || season === "c2s1-regular" ? 2 : 3;
   const scheduleDate = scheduleRow ? scheduleRow[dateIndex] : "";
   const team1Name = scheduleRow ? scheduleRow[team1Index] : "";
   const team2Name = scheduleRow ? scheduleRow[team2Index] : "";

@@ -3,14 +3,28 @@ const DRAFT_CSV_URL = "/api/draft";
 const els = {
   lastUpdated: document.getElementById("last-updated"),
   sections: document.getElementById("draft-sections"),
+  roundSelect: document.getElementById("round-select"),
 };
 
 const ROUND_RANGES = [
-  { title: "Round 1", range: "A1:C11" },
-  { title: "Round 2", range: "A12:C22" },
-  { title: "Round 3", range: "A23:C33" },
-  { title: "Round 4", range: "A34:C44" },
+  { id: "round-1", title: "Round 1", range: "A1:C11" },
+  { id: "round-2", title: "Round 2", range: "A12:C22" },
+  { id: "round-3", title: "Round 3", range: "A23:C33" },
+  { id: "round-4", title: "Round 4", range: "A34:C44" },
 ];
+
+const TEAM_NAMES = new Set([
+  "Gus N Em",
+  "Bullets",
+  "Turkeys",
+  "Cheerios",
+  "Yetis",
+  "Illegals",
+  "The Lions",
+  "The Future",
+  "The Snipers",
+  "The Phantoms",
+]);
 
 function parseCSV(text) {
   const rows = [];
@@ -100,6 +114,50 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function cleanTeamName(value) {
+  return String(value || "")
+    .replace(/\([^)]*\)/g, "")
+    .replace(/\*/g, "")
+    .trim();
+}
+
+function normalizeTeamName(value) {
+  return cleanTeamName(value).toLowerCase().replace(/\s+/g, " ");
+}
+
+function isTeamValue(value) {
+  const normalized = normalizeTeamName(value);
+  for (const team of TEAM_NAMES) {
+    if (normalizeTeamName(team) === normalized) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function renderCell(value, header, index) {
+  const text = String(value ?? "").trim();
+  if (!text) {
+    return "";
+  }
+  const headerLower = String(header || "").toLowerCase();
+  const likelyTeamCol = headerLower.includes("team") || index === 1;
+  const likelyPlayerCol = headerLower.includes("player") || index === 2;
+
+  if (likelyTeamCol && isTeamValue(text)) {
+    const team = cleanTeamName(text);
+    return `<a class="draft-link" href="team.html?team=${encodeURIComponent(
+      team
+    )}">${escapeHtml(text)}</a>`;
+  }
+  if (likelyPlayerCol) {
+    return `<a class="draft-link" href="player-detail.html?player=${encodeURIComponent(
+      text
+    )}">${escapeHtml(text)}</a>`;
+  }
+  return escapeHtml(text);
+}
+
 function updateLastUpdated() {
   const now = new Date();
   const formatted = now.toLocaleString(undefined, {
@@ -111,10 +169,10 @@ function updateLastUpdated() {
   els.lastUpdated.textContent = `Last updated: ${formatted}`;
 }
 
-function renderRound(title, rows) {
+function renderRound(roundId, title, rows) {
   if (!rows.length) {
     return `
-      <section class="panel">
+      <section class="panel draft-round" data-round="${escapeHtml(roundId)}">
         <div class="panel-head"><h2>${escapeHtml(title)}</h2></div>
         <p>No data available.</p>
       </section>
@@ -126,7 +184,7 @@ function renderRound(title, rows) {
   );
   if (!cleanRows.length) {
     return `
-      <section class="panel">
+      <section class="panel draft-round" data-round="${escapeHtml(roundId)}">
         <div class="panel-head"><h2>${escapeHtml(title)}</h2></div>
         <p>No data available.</p>
       </section>
@@ -137,7 +195,7 @@ function renderRound(title, rows) {
   const bodyRows = cleanRows.slice(1);
 
   return `
-    <section class="panel">
+    <section class="panel draft-round" data-round="${escapeHtml(roundId)}">
       <div class="panel-head">
         <h2>${escapeHtml(title)}</h2>
       </div>
@@ -154,7 +212,10 @@ function renderRound(title, rows) {
                 (row) => `
                   <tr>
                     ${headers
-                      .map((_, i) => `<td>${escapeHtml(row[i] ?? "")}</td>`)
+                      .map(
+                        (_, i) =>
+                          `<td>${renderCell(row[i], headers[i], i)}</td>`
+                      )
                       .join("")}
                   </tr>
                 `
@@ -167,6 +228,17 @@ function renderRound(title, rows) {
   `;
 }
 
+function applyRoundFilter() {
+  if (!els.roundSelect || !els.sections) {
+    return;
+  }
+  const selected = els.roundSelect.value;
+  els.sections.querySelectorAll(".draft-round").forEach((section) => {
+    const isMatch = selected === "all" || section.dataset.round === selected;
+    section.hidden = !isMatch;
+  });
+}
+
 async function loadDraft() {
   try {
     const response = await fetch(DRAFT_CSV_URL, { cache: "no-store" });
@@ -174,15 +246,20 @@ async function loadDraft() {
       throw new Error(`Fetch failed: ${response.status}`);
     }
     const rows = parseCSV(await response.text());
-    els.sections.innerHTML = ROUND_RANGES.map(({ title, range }) =>
-      renderRound(title, sliceRange(rows, range))
+    els.sections.innerHTML = ROUND_RANGES.map(({ id, title, range }) =>
+      renderRound(id, title, sliceRange(rows, range))
     ).join("");
+    applyRoundFilter();
     updateLastUpdated();
   } catch (error) {
     els.sections.innerHTML = `<section class="panel"><p>${escapeHtml(
       error.message
     )}</p></section>`;
   }
+}
+
+if (els.roundSelect) {
+  els.roundSelect.addEventListener("change", applyRoundFilter);
 }
 
 loadDraft();

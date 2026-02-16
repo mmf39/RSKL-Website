@@ -241,6 +241,18 @@ function normalizePlayerKey(value) {
     .toLowerCase();
 }
 
+function stripCaptainMarker(value) {
+  return String(value || "")
+    .replace(/\s*\(c\)\s*$/i, "")
+    .replace(/\s+c\s*$/i, "")
+    .trim();
+}
+
+function isCaptainMarked(value) {
+  const text = String(value || "").trim();
+  return /\(c\)\s*$/i.test(text) || /\sc\s*$/i.test(text);
+}
+
 async function loadPlayerOverrides() {
   try {
     const response = await fetch(SUPABASE_PLAYERS_URL, {
@@ -395,14 +407,21 @@ function buildLeaderboard(rows) {
   const baselines = buildDailyBaselines(rows);
   const totals = new Map();
   rows.forEach((row) => {
-    const rawName = String(row[playerColumns.player] || "").trim();
+    const rawNameWithMarker = String(row[playerColumns.player] || "").trim();
+    const rawName = stripCaptainMarker(rawNameWithMarker);
     const displayName =
       playerNameOverrides.get(normalizePlayerKey(rawName)) || rawName;
     const team = String(row[playerColumns.team] || "").trim();
     if (!rawName) {
       return;
     }
-    const score = parseNumber(row[playerColumns.score]);
+    const baseScore = parseNumber(row[playerColumns.score]);
+    const score =
+      baseScore === null
+        ? null
+        : isCaptainMarked(rawNameWithMarker)
+        ? baseScore - 0.5
+        : baseScore;
     const rank = parseNumber(row[playerColumns.rank]);
     if (score === null) {
       return;

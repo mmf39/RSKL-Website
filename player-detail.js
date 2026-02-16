@@ -207,6 +207,18 @@ function normalizePlayerKey(value) {
     .toLowerCase();
 }
 
+function stripCaptainMarker(value) {
+  return String(value || "")
+    .replace(/\s*\(c\)\s*$/i, "")
+    .replace(/\s+c\s*$/i, "")
+    .trim();
+}
+
+function isCaptainMarked(value) {
+  const text = String(value || "").trim();
+  return /\(c\)\s*$/i.test(text) || /\sc\s*$/i.test(text);
+}
+
 async function loadPlayerOverrides() {
   try {
     const response = await fetch(SUPABASE_PLAYERS_URL, {
@@ -307,6 +319,15 @@ function parseNumber(value) {
   return Number.isNaN(num) ? null : num;
 }
 
+function parseAdjustedScore(row) {
+  const base = parseNumber(row[playerColumns.score]);
+  if (base === null) {
+    return null;
+  }
+  const playerCell = row[playerColumns.player];
+  return isCaptainMarked(playerCell) ? base - 0.5 : base;
+}
+
 function median(numbers) {
   if (!numbers.length) {
     return null;
@@ -351,9 +372,9 @@ function buildLeaderboardEntries(rows) {
   const baselines = buildDailyBaselines(rows);
   const totals = new Map();
   rows.forEach((row) => {
-    const rawName = String(row[playerColumns.player] || "").trim();
+    const rawName = stripCaptainMarker(row[playerColumns.player]);
     const team = String(row[playerColumns.team] || "").trim();
-    const score = parseNumber(row[playerColumns.score]);
+    const score = parseAdjustedScore(row);
     const rank = parseNumber(row[playerColumns.rank]);
     if (!rawName || score === null) {
       return;
@@ -599,7 +620,11 @@ function renderTable(rows) {
           }
           <td>${escapeHtml(row[playerColumns.date] ?? "")}</td>
           <td>${escapeHtml(row[playerColumns.team] ?? "")}</td>
-          <td>${escapeHtml(row[playerColumns.score] ?? "")}</td>
+          <td>${escapeHtml(
+            parseAdjustedScore(row) === null
+              ? row[playerColumns.score] ?? ""
+              : parseAdjustedScore(row).toFixed(1)
+          )}</td>
           <td>${escapeHtml(row[playerColumns.rank] ?? "")}</td>
           <td>${escapeHtml(row[playerColumns.opponent] ?? "")}</td>
         </tr>
@@ -636,7 +661,7 @@ function updateSummary(rows, baselines) {
   let warTotal = 0;
 
   rows.forEach((row) => {
-    const score = parseNumber(row[playerColumns.score]);
+    const score = parseAdjustedScore(row);
     const rank = parseNumber(row[playerColumns.rank]);
     if (score !== null) {
       total += score;
@@ -898,7 +923,8 @@ async function loadPlayer() {
       dataRows = [];
       boxRows = [];
     }
-    const normalize = (value) => String(value || "").trim().toLowerCase();
+    const normalize = (value) =>
+      stripCaptainMarker(String(value || "").trim()).toLowerCase();
     const target = normalize(playerName);
     const filtered = playerName
       ? dataRows.filter(

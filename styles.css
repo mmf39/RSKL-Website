@@ -890,6 +890,25 @@ input[type="text"] {
   text-align: center;
 }
 
+.draft-rounds {
+  display: grid;
+  gap: 16px;
+}
+
+.draft-round {
+  border: 1px solid rgba(255, 140, 26, 0.35);
+}
+
+.draft-link {
+  color: var(--accent-2);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.draft-link:hover {
+  text-decoration: underline;
+}
+
 .gm-grid {
   display: grid;
   gap: 16px;

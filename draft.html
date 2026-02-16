@@ -29,7 +29,24 @@
       </div>
     </header>
 
-    <main class="container" id="draft-sections"></main>
+    <main class="container">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Draft Board</h2>
+          <div class="controls">
+            <label for="round-select" class="label">Round</label>
+            <select id="round-select">
+              <option value="all">All Rounds</option>
+              <option value="round-1">Round 1</option>
+              <option value="round-2">Round 2</option>
+              <option value="round-3">Round 3</option>
+              <option value="round-4">Round 4</option>
+            </select>
+          </div>
+        </div>
+        <div id="draft-sections" class="draft-rounds"></div>
+      </section>
+    </main>
 
     <footer class="footer">
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
