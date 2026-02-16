@@ -8,7 +8,7 @@ const SUPABASE_DRAFT_PICKS_URL =
   "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/draft_picks?select=label,current_team,original_team&order=label.asc";
 const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
-const TRANSACTIONS_RANGE = "A2:E81";
+const TRANSACTIONS_RANGE = "A3:E81";
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
   Bullets: "E2:F13",

@@ -2,10 +2,19 @@ const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const AWARDS_URL = "/api/sheet?name=awards";
+const DRAFT_URL = "/api/sheet?name=draft";
+const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
 const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
+const TRANSACTIONS_RANGE = "A3:E81";
+const DRAFT_ROUND_RANGES = [
+  { title: "Round 1", range: "A1:C11" },
+  { title: "Round 2", range: "A12:C22" },
+  { title: "Round 3", range: "A23:C33" },
+  { title: "Round 4", range: "A34:C44" },
+];
 
 const ARCHIVE_RANGES = {
   player_stats: "A45:F117",
@@ -60,6 +69,7 @@ const els = {
   rankRelMean: document.getElementById("rank-rel-mean"),
   rankRelMedian: document.getElementById("rank-rel-median"),
   rankWar: document.getElementById("rank-war"),
+  transactions: document.getElementById("player-transactions"),
 };
 
 let playerColumns = {
@@ -755,6 +765,134 @@ function renderAwards(items) {
   `;
 }
 
+function buildTransactionsDetails(row) {
+  const team1 = displayTeamName(String(row[1] || "").trim()) || "Team 1";
+  const team1Gets = String(row[2] || "").trim() || "—";
+  const team2 = displayTeamName(String(row[3] || "").trim()) || "Team 2";
+  const team2Gets = String(row[4] || "").trim() || "—";
+  return `${team1} receive ${team1Gets} | ${team2} receive ${team2Gets}`;
+}
+
+function findDraftEvent(playerName, draftRows) {
+  if (!playerName || !draftRows.length) {
+    return null;
+  }
+  const target = normalizeName(playerName);
+  for (const round of DRAFT_ROUND_RANGES) {
+    const sliced = sliceRange(draftRows, round.range).filter((row) =>
+      row.some((cell) => String(cell || "").trim() !== "")
+    );
+    if (!sliced.length) {
+      continue;
+    }
+    const body = sliced.slice(1);
+    for (const row of body) {
+      const selection = String(row[2] || "").trim();
+      if (!selection || !matchesName(selection, target)) {
+        continue;
+      }
+      return {
+        date: "Draft",
+        title: "Drafted",
+        details: `${round.title} • Pick ${String(row[0] || "").trim() || "—"} • ${displayTeamName(String(row[1] || "").trim() || "—")}`,
+      };
+    }
+  }
+  return null;
+}
+
+function findTradeEvents(playerName, transactionRows) {
+  if (!playerName || !transactionRows.length) {
+    return [];
+  }
+  const target = normalizeName(playerName);
+  return transactionRows
+    .filter((row) => {
+      const combined = row.map((cell) => String(cell || "")).join(" ");
+      return matchesName(combined, target);
+    })
+    .map((row) => {
+      const date = String(row[0] || "").trim() || "—";
+      const details = buildTransactionsDetails(row);
+      return {
+        date,
+        title: "Trade",
+        details,
+      };
+    });
+}
+
+function renderPlayerTransactions(events, playerName) {
+  if (!els.transactions) {
+    return;
+  }
+  if (!events.length) {
+    els.transactions.innerHTML =
+      "<div class=\"tx-card\"><div class=\"tx-details\">No draft or trade history found.</div></div>";
+    return;
+  }
+  const query = encodeURIComponent(String(playerName || "").trim());
+  els.transactions.innerHTML = events
+    .map(
+      (event) => `
+        <article class="tx-card">
+          <div class="tx-head">
+            <strong>${escapeHtml(event.title)}</strong>
+            <span>${escapeHtml(event.date)}</span>
+          </div>
+          <div class="tx-details">${escapeHtml(event.details)}</div>
+          <div class="tx-meta">
+            <a class="tx-link" href="transactions.html?q=${query}">Open transactions</a>
+          </div>
+        </article>
+      `
+    )
+    .join("");
+}
+
+async function loadPlayerTransactions(playerName) {
+  if (!els.transactions) {
+    return;
+  }
+  if (!playerName) {
+    renderPlayerTransactions([], playerName);
+    return;
+  }
+  try {
+    const [draftRes, transactionsRes] = await Promise.all([
+      fetch(DRAFT_URL, { cache: "no-store" }),
+      fetch(TRANSACTIONS_URL, { cache: "no-store" }),
+    ]);
+    const draftRows = draftRes.ok ? parseCSV(await draftRes.text()) : [];
+    const rawTransactions = transactionsRes.ok
+      ? parseCSV(await transactionsRes.text())
+      : [];
+    const transactionRows = sliceRange(rawTransactions, TRANSACTIONS_RANGE).filter(
+      (row) => row.some((cell) => String(cell || "").trim() !== "")
+    );
+
+    const events = [];
+    const draftEvent = findDraftEvent(playerName, draftRows);
+    if (draftEvent) {
+      events.push(draftEvent);
+    }
+    const trades = findTradeEvents(playerName, transactionRows);
+    if (trades.length) {
+      events.push(...trades);
+    } else {
+      events.push({
+        date: "Status",
+        title: "Trade Status",
+        details: "No trades recorded.",
+      });
+    }
+    renderPlayerTransactions(events, playerName);
+  } catch (error) {
+    els.transactions.innerHTML =
+      "<div class=\"tx-card\"><div class=\"tx-details\">Unable to load transaction history.</div></div>";
+  }
+}
+
 async function loadAwards(playerName) {
   if (!playerName) {
     renderAwards([]);
@@ -958,6 +1096,7 @@ async function loadPlayer() {
     }
     window.__playerRows = filtered;
     window.__boxScoreRows = boxRows;
+    await loadPlayerTransactions(playerName);
     updateLastUpdated();
     loadAwards(playerName);
   } catch (error) {

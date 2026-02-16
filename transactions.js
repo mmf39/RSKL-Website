@@ -22,7 +22,7 @@ const els = {
 
 let transactionRows = [];
 let transactionHeaders = [];
-const TRANSACTION_RANGE = "A2:E81";
+const TRANSACTION_RANGE = "A3:E81";
 
 function parseCSV(text) {
   const rows = [];
@@ -248,6 +248,11 @@ function renderTransactions(filter = "") {
     .join("");
 }
 
+function getInitialQuery() {
+  const params = new URLSearchParams(window.location.search);
+  return String(params.get("q") || "").trim();
+}
+
 async function loadTransactions() {
   try {
     const response = await fetch(TRANSACTIONS_CSV_URL, { cache: "no-store" });
@@ -266,7 +271,11 @@ async function loadTransactions() {
       transactionHeaders = ["Date", "Type", "Details", "Team", "Player"];
       transactionRows = sliced.filter(hasText);
     }
-    renderTransactions();
+    const initialQuery = getInitialQuery();
+    if (els.search) {
+      els.search.value = initialQuery;
+    }
+    renderTransactions(initialQuery);
     updateLastUpdated();
   } catch (error) {
     els.list.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
