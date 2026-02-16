@@ -956,6 +956,22 @@ input[type="text"] {
   text-decoration: underline;
 }
 
+.draft-capital-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.draft-pick-chip {
+  display: inline-block;
+  margin: 4px 6px 0 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 140, 26, 0.35);
+  color: var(--accent);
+  font-size: 0.85rem;
+}
+
 .gm-grid {
   display: grid;
   gap: 16px;

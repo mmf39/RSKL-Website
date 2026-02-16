@@ -4,6 +4,7 @@ const els = {
   lastUpdated: document.getElementById("last-updated"),
   sections: document.getElementById("draft-sections"),
   roundSelect: document.getElementById("round-select"),
+  capital: document.getElementById("draft-capital"),
 };
 
 const ROUND_RANGES = [
@@ -26,6 +27,16 @@ const TEAM_NAMES = new Set([
   "The Snipers",
   "The Phantoms",
 ]);
+const DRAFT_CAPITAL_PICK_LABELS = [
+  "C2S3 1st",
+  "C2S3 2nd",
+  "C2S3 3rd",
+  "C2S3 4th",
+  "C2S4 1st",
+  "C2S4 2nd",
+  "C2S4 3rd",
+  "C2S4 4th",
+];
 
 function parseCSV(text) {
   const rows = [];
@@ -308,6 +319,31 @@ function applyRoundFilter() {
   });
 }
 
+function renderDraftCapital() {
+  if (!els.capital) {
+    return;
+  }
+  const teams = Array.from(TEAM_NAMES)
+    .map((team) => displayTeamName(team))
+    .filter((team, idx, arr) => team !== "Bullets" && arr.indexOf(team) === idx)
+    .sort((a, b) => a.localeCompare(b));
+
+  els.capital.innerHTML = teams
+    .map(
+      (team) => `
+        <article class="tx-card">
+          <div class="tx-head">
+            <strong><a class="tx-link" href="team.html?team=${encodeURIComponent(
+              team
+            )}">${escapeHtml(team)}</a></strong>
+          </div>
+          <div class="tx-details">${DRAFT_CAPITAL_PICK_LABELS.map((pick) => `<span class="draft-pick-chip">${escapeHtml(pick)}</span>`).join("")}</div>
+        </article>
+      `
+    )
+    .join("");
+}
+
 async function loadDraft() {
   try {
     const response = await fetch(DRAFT_CSV_URL, { cache: "no-store" });
@@ -332,3 +368,4 @@ if (els.roundSelect) {
 }
 
 loadDraft();
+renderDraftCapital();
