@@ -441,9 +441,9 @@ async function loadDraftCapital(teamName) {
           ? `<div class="draft-pick-trade">Trades: ${tradeTexts
               .map(
                 (text, idx) =>
-                  `<a class="draft-pick-trade-link" href="transactions.html?q=${encodeURIComponent(
+                  `<a class="draft-pick-trade-link" href="/transactions.html?q=${encodeURIComponent(
                     text
-                  )}">Trade ${idx + 1}</a>`
+                  )}" target="_self">Trade ${idx + 1}</a>`
               )
               .join(", ")}</div>`
           : `<div class="draft-pick-trade">No trades involving this pick.</div>`;

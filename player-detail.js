@@ -891,7 +891,7 @@ function renderPlayerTransactions(events, playerName) {
           </div>
           <div class="tx-details">${escapeHtml(event.details)}</div>
           <div class="tx-meta">
-            <a class="tx-link" href="transactions.html?q=${query}">Open transactions</a>
+            <a class="tx-link" href="/transactions.html?q=${query}" target="_self">Open transactions</a>
           </div>
         </article>
       `
