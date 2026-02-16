@@ -904,9 +904,42 @@ input[type="text"] {
   justify-content: center;
 }
 
+.draft-round .panel-head h2 {
+  width: 100%;
+  text-align: center;
+}
+
+.draft-round .table-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.draft-round table {
+  width: auto;
+  margin: 0 auto;
+  min-width: 620px;
+  table-layout: fixed;
+}
+
 .draft-round table th,
 .draft-round table td {
   text-align: center;
+  padding: 12px 18px;
+}
+
+.draft-round table th:nth-child(1),
+.draft-round table td:nth-child(1) {
+  width: 140px;
+}
+
+.draft-round table th:nth-child(2),
+.draft-round table td:nth-child(2) {
+  width: 220px;
+}
+
+.draft-round table th:nth-child(3),
+.draft-round table td:nth-child(3) {
+  width: 220px;
 }
 
 .draft-link {
