@@ -897,6 +897,16 @@ input[type="text"] {
 
 .draft-round {
   border: 1px solid rgba(255, 140, 26, 0.35);
+  text-align: center;
+}
+
+.draft-round .panel-head {
+  justify-content: center;
+}
+
+.draft-round table th,
+.draft-round table td {
+  text-align: center;
 }
 
 .draft-link {
