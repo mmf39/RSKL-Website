@@ -195,6 +195,26 @@ function parseTransactionRow(row) {
   return { date, type, details, teams, players, team1, team1Gets, team2, team2Gets };
 }
 
+function parseDateValue(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  const mdy = text.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (mdy) {
+    const month = Number(mdy[1]) - 1;
+    const day = Number(mdy[2]);
+    let year = mdy[3] ? Number(mdy[3]) : new Date().getFullYear();
+    if (year < 100) {
+      year += 2000;
+    }
+    const t = new Date(year, month, day).getTime();
+    return Number.isNaN(t) ? Number.NEGATIVE_INFINITY : t;
+  }
+  const parsed = Date.parse(text);
+  return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed;
+}
+
 function renderLinks(list, kind) {
   if (!list.length) {
     return "<span class=\"muted\">None</span>";
@@ -266,7 +286,7 @@ function renderTransactions(filter = "") {
   const query = String(filter || "").trim().toLowerCase();
   const queryNorm = normalizeSearch(query);
   const parsed = transactionRows
-    .map((row) => parseTransactionRow(row))
+    .map((row, idx) => ({ ...parseTransactionRow(row), _idx: idx }))
     .filter((tx) => tx.details || tx.date || tx.type);
 
   const visible = query
@@ -301,7 +321,15 @@ function renderTransactions(filter = "") {
     return;
   }
 
-  els.list.innerHTML = visible
+  const sorted = [...visible].sort((a, b) => {
+    const dateDiff = parseDateValue(b.date) - parseDateValue(a.date);
+    if (dateDiff !== 0) {
+      return dateDiff;
+    }
+    return b._idx - a._idx;
+  });
+
+  els.list.innerHTML = sorted
     .map(
       (tx) => `
         <article class="tx-card">

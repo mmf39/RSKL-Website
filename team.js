@@ -465,13 +465,20 @@ function extractOverallNumbers(text) {
   return matches.map((m) => Number(m[1])).filter((n) => Number.isFinite(n));
 }
 
-function findTradeTextsForPick(pick, transactionRows) {
+function formatTradeSummaryForPick(row, pick) {
+  const date = String(row[0] || "").trim() || "Date —";
+  const team1 = displayTeamName(String(row[1] || "").trim() || "Team 1");
+  const team2 = displayTeamName(String(row[3] || "").trim() || "Team 2");
+  return `${date}: ${team1} ↔ ${team2}`;
+}
+
+function findTradeEntriesForPick(pick, transactionRows) {
   const label = String(pick && pick.label ? pick.label : "").trim();
   const targets = getPickMatchTargets(label);
   if (!targets.length) {
     return [];
   }
-  const found = [];
+  const found = new Map();
   const meta = parsePickMeta(label);
   const originalTeam = normalizeTeamLabel(pick && pick.original_team);
   const currentTeam = normalizeTeamLabel(pick && pick.current_team);
@@ -515,10 +522,15 @@ function findTradeTextsForPick(pick, transactionRows) {
     }
 
     if (directMatch || fallbackMatch) {
-      found.push(joined);
+      if (!found.has(joined)) {
+        found.set(joined, {
+          query: joined,
+          summary: formatTradeSummaryForPick(row, pick),
+        });
+      }
     }
   }
-  return Array.from(new Set(found));
+  return Array.from(found.values());
 }
 
 async function loadDraftCapital(teamName) {
@@ -563,14 +575,14 @@ async function loadDraftCapital(teamName) {
           current_team: teamName,
           original_team: teamName,
         };
-        const tradeTexts = findTradeTextsForPick(pickMeta, txRows);
-        const tradeLine = tradeTexts.length
-          ? `<div class="draft-pick-trade">Trades: ${tradeTexts
+        const tradeEntries = findTradeEntriesForPick(pickMeta, txRows);
+        const tradeLine = tradeEntries.length
+          ? `<div class="draft-pick-trade">Trade: ${tradeEntries
               .map(
-                (text) =>
+                (entry) =>
                   `<a class="draft-pick-trade-link" href="/transactions.html?q=${encodeURIComponent(
-                    text
-                  )}" target="_self">${escapeHtml(text)}</a>`
+                    entry.query
+                  )}" target="_self">${escapeHtml(entry.summary)}</a>`
               )
               .join(", ")}</div>`
           : `<div class="draft-pick-trade">No trades involving this pick.</div>`;
