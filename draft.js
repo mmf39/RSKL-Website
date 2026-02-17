@@ -1,17 +1,28 @@
 const DRAFT_CSV_URL = "/api/sheet?name=draft";
+const ARCHIVE_CSV_URL = "/api/sheet?name=archive";
+const DRAFT_YEAR_KEY = "draftYear";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
   sections: document.getElementById("draft-sections"),
   roundSelect: document.getElementById("round-select"),
+  yearSelect: document.getElementById("draft-year-select"),
 };
 
-const ROUND_RANGES = [
-  { id: "round-1", title: "Round 1", range: "A1:C11" },
-  { id: "round-2", title: "Round 2", range: "A12:C22" },
-  { id: "round-3", title: "Round 3", range: "A23:C33" },
-  { id: "round-4", title: "Round 4", range: "A34:C44" },
-];
+const ROUND_RANGES_BY_YEAR = {
+  c2s2: [
+    { id: "round-1", title: "Round 1", range: "A1:C11" },
+    { id: "round-2", title: "Round 2", range: "A12:C22" },
+    { id: "round-3", title: "Round 3", range: "A23:C33" },
+    { id: "round-4", title: "Round 4", range: "A34:C44" },
+  ],
+  c2s1: [
+    { id: "round-1", title: "Round 1", range: "A120:C133" },
+    { id: "round-2", title: "Round 2", range: "A134:C147" },
+    { id: "round-3", title: "Round 3", range: "A148:C161" },
+    { id: "round-4", title: "Round 4", range: "A162:C175" },
+  ],
+};
 
 const TEAM_NAMES = new Set([
   "Gus N Em",
@@ -260,8 +271,19 @@ function renderRound(roundId, title, rows) {
     `;
   }
 
-  const headers = cleanRows[0];
-  const bodyRows = cleanRows.slice(1);
+  const looksHeader = (() => {
+    const first = (cleanRows[0] || []).map((v) => String(v || "").toLowerCase());
+    return first.some(
+      (v) =>
+        v.includes("round") ||
+        v.includes("pick") ||
+        v.includes("team") ||
+        v.includes("selection") ||
+        v.includes("player")
+    );
+  })();
+  const headers = looksHeader ? cleanRows[0] : ["Pick", "Team", "Selection"];
+  const bodyRows = looksHeader ? cleanRows.slice(1) : cleanRows;
 
   return `
     <section class="panel draft-round" data-round="${escapeHtml(roundId)}">
@@ -308,15 +330,25 @@ function applyRoundFilter() {
   });
 }
 
+function getSelectedDraftYear() {
+  const saved = localStorage.getItem(DRAFT_YEAR_KEY);
+  if (saved === "c2s1" || saved === "c2s2") {
+    return saved;
+  }
+  return "c2s2";
+}
 
 async function loadDraft() {
   try {
-    const response = await fetch(DRAFT_CSV_URL, { cache: "no-store" });
+    const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
+    const sourceUrl = selectedYear === "c2s1" ? ARCHIVE_CSV_URL : DRAFT_CSV_URL;
+    const roundRanges = ROUND_RANGES_BY_YEAR[selectedYear] || ROUND_RANGES_BY_YEAR.c2s2;
+    const response = await fetch(sourceUrl, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`Fetch failed: ${response.status}`);
     }
     const rows = parseCSV(await response.text());
-    els.sections.innerHTML = ROUND_RANGES.map(({ id, title, range }) =>
+    els.sections.innerHTML = roundRanges.map(({ id, title, range }) =>
       renderRound(id, title, sliceRange(rows, range))
     ).join("");
     applyRoundFilter();
@@ -330,6 +362,14 @@ async function loadDraft() {
 
 if (els.roundSelect) {
   els.roundSelect.addEventListener("change", applyRoundFilter);
+}
+
+if (els.yearSelect) {
+  els.yearSelect.value = getSelectedDraftYear();
+  els.yearSelect.addEventListener("change", () => {
+    localStorage.setItem(DRAFT_YEAR_KEY, els.yearSelect.value);
+    loadDraft();
+  });
 }
 
 loadDraft();
