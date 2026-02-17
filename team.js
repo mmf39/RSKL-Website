@@ -368,13 +368,40 @@ function hasText(row) {
 function normalizePickLabel(value) {
   return String(value || "")
     .toLowerCase()
+    .replace(/[()]/g, " ")
+    .replace(/\bfirst\b/g, "1st")
+    .replace(/\bsecond\b/g, "2nd")
+    .replace(/\bthird\b/g, "3rd")
+    .replace(/\bfourth\b/g, "4th")
+    .replace(/\bfifth\b/g, "5th")
+    .replace(/\bsixth\b/g, "6th")
+    .replace(/\bseventh\b/g, "7th")
+    .replace(/\beighth\b/g, "8th")
+    .replace(/[|,;:/\\-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
+function getPickMatchTargets(pickLabel) {
+  const base = normalizePickLabel(pickLabel);
+  if (!base) {
+    return [];
+  }
+  const targets = new Set([base]);
+
+  // Match rows that only show the base pick (without origin text).
+  targets.add(base.replace(/\s+via\s+.+$/i, "").trim());
+  targets.add(base.replace(/\s+from\s+.+$/i, "").trim());
+
+  // Match rows where the origin is wrapped in extra descriptors.
+  targets.add(base.replace(/\s+\b(via|from)\b\s+.+$/i, "").trim());
+
+  return Array.from(targets).filter(Boolean);
+}
+
 function findTradeTextsForPick(pickLabel, transactionRows) {
-  const target = normalizePickLabel(pickLabel);
-  if (!target) {
+  const targets = getPickMatchTargets(pickLabel);
+  if (!targets.length) {
     return [];
   }
   const found = [];
@@ -386,7 +413,8 @@ function findTradeTextsForPick(pickLabel, transactionRows) {
     if (!joined) {
       continue;
     }
-    if (normalizePickLabel(joined).includes(target)) {
+    const normalizedRow = normalizePickLabel(joined);
+    if (targets.some((target) => normalizedRow.includes(target))) {
       found.push(joined);
     }
   }
