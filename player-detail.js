@@ -825,6 +825,16 @@ function buildTransactionsDetails(row) {
   return `${team1} receive ${team1Gets} | ${team2} receive ${team2Gets}`;
 }
 
+function isDraftHeaderRow(row) {
+  const combined = row.map((cell) => String(cell || "").toLowerCase()).join(" ");
+  return (
+    combined.includes("round") ||
+    combined.includes("team") ||
+    combined.includes("selection") ||
+    combined.includes("pick")
+  );
+}
+
 function findDraftEvent(playerName, draftRows, aliases) {
   if (!playerName || !draftRows.length || !aliases.length) {
     return null;
@@ -836,8 +846,10 @@ function findDraftEvent(playerName, draftRows, aliases) {
     if (!sliced.length) {
       continue;
     }
-    const body = sliced.slice(1);
-    for (const row of body) {
+    for (const row of sliced) {
+      if (isDraftHeaderRow(row)) {
+        continue;
+      }
       const selection = String(row[2] || "").trim();
       if (!selection || !matchesAnyAlias(selection, aliases)) {
         continue;
@@ -862,8 +874,10 @@ function findArchiveDraftEvent(playerName, archiveRows, aliases) {
   if (!sliced.length) {
     return null;
   }
-  const body = sliced.slice(1);
-  for (const row of body) {
+  for (const row of sliced) {
+    if (isDraftHeaderRow(row)) {
+      continue;
+    }
     const pickCell = String(row[0] || "").trim();
     const teamCell = String(row[1] || "").trim();
     const selection = String(row[2] || "").trim();
