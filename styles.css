@@ -1306,6 +1306,49 @@ input[type="text"] {
   text-decoration: underline;
 }
 
+.tx-team-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tx-sides {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.tx-side {
+  border: 1px solid rgba(255, 140, 26, 0.3);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.tx-side-team {
+  font-weight: 700;
+}
+
+.tx-side-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.tx-side-value {
+  color: var(--ink);
+}
+
+.draft-pick-trade-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.draft-pick-trade-link:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 720px) {
   .hero {
     padding: 48px 20px 24px;
@@ -1336,5 +1379,9 @@ input[type="text"] {
   .modal-card {
     width: calc(100% - 32px);
     margin: 12vh auto;
+  }
+
+  .tx-sides {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

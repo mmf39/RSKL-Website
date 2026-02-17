@@ -181,7 +181,7 @@ function parseTransactionRow(row) {
     new Set([...extractPlayers(team1Gets), ...extractPlayers(team2Gets)])
   );
 
-  return { date, type, details, teams, players };
+  return { date, type, details, teams, players, team1, team1Gets, team2, team2Gets };
 }
 
 function renderLinks(list, kind) {
@@ -199,24 +199,74 @@ function renderLinks(list, kind) {
     .join(", ");
 }
 
+function normalizeSearch(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9@# ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getTeamLogo(team) {
+  const clean = normalizeTeamName(team);
+  if (clean === "The Future") return "/assets/the-future.png";
+  if (clean === "The Lions") return "/assets/the-lions.png";
+  if (clean === "The Snipers") return "/assets/the-snipers.png";
+  if (clean === "The Phantoms") return "/assets/the-phantoms.png";
+  if (clean === "Yetis") return "/assets/yetis.png";
+  if (clean === "Gus N Em") return "/assets/gus-n-em.png";
+  if (clean === "Cheerios") return "/assets/cheerios.png";
+  if (clean === "Illegals") return "/assets/illegals.png";
+  if (clean === "Storm" || clean === "Bullets") return "/assets/storm.png";
+  if (clean === "Turkeys") return "/assets/turkeys.png";
+  return "";
+}
+
+function renderTeamHeader(team) {
+  const clean = normalizeTeamName(team);
+  if (!clean) {
+    return "<span class=\"muted\">—</span>";
+  }
+  const logo = getTeamLogo(clean);
+  const logoHtml = logo
+    ? `<img class="standings-logo" src="${logo}" alt="${escapeHtml(clean)} logo" />`
+    : "";
+  return `<a class="tx-link tx-team-link" href="team.html?team=${encodeURIComponent(
+    clean
+  )}">${logoHtml}${escapeHtml(clean)}</a>`;
+}
+
 function renderTransactions(filter = "") {
   const query = String(filter || "").trim().toLowerCase();
+  const queryNorm = normalizeSearch(query);
   const parsed = transactionRows
     .map((row) => parseTransactionRow(row))
     .filter((tx) => tx.details || tx.date || tx.type);
 
   const visible = query
     ? parsed.filter((tx) => {
-        const haystack = [
+        const haystackRaw = [
           tx.date,
           tx.type,
           tx.details,
+          tx.team1,
+          tx.team1Gets,
+          tx.team2,
+          tx.team2Gets,
           tx.teams.join(" "),
           tx.players.join(" "),
         ]
           .join(" ")
           .toLowerCase();
-        return haystack.includes(query);
+        if (haystackRaw.includes(query)) {
+          return true;
+        }
+        const haystackNorm = normalizeSearch(haystackRaw);
+        if (queryNorm && haystackNorm.includes(queryNorm)) {
+          return true;
+        }
+        const tokens = queryNorm.split(" ").filter((t) => t.length >= 2);
+        return tokens.length > 0 && tokens.every((t) => haystackNorm.includes(t));
       })
     : parsed;
 
@@ -232,6 +282,18 @@ function renderTransactions(filter = "") {
           <div class="tx-head">
             <strong>${escapeHtml(tx.type || "Transaction")}</strong>
             <span>${escapeHtml(tx.date || "—")}</span>
+          </div>
+          <div class="tx-sides">
+            <div class="tx-side">
+              <div class="tx-side-team">${renderTeamHeader(tx.team1)}</div>
+              <div class="tx-side-label">Received</div>
+              <div class="tx-side-value">${escapeHtml(tx.team1Gets || "—")}</div>
+            </div>
+            <div class="tx-side">
+              <div class="tx-side-team">${renderTeamHeader(tx.team2)}</div>
+              <div class="tx-side-label">Received</div>
+              <div class="tx-side-value">${escapeHtml(tx.team2Gets || "—")}</div>
+            </div>
           </div>
           <div class="tx-details">${escapeHtml(tx.details || "—")}</div>
           <div class="tx-meta"><span>Teams Involved:</span> ${renderLinks(
