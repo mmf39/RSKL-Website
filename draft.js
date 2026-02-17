@@ -17,10 +17,14 @@ const ROUND_RANGES_BY_YEAR = {
     { id: "round-4", title: "Round 4", range: "A34:C44" },
   ],
   c2s1: [
-    { id: "round-1", title: "Round 1", range: "A120:C133" },
-    { id: "round-2", title: "Round 2", range: "A134:C147" },
-    { id: "round-3", title: "Round 3", range: "A148:C161" },
-    { id: "round-4", title: "Round 4", range: "A162:C175" },
+    { id: "round-1", title: "Round 1", range: "A120:C126" },
+    { id: "round-2", title: "Round 2", range: "A127:C133" },
+    { id: "round-3", title: "Round 3", range: "A134:C140" },
+    { id: "round-4", title: "Round 4", range: "A141:C147" },
+    { id: "round-5", title: "Round 5", range: "A148:C154" },
+    { id: "round-6", title: "Round 6", range: "A155:C161" },
+    { id: "round-7", title: "Round 7", range: "A162:C168" },
+    { id: "round-8", title: "Round 8", range: "A169:C175" },
   ],
 };
 
@@ -218,7 +222,9 @@ function renderCell(value, header, index) {
     )}">${logo}${escapeHtml(text)}</a>`;
   }
   if (likelyPlayerCol) {
-    return linkifyPlayers(text);
+    return `<a class="draft-link" href="player-detail.html?player=${encodeURIComponent(
+      text
+    )}">${escapeHtml(text)}</a>`;
   }
   return linkifyPlayers(text);
 }

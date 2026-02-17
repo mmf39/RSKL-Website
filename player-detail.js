@@ -995,7 +995,7 @@ async function loadPlayerTransactions(playerName, season) {
     const trades = findTradeEvents(playerName, transactionRows, aliases);
     if (trades.length) {
       events.push(...trades);
-    } else {
+    } else if (!draftEvent) {
       events.push({
         date: "Status",
         title: "Trade Status",
