@@ -531,10 +531,10 @@ async function loadDraftCapital(teamName) {
         const tradeLine = tradeTexts.length
           ? `<div class="draft-pick-trade">Trades: ${tradeTexts
               .map(
-                (text, idx) =>
+                (text) =>
                   `<a class="draft-pick-trade-link" href="/transactions.html?q=${encodeURIComponent(
                     text
-                  )}" target="_self">Trade ${idx + 1}</a>`
+                  )}" target="_self">${escapeHtml(text)}</a>`
               )
               .join(", ")}</div>`
           : `<div class="draft-pick-trade">No trades involving this pick.</div>`;

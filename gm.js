@@ -1,4 +1,6 @@
 const ROSTER_URL = "/api/sheet?name=roster";
+const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
+const TRADE_BLOCK_UPDATE_CODE = "RSKL2026";
 
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
@@ -11,6 +13,19 @@ const TEAM_RANGES = {
   "The Future": "E32:F43",
   "The Snipers": "H32:I43",
   "The Phantoms": "B45:C56",
+};
+
+const DRAFT_CAPITAL_COLUMNS = {
+  Turkeys: "A",
+  "Gus N Em": "B",
+  Bullets: "C",
+  Cheerios: "D",
+  Yetis: "E",
+  "The Lions": "F",
+  "The Phantoms": "G",
+  "The Future": "H",
+  "The Snipers": "I",
+  Illegals: "J",
 };
 
 const TEAM_ORDER = [
@@ -33,13 +48,16 @@ const els = {
   teamSelect: document.getElementById("gm-team-select"),
   teamLabel: document.getElementById("gm-team-label"),
   tradePlayerList: document.getElementById("trade-player-list"),
+  tradePicksList: document.getElementById("trade-picks-list"),
   tradeNotes: document.getElementById("trade-notes"),
+  tradeCode: document.getElementById("trade-code"),
   tradeSave: document.getElementById("trade-save"),
   tradeStatus: document.getElementById("trade-status"),
   tradeViewList: document.getElementById("trade-view-list"),
 };
 
 let rosterByTeam = new Map();
+let picksByTeam = new Map();
 
 function displayTeamName(value) {
   const team = String(value || "").trim();
@@ -174,6 +192,10 @@ function getTeamPlayers(team) {
   return rosterByTeam.get(team) || [];
 }
 
+function getTeamPicks(team) {
+  return picksByTeam.get(team) || [];
+}
+
 function renderTradePlayersList(team, selectedPlayers) {
   if (!team) {
     els.tradePlayerList.innerHTML = '<div class="gm-empty">Select a team.</div>';
@@ -193,6 +215,30 @@ function renderTradePlayersList(team, selectedPlayers) {
         <label class="gm-check">
           <input type="checkbox" value="${escapeHtml(player)}" ${checked} />
           <span>${escapeHtml(player)}</span>
+        </label>
+      `;
+    })
+    .join("");
+}
+
+function renderTradePicksList(team, selectedPicks) {
+  if (!team) {
+    els.tradePicksList.innerHTML = '<div class="gm-empty">Select a team.</div>';
+    return;
+  }
+  const picks = getTeamPicks(team);
+  if (!picks.length) {
+    els.tradePicksList.innerHTML = '<div class="gm-empty">No picks found.</div>';
+    return;
+  }
+  const selectedSet = new Set((selectedPicks || []).map(normalizeName));
+  els.tradePicksList.innerHTML = picks
+    .map((pick) => {
+      const checked = selectedSet.has(normalizeName(pick)) ? "checked" : "";
+      return `
+        <label class="gm-check">
+          <input type="checkbox" value="${escapeHtml(pick)}" ${checked} />
+          <span>${escapeHtml(pick)}</span>
         </label>
       `;
     })
@@ -221,6 +267,7 @@ function renderOtherTradeBlocks(selectedTeam) {
       }
 
       const players = Array.isArray(block.players) ? block.players : [];
+      const picks = Array.isArray(block.picks) ? block.picks : [];
       const notes = String(block.notes || "").trim();
       const updatedAt = block.updatedAt ? new Date(block.updatedAt).toLocaleString() : "";
 
@@ -234,6 +281,10 @@ function renderOtherTradeBlocks(selectedTeam) {
           <div class="gm-readonly-group">
             <div class="label">Notes</div>
             <div>${notes ? escapeHtml(notes) : "No trade block available."}</div>
+          </div>
+          <div class="gm-readonly-group">
+            <div class="label">Picks</div>
+            <div>${picks.length ? picks.map(escapeHtml).join(", ") : "No trade block available."}</div>
           </div>
           <div class="gm-readonly-group">
             <div class="label">Updated</div>
@@ -251,9 +302,14 @@ function renderSelectedTeam(team) {
   const blocks = loadTradeBlocks();
   const block = team ? blocks[team] || {} : {};
   const selectedPlayers = Array.isArray(block.players) ? block.players : [];
+  const selectedPicks = Array.isArray(block.picks) ? block.picks : [];
 
   renderTradePlayersList(team, selectedPlayers);
+  renderTradePicksList(team, selectedPicks);
   els.tradeNotes.value = block.notes || "";
+  if (els.tradeCode) {
+    els.tradeCode.value = "";
+  }
   renderOtherTradeBlocks(team);
   setTradeStatus("");
 }
@@ -283,6 +339,39 @@ async function loadRoster() {
   rosterByTeam = map;
 }
 
+async function loadDraftCapital() {
+  const response = await fetch(DRAFT_CAPITAL_URL, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Fetch failed: ${response.status}`);
+  }
+  const rows = parseCSV(await response.text());
+  const map = new Map();
+
+  Object.entries(DRAFT_CAPITAL_COLUMNS).forEach(([team, colLetter]) => {
+    const idx = colToIndex(colLetter);
+    const picks = rows
+      .map((row) => String((row && row[idx]) || "").trim())
+      .filter((value) => {
+        if (!value) {
+          return false;
+        }
+        const lower = value.toLowerCase();
+        const teamLower = team.toLowerCase();
+        const shownLower = displayTeamName(team).toLowerCase();
+        if (lower === teamLower || lower === shownLower) {
+          return false;
+        }
+        if (lower === "draft capital" || lower === "picks") {
+          return false;
+        }
+        return true;
+      });
+    map.set(team, picks);
+  });
+
+  picksByTeam = map;
+}
+
 function bindEvents() {
   if (els.teamSelect) {
     els.teamSelect.addEventListener("change", () => {
@@ -297,14 +386,22 @@ function bindEvents() {
         setTradeStatus("Select a team first.", true);
         return;
       }
+      if (!els.tradeCode || els.tradeCode.value.trim() !== TRADE_BLOCK_UPDATE_CODE) {
+        setTradeStatus("Invalid access code.", true);
+        return;
+      }
 
       const checked = Array.from(
         els.tradePlayerList.querySelectorAll('input[type="checkbox"]:checked')
+      ).map((node) => node.value);
+      const checkedPicks = Array.from(
+        els.tradePicksList.querySelectorAll('input[type="checkbox"]:checked')
       ).map((node) => node.value);
 
       const blocks = loadTradeBlocks();
       blocks[team] = {
         players: checked,
+        picks: checkedPicks,
         notes: String(els.tradeNotes.value || "").trim(),
         updatedAt: new Date().toISOString(),
       };
@@ -319,7 +416,7 @@ function bindEvents() {
 async function init() {
   bindEvents();
   try {
-    await loadRoster();
+    await Promise.all([loadRoster(), loadDraftCapital()]);
     renderSelectedTeam(els.teamSelect.value || "");
     updateLastUpdated();
   } catch (error) {
