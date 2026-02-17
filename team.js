@@ -434,6 +434,31 @@ function parsePickMeta(pickLabel) {
   };
 }
 
+function transactionIncludesTeamContext(row, teamCandidates) {
+  if (!teamCandidates || !teamCandidates.length) {
+    return false;
+  }
+  const rowTeam1 = normalizeTeamLabel(row[1] || "");
+  const rowTeam2 = normalizeTeamLabel(row[3] || "");
+  const rowText = normalizePickLabel(
+    row
+      .map((cell) => String(cell || "").trim())
+      .filter(Boolean)
+      .join(" ")
+  );
+  return teamCandidates.some((team) => {
+    const normalized = normalizeTeamLabel(team);
+    if (!normalized) {
+      return false;
+    }
+    return (
+      rowTeam1 === normalized ||
+      rowTeam2 === normalized ||
+      rowText.includes(normalized)
+    );
+  });
+}
+
 function extractOverallNumbers(text) {
   const source = String(text || "");
   const matches = [...source.matchAll(/#\s*(\d+)\s*overall/gi)];
@@ -450,6 +475,13 @@ function findTradeTextsForPick(pick, transactionRows) {
   const meta = parsePickMeta(label);
   const originalTeam = normalizeTeamLabel(pick && pick.original_team);
   const currentTeam = normalizeTeamLabel(pick && pick.current_team);
+  const teamCandidates = Array.from(
+    new Set(
+      [currentTeam, originalTeam, meta.viaTeam]
+        .map((v) => normalizeTeamLabel(v))
+        .filter(Boolean)
+    )
+  );
   const teamsPerRound = 10;
   const roundMin = meta.round ? (meta.round - 1) * teamsPerRound + 1 : null;
   const roundMax = meta.round ? meta.round * teamsPerRound : null;
@@ -460,6 +492,10 @@ function findTradeTextsForPick(pick, transactionRows) {
       .filter(Boolean)
       .join(" | ");
     if (!joined) {
+      continue;
+    }
+    const teamContextMatch = transactionIncludesTeamContext(row, teamCandidates);
+    if (!teamContextMatch) {
       continue;
     }
     const normalizedRow = normalizePickLabel(joined);
