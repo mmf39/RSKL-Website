@@ -130,6 +130,17 @@ function normalizeTeamName(name) {
   return clean === "Bullets" ? "Storm" : clean;
 }
 
+function canonicalTeamName(name) {
+  const clean = normalizeTeamName(name);
+  const lower = clean.toLowerCase();
+  if (lower === "lions" || lower === "the lions") return "The Lions";
+  if (lower === "future" || lower === "the future") return "The Future";
+  if (lower === "snipers" || lower === "the snipers") return "The Snipers";
+  if (lower === "phantoms" || lower === "the phantoms") return "The Phantoms";
+  if (lower === "bullets" || lower === "storm") return "Storm";
+  return clean;
+}
+
 function extractPlayers(text) {
   const matches = String(text || "").match(/@[A-Za-z0-9_]+/g) || [];
   return Array.from(new Set(matches));
@@ -208,7 +219,7 @@ function normalizeSearch(value) {
 }
 
 function getTeamLogo(team) {
-  const clean = normalizeTeamName(team);
+  const clean = canonicalTeamName(team);
   if (clean === "The Future") return "/assets/the-future.png";
   if (clean === "The Lions") return "/assets/the-lions.png";
   if (clean === "The Snipers") return "/assets/the-snipers.png";
@@ -223,7 +234,7 @@ function getTeamLogo(team) {
 }
 
 function renderTeamHeader(team) {
-  const clean = normalizeTeamName(team);
+  const clean = canonicalTeamName(team);
   if (!clean) {
     return "<span class=\"muted\">—</span>";
   }
@@ -295,15 +306,6 @@ function renderTransactions(filter = "") {
               <div class="tx-side-value">${escapeHtml(tx.team2Gets || "—")}</div>
             </div>
           </div>
-          <div class="tx-details">${escapeHtml(tx.details || "—")}</div>
-          <div class="tx-meta"><span>Teams Involved:</span> ${renderLinks(
-            tx.teams,
-            "team"
-          )}</div>
-          <div class="tx-meta"><span>Players Involved:</span> ${renderLinks(
-            tx.players,
-            "player"
-          )}</div>
         </article>
       `
     )

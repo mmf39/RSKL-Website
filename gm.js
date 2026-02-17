@@ -1,6 +1,17 @@
 const ROSTER_URL = "/api/sheet?name=roster";
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
-const TRADE_BLOCK_UPDATE_CODE = "RSKL2026";
+const TEAM_UPDATE_CODES = {
+  "Gus N Em": "Harbor9!Maple",
+  Bullets: "Orbit#17Cinder",
+  Turkeys: "Raven$42North",
+  Cheerios: "Mint!88Drift",
+  Yetis: "Fjord@3Echo",
+  Illegals: "Copper%71Trail",
+  "The Lions": "Quartz&5Summit",
+  "The Future": "Nova*24Anchor",
+  "The Snipers": "Atlas=63Bloom",
+  "The Phantoms": "Velvet+90Stone",
+};
 
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
@@ -62,6 +73,16 @@ let picksByTeam = new Map();
 function displayTeamName(value) {
   const team = String(value || "").trim();
   return team === "Bullets" ? "Storm" : team;
+}
+
+function getTeamUpdateCode(team) {
+  if (!team) {
+    return "";
+  }
+  if (team === "Storm") {
+    return TEAM_UPDATE_CODES.Bullets || "";
+  }
+  return TEAM_UPDATE_CODES[team] || "";
 }
 
 function normalizeName(value) {
@@ -386,7 +407,12 @@ function bindEvents() {
         setTradeStatus("Select a team first.", true);
         return;
       }
-      if (!els.tradeCode || els.tradeCode.value.trim() !== TRADE_BLOCK_UPDATE_CODE) {
+      const expectedCode = getTeamUpdateCode(team);
+      if (!expectedCode) {
+        setTradeStatus("No update code configured for this team.", true);
+        return;
+      }
+      if (!els.tradeCode || els.tradeCode.value.trim() !== expectedCode) {
         setTradeStatus("Invalid access code.", true);
         return;
       }
