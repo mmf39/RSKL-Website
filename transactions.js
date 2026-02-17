@@ -210,6 +210,21 @@ function renderLinks(list, kind) {
     .join(", ");
 }
 
+function linkifyPlayers(text) {
+  const source = String(text || "");
+  const parts = source.split(/(@[A-Za-z0-9_]+)/g);
+  return parts
+    .map((part) => {
+      if (/^@[A-Za-z0-9_]+$/.test(part)) {
+        return `<a class="tx-link" href="player-detail.html?player=${encodeURIComponent(
+          part
+        )}">${escapeHtml(part)}</a>`;
+      }
+      return escapeHtml(part);
+    })
+    .join("");
+}
+
 function normalizeSearch(value) {
   return String(value || "")
     .toLowerCase()
@@ -298,12 +313,12 @@ function renderTransactions(filter = "") {
             <div class="tx-side">
               <div class="tx-side-team">${renderTeamHeader(tx.team1)}</div>
               <div class="tx-side-label">Received</div>
-              <div class="tx-side-value">${escapeHtml(tx.team1Gets || "—")}</div>
+              <div class="tx-side-value">${linkifyPlayers(tx.team1Gets || "—")}</div>
             </div>
             <div class="tx-side">
               <div class="tx-side-team">${renderTeamHeader(tx.team2)}</div>
               <div class="tx-side-label">Received</div>
-              <div class="tx-side-value">${escapeHtml(tx.team2Gets || "—")}</div>
+              <div class="tx-side-value">${linkifyPlayers(tx.team2Gets || "—")}</div>
             </div>
           </div>
         </article>
