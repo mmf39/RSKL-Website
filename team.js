@@ -3,10 +3,8 @@ const STANDINGS_CSV_URL = "/api/sheet?name=standings";
 const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const ARCHIVE_URL = "/api/sheet?name=archive";
+const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
 const SEASON_KEY = "season";
-const SUPABASE_DRAFT_PICKS_URL =
-  "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/draft_picks?select=label,current_team,original_team&order=label.asc";
-const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const TRANSACTIONS_RANGE = "A3:E81";
 const TEAM_RANGES = {
@@ -50,6 +48,20 @@ const ARCHIVE_TEAM_STANDINGS = {
   Cheerios: "A5:F5",
   Yetis: "A6:F6",
   Illegals: "A7:F7",
+};
+
+const DRAFT_CAPITAL_COLUMNS = {
+  Turkeys: "A",
+  "Gus N Em": "B",
+  Bullets: "C",
+  Storm: "C",
+  Cheerios: "D",
+  Yetis: "E",
+  "The Lions": "F",
+  "The Phantoms": "G",
+  "The Future": "H",
+  "The Snipers": "I",
+  Illegals: "J",
 };
 
 function getSeason() {
@@ -399,12 +411,49 @@ function getPickMatchTargets(pickLabel) {
   return Array.from(targets).filter(Boolean);
 }
 
-function findTradeTextsForPick(pickLabel, transactionRows) {
-  const targets = getPickMatchTargets(pickLabel);
+function pickRoundToNumber(roundText) {
+  const text = String(roundText || "").toLowerCase();
+  if (text.includes("1st")) return 1;
+  if (text.includes("2nd")) return 2;
+  if (text.includes("3rd")) return 3;
+  if (text.includes("4th")) return 4;
+  if (text.includes("5th")) return 5;
+  if (text.includes("6th")) return 6;
+  if (text.includes("7th")) return 7;
+  if (text.includes("8th")) return 8;
+  return null;
+}
+
+function parsePickMeta(pickLabel) {
+  const label = String(pickLabel || "").trim();
+  const roundMatch = label.match(/\b([1-8](?:st|nd|rd|th))\b/i);
+  const viaMatch = label.match(/\b(?:via|from)\s+(.+)$/i);
+  return {
+    round: roundMatch ? pickRoundToNumber(roundMatch[1]) : null,
+    viaTeam: viaMatch ? normalizeTeamLabel(viaMatch[1]) : "",
+  };
+}
+
+function extractOverallNumbers(text) {
+  const source = String(text || "");
+  const matches = [...source.matchAll(/#\s*(\d+)\s*overall/gi)];
+  return matches.map((m) => Number(m[1])).filter((n) => Number.isFinite(n));
+}
+
+function findTradeTextsForPick(pick, transactionRows) {
+  const label = String(pick && pick.label ? pick.label : "").trim();
+  const targets = getPickMatchTargets(label);
   if (!targets.length) {
     return [];
   }
   const found = [];
+  const meta = parsePickMeta(label);
+  const originalTeam = normalizeTeamLabel(pick && pick.original_team);
+  const currentTeam = normalizeTeamLabel(pick && pick.current_team);
+  const teamsPerRound = 10;
+  const roundMin = meta.round ? (meta.round - 1) * teamsPerRound + 1 : null;
+  const roundMax = meta.round ? meta.round * teamsPerRound : null;
+
   for (const row of transactionRows) {
     const joined = row
       .map((cell) => String(cell || "").trim())
@@ -414,57 +463,71 @@ function findTradeTextsForPick(pickLabel, transactionRows) {
       continue;
     }
     const normalizedRow = normalizePickLabel(joined);
-    if (targets.some((target) => normalizedRow.includes(target))) {
+    const directMatch = targets.some((target) => normalizedRow.includes(target));
+    let fallbackMatch = false;
+
+    if (!directMatch && meta.round) {
+      const nums = extractOverallNumbers(joined);
+      const hasRoundNumber =
+        nums.length > 0 &&
+        nums.some((n) => roundMin !== null && roundMax !== null && n >= roundMin && n <= roundMax);
+      const hasTeamContext =
+        (meta.viaTeam && normalizedRow.includes(meta.viaTeam)) ||
+        (originalTeam && normalizedRow.includes(originalTeam)) ||
+        (currentTeam && normalizedRow.includes(currentTeam));
+      fallbackMatch = hasRoundNumber && hasTeamContext;
+    }
+
+    if (directMatch || fallbackMatch) {
       found.push(joined);
     }
   }
-  return found;
+  return Array.from(new Set(found));
 }
 
 async function loadDraftCapital(teamName) {
   if (!els.draftCapital) {
     return;
   }
-  const target = normalizeTeamLabel(teamName);
-  if (!target) {
+  if (!teamName) {
     els.draftCapital.innerHTML = "<div class=\"gm-empty\">No picks found.</div>";
     return;
   }
   try {
-    const [picksRes, txRes] = await Promise.all([
-      fetch(SUPABASE_DRAFT_PICKS_URL, {
-        headers: {
-          apikey: SUPABASE_API_KEY,
-          Authorization: `Bearer ${SUPABASE_API_KEY}`,
-        },
-      }),
+    const [capitalRes, txRes] = await Promise.all([
+      fetch(DRAFT_CAPITAL_URL, { cache: "no-store" }),
       fetch(TRANSACTIONS_URL, { cache: "no-store" }),
     ]);
-    if (!picksRes.ok) {
-      throw new Error(`Fetch failed: ${picksRes.status}`);
+    if (!capitalRes.ok) {
+      throw new Error(`Fetch failed: ${capitalRes.status}`);
     }
-    const data = await picksRes.json();
+    const capitalRows = parseCSV(await capitalRes.text());
     const txRows = txRes.ok
       ? sliceRange(parseCSV(await txRes.text()), TRANSACTIONS_RANGE).filter(hasText)
       : [];
-    const picks = (data || []).filter((pick) =>
-      teamMatches(pick.current_team, teamName)
-    );
+
+    const column = DRAFT_CAPITAL_COLUMNS[teamName];
+    if (!column) {
+      els.draftCapital.innerHTML = "<div class=\"gm-empty\">No picks found.</div>";
+      return;
+    }
+    const colIndex = colToIndex(column);
+    const picks = capitalRows
+      .map((row) => String((row && row[colIndex]) || "").trim())
+      .filter((value) => value && value !== displayTeamName(teamName));
+
     if (!picks.length) {
       els.draftCapital.innerHTML = "<div class=\"gm-empty\">No picks found.</div>";
       return;
     }
     els.draftCapital.innerHTML = picks
-      .map((pick) => {
-        const label = String(pick.label || "").trim();
-        const via =
-          pick.original_team &&
-          !teamMatches(pick.original_team, pick.current_team)
-            ? ` <span class="muted">via ${escapeHtml(
-                displayTeamName(pick.original_team)
-              )}</span>`
-            : "";
-        const tradeTexts = findTradeTextsForPick(label, txRows);
+      .map((label) => {
+        const pickMeta = {
+          label,
+          current_team: teamName,
+          original_team: teamName,
+        };
+        const tradeTexts = findTradeTextsForPick(pickMeta, txRows);
         const tradeLine = tradeTexts.length
           ? `<div class="draft-pick-trade">Trades: ${tradeTexts
               .map(
@@ -475,7 +538,7 @@ async function loadDraftCapital(teamName) {
               )
               .join(", ")}</div>`
           : `<div class="draft-pick-trade">No trades involving this pick.</div>`;
-        return `<div class="draft-pick-row">${escapeHtml(label)}${via}${tradeLine}</div>`;
+        return `<div class="draft-pick-row">${escapeHtml(label)}${tradeLine}</div>`;
       })
       .join("");
   } catch (error) {

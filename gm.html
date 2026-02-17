@@ -31,126 +31,46 @@
     </header>
 
     <main class="container">
-      <section class="panel">
+      <section class="panel" id="gm-panel">
         <div class="panel-head">
-          <h2>GM Login</h2>
+          <h2>Trade Block</h2>
         </div>
-        <div class="gm-grid">
-          <div class="gm-card">
-            <label class="label" for="gm-email">Email</label>
-            <input id="gm-email" class="text-input" type="email" placeholder="gm@example.com" />
-            <label class="label" for="gm-password">Password</label>
-            <input id="gm-password" class="text-input" type="password" placeholder="Password" />
-            <label class="label" for="gm-team">Team (Sign Up)</label>
-            <select id="gm-team" class="text-input">
-              <option value="">Select your team</option>
-              <option value="Gus N Em">Gus N Em</option>
-              <option value="Bullets">Storm</option>
-              <option value="Turkeys">Turkeys</option>
-              <option value="Cheerios">Cheerios</option>
-              <option value="Yetis">Yetis</option>
-              <option value="Illegals">Illegals</option>
-              <option value="The Lions">The Lions</option>
-              <option value="The Future">The Future</option>
-              <option value="The Snipers">The Snipers</option>
-              <option value="The Phantoms">The Phantoms</option>
-            </select>
-            <div class="gm-actions">
-              <button id="gm-login" class="btn">Sign In</button>
-              <button id="gm-signup" class="btn ghost">Sign Up</button>
-              <button id="gm-logout" class="btn ghost" hidden>Sign Out</button>
+        <div class="gm-card">
+          <label class="label" for="gm-team-select">Team</label>
+          <select id="gm-team-select" class="text-input">
+            <option value="">Select your team</option>
+            <option value="Gus N Em">Gus N Em</option>
+            <option value="Bullets">Storm</option>
+            <option value="Turkeys">Turkeys</option>
+            <option value="Cheerios">Cheerios</option>
+            <option value="Yetis">Yetis</option>
+            <option value="Illegals">Illegals</option>
+            <option value="The Lions">The Lions</option>
+            <option value="The Future">The Future</option>
+            <option value="The Snipers">The Snipers</option>
+            <option value="The Phantoms">The Phantoms</option>
+          </select>
+
+          <div class="gm-row">
+            <div>
+              <div class="label">Selected Team</div>
+              <div id="gm-team-label" class="gm-team-label">—</div>
             </div>
-            <div id="gm-status" class="gm-status"></div>
           </div>
-        </div>
-      </section>
 
-      <section class="panel" id="gm-panel" hidden>
-        <div class="panel-head">
-          <h2>GM Tools</h2>
-          <div class="gm-tabs">
-            <button class="gm-tab active" data-tab="trade">Trade Block</button>
-            <button class="gm-tab" data-tab="picks" id="commish-tab" hidden>Pick Manager</button>
-            <button class="gm-tab" data-tab="trades" id="commish-trades-tab" hidden>Trades</button>
-          </div>
+          <label class="label">Players</label>
+          <div id="trade-player-list" class="gm-checklist"></div>
+
+          <label class="label" for="trade-notes">Notes</label>
+          <textarea id="trade-notes" class="text-input" rows="4" placeholder="Notes..."></textarea>
+
+          <button id="trade-save" class="btn">Save Trade Block</button>
+          <div id="trade-status" class="gm-status"></div>
         </div>
 
-        <div class="gm-tab-panel" data-panel="trade">
-          <div class="gm-card">
-            <div class="gm-row">
-              <div>
-                <div class="label">Your Team</div>
-                <div id="gm-team-label" class="gm-team-label">—</div>
-              </div>
-            </div>
-
-            <label class="label">Players</label>
-            <div id="trade-player-list" class="gm-checklist"></div>
-
-            <label class="label">Draft Picks</label>
-            <div id="trade-picks-list" class="gm-checklist"></div>
-
-            <label class="label" for="trade-notes">Notes</label>
-            <textarea id="trade-notes" class="text-input" rows="4" placeholder="Notes..."></textarea>
-
-            <button id="trade-save" class="btn">Save Trade Block</button>
-            <div id="trade-status" class="gm-status"></div>
-          </div>
-
-          <div class="gm-card">
-            <div class="label">Other Teams (Read Only)</div>
-            <div id="trade-view-list" class="gm-readonly-list"></div>
-          </div>
-        </div>
-
-        <div class="gm-tab-panel" data-panel="picks" hidden>
-          <div class="gm-card">
-            <div class="label">Trade Pick Manager</div>
-            <label class="label" for="pick-select">Pick</label>
-            <select id="pick-select" class="text-input"></select>
-            <label class="label" for="pick-team-select">Move To Team</label>
-            <select id="pick-team-select" class="text-input">
-              <option value="">Select a team</option>
-              <option value="Gus N Em">Gus N Em</option>
-              <option value="Bullets">Storm</option>
-              <option value="Turkeys">Turkeys</option>
-              <option value="Cheerios">Cheerios</option>
-              <option value="Yetis">Yetis</option>
-              <option value="Illegals">Illegals</option>
-              <option value="The Lions">The Lions</option>
-              <option value="The Future">The Future</option>
-              <option value="The Snipers">The Snipers</option>
-              <option value="The Phantoms">The Phantoms</option>
-            </select>
-            <button id="pick-update" class="btn">Update Pick Owner</button>
-            <div id="pick-status" class="gm-status"></div>
-            <div id="pick-list" class="gm-readonly-list"></div>
-          </div>
-        </div>
-
-        <div class="gm-tab-panel" data-panel="trades" hidden>
-          <div class="gm-card">
-            <div class="label">Player Trade Manager</div>
-            <label class="label" for="trade-player-select">Player</label>
-            <select id="trade-player-select" class="text-input"></select>
-            <label class="label" for="trade-player-team">Move To Team</label>
-            <select id="trade-player-team" class="text-input">
-              <option value="">Select a team</option>
-              <option value="Gus N Em">Gus N Em</option>
-              <option value="Bullets">Storm</option>
-              <option value="Turkeys">Turkeys</option>
-              <option value="Cheerios">Cheerios</option>
-              <option value="Yetis">Yetis</option>
-              <option value="Illegals">Illegals</option>
-              <option value="The Lions">The Lions</option>
-              <option value="The Future">The Future</option>
-              <option value="The Snipers">The Snipers</option>
-              <option value="The Phantoms">The Phantoms</option>
-            </select>
-            <button id="trade-player-update" class="btn">Update Player Team</button>
-            <div id="trade-player-status" class="gm-status"></div>
-            <div id="trade-player-admin-list" class="gm-readonly-list"></div>
-          </div>
+        <div class="gm-card">
+          <div class="label">Other Teams (Read Only)</div>
+          <div id="trade-view-list" class="gm-readonly-list"></div>
         </div>
       </section>
     </main>
@@ -159,6 +79,6 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="gm.js" type="module"></script>
+    <script src="gm.js"></script>
   </body>
 </html>
