@@ -688,11 +688,7 @@ function renderTable(rows) {
           }
           <td>${escapeHtml(row[playerColumns.date] ?? "")}</td>
           <td>${escapeHtml(row[playerColumns.team] ?? "")}</td>
-          <td>${escapeHtml(
-            parseAdjustedScore(row) === null
-              ? row[playerColumns.score] ?? ""
-              : parseAdjustedScore(row).toFixed(1)
-          )}</td>
+          <td>${escapeHtml(row[playerColumns.score] ?? "")}</td>
           <td>${escapeHtml(row[playerColumns.rank] ?? "")}</td>
           <td>${escapeHtml(row[playerColumns.opponent] ?? "")}</td>
         </tr>
@@ -1163,12 +1159,10 @@ async function loadPlayer() {
       dataRows = [];
       boxRows = [];
     }
-    const normalize = (value) =>
-      stripCaptainMarker(String(value || "").trim()).toLowerCase();
-    const target = normalize(playerName);
+    const aliases = getPlayerAliases(playerName);
     const filtered = playerName
       ? dataRows.filter(
-          (row) => normalize(row[playerColumns.player]) === target
+          (row) => matchesAnyAlias(row[playerColumns.player], aliases)
         )
       : [];
 
