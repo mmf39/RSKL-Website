@@ -353,6 +353,44 @@ function parseLiveGames(rows) {
   return games;
 }
 
+function getLiveScheduleIndexes(scheduleRows) {
+  const headers = (scheduleRows[0] || []).map((h) =>
+    String(h || "").trim().toLowerCase()
+  );
+  const findIdx = (checks) =>
+    headers.findIndex((h) => checks.some((check) => h.includes(check)));
+
+  let date = findIdx(["date"]);
+  let team1 = findIdx(["team 1", "team1", "away"]);
+  let team2 = findIdx(["team 2", "team2", "home"]);
+
+  if (team1 === -1 || team2 === -1) {
+    if ((scheduleRows[0] || []).length >= 4) {
+      if (date === -1) {
+        date = 1;
+      }
+      if (team1 === -1) {
+        team1 = 2;
+      }
+      if (team2 === -1) {
+        team2 = 3;
+      }
+    } else {
+      if (date === -1) {
+        date = 0;
+      }
+      if (team1 === -1) {
+        team1 = 1;
+      }
+      if (team2 === -1) {
+        team2 = 2;
+      }
+    }
+  }
+
+  return { date, team1, team2 };
+}
+
 function renderLiveScoring(rows, scheduleRows) {
   if (!rows.length) {
     els.liveRow.textContent = "No live scoring available.";
@@ -362,17 +400,17 @@ function renderLiveScoring(rows, scheduleRows) {
   const leagueDay = extractLeagueDay(rows);
   const liveGames = parseLiveGames(rows);
   const liveMap = new Map(liveGames.map((g) => [g.key, g]));
+  const scheduleIdx = getLiveScheduleIndexes(scheduleRows);
 
   const scheduleData = scheduleRows.slice(1);
   const scheduleGames = scheduleData
     .filter((row) => {
-      const dateA = String(row[0] || "").trim();
-      const dateB = String(row[1] || "").trim();
-      return leagueDay && (dateA === leagueDay || dateB === leagueDay);
+      const dateValue = String(row[scheduleIdx.date] || "").trim();
+      return leagueDay && dateValue === leagueDay;
     })
     .map((row) => {
-      const team1 = row[2] || row[1] || "";
-      const team2 = row[3] || row[2] || "";
+      const team1 = String(row[scheduleIdx.team1] || "").trim();
+      const team2 = String(row[scheduleIdx.team2] || "").trim();
       const key = `${normalizeTeamName(team1)}|${normalizeTeamName(team2)}`;
       const live = liveMap.get(key);
       return {
