@@ -317,7 +317,7 @@ function extractLeagueDay(rows) {
 
 function parseLiveGames(rows) {
   const startIndex = 4; // row 5 (0-based index)
-  const blockSize = 7; // header + 6 players
+  const blockSize = 6; // A5:G10 (header + 5 rows)
   const games = [];
 
   for (let i = startIndex; i < rows.length; i += blockSize) {
