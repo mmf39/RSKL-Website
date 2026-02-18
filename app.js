@@ -317,23 +317,37 @@ function extractLeagueDay(rows) {
 
 function parseLiveGames(rows) {
   const startIndex = 4; // row 5 (0-based index)
-  const blockSize = 6; // A5:G10 (header + 5 rows)
   const games = [];
 
-  for (let i = startIndex; i < rows.length; i += blockSize) {
+  const isHeaderRow = (row) => {
+    if (!row) {
+      return false;
+    }
+    const team1 = String(row[0] || "").trim();
+    const team2 = String(row[4] || "").trim();
+    if (!team1 || !team2) {
+      return false;
+    }
+    // Header rows are team labels; player rows typically start with @.
+    return !team1.startsWith("@") && !team2.startsWith("@");
+  };
+
+  for (let i = startIndex; i < rows.length; i += 1) {
     const header = rows[i];
-    if (!header) {
+    if (!isHeaderRow(header)) {
       continue;
     }
     const team1 = header[0] || "Team 1";
     const team2 = header[4] || "Team 2";
-    const players = rows.slice(i + 1, i + blockSize);
+    const players = rows.slice(i + 1, i + 6); // A6:G10 (5 rows)
     games.push({
       team1,
       team2,
       key: `${normalizeTeamName(team1)}|${normalizeTeamName(team2)}`,
       players,
     });
+    // Skip the 5 player rows we just consumed.
+    i += 5;
   }
 
   return games;
