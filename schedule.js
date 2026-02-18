@@ -192,7 +192,7 @@ function renderBoxScore(rowEl, boxScoreBlock, team1Name, team2Name, dateLabel) {
       .map(
         (row) => `
           <div class="boxscore-row">
-            <a class="boxscore-link" href="player-detail.html?player=${encodeURIComponent(
+            <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(
               String(row.player || "").trim()
             )}">${escapeHtml(row.player)}</a>
             <span>${escapeHtml(row.points)}</span>
