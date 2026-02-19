@@ -214,7 +214,10 @@ function renderCell(value, header, index) {
   }
   const headerLower = String(header || "").toLowerCase();
   const likelyTeamCol = headerLower.includes("team") || index === 1;
-  const likelyPlayerCol = headerLower.includes("player") || index === 2;
+  const likelyPlayerCol =
+    headerLower.includes("player") ||
+    headerLower.includes("prospect") ||
+    index === 2;
 
   if (likelyTeamCol) {
     const team = getFirstTeamMention(text);
