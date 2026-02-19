@@ -238,7 +238,19 @@ function renderSchedule(headers, dataRows) {
       (row, index) => `
         <tr class="schedule-row" data-index="${index}">
           ${headers
-            .map((_, i) => `<td>${escapeHtml(row[i] ?? "")}</td>`)
+            .map((header, i) => {
+              const value = row[i] ?? "";
+              const isTeamCol = String(header || "")
+                .toLowerCase()
+                .includes("team");
+              if (isTeamCol && String(value).trim()) {
+                const shown = displayTeamName(value);
+                return `<td><a class="roster-link" href="/team.html?team=${encodeURIComponent(
+                  shown
+                )}">${escapeHtml(shown)}</a></td>`;
+              }
+              return `<td>${escapeHtml(value)}</td>`;
+            })
             .join("")}
         </tr>
       `
@@ -1180,6 +1192,9 @@ function renderBoxScoreModal(boxScore) {
 }
 
 els.scheduleBody.addEventListener("click", (event) => {
+  if (event.target.closest("a")) {
+    return;
+  }
   const rowEl = event.target.closest(".schedule-row");
   if (!rowEl) {
     return;

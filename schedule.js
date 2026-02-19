@@ -135,6 +135,16 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function displayTeamName(value) {
+  const name = String(value || "").trim();
+  return name === "Bullets" ? "Storm" : name;
+}
+
+function isTeamColumn(header) {
+  const text = String(header || "").trim().toLowerCase();
+  return text.includes("team");
+}
+
 function renderTable(headers, dataRows, fullRows, boxScoreRows, scheduleRows) {
   cachedHeaders = headers;
   cachedRows = dataRows;
@@ -152,7 +162,16 @@ function renderTable(headers, dataRows, fullRows, boxScoreRows, scheduleRows) {
       (row, index) => `
         <tr class="schedule-row" data-index="${index}">
           ${headers
-            .map((_, i) => `<td>${escapeHtml(row[i] ?? "")}</td>`)
+            .map((header, i) => {
+              const value = row[i] ?? "";
+              if (isTeamColumn(header) && String(value).trim()) {
+                const shown = displayTeamName(value);
+                return `<td><a class="roster-link" href="/team.html?team=${encodeURIComponent(
+                  shown
+                )}">${escapeHtml(shown)}</a></td>`;
+              }
+              return `<td>${escapeHtml(value)}</td>`;
+            })
             .join("")}
         </tr>
       `
@@ -286,13 +305,16 @@ async function loadSchedule() {
 }
 
 els.body.addEventListener("click", (event) => {
+  if (event.target.closest("a")) {
+    return;
+  }
   const rowEl = event.target.closest(".schedule-row");
   if (!rowEl) {
     return;
   }
   const rowIndex = Number(rowEl.dataset.index);
   const cell = event.target.closest("td");
-  if (cell && (cell.cellIndex === 0 || cell.cellIndex === 1)) {
+  if (cell && cell.cellIndex === 0) {
     return;
   }
   const scheduleRow = cachedScheduleRows[rowIndex];
