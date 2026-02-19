@@ -7,6 +7,7 @@ const els = {
   sections: document.getElementById("draft-sections"),
   roundSelect: document.getElementById("round-select"),
   yearSelect: document.getElementById("draft-year-select"),
+  prospectsToggle: document.getElementById("prospects-toggle"),
 };
 
 const ROUND_RANGES_BY_YEAR = {
@@ -41,6 +42,9 @@ const TEAM_NAMES = new Set([
   "The Snipers",
   "The Phantoms",
 ]);
+
+let showProspects = false;
+let draftRowsCache = [];
 
 function parseCSV(text) {
   const rows = [];
@@ -326,6 +330,9 @@ function renderRound(roundId, title, rows) {
 }
 
 function applyRoundFilter() {
+  if (showProspects) {
+    return;
+  }
   if (!els.roundSelect || !els.sections) {
     return;
   }
@@ -334,6 +341,65 @@ function applyRoundFilter() {
     const isMatch = selected === "all" || section.dataset.round === selected;
     section.hidden = !isMatch;
   });
+}
+
+function hasText(row) {
+  return row.some((cell) => String(cell || "").trim() !== "");
+}
+
+function extractProspectsRows(rows) {
+  // Current draft board is top of sheet. Prospects are expected below it.
+  const startIndex = 44; // row 45 (0-based)
+  const tail = rows.slice(startIndex).filter(hasText);
+  if (!tail.length) {
+    return [];
+  }
+  return tail;
+}
+
+function renderProspects(rows) {
+  const prospects = extractProspectsRows(rows);
+  if (!prospects.length) {
+    els.sections.innerHTML = `
+      <section class="panel">
+        <div class="panel-head"><h2>Draft Prospects</h2></div>
+        <p>No prospects data available.</p>
+      </section>
+    `;
+    return;
+  }
+
+  const headers = prospects[0];
+  const bodyRows = prospects.slice(1);
+
+  els.sections.innerHTML = `
+    <section class="panel">
+      <div class="panel-head"><h2>Draft Prospects</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}</tr>
+          </thead>
+          <tbody>
+            ${bodyRows
+              .map(
+                (row) => `
+                  <tr>
+                    ${headers
+                      .map(
+                        (_, i) =>
+                          `<td>${renderCell(row[i], headers[i], i)}</td>`
+                      )
+                      .join("")}
+                  </tr>
+                `
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
 }
 
 function getSelectedDraftYear() {
@@ -354,10 +420,15 @@ async function loadDraft() {
       throw new Error(`Fetch failed: ${response.status}`);
     }
     const rows = parseCSV(await response.text());
-    els.sections.innerHTML = roundRanges.map(({ id, title, range }) =>
-      renderRound(id, title, sliceRange(rows, range))
-    ).join("");
-    applyRoundFilter();
+    draftRowsCache = rows;
+    if (showProspects) {
+      renderProspects(rows);
+    } else {
+      els.sections.innerHTML = roundRanges.map(({ id, title, range }) =>
+        renderRound(id, title, sliceRange(rows, range))
+      ).join("");
+      applyRoundFilter();
+    }
     updateLastUpdated();
   } catch (error) {
     els.sections.innerHTML = `<section class="panel"><p>${escapeHtml(
@@ -375,6 +446,24 @@ if (els.yearSelect) {
   els.yearSelect.addEventListener("change", () => {
     localStorage.setItem(DRAFT_YEAR_KEY, els.yearSelect.value);
     loadDraft();
+  });
+}
+
+if (els.prospectsToggle) {
+  els.prospectsToggle.addEventListener("click", async () => {
+    showProspects = !showProspects;
+    els.prospectsToggle.textContent = showProspects
+      ? "Back to Draft Board"
+      : "View Draft Prospects";
+    if (!draftRowsCache.length) {
+      await loadDraft();
+      return;
+    }
+    if (showProspects) {
+      renderProspects(draftRowsCache);
+    } else {
+      await loadDraft();
+    }
   });
 }
 

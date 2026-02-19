@@ -35,12 +35,11 @@
         <div class="panel-head">
           <h2>Draft Board</h2>
           <div class="controls">
-            <a
-              class="btn prospects-btn"
-              href="https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=894447035&single=true&output=csv"
-              target="_blank"
-              rel="noreferrer"
-            >View Draft Prospects</a>
+            <label for="draft-view-select" class="label">View</label>
+            <select id="draft-view-select">
+              <option value="teams">Draft Teams</option>
+              <option value="prospects">Draft Prospects</option>
+            </select>
             <label for="draft-year-select" class="label">Draft Year</label>
             <select id="draft-year-select">
               <option value="c2s2">C2S2</option>
