@@ -29,6 +29,8 @@ const ROUND_RANGES_BY_YEAR = {
   ],
 };
 
+const PROSPECTS_RANGE = "J1:N65";
+
 const TEAM_NAMES = new Set([
   "Gus N Em",
   "Storm",
@@ -346,34 +348,12 @@ function hasText(row) {
   return row.some((cell) => String(cell || "").trim() !== "");
 }
 
-function rowNumberInRange(rowNumber, range) {
-  const parsed = parseRange(range);
-  if (!parsed) {
-    return false;
-  }
-  const oneBased = rowNumber + 1;
-  return oneBased >= parsed.startRow + 1 && oneBased <= parsed.endRow + 1;
+function extractProspectsRows(rows) {
+  return sliceRange(rows, PROSPECTS_RANGE).filter(hasText);
 }
 
-function extractProspectsRows(rows, roundRanges) {
-  const draftRanges = (roundRanges || []).map((r) => r.range);
-  const outOfDraft = rows
-    .map((row, idx) => ({ row, idx }))
-    .filter(({ row }) => hasText(row))
-    .filter(
-      ({ idx }) => !draftRanges.some((range) => rowNumberInRange(idx, range))
-    )
-    .map(({ row }) => row);
-
-  if (!outOfDraft.length) {
-    return [];
-  }
-
-  return outOfDraft;
-}
-
-function renderProspects(rows, roundRanges) {
-  const prospects = extractProspectsRows(rows, roundRanges);
+function renderProspects(rows) {
+  const prospects = extractProspectsRows(rows);
   if (!prospects.length) {
     els.sections.innerHTML = `
       <section class="panel">
@@ -450,7 +430,7 @@ async function loadDraft() {
     draftRowsCache = rows;
     const showProspects = els.viewSelect && els.viewSelect.value === "prospects";
     if (showProspects) {
-      renderProspects(rows, roundRanges);
+      renderProspects(rows);
     } else {
       els.sections.innerHTML = roundRanges.map(({ id, title, range }) =>
         renderRound(id, title, sliceRange(rows, range))
@@ -484,10 +464,7 @@ if (els.viewSelect) {
       return;
     }
     if (els.viewSelect.value === "prospects") {
-      const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
-      const roundRanges =
-        ROUND_RANGES_BY_YEAR[selectedYear] || ROUND_RANGES_BY_YEAR.c2s2;
-      renderProspects(draftRowsCache, roundRanges);
+      renderProspects(draftRowsCache);
     } else {
       await loadDraft();
     }
