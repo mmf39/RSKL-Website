@@ -117,9 +117,14 @@ function renderSection(title, rows) {
   const bodyRows = rows.filter((row) =>
     row.some((cell) => String(cell || "").trim() !== "")
   );
+  const disclaimer =
+    title === "The Lions"
+      ? '<p class="expansion-disclaimer">The lions used last 2 picks in trade with Cheerios</p>'
+      : "";
   return `
     <section class="panel draft-round">
-      <div class="panel-head"><h2>${escapeHtml(title)}</h2></div>
+      <div class="panel-head"><h2>Team = ${escapeHtml(title)}</h2></div>
+      ${disclaimer}
       <div class="table-wrap">
         <table>
           <thead>
