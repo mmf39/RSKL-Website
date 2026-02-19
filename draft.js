@@ -30,6 +30,12 @@ const ROUND_RANGES_BY_YEAR = {
 };
 
 const PROSPECTS_RANGE = "J1:N65";
+const EXPANSION_RANGES = [
+  { title: "The Snipers", range: "E1:F7" },
+  { title: "The Phantoms", range: "E9:F15" },
+  { title: "The Future", range: "E17:F23" },
+  { title: "The Lions", range: "E25:F31" },
+];
 
 const TEAM_NAMES = new Set([
   "Gus N Em",
@@ -423,6 +429,47 @@ function renderProspects(rows, selectedYear) {
   `;
 }
 
+function renderExpansion(rows) {
+  const renderExpansionSection = (title, sectionRows) => {
+    const bodyRows = sectionRows.filter((row) =>
+      row.some((cell) => String(cell || "").trim() !== "")
+    );
+    const disclaimer =
+      title === "The Lions"
+        ? '<p class="expansion-disclaimer">The lions used last 2 picks in trade with Cheerios</p>'
+        : "";
+    return `
+      <section class="panel draft-round">
+        <div class="panel-head"><h2>Team = ${escapeHtml(title)}</h2></div>
+        ${disclaimer}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Player</th><th>Info</th></tr>
+            </thead>
+            <tbody>
+              ${bodyRows
+                .map(
+                  (row) => `
+                    <tr>
+                      <td>${renderCell(row[0], "Player", 0)}</td>
+                      <td>${escapeHtml(row[1] || "")}</td>
+                    </tr>
+                  `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    `;
+  };
+
+  els.sections.innerHTML = EXPANSION_RANGES.map((item) =>
+    renderExpansionSection(item.title, sliceRange(rows, item.range))
+  ).join("");
+}
+
 function getSelectedDraftYear() {
   const saved = localStorage.getItem(DRAFT_YEAR_KEY);
   if (saved === "c2s1" || saved === "c2s2") {
@@ -434,7 +481,13 @@ function getSelectedDraftYear() {
 async function loadDraft() {
   try {
     const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
-    const sourceUrl = selectedYear === "c2s1" ? ARCHIVE_CSV_URL : DRAFT_CSV_URL;
+    const selectedView = els.viewSelect ? els.viewSelect.value : "teams";
+    const sourceUrl =
+      selectedView === "expansion"
+        ? DRAFT_CSV_URL
+        : selectedYear === "c2s1"
+        ? ARCHIVE_CSV_URL
+        : DRAFT_CSV_URL;
     const roundRanges = ROUND_RANGES_BY_YEAR[selectedYear] || ROUND_RANGES_BY_YEAR.c2s2;
     const response = await fetch(sourceUrl, { cache: "no-store" });
     if (!response.ok) {
@@ -442,9 +495,10 @@ async function loadDraft() {
     }
     const rows = parseCSV(await response.text());
     draftRowsCache = rows;
-    const showProspects = els.viewSelect && els.viewSelect.value === "prospects";
-    if (showProspects) {
+    if (selectedView === "prospects") {
       renderProspects(rows, selectedYear);
+    } else if (selectedView === "expansion") {
+      renderExpansion(rows);
     } else {
       els.sections.innerHTML = roundRanges.map(({ id, title, range }) =>
         renderRound(id, title, sliceRange(rows, range))
@@ -480,6 +534,8 @@ if (els.viewSelect) {
     if (els.viewSelect.value === "prospects") {
       const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
       renderProspects(draftRowsCache, selectedYear);
+    } else if (els.viewSelect.value === "expansion") {
+      await loadDraft();
     } else {
       await loadDraft();
     }
