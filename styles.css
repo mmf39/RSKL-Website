@@ -960,6 +960,56 @@ input[type="text"] {
   width: 150px;
 }
 
+.prospects-panel {
+  border: 1px solid rgba(255, 140, 26, 0.35);
+}
+
+.prospects-table-wrap {
+  border: 1px solid rgba(255, 140, 26, 0.22);
+  border-radius: 14px;
+  overflow: auto;
+  background: rgba(15, 23, 42, 0.45);
+  padding: 8px;
+}
+
+.prospects-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+  min-width: 760px;
+}
+
+.prospects-table thead th {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1rem;
+  text-align: center;
+  padding: 10px 12px;
+}
+
+.prospects-table tbody td {
+  background: rgba(15, 23, 42, 0.75);
+  border-top: 1px solid rgba(255, 140, 26, 0.24);
+  border-bottom: 1px solid rgba(255, 140, 26, 0.24);
+  padding: 12px 14px;
+  text-align: center;
+  font-size: 1.05rem;
+}
+
+.prospects-table tbody td:first-child {
+  border-left: 1px solid rgba(255, 140, 26, 0.24);
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.prospects-table tbody td:last-child {
+  border-right: 1px solid rgba(255, 140, 26, 0.24);
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
 .draft-link {
   color: var(--accent-2);
   text-decoration: none;
@@ -1434,5 +1484,9 @@ input[type="text"] {
 
   .tx-sides {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .prospects-table {
+    min-width: 640px;
   }
 }

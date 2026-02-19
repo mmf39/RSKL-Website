@@ -385,10 +385,10 @@ function renderProspects(rows) {
   );
 
   els.sections.innerHTML = `
-    <section class="panel">
+    <section class="panel prospects-panel">
       <div class="panel-head"><h2>Draft Prospects</h2></div>
-      <div class="table-wrap">
-        <table>
+      <div class="table-wrap prospects-table-wrap">
+        <table class="prospects-table">
           <thead>
             <tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}</tr>
           </thead>
