@@ -219,7 +219,7 @@ function renderCell(value, header, index) {
   if (likelyTeamCol) {
     const team = getFirstTeamMention(text);
     if (!team) {
-      return linkifyPlayers(text);
+      return escapeHtml(text);
     }
     const logo = getTeamLogo(team);
     return `<a class="draft-link" href="team.html?team=${encodeURIComponent(
@@ -231,15 +231,15 @@ function renderCell(value, header, index) {
       text
     )}">${escapeHtml(text)}</a>`;
   }
-  return linkifyPlayers(text);
+  return escapeHtml(text);
 }
 
 function linkifyPlayers(text) {
   const source = String(text || "");
-  const parts = source.split(/(@[A-Za-z0-9_]+)/g);
+  const parts = source.split(/(@[A-Za-z0-9_.]+)/g);
   return parts
     .map((part) => {
-      if (/^@[A-Za-z0-9_]+$/.test(part)) {
+      if (/^@[A-Za-z0-9_.]+$/.test(part)) {
         return `<a class="draft-link" href="player-detail.html?player=${encodeURIComponent(
           part
         )}">${escapeHtml(part)}</a>`;
