@@ -7,7 +7,7 @@ const els = {
   sections: document.getElementById("draft-sections"),
   roundSelect: document.getElementById("round-select"),
   yearSelect: document.getElementById("draft-year-select"),
-  prospectsToggle: document.getElementById("prospects-toggle"),
+  viewSelect: document.getElementById("draft-view-select"),
 };
 
 const ROUND_RANGES_BY_YEAR = {
@@ -43,7 +43,6 @@ const TEAM_NAMES = new Set([
   "The Phantoms",
 ]);
 
-let showProspects = false;
 let draftRowsCache = [];
 
 function parseCSV(text) {
@@ -330,7 +329,7 @@ function renderRound(roundId, title, rows) {
 }
 
 function applyRoundFilter() {
-  if (showProspects) {
+  if (els.viewSelect && els.viewSelect.value === "prospects") {
     return;
   }
   if (!els.roundSelect || !els.sections) {
@@ -421,6 +420,7 @@ async function loadDraft() {
     }
     const rows = parseCSV(await response.text());
     draftRowsCache = rows;
+    const showProspects = els.viewSelect && els.viewSelect.value === "prospects";
     if (showProspects) {
       renderProspects(rows);
     } else {
@@ -449,17 +449,13 @@ if (els.yearSelect) {
   });
 }
 
-if (els.prospectsToggle) {
-  els.prospectsToggle.addEventListener("click", async () => {
-    showProspects = !showProspects;
-    els.prospectsToggle.textContent = showProspects
-      ? "Back to Draft Board"
-      : "View Draft Prospects";
+if (els.viewSelect) {
+  els.viewSelect.addEventListener("change", async () => {
     if (!draftRowsCache.length) {
       await loadDraft();
       return;
     }
-    if (showProspects) {
+    if (els.viewSelect.value === "prospects") {
       renderProspects(draftRowsCache);
     } else {
       await loadDraft();
