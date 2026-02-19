@@ -213,13 +213,71 @@ function getTeamLogo(team) {
   return "";
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function canonicalTeamName(value) {
+  const clean = displayTeamName(value);
+  const lower = clean.toLowerCase();
+  if (lower === "lions") return "The Lions";
+  if (lower === "phantoms") return "The Phantoms";
+  if (lower === "future") return "The Future";
+  if (lower === "snipers") return "The Snipers";
+  if (lower === "bullets") return "Storm";
+  return clean;
+}
+
+function linkifyTeamsAndPlayers(text) {
+  const source = String(text || "");
+  const playerParts = source.split(/(@[A-Za-z0-9_.]+)/g);
+  const teamLabels = [
+    "Gus N Em",
+    "Storm",
+    "Bullets",
+    "Turkeys",
+    "Cheerios",
+    "Yetis",
+    "Illegals",
+    "The Lions",
+    "Lions",
+    "The Phantoms",
+    "Phantoms",
+    "The Future",
+    "Future",
+    "The Snipers",
+    "Snipers",
+  ].sort((a, b) => b.length - a.length);
+
+  return playerParts
+    .map((part) => {
+      if (/^@[A-Za-z0-9_.]+$/.test(part)) {
+        return `<a class="draft-link" href="/player-detail.html?player=${encodeURIComponent(
+          part
+        )}">${escapeHtml(part)}</a>`;
+      }
+      let segment = escapeHtml(part);
+      teamLabels.forEach((label) => {
+        const pattern = new RegExp(`\\b${escapeRegExp(label)}\\b`, "gi");
+        segment = segment.replace(pattern, (match) => {
+          const canonical = canonicalTeamName(match);
+          return `<a class="draft-link" href="/team.html?team=${encodeURIComponent(
+            canonical
+          )}">${escapeHtml(match)}</a>`;
+        });
+      });
+      return segment;
+    })
+    .join("");
+}
+
 function renderCell(value, header, index) {
   const text = String(value ?? "").trim();
   if (!text) {
     return "";
   }
   const headerLower = String(header || "").toLowerCase();
-  const likelyTeamCol = headerLower.includes("team") || index === 1;
+  const likelyTeamCol = headerLower.includes("team");
   const likelyPlayerCol =
     headerLower.includes("player") ||
     headerLower.includes("prospect") ||
@@ -236,26 +294,9 @@ function renderCell(value, header, index) {
     )}">${logo}${escapeHtml(text)}</a>`;
   }
   if (likelyPlayerCol) {
-    return `<a class="draft-link" href="player-detail.html?player=${encodeURIComponent(
-      text
-    )}">${escapeHtml(text)}</a>`;
+    return linkifyTeamsAndPlayers(text);
   }
-  return escapeHtml(text);
-}
-
-function linkifyPlayers(text) {
-  const source = String(text || "");
-  const parts = source.split(/(@[A-Za-z0-9_.]+)/g);
-  return parts
-    .map((part) => {
-      if (/^@[A-Za-z0-9_.]+$/.test(part)) {
-        return `<a class="draft-link" href="player-detail.html?player=${encodeURIComponent(
-          part
-        )}">${escapeHtml(part)}</a>`;
-      }
-      return escapeHtml(part);
-    })
-    .join("");
+  return linkifyTeamsAndPlayers(text);
 }
 
 function updateLastUpdated() {
@@ -453,7 +494,7 @@ function renderExpansion(rows) {
                   (row) => `
                     <tr>
                       <td>${renderCell(row[0], "Player", 0)}</td>
-                      <td>${escapeHtml(row[1] || "")}</td>
+                      <td>${renderCell(row[1], "Info", 99)}</td>
                     </tr>
                   `
                 )
