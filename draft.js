@@ -36,6 +36,7 @@ const EXPANSION_RANGES = [
   { title: "The Future", range: "E17:F23" },
   { title: "The Lions", range: "E25:F31" },
 ];
+const EXPANSION_PROSPECTS_RANGE = "G3:H31";
 
 const TEAM_NAMES = new Set([
   "Gus N Em",
@@ -527,6 +528,75 @@ function renderExpansion(rows) {
   ).join("");
 }
 
+function renderExpansionProspects(rows) {
+  const sourceRows = sliceRange(rows, EXPANSION_PROSPECTS_RANGE).filter((row) =>
+    row.some((cell) => String(cell || "").trim() !== "")
+  );
+  if (!sourceRows.length) {
+    els.sections.innerHTML = `
+      <section class="panel draft-round">
+        <div class="panel-head"><h2>Expansion Draft</h2></div>
+        <p>No expansion prospects data available.</p>
+      </section>
+    `;
+    return;
+  }
+
+  const grouped = new Map();
+  sourceRows.forEach((row) => {
+    const rawTeam = String(row[0] || "").trim();
+    const player = String(row[1] || "").trim();
+    if (!rawTeam || !player) {
+      return;
+    }
+    const team = canonicalTeamName(rawTeam);
+    if (!grouped.has(team)) {
+      grouped.set(team, []);
+    }
+    grouped.get(team).push(player);
+  });
+
+  const renderExpansionSection = (team, players) => {
+    const disclaimer =
+      canonicalTeamName(team) === "The Lions"
+        ? '<p class="expansion-disclaimer">The lions used last 2 picks in trade with Cheerios</p>'
+        : "";
+    return `
+      <section class="panel draft-round">
+        <div class="panel-head">
+          <h2><a class="draft-link" href="/team.html?team=${encodeURIComponent(
+            team
+          )}">${escapeHtml(team)}</a></h2>
+        </div>
+        ${disclaimer}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Team</th><th>Player</th></tr>
+            </thead>
+            <tbody>
+              ${players
+                .map(
+                  (player) => `
+                    <tr>
+                      <td>${escapeHtml(team)}</td>
+                      <td>${renderCell(player, "Player", 1)}</td>
+                    </tr>
+                  `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    `;
+  };
+
+  els.sections.innerHTML = Array.from(grouped.entries())
+    .map(([team, players]) => renderExpansionSection(team, players))
+    .join("");
+}
+
 function getSelectedDraftYear() {
   const saved = localStorage.getItem(DRAFT_YEAR_KEY);
   if (saved === "c2s1" || saved === "c2s2") {
@@ -556,6 +626,8 @@ async function loadDraft() {
       renderProspects(rows, selectedYear);
     } else if (selectedView === "expansion") {
       renderExpansion(rows);
+    } else if (selectedView === "expansion-prospects") {
+      renderExpansionProspects(rows);
     } else {
       els.sections.innerHTML = roundRanges.map(({ id, title, range }) =>
         renderRound(id, title, sliceRange(rows, range))
@@ -591,6 +663,8 @@ if (els.viewSelect) {
     if (els.viewSelect.value === "prospects") {
       const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
       renderProspects(draftRowsCache, selectedYear);
+    } else if (els.viewSelect.value === "expansion-prospects") {
+      renderExpansionProspects(draftRowsCache);
     } else if (els.viewSelect.value === "expansion") {
       await loadDraft();
     } else {
