@@ -217,7 +217,7 @@ function renderCell(value, header, index) {
   const likelyPlayerCol =
     headerLower.includes("player") ||
     headerLower.includes("prospect") ||
-    index === 2;
+    headerLower.includes("selection");
 
   if (likelyTeamCol) {
     const team = getFirstTeamMention(text);
@@ -355,7 +355,16 @@ function extractProspectsRows(rows) {
   return sliceRange(rows, PROSPECTS_RANGE).filter(hasText);
 }
 
-function renderProspects(rows) {
+function renderProspects(rows, selectedYear) {
+  if (selectedYear === "c2s1") {
+    els.sections.innerHTML = `
+      <section class="panel prospects-panel">
+        <div class="panel-head"><h2>Draft Prospects</h2></div>
+        <p>NA</p>
+      </section>
+    `;
+    return;
+  }
   const prospects = extractProspectsRows(rows);
   if (!prospects.length) {
     els.sections.innerHTML = `
@@ -435,7 +444,7 @@ async function loadDraft() {
     draftRowsCache = rows;
     const showProspects = els.viewSelect && els.viewSelect.value === "prospects";
     if (showProspects) {
-      renderProspects(rows);
+      renderProspects(rows, selectedYear);
     } else {
       els.sections.innerHTML = roundRanges.map(({ id, title, range }) =>
         renderRound(id, title, sliceRange(rows, range))
@@ -469,7 +478,8 @@ if (els.viewSelect) {
       return;
     }
     if (els.viewSelect.value === "prospects") {
-      renderProspects(draftRowsCache);
+      const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
+      renderProspects(draftRowsCache, selectedYear);
     } else {
       await loadDraft();
     }
