@@ -974,6 +974,43 @@ input[type="text"] {
   text-decoration: underline;
 }
 
+.prospects-wrap {
+  max-width: 560px;
+  margin: 0 auto;
+  display: grid;
+  gap: 12px;
+}
+
+.prospects-col-head {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 1.05rem;
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 140, 26, 0.35);
+  background: rgba(15, 23, 42, 0.65);
+}
+
+.prospects-list {
+  display: grid;
+  gap: 10px;
+}
+
+.prospect-item {
+  justify-content: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 140, 26, 0.28);
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.prospect-item:hover {
+  border-color: rgba(255, 140, 26, 0.65);
+}
+
 .draft-capital-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));

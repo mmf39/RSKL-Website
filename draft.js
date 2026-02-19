@@ -377,7 +377,9 @@ function renderProspects(rows) {
   const headers = looksHeader
     ? prospects[0]
     : (prospects[0] || []).map((_, i) => (i === 0 ? "Prospect" : `Col ${i + 1}`));
-  const bodyRows = looksHeader ? prospects.slice(1) : prospects;
+  const bodyRows = (looksHeader ? prospects.slice(1) : prospects).filter((row) =>
+    row.some((cell) => String(cell || "").trim() !== "")
+  );
 
   els.sections.innerHTML = `
     <section class="panel">
