@@ -220,6 +220,10 @@ function escapeRegExp(value) {
 function canonicalTeamName(value) {
   const clean = displayTeamName(value);
   const lower = clean.toLowerCase();
+  if (lower === "thesnipers") return "The Snipers";
+  if (lower === "thephantoms") return "The Phantoms";
+  if (lower === "thefuture") return "The Future";
+  if (lower === "thelions") return "The Lions";
   if (lower === "lions") return "The Lions";
   if (lower === "phantoms") return "The Phantoms";
   if (lower === "future") return "The Future";
@@ -247,6 +251,10 @@ function linkifyTeamsAndPlayers(text) {
     "Future",
     "The Snipers",
     "Snipers",
+    "TheSnipers",
+    "ThePhantoms",
+    "TheFuture",
+    "TheLions",
   ].sort((a, b) => b.length - a.length);
 
   return playerParts
@@ -263,7 +271,7 @@ function linkifyTeamsAndPlayers(text) {
           const canonical = canonicalTeamName(match);
           return `<a class="draft-link" href="/team.html?team=${encodeURIComponent(
             canonical
-          )}">${escapeHtml(match)}</a>`;
+          )}">${escapeHtml(canonical)}</a>`;
         });
       });
       return segment;
