@@ -346,18 +346,34 @@ function hasText(row) {
   return row.some((cell) => String(cell || "").trim() !== "");
 }
 
-function extractProspectsRows(rows) {
-  // Current draft board is top of sheet. Prospects are expected below it.
-  const startIndex = 44; // row 45 (0-based)
-  const tail = rows.slice(startIndex).filter(hasText);
-  if (!tail.length) {
-    return [];
+function rowNumberInRange(rowNumber, range) {
+  const parsed = parseRange(range);
+  if (!parsed) {
+    return false;
   }
-  return tail;
+  const oneBased = rowNumber + 1;
+  return oneBased >= parsed.startRow + 1 && oneBased <= parsed.endRow + 1;
 }
 
-function renderProspects(rows) {
-  const prospects = extractProspectsRows(rows);
+function extractProspectsRows(rows, roundRanges) {
+  const draftRanges = (roundRanges || []).map((r) => r.range);
+  const outOfDraft = rows
+    .map((row, idx) => ({ row, idx }))
+    .filter(({ row }) => hasText(row))
+    .filter(
+      ({ idx }) => !draftRanges.some((range) => rowNumberInRange(idx, range))
+    )
+    .map(({ row }) => row);
+
+  if (!outOfDraft.length) {
+    return [];
+  }
+
+  return outOfDraft;
+}
+
+function renderProspects(rows, roundRanges) {
+  const prospects = extractProspectsRows(rows, roundRanges);
   if (!prospects.length) {
     els.sections.innerHTML = `
       <section class="panel">
@@ -368,8 +384,20 @@ function renderProspects(rows) {
     return;
   }
 
-  const headers = prospects[0];
-  const bodyRows = prospects.slice(1);
+  const looksHeader = (prospects[0] || []).some((cell) =>
+    String(cell || "")
+      .toLowerCase()
+      .includes("prospect")
+  ) || (prospects[0] || []).some((cell) =>
+    ["name", "position", "team", "notes", "rank"].includes(
+      String(cell || "").trim().toLowerCase()
+    )
+  );
+
+  const headers = looksHeader
+    ? prospects[0]
+    : (prospects[0] || []).map((_, i) => (i === 0 ? "Prospect" : `Col ${i + 1}`));
+  const bodyRows = looksHeader ? prospects.slice(1) : prospects;
 
   els.sections.innerHTML = `
     <section class="panel">
@@ -422,7 +450,7 @@ async function loadDraft() {
     draftRowsCache = rows;
     const showProspects = els.viewSelect && els.viewSelect.value === "prospects";
     if (showProspects) {
-      renderProspects(rows);
+      renderProspects(rows, roundRanges);
     } else {
       els.sections.innerHTML = roundRanges.map(({ id, title, range }) =>
         renderRound(id, title, sliceRange(rows, range))
@@ -456,7 +484,10 @@ if (els.viewSelect) {
       return;
     }
     if (els.viewSelect.value === "prospects") {
-      renderProspects(draftRowsCache);
+      const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
+      const roundRanges =
+        ROUND_RANGES_BY_YEAR[selectedYear] || ROUND_RANGES_BY_YEAR.c2s2;
+      renderProspects(draftRowsCache, roundRanges);
     } else {
       await loadDraft();
     }
