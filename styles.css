@@ -207,6 +207,20 @@ h1 {
   box-shadow: none;
 }
 
+.prospects-btn {
+  background: linear-gradient(120deg, #ff8c1a, #ffb347);
+  color: #0b0f1a;
+  border: 1px solid rgba(255, 179, 71, 0.75);
+  box-shadow: 0 10px 26px rgba(255, 140, 26, 0.35);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.prospects-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(255, 140, 26, 0.45);
+}
+
 .container {
   max-width: 1100px;
   margin: 0 auto;
