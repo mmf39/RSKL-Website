@@ -235,27 +235,32 @@ function canonicalTeamName(value) {
 function linkifyTeamsAndPlayers(text) {
   const source = String(text || "");
   const playerParts = source.split(/(@[A-Za-z0-9_.]+)/g);
-  const teamLabels = [
-    "Gus N Em",
-    "Storm",
-    "Bullets",
-    "Turkeys",
-    "Cheerios",
-    "Yetis",
-    "Illegals",
-    "The Lions",
-    "Lions",
-    "The Phantoms",
-    "Phantoms",
-    "The Future",
-    "Future",
-    "The Snipers",
-    "Snipers",
-    "TheSnipers",
-    "ThePhantoms",
-    "TheFuture",
-    "TheLions",
-  ].sort((a, b) => b.length - a.length);
+  const teamMap = {
+    "Gus N Em": "Gus N Em",
+    Storm: "Storm",
+    Bullets: "Storm",
+    Turkeys: "Turkeys",
+    Cheerios: "Cheerios",
+    Yetis: "Yetis",
+    Illegals: "Illegals",
+    "The Lions": "The Lions",
+    Lions: "The Lions",
+    TheLions: "The Lions",
+    "The Phantoms": "The Phantoms",
+    Phantoms: "The Phantoms",
+    ThePhantoms: "The Phantoms",
+    "The Future": "The Future",
+    Future: "The Future",
+    TheFuture: "The Future",
+    "The Snipers": "The Snipers",
+    Snipers: "The Snipers",
+    TheSnipers: "The Snipers",
+  };
+  const teamLabels = Object.keys(teamMap).sort((a, b) => b.length - a.length);
+  const teamRegex = new RegExp(
+    `\\b(${teamLabels.map(escapeRegExp).join("|")})\\b`,
+    "gi"
+  );
 
   return playerParts
     .map((part) => {
@@ -264,17 +269,20 @@ function linkifyTeamsAndPlayers(text) {
           part
         )}">${escapeHtml(part)}</a>`;
       }
-      let segment = escapeHtml(part);
-      teamLabels.forEach((label) => {
-        const pattern = new RegExp(`\\b${escapeRegExp(label)}\\b`, "gi");
-        segment = segment.replace(pattern, (match) => {
-          const canonical = canonicalTeamName(match);
-          return `<a class="draft-link" href="/team.html?team=${encodeURIComponent(
-            canonical
-          )}">${escapeHtml(canonical)}</a>`;
-        });
+      const segment = String(part || "");
+      let out = "";
+      let lastIndex = 0;
+      segment.replace(teamRegex, (match, _group, offset) => {
+        out += escapeHtml(segment.slice(lastIndex, offset));
+        const canonical = canonicalTeamName(teamMap[match] || match);
+        out += `<a class="draft-link" href="/team.html?team=${encodeURIComponent(
+          canonical
+        )}">${escapeHtml(canonical)}</a>`;
+        lastIndex = offset + match.length;
+        return match;
       });
-      return segment;
+      out += escapeHtml(segment.slice(lastIndex));
+      return out;
     })
     .join("");
 }
