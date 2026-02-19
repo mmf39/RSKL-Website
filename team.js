@@ -115,7 +115,6 @@ const els = {
   statWinPct: document.getElementById("stat-winpct"),
   statSos: document.getElementById("stat-sos"),
   statPam: document.getElementById("stat-pam"),
-  statApPam: document.getElementById("stat-appam"),
   statTRel: document.getElementById("stat-trel"),
   statTeam: document.getElementById("stat-team"),
   draftCapital: document.getElementById("team-draft-capital"),
@@ -234,8 +233,17 @@ function renderSchedule(headers, dataRows) {
   `;
 
   els.scheduleBody.innerHTML = dataRows
-    .map(
-      (row, index) => `
+    .map((row, index) => {
+      const box = buildBoxScore(getTeamName(), row, getSeason());
+      const concluded =
+        box &&
+        (box.team1.some((entry) =>
+          String(entry.player || "").trim().startsWith("@")
+        ) ||
+          box.team2.some((entry) =>
+            String(entry.player || "").trim().startsWith("@")
+          ));
+      return `
         <tr class="schedule-row" data-index="${index}">
           ${headers
             .map((header, i) => {
@@ -243,7 +251,7 @@ function renderSchedule(headers, dataRows) {
               const isTeamCol = String(header || "")
                 .toLowerCase()
                 .includes("team");
-              if (isTeamCol && String(value).trim()) {
+              if (isTeamCol && String(value).trim() && !concluded) {
                 const shown = displayTeamName(value);
                 return `<td><a class="roster-link" href="/team.html?team=${encodeURIComponent(
                   shown
@@ -253,8 +261,8 @@ function renderSchedule(headers, dataRows) {
             })
             .join("")}
         </tr>
-      `
-    )
+      `;
+    })
     .join("");
 }
 
@@ -384,10 +392,6 @@ function updateAdvancedTeamStats(values) {
   if (els.statPam) {
     els.statPam.textContent =
       values && Number.isFinite(values.pam) ? values.pam.toFixed(2) : "—";
-  }
-  if (els.statApPam) {
-    els.statApPam.textContent =
-      values && Number.isFinite(values.apPam) ? values.apPam.toFixed(3) : "—";
   }
   if (els.statTRel) {
     els.statTRel.textContent =

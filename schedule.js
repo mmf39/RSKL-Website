@@ -145,6 +145,64 @@ function isTeamColumn(header) {
   return text.includes("team");
 }
 
+function findBoxScoreRowsForDate(dateToken, boxRows) {
+  if (!dateToken || !boxRows || !boxRows.length) {
+    return [];
+  }
+  const isDateRow = (row) => {
+    const a = String(row[0] || "");
+    const b = String(row[1] || "");
+    return (
+      (a.includes("League Day") && a.includes(dateToken)) ||
+      (b.includes("League Day") && b.includes(dateToken)) ||
+      a.includes(dateToken) ||
+      b.includes(dateToken)
+    );
+  };
+  const matchIndex = boxRows.findIndex(isDateRow);
+  if (matchIndex === -1) {
+    return [];
+  }
+  const rows = [];
+  for (let i = matchIndex + 1; i < boxRows.length; i += 1) {
+    const row = boxRows[i];
+    if (!row) {
+      break;
+    }
+    if (isDateRow(row)) {
+      break;
+    }
+    const hasTeam1 = String(row[0] || "").trim() !== "";
+    const hasTeam2 = String(row[4] || "").trim() !== "";
+    if (!hasTeam1 && !hasTeam2) {
+      if (rows.length) {
+        break;
+      }
+      continue;
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+function hasConcludedGame(row, headers, season, boxRows) {
+  const isThreeCol = headers.length <= 3;
+  const dateIndex = isThreeCol || season === "c2s1-regular" ? 0 : 1;
+  const dateToken = String(row[dateIndex] || "").trim();
+  if (!dateToken) {
+    return false;
+  }
+  const rows = findBoxScoreRowsForDate(dateToken, boxRows);
+  if (!rows.length) {
+    return false;
+  }
+  return rows.some((r) => {
+    const p1 = String(r[0] || "").trim();
+    const p2 = String(r[4] || "").trim();
+    return p1.startsWith("@") || p2.startsWith("@");
+  });
+}
+
 function renderTable(headers, dataRows, fullRows, boxScoreRows, scheduleRows) {
   cachedHeaders = headers;
   cachedRows = dataRows;
@@ -158,13 +216,19 @@ function renderTable(headers, dataRows, fullRows, boxScoreRows, scheduleRows) {
   `;
 
   els.body.innerHTML = dataRows
-    .map(
-      (row, index) => `
+    .map((row, index) => {
+      const concluded = hasConcludedGame(
+        row,
+        headers,
+        getSeason(),
+        cachedBoxScoreRows
+      );
+      return `
         <tr class="schedule-row" data-index="${index}">
           ${headers
             .map((header, i) => {
               const value = row[i] ?? "";
-              if (isTeamColumn(header) && String(value).trim()) {
+              if (isTeamColumn(header) && String(value).trim() && !concluded) {
                 const shown = displayTeamName(value);
                 return `<td><a class="roster-link" href="/team.html?team=${encodeURIComponent(
                   shown
@@ -174,8 +238,8 @@ function renderTable(headers, dataRows, fullRows, boxScoreRows, scheduleRows) {
             })
             .join("")}
         </tr>
-      `
-    )
+      `;
+    })
     .join("");
 }
 
@@ -313,10 +377,6 @@ els.body.addEventListener("click", (event) => {
     return;
   }
   const rowIndex = Number(rowEl.dataset.index);
-  const cell = event.target.closest("td");
-  if (cell && cell.cellIndex === 0) {
-    return;
-  }
   const scheduleRow = cachedScheduleRows[rowIndex];
   const season = getSeason();
   const isThreeCol = cachedHeaders.length <= 3;
@@ -411,22 +471,20 @@ els.search.addEventListener("input", () => {
     );
     return;
   }
-  const filtered = cachedRows
-    .map((row, idx) => ({
-      row,
-      fullRow: cachedFullRows[idx],
-      boxScoreRow: cachedBoxScoreRows[idx],
-      scheduleRow: cachedScheduleRows[idx],
-    }))
-    .filter(({ row }) =>
-      row.some((cell) => String(cell).toLowerCase().includes(term))
-    );
+  const filteredRows = [];
+  const filteredScheduleRows = [];
+  cachedRows.forEach((row, idx) => {
+    if (row.some((cell) => String(cell).toLowerCase().includes(term))) {
+      filteredRows.push(row);
+      filteredScheduleRows.push(cachedScheduleRows[idx]);
+    }
+  });
   renderTable(
     cachedHeaders,
-    filtered.map((item) => item.row),
-    filtered.map((item) => item.fullRow),
-    filtered.map((item) => item.boxScoreRow),
-    filtered.map((item) => item.scheduleRow)
+    filteredRows,
+    filteredRows,
+    cachedBoxScoreRows,
+    filteredScheduleRows
   );
 });
 

@@ -55,7 +55,6 @@ const els = {
   sumTotal: document.getElementById("sum-total"),
   sumAvgScore: document.getElementById("sum-avg-score"),
   sumAvgRank: document.getElementById("sum-avg-rank"),
-  sumGem: document.getElementById("sum-gem"),
   sumGp: document.getElementById("sum-gp"),
   sumRelMean: document.getElementById("sum-rel-mean"),
   sumRelMedian: document.getElementById("sum-rel-median"),
@@ -68,7 +67,6 @@ const els = {
   rankTotal: document.getElementById("rank-total"),
   rankAvgScore: document.getElementById("rank-avg-score"),
   rankAvgRank: document.getElementById("rank-avg-rank"),
-  rankGem: document.getElementById("rank-gem"),
   rankRelMean: document.getElementById("rank-rel-mean"),
   rankRelMedian: document.getElementById("rank-rel-median"),
   rankWar: document.getElementById("rank-war"),
@@ -454,8 +452,6 @@ function buildLeaderboardEntries(rows) {
         games: 0,
         rankSum: 0,
         rankGames: 0,
-        rankLogSum: 0,
-        rankLogGames: 0,
         relMeanSum: 0,
         relMeanGames: 0,
         relMedianSum: 0,
@@ -470,10 +466,6 @@ function buildLeaderboardEntries(rows) {
     if (rank !== null) {
       entry.rankSum += rank;
       entry.rankGames += 1;
-      if (rank > 0) {
-        entry.rankLogSum += Math.log(rank);
-        entry.rankLogGames += 1;
-      }
     }
     const dateKey = String(row[playerColumns.date] || "").trim();
     const baseline = baselines.get(dateKey);
@@ -499,9 +491,6 @@ function buildLeaderboardEntries(rows) {
     games: value.games,
     avgScore: value.games ? value.total / value.games : 0,
     avgRank: value.rankGames ? value.rankSum / value.rankGames : Infinity,
-    gem: value.rankLogGames
-      ? Math.exp(value.rankLogSum / value.rankLogGames)
-      : Infinity,
     relMean: value.relMeanGames ? value.relMeanSum / value.relMeanGames : 0,
     relMedian: value.relMedianGames ? value.relMedianSum / value.relMedianGames : 0,
     war: value.war,
@@ -525,7 +514,6 @@ function renderLeagueRanks(dataRows, playerName) {
     els.rankTotal,
     els.rankAvgScore,
     els.rankAvgRank,
-    els.rankGem,
     els.rankRelMean,
     els.rankRelMedian,
     els.rankWar,
@@ -554,9 +542,6 @@ function renderLeagueRanks(dataRows, playerName) {
   }
   if (els.rankAvgRank) {
     els.rankAvgRank.textContent = `League rank: ${getRank(entries, playerName, (e) => e.avgRank, true)}`;
-  }
-  if (els.rankGem) {
-    els.rankGem.textContent = `League rank: ${getRank(entries, playerName, (e) => e.gem, true)}`;
   }
   if (els.rankRelMean) {
     els.rankRelMean.textContent = `League rank: ${getRank(entries, playerName, (e) => e.relMean)}`;
@@ -717,9 +702,6 @@ function updateSummary(rows, baselines) {
     els.sumTotal.textContent = "—";
     els.sumAvgScore.textContent = "—";
     els.sumAvgRank.textContent = "—";
-    if (els.sumGem) {
-      els.sumGem.textContent = "—";
-    }
     els.sumGp.textContent = "—";
     if (els.sumRelMean) {
       els.sumRelMean.textContent = "—";
@@ -741,8 +723,6 @@ function updateSummary(rows, baselines) {
   let relMedianSum = 0;
   let relMedianGames = 0;
   let warTotal = 0;
-  let rankLogSum = 0;
-  let rankLogGames = 0;
 
   rows.forEach((row) => {
     const score = parseAdjustedScore(row);
@@ -769,10 +749,6 @@ function updateSummary(rows, baselines) {
     if (rank !== null) {
       rankTotal += rank;
       rankGames += 1;
-      if (rank > 0) {
-        rankLogSum += Math.log(rank);
-        rankLogGames += 1;
-      }
     }
   });
 
@@ -783,11 +759,6 @@ function updateSummary(rows, baselines) {
   els.sumAvgRank.textContent = rankGames
     ? (rankTotal / rankGames).toFixed(2)
     : "—";
-  if (els.sumGem) {
-    els.sumGem.textContent = rankLogGames
-      ? Math.exp(rankLogSum / rankLogGames).toFixed(2)
-      : "—";
-  }
   els.sumGp.textContent = String(scoreGames);
   if (els.sumRelMean) {
     els.sumRelMean.textContent = relMeanGames
