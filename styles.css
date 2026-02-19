@@ -1440,6 +1440,12 @@ input[type="text"] {
   color: var(--ink);
 }
 
+.expansion-disclaimer {
+  margin: 0 0 14px;
+  color: var(--accent-2);
+  font-weight: 700;
+}
+
 .draft-pick-trade-link {
   color: var(--accent);
   text-decoration: none;

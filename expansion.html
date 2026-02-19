@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>RSKL Draft</title>
+    <title>RSKL Expansion Draft</title>
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
@@ -14,7 +14,7 @@
     <header class="hero">
       <div class="hero-inner">
         <div class="badge">Real Sports Karma League</div>
-        <h1>Draft</h1>
+        <h1>Expansion Draft</h1>
         <div class="meta">
           <span id="last-updated">Last updated: —</span>
           <div class="nav-links">
@@ -34,33 +34,12 @@
     <main class="container">
       <section class="panel">
         <div class="panel-head">
-          <h2>Draft Board</h2>
-          <div class="controls">
-            <label for="draft-view-select" class="label">View</label>
-            <select id="draft-view-select">
-              <option value="teams">Draft Teams</option>
-              <option value="prospects">Draft Prospects</option>
-            </select>
-            <label for="draft-year-select" class="label">Draft Year</label>
-            <select id="draft-year-select">
-              <option value="c2s2">C2S2</option>
-              <option value="c2s1">C2S1</option>
-            </select>
-            <label for="round-select" class="label">Round</label>
-            <select id="round-select">
-              <option value="all">All Rounds</option>
-              <option value="round-1">Round 1</option>
-              <option value="round-2">Round 2</option>
-              <option value="round-3">Round 3</option>
-              <option value="round-4">Round 4</option>
-              <option value="round-5">Round 5</option>
-              <option value="round-6">Round 6</option>
-              <option value="round-7">Round 7</option>
-              <option value="round-8">Round 8</option>
-            </select>
-          </div>
+          <h2>Expansion Pools</h2>
         </div>
-        <div id="draft-sections" class="draft-rounds"></div>
+        <p class="expansion-disclaimer">
+          The lions used last 2 picks in trade with Cheerios
+        </p>
+        <div id="expansion-sections" class="draft-rounds">Loading…</div>
       </section>
     </main>
 
@@ -68,6 +47,6 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="draft.js"></script>
+    <script src="expansion.js"></script>
   </body>
 </html>
