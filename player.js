@@ -59,6 +59,7 @@ function applyLeaderboardParams() {
     "avg_rank",
     "rel_median",
     "rel_mean",
+    "gem",
     "war",
     "gp",
   ]);
@@ -437,6 +438,8 @@ function buildLeaderboard(rows) {
         games: 0,
         rankSum: 0,
         rankGames: 0,
+        rankLogSum: 0,
+        rankLogGames: 0,
         relMeanSum: 0,
         relMeanGames: 0,
         relMedianSum: 0,
@@ -473,6 +476,10 @@ function buildLeaderboard(rows) {
     if (rank !== null) {
       entry.rankSum += rank;
       entry.rankGames += 1;
+      if (rank > 0) {
+        entry.rankLogSum += Math.log(rank);
+        entry.rankLogGames += 1;
+      }
     }
   });
 
@@ -483,6 +490,9 @@ function buildLeaderboard(rows) {
       total: value.sum,
       avg: value.games ? value.sum / value.games : 0,
       avgRank: value.rankGames ? value.rankSum / value.rankGames : 0,
+      gem: value.rankLogGames
+        ? Math.exp(value.rankLogSum / value.rankLogGames)
+        : Infinity,
       relMean: value.relMeanGames ? value.relMeanSum / value.relMeanGames : 0,
       relMedian: value.relMedianGames
         ? value.relMedianSum / value.relMedianGames
@@ -512,6 +522,8 @@ function renderLeaderboard(list, query, metric) {
     sorted.sort((a, b) => b.total - a.total);
   } else if (metric === "avg_rank") {
     sorted.sort((a, b) => a.avgRank - b.avgRank);
+  } else if (metric === "gem") {
+    sorted.sort((a, b) => a.gem - b.gem);
   } else if (metric === "rel_median") {
     sorted.sort((a, b) => b.relMedian - a.relMedian);
   } else if (metric === "rel_mean") {
@@ -529,6 +541,8 @@ function renderLeaderboard(list, query, metric) {
       ? "total"
       : metric === "avg_rank"
       ? "avg rank"
+      : metric === "gem"
+      ? "GEM"
       : metric === "rel_median"
       ? "REL (median)"
       : metric === "rel_mean"
@@ -593,6 +607,10 @@ function renderLeaderboard(list, query, metric) {
                   ? item.total.toFixed(0)
                   : metric === "avg_rank"
                   ? item.avgRank.toFixed(2)
+                  : metric === "gem"
+                  ? Number.isFinite(item.gem)
+                    ? item.gem.toFixed(2)
+                    : "—"
                   : metric === "rel_median"
                   ? item.relMedian.toFixed(3)
                   : metric === "rel_mean"

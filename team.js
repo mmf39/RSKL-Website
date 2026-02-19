@@ -2,6 +2,7 @@ const ROSTER_CSV_URL = "/api/sheet?name=roster";
 const STANDINGS_CSV_URL = "/api/sheet?name=standings";
 const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
+const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
 const SEASON_KEY = "season";
@@ -24,6 +25,7 @@ const TEAM_RANGES = {
 const ARCHIVE_RANGES = {
   standings: "A1:F7",
   teams: "H1:O27",
+  player_stats: "A45:F117",
   schedule_regular: "G31:I79",
   schedule_post: "A31:D43",
   boxscore: "L31:R149",
@@ -112,6 +114,9 @@ const els = {
   statGb: document.getElementById("stat-gb"),
   statWinPct: document.getElementById("stat-winpct"),
   statSos: document.getElementById("stat-sos"),
+  statPam: document.getElementById("stat-pam"),
+  statApPam: document.getElementById("stat-appam"),
+  statTRel: document.getElementById("stat-trel"),
   statTeam: document.getElementById("stat-team"),
   draftCapital: document.getElementById("team-draft-capital"),
   scheduleHead: document.querySelector("#team-schedule thead"),
@@ -292,6 +297,186 @@ function parsePct(value) {
     return null;
   }
   return num > 1 ? num / 100 : num;
+}
+
+function parseNumber(value) {
+  const num = Number(String(value || "").replace(/[^0-9.\-]/g, ""));
+  return Number.isNaN(num) ? null : num;
+}
+
+function median(numbers) {
+  if (!numbers.length) {
+    return null;
+  }
+  const sorted = [...numbers].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+  return sorted[mid];
+}
+
+function stripCaptainMarker(value) {
+  return String(value || "")
+    .replace(/\s*\(c\)\s*$/i, "")
+    .replace(/\s+c\s*$/i, "")
+    .trim();
+}
+
+function isCaptainMarked(value) {
+  const text = String(value || "").trim();
+  return /\(c\)\s*$/i.test(text) || /\sc\s*$/i.test(text);
+}
+
+function detectPlayerColumns(headerRow) {
+  const columns = {
+    date: 0,
+    team: 1,
+    player: 2,
+    score: 3,
+    rank: 4,
+    opponent: 5,
+  };
+  if (!headerRow || !headerRow.length) {
+    return columns;
+  }
+  const lowered = headerRow.map((cell) => String(cell || "").toLowerCase());
+  const pick = (label) => lowered.indexOf(label);
+  const dateIdx = pick("date");
+  const teamIdx = pick("team");
+  const playerIdx = pick("player");
+  const scoreIdx = pick("score") !== -1 ? pick("score") : pick("points");
+  const rankIdx = pick("rank");
+  const opponentIdx = pick("opponent");
+
+  if (dateIdx !== -1) columns.date = dateIdx;
+  if (teamIdx !== -1) columns.team = teamIdx;
+  if (playerIdx !== -1) columns.player = playerIdx;
+  if (scoreIdx !== -1) columns.score = scoreIdx;
+  if (rankIdx !== -1) columns.rank = rankIdx;
+  if (opponentIdx !== -1) columns.opponent = opponentIdx;
+
+  return columns;
+}
+
+function parseAdjustedScore(row, columns) {
+  const base = parseNumber(row[columns.score]);
+  if (base === null) {
+    return null;
+  }
+  const playerCell = row[columns.player];
+  return isCaptainMarked(playerCell) ? base - 0.5 : base;
+}
+
+function updateAdvancedTeamStats(values) {
+  if (els.statPam) {
+    els.statPam.textContent =
+      values && Number.isFinite(values.pam) ? values.pam.toFixed(2) : "—";
+  }
+  if (els.statApPam) {
+    els.statApPam.textContent =
+      values && Number.isFinite(values.apPam) ? values.apPam.toFixed(3) : "—";
+  }
+  if (els.statTRel) {
+    els.statTRel.textContent =
+      values && Number.isFinite(values.tRel) ? values.tRel.toFixed(3) : "—";
+  }
+}
+
+function clearAdvancedTeamStats() {
+  updateAdvancedTeamStats(null);
+}
+
+function computeAdvancedTeamStats(teamName, allRows) {
+  if (!teamName || !allRows.length) {
+    return null;
+  }
+  const columns = detectPlayerColumns(allRows[0] || []);
+  const dataRows = allRows.slice(1);
+
+  const leagueScoresByDate = new Map();
+  dataRows.forEach((row) => {
+    const date = String(row[columns.date] || "").trim();
+    const score = parseAdjustedScore(row, columns);
+    if (!date || score === null) {
+      return;
+    }
+    if (!leagueScoresByDate.has(date)) {
+      leagueScoresByDate.set(date, []);
+    }
+    leagueScoresByDate.get(date).push(score);
+  });
+
+  const medianByDate = new Map();
+  leagueScoresByDate.forEach((scores, date) => {
+    const med = median(scores);
+    if (med !== null) {
+      medianByDate.set(date, med);
+    }
+  });
+
+  const teamTotalsByDate = new Map();
+  const playerAgg = new Map();
+  dataRows.forEach((row) => {
+    const rowTeam = String(row[columns.team] || "").trim();
+    if (!teamMatches(rowTeam, teamName)) {
+      return;
+    }
+    const date = String(row[columns.date] || "").trim();
+    const score = parseAdjustedScore(row, columns);
+    const med = medianByDate.get(date);
+    if (!date || score === null || !med || med <= 0) {
+      return;
+    }
+
+    teamTotalsByDate.set(date, (teamTotalsByDate.get(date) || 0) + score);
+
+    const player = stripCaptainMarker(row[columns.player]);
+    if (!player) {
+      return;
+    }
+    if (!playerAgg.has(player)) {
+      playerAgg.set(player, { relSum: 0, relGames: 0, gp: 0 });
+    }
+    const agg = playerAgg.get(player);
+    agg.relSum += score / med;
+    agg.relGames += 1;
+    agg.gp += 1;
+  });
+
+  if (!teamTotalsByDate.size) {
+    return null;
+  }
+
+  let pam = 0;
+  let pctSum = 0;
+  let pctGames = 0;
+  teamTotalsByDate.forEach((teamTotal, date) => {
+    const med = medianByDate.get(date);
+    if (!med || med <= 0) {
+      return;
+    }
+    pam += teamTotal - med;
+    pctSum += (teamTotal - med) / med;
+    pctGames += 1;
+  });
+
+  let tRelWeighted = 0;
+  let tRelWeight = 0;
+  playerAgg.forEach((agg) => {
+    if (!agg.relGames || !agg.gp) {
+      return;
+    }
+    const rel = agg.relSum / agg.relGames;
+    tRelWeighted += rel * agg.gp;
+    tRelWeight += agg.gp;
+  });
+
+  return {
+    pam,
+    apPam: pctGames ? pctSum / pctGames : null,
+    tRel: tRelWeight ? tRelWeighted / tRelWeight : null,
+  };
 }
 
 function buildWinPctMapFromStandingsRows(standingsRows) {
@@ -655,11 +840,12 @@ async function loadRoster() {
   try {
     const season = getSeason();
     if (season === "c2s2") {
-      const [rosterRes, standingsRes, scheduleRes, boxscoreRes] = await Promise.all([
+      const [rosterRes, standingsRes, scheduleRes, boxscoreRes, playerStatsRes] = await Promise.all([
         fetch(ROSTER_CSV_URL, { cache: "no-store" }),
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
         fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
         fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
+        fetch(PLAYER_STATS_URL, { cache: "no-store" }),
       ]);
 
       if (!rosterRes.ok) {
@@ -673,6 +859,9 @@ async function loadRoster() {
       }
       if (!boxscoreRes.ok) {
         throw new Error(`Fetch failed: ${boxscoreRes.status}`);
+      }
+      if (!playerStatsRes.ok) {
+        throw new Error(`Fetch failed: ${playerStatsRes.status}`);
       }
 
       const rows = parseCSV(await rosterRes.text());
@@ -695,6 +884,7 @@ async function loadRoster() {
       const scheduleRows = getC2S2ScheduleRows(
         parseCSV(await scheduleRes.text())
       );
+      const playerStatRows = parseCSV(await playerStatsRes.text());
       updateStandingsFromRanges(teamName, standingsRows);
       const winPctMap = buildWinPctMapFromStandingsRows(standingsRows);
       const sos = computeTeamSOS(teamName, scheduleRows, winPctMap, season);
@@ -707,6 +897,7 @@ async function loadRoster() {
         parseCSV(await boxscoreRes.text()),
         season
       );
+      updateAdvancedTeamStats(computeAdvancedTeamStats(teamName, playerStatRows));
     } else {
       const [archiveRes] = await Promise.all([
         fetch(ARCHIVE_URL, { cache: "no-store" }),
@@ -716,6 +907,7 @@ async function loadRoster() {
       }
       const archive = parseCSV(await archiveRes.text());
       const standingsTable = sliceRange(archive, ARCHIVE_RANGES.standings);
+      const archivePlayerRows = sliceRange(archive, ARCHIVE_RANGES.player_stats);
       const scheduleRange =
         season === "c2s1-post"
           ? ARCHIVE_RANGES.schedule_post
@@ -754,6 +946,13 @@ async function loadRoster() {
         }
       }
       updateTeamSchedule(teamName, scheduleTable, boxscoreTable, season);
+      if (season === "c2s1-post") {
+        updateAdvancedTeamStats(
+          computeAdvancedTeamStats(teamName, archivePlayerRows)
+        );
+      } else {
+        clearAdvancedTeamStats();
+      }
     }
     updateLastUpdated();
   } catch (error) {
