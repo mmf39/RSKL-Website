@@ -37,6 +37,38 @@ const EXPANSION_RANGES = [
   { title: "The Lions", range: "E25:F31" },
 ];
 const EXPANSION_PROSPECTS_RANGE = "G2:I32";
+const EXPANSION_TOTAL_KARMA = {
+  rockiess: "722K",
+  dri: "1.12M",
+  lukeboss: "1.03M",
+  jr: "1.18M",
+  eclipse: "1.39M",
+  artifact: "1.58M",
+  robertjr: "1.68M",
+  etienne: "660K",
+  buc: "3.21M",
+  bobsburgers: "2.92M",
+  playexplainer: "2.25M",
+  aliyu_: "916.7K",
+  sotonyc: "2.76M",
+  xintervol: "1.33M",
+  king: "1.39M",
+  plemay: "1.93M",
+  snowy: "1.69M",
+  psyklone: "1.33M",
+  reinhart13: "1.43M",
+  bigk: "2.6M",
+  bojack: "3.49M",
+  xo: "2.94M",
+  snivy: "1.67M",
+  devinbooker: "2.15M",
+  griff168: "849.6K",
+  rockymountain: "1.45M",
+  shy: "1.85M",
+  keegan: "1.12M",
+  penixszn: "635.8K",
+  max: "3.6M",
+};
 
 const TEAM_NAMES = new Set([
   "Gus N Em",
@@ -231,6 +263,13 @@ function canonicalTeamName(value) {
   if (lower === "snipers") return "The Snipers";
   if (lower === "bullets") return "Storm";
   return clean;
+}
+
+function normalizePlayerTag(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^@/, "");
 }
 
 function linkifyTeamsAndPlayers(text) {
@@ -503,7 +542,7 @@ function renderExpansion(rows) {
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Player</th><th>Info</th></tr>
+              <tr><th>Player</th><th>Monthly Rank</th></tr>
             </thead>
             <tbody>
               ${bodyRows
@@ -511,7 +550,7 @@ function renderExpansion(rows) {
                   (row) => `
                     <tr>
                       <td>${renderCell(row[0], "Player", 0)}</td>
-                      <td>${renderCell(row[1], "Info", 99)}</td>
+                      <td>${renderCell(row[1], "Monthly Rank", 99)}</td>
                     </tr>
                   `
                 )
@@ -544,7 +583,7 @@ function renderExpansionProspects(rows) {
 
   const grouped = new Map();
   const looksHeader = (sourceRows[0] || []).some((cell) =>
-    ["team", "player", "prospect", "info", "note"].some((key) =>
+    ["team", "player", "prospect", "info", "note", "monthly", "rank"].some((key) =>
       String(cell || "").toLowerCase().includes(key)
     )
   );
@@ -554,6 +593,7 @@ function renderExpansionProspects(rows) {
     const rawTeam = String(row[0] || "").trim();
     const player = String(row[1] || "").trim();
     const info = String(row[2] || "").trim();
+    const totalKarma = EXPANSION_TOTAL_KARMA[normalizePlayerTag(player)] || "";
     if (!rawTeam || !player) {
       return;
     }
@@ -561,7 +601,7 @@ function renderExpansionProspects(rows) {
     if (!grouped.has(team)) {
       grouped.set(team, []);
     }
-    grouped.get(team).push({ player, info });
+    grouped.get(team).push({ player, info, totalKarma });
   });
 
   const renderExpansionSection = (team, players) => {
@@ -570,6 +610,9 @@ function renderExpansionProspects(rows) {
         ? '<p class="expansion-disclaimer">The lions used last 2 picks in trade with Cheerios</p>'
         : "";
     const hasInfo = players.some((item) => String(item.info || "").trim() !== "");
+    const hasTotalKarma = players.some(
+      (item) => String(item.totalKarma || "").trim() !== ""
+    );
     return `
       <section class="panel draft-round">
         <div class="panel-head">
@@ -581,7 +624,7 @@ function renderExpansionProspects(rows) {
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Team</th><th>Player</th>${hasInfo ? "<th>Info</th>" : ""}</tr>
+              <tr><th>Team</th><th>Player</th>${hasInfo ? "<th>Monthly Rank</th>" : ""}${hasTotalKarma ? "<th>Total Karma</th>" : ""}</tr>
             </thead>
             <tbody>
               ${players
@@ -590,7 +633,8 @@ function renderExpansionProspects(rows) {
                     <tr>
                       <td>${escapeHtml(team)}</td>
                       <td>${renderCell(item.player, "Player", 1)}</td>
-                      ${hasInfo ? `<td>${renderCell(item.info, "Info", 2)}</td>` : ""}
+                      ${hasInfo ? `<td>${renderCell(item.info, "Monthly Rank", 2)}</td>` : ""}
+                      ${hasTotalKarma ? `<td>${escapeHtml(item.totalKarma || "—")}</td>` : ""}
                     </tr>
                   `
                 )
