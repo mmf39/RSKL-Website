@@ -36,7 +36,7 @@ const EXPANSION_RANGES = [
   { title: "The Future", range: "E17:F23" },
   { title: "The Lions", range: "E25:F31" },
 ];
-const EXPANSION_PROSPECTS_RANGE = "G3:H31";
+const EXPANSION_PROSPECTS_RANGE = "G2:I32";
 
 const TEAM_NAMES = new Set([
   "Gus N Em",
@@ -543,9 +543,17 @@ function renderExpansionProspects(rows) {
   }
 
   const grouped = new Map();
-  sourceRows.forEach((row) => {
+  const looksHeader = (sourceRows[0] || []).some((cell) =>
+    ["team", "player", "prospect", "info", "note"].some((key) =>
+      String(cell || "").toLowerCase().includes(key)
+    )
+  );
+  const dataRows = looksHeader ? sourceRows.slice(1) : sourceRows;
+
+  dataRows.forEach((row) => {
     const rawTeam = String(row[0] || "").trim();
     const player = String(row[1] || "").trim();
+    const info = String(row[2] || "").trim();
     if (!rawTeam || !player) {
       return;
     }
@@ -553,7 +561,7 @@ function renderExpansionProspects(rows) {
     if (!grouped.has(team)) {
       grouped.set(team, []);
     }
-    grouped.get(team).push(player);
+    grouped.get(team).push({ player, info });
   });
 
   const renderExpansionSection = (team, players) => {
@@ -561,6 +569,7 @@ function renderExpansionProspects(rows) {
       canonicalTeamName(team) === "The Lions"
         ? '<p class="expansion-disclaimer">The lions used last 2 picks in trade with Cheerios</p>'
         : "";
+    const hasInfo = players.some((item) => String(item.info || "").trim() !== "");
     return `
       <section class="panel draft-round">
         <div class="panel-head">
@@ -572,15 +581,16 @@ function renderExpansionProspects(rows) {
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Team</th><th>Player</th></tr>
+              <tr><th>Team</th><th>Player</th>${hasInfo ? "<th>Info</th>" : ""}</tr>
             </thead>
             <tbody>
               ${players
                 .map(
-                  (player) => `
+                  (item) => `
                     <tr>
                       <td>${escapeHtml(team)}</td>
-                      <td>${renderCell(player, "Player", 1)}</td>
+                      <td>${renderCell(item.player, "Player", 1)}</td>
+                      ${hasInfo ? `<td>${renderCell(item.info, "Info", 2)}</td>` : ""}
                     </tr>
                   `
                 )
