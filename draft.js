@@ -69,6 +69,38 @@ const EXPANSION_TOTAL_KARMA = {
   penixszn: "635.8K",
   max: "3.6M",
 };
+const EXPANSION_RANKED_DAYS = {
+  rockiess: "107",
+  dri: "232",
+  lukeboss: "212",
+  jr: "259",
+  eclipse: "278",
+  artifact: "271",
+  robertjr: "324",
+  etienne: "139",
+  buc: "741",
+  bobsburgers: "637",
+  playexplainer: "498",
+  aliyu_: "193",
+  sotonyc: "611",
+  xintervol: "277",
+  king: "293",
+  plemay: "416",
+  snowy: "351",
+  psyklone: "249",
+  reinhart13: "294",
+  bigk: "576",
+  bojack: "932",
+  xo: "660",
+  snivy: "NA",
+  devinbooker: "392",
+  griff168: "186",
+  rockymountain: "298",
+  shy: "403",
+  keegan: "203",
+  penixszn: "138",
+  max: "861",
+};
 
 const TEAM_NAMES = new Set([
   "Gus N Em",
@@ -594,6 +626,7 @@ function renderExpansionProspects(rows) {
     const player = String(row[1] || "").trim();
     const info = String(row[2] || "").trim();
     const totalKarma = EXPANSION_TOTAL_KARMA[normalizePlayerTag(player)] || "";
+    const rankedDays = EXPANSION_RANKED_DAYS[normalizePlayerTag(player)] || "";
     if (!rawTeam || !player) {
       return;
     }
@@ -601,7 +634,7 @@ function renderExpansionProspects(rows) {
     if (!grouped.has(team)) {
       grouped.set(team, []);
     }
-    grouped.get(team).push({ player, info, totalKarma });
+    grouped.get(team).push({ player, info, totalKarma, rankedDays });
   });
 
   const renderExpansionSection = (team, players) => {
@@ -612,6 +645,9 @@ function renderExpansionProspects(rows) {
     const hasInfo = players.some((item) => String(item.info || "").trim() !== "");
     const hasTotalKarma = players.some(
       (item) => String(item.totalKarma || "").trim() !== ""
+    );
+    const hasRankedDays = players.some(
+      (item) => String(item.rankedDays || "").trim() !== ""
     );
     return `
       <section class="panel draft-round">
@@ -624,7 +660,7 @@ function renderExpansionProspects(rows) {
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Team</th><th>Player</th>${hasInfo ? "<th>Monthly Rank</th>" : ""}${hasTotalKarma ? "<th>Total Karma</th>" : ""}</tr>
+              <tr><th>Team</th><th>Player</th>${hasInfo ? "<th>Monthly Rank</th>" : ""}${hasTotalKarma ? "<th>Total Karma</th>" : ""}${hasRankedDays ? "<th>Ranked Days</th>" : ""}</tr>
             </thead>
             <tbody>
               ${players
@@ -635,6 +671,7 @@ function renderExpansionProspects(rows) {
                       <td>${renderCell(item.player, "Player", 1)}</td>
                       ${hasInfo ? `<td>${renderCell(item.info, "Monthly Rank", 2)}</td>` : ""}
                       ${hasTotalKarma ? `<td>${escapeHtml(item.totalKarma || "—")}</td>` : ""}
+                      ${hasRankedDays ? `<td>${escapeHtml(item.rankedDays || "—")}</td>` : ""}
                     </tr>
                   `
                 )
