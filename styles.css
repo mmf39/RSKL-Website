@@ -739,6 +739,7 @@ input[type="text"] {
     grid-column: 1;
     grid-row: 3;
     order: 4;
+    margin-top: -220px;
   }
   .team-page .transactions-panel {
     grid-column: 1 / -1;
