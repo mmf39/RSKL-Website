@@ -606,20 +606,26 @@ input[type="text"] {
 }
 
 @media (min-width: 721px) {
+  .team-page .standings-panel {
+    grid-column: 1 / -1;
+    order: 1;
+    max-width: 100%;
+  }
   .team-page .roster-panel {
     grid-column: 1;
-  }
-  .team-page .schedule-panel {
-    grid-column: 1;
-  }
-  .team-page .standings-panel {
-    grid-column: 2;
+    order: 2;
   }
   .team-page .draft-panel {
     grid-column: 2;
+    order: 3;
+  }
+  .team-page .schedule-panel {
+    grid-column: 1;
+    order: 4;
   }
   .team-page .transactions-panel {
     grid-column: 1 / -1;
+    order: 5;
   }
 }
 
