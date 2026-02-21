@@ -120,6 +120,8 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 params = parse_qs(parsed.query or "")
                 payload = {k: (v[0] if isinstance(v, list) and v else "") for k, v in params.items()}
+                if "action" not in payload or not payload["action"]:
+                    payload["action"] = "getTradeBlocks"
                 req = urllib.request.Request(
                     SHEET_UPDATE_URL,
                     data=json.dumps(payload).encode("utf-8"),
