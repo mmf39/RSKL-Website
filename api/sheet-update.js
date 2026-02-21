@@ -2,7 +2,7 @@ const https = require("https");
 const { URL } = require("url");
 
 const SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbybgKT1WjHN7G13XiymsMNM6eO_sOtfchPsWGJfPZwLvEFJ6_QsYJ9pBt7jNWTkM9msXA/exec";
+  "https://script.google.com/macros/s/AKfycbylZD-O7LCsznZpnRpYsAdbp7bCbknV-qta8PO0uv_k4Tnevf8Klkbfcg6Hh5DXC9GFvg/exec";
 
 function forward(url, payload, redirects, res) {
   const target = new URL(url);
