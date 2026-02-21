@@ -1,8 +1,10 @@
 const https = require("https");
 const { URL } = require("url");
 
-const SCRIPT_URL =
+const TRADEBLOCK_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbylZD-O7LCsznZpnRpYsAdbp7bCbknV-qta8PO0uv_k4Tnevf8Klkbfcg6Hh5DXC9GFvg/exec";
+const PLAYER_UPDATE_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbybgKT1WjHN7G13XiymsMNM6eO_sOtfchPsWGJfPZwLvEFJ6_QsYJ9pBt7jNWTkM9msXA/exec";
 
 function parseQueryFromReq(req) {
   if (req && req.query && typeof req.query === "object") {
@@ -20,6 +22,12 @@ function withAction(url, action) {
   if (!action) return url;
   const sep = url.includes("?") ? "&" : "?";
   return `${url}${sep}action=${encodeURIComponent(action)}`;
+}
+
+function getScriptUrlByAction(action) {
+  return action === "updatePlayer"
+    ? PLAYER_UPDATE_SCRIPT_URL
+    : TRADEBLOCK_SCRIPT_URL;
 }
 
 function forward(url, payload, redirects, res, method = "POST") {
@@ -101,8 +109,9 @@ module.exports = (req, res) => {
     if (!params.action) {
       params.action = "getTradeBlocks";
     }
+    const scriptUrl = getScriptUrlByAction(params.action);
     const payload = JSON.stringify(params);
-    forward(withAction(SCRIPT_URL, params.action), payload, 5, res, "POST");
+    forward(withAction(scriptUrl, params.action), payload, 5, res, "POST");
     return;
   }
 
@@ -121,8 +130,9 @@ module.exports = (req, res) => {
     if (!payloadObj.action) {
       payloadObj.action = "getTradeBlocks";
     }
+    const scriptUrl = getScriptUrlByAction(payloadObj.action);
     forward(
-      withAction(SCRIPT_URL, payloadObj.action),
+      withAction(scriptUrl, payloadObj.action),
       JSON.stringify(payloadObj),
       5,
       res,
@@ -150,9 +160,10 @@ module.exports = (req, res) => {
     if (!payloadObj.action) {
       payloadObj.action = "getTradeBlocks";
     }
+    const scriptUrl = getScriptUrlByAction(payloadObj.action);
 
     forward(
-      withAction(SCRIPT_URL, payloadObj.action),
+      withAction(scriptUrl, payloadObj.action),
       JSON.stringify(payloadObj),
       5,
       res,
