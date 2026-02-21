@@ -529,6 +529,54 @@ input[type="text"] {
   max-width: 320px;
 }
 
+/* Team page density tuning */
+.team-page .roster-layout {
+  gap: 14px;
+}
+
+.team-page .compact-panel {
+  padding: 14px;
+}
+
+.team-page .panel-head {
+  margin-bottom: 10px;
+}
+
+.team-page #roster-table th,
+.team-page #roster-table td {
+  padding: 6px 10px;
+}
+
+.team-page #team-schedule th,
+.team-page #team-schedule td {
+  padding: 8px 10px;
+}
+
+.team-page .draft-picks-list {
+  gap: 6px;
+}
+
+.team-page .draft-pick-row {
+  padding: 6px 8px;
+}
+
+/* Reorder desktop cards to reduce empty grid gaps:
+   roster + draft first row, standings + schedule second row */
+@media (min-width: 721px) {
+  .team-page .roster-layout > :nth-child(2) {
+    order: 3;
+  }
+  .team-page .roster-layout > :nth-child(3) {
+    order: 2;
+  }
+  .team-page .roster-layout > :nth-child(4) {
+    order: 4;
+  }
+  .team-page .roster-layout > :nth-child(5) {
+    order: 5;
+  }
+}
+
 .mini-row {
   display: flex;
   justify-content: space-between;
