@@ -8,6 +8,7 @@ const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
 const SEASON_KEY = "season";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const TRANSACTIONS_RANGE = "A3:E81";
+const RETIREMENT_RANGE = "G3:J70";
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
   Bullets: "E2:F13",
@@ -116,8 +117,10 @@ const els = {
   statSos: document.getElementById("stat-sos"),
   statPam: document.getElementById("stat-pam"),
   statTRel: document.getElementById("stat-trel"),
+  statTransactions: document.getElementById("stat-transactions"),
   statTeam: document.getElementById("stat-team"),
   draftCapital: document.getElementById("team-draft-capital"),
+  teamTransactions: document.getElementById("team-transactions"),
   scheduleHead: document.querySelector("#team-schedule thead"),
   scheduleBody: document.querySelector("#team-schedule tbody"),
   modal: document.getElementById("boxscore-modal"),
@@ -673,6 +676,115 @@ function formatTradeSummaryForPick(row, pick) {
   return `${date}: ${team1} ↔ ${team2}`;
 }
 
+function parseDateValue(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  const mdy = text.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (mdy) {
+    const month = Number(mdy[1]) - 1;
+    const day = Number(mdy[2]);
+    let year = mdy[3] ? Number(mdy[3]) : new Date().getFullYear();
+    if (year < 100) {
+      year += 2000;
+    }
+    const t = new Date(year, month, day).getTime();
+    return Number.isNaN(t) ? Number.NEGATIVE_INFINITY : t;
+  }
+  const parsed = Date.parse(text);
+  return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed;
+}
+
+function parseTeamTradeRow(row) {
+  return {
+    date: String(row[0] || "").trim() || "—",
+    type: "Trade",
+    team1: displayTeamName(String(row[1] || "").trim() || "Team 1"),
+    team1Gets: String(row[2] || "").trim() || "—",
+    team2: displayTeamName(String(row[3] || "").trim() || "Team 2"),
+    team2Gets: String(row[4] || "").trim() || "—",
+  };
+}
+
+function parseTeamRetirementRow(row) {
+  return {
+    date: String(row[0] || "").trim() || "—",
+    type: "Retirement",
+    team: displayTeamName(String(row[1] || "").trim() || ""),
+    player: String(row[2] || "").trim() || "—",
+    note: String(row[3] || "").trim(),
+  };
+}
+
+function loadTeamTransactionsPanel(teamName, allRows) {
+  if (!els.teamTransactions) {
+    return;
+  }
+  const normalizedTeam = normalizeTeamLabel(teamName);
+  const trades = sliceRange(allRows, TRANSACTIONS_RANGE)
+    .filter(hasText)
+    .map(parseTeamTradeRow)
+    .filter(
+      (tx) =>
+        normalizeTeamLabel(tx.team1) === normalizedTeam ||
+        normalizeTeamLabel(tx.team2) === normalizedTeam
+    );
+  const retirements = sliceRange(allRows, RETIREMENT_RANGE)
+    .filter(hasText)
+    .map(parseTeamRetirementRow)
+    .filter((tx) => normalizeTeamLabel(tx.team) === normalizedTeam);
+  const merged = [...trades, ...retirements]
+    .map((tx, idx) => ({ ...tx, _idx: idx }))
+    .sort((a, b) => {
+      const dateDiff = parseDateValue(b.date) - parseDateValue(a.date);
+      if (dateDiff !== 0) {
+        return dateDiff;
+      }
+      return b._idx - a._idx;
+    });
+
+  const link = "/transactions.html";
+  if (els.statTransactions) {
+    els.statTransactions.innerHTML = `<a class="tx-link" href="${link}">${merged.length}</a>`;
+  }
+
+  if (!merged.length) {
+    els.teamTransactions.innerHTML =
+      '<div class="tx-card"><div class="tx-details">No transactions recorded.</div></div>';
+    return;
+  }
+
+  els.teamTransactions.innerHTML = merged
+    .map((tx) => {
+      if (tx.type === "Retirement") {
+        return `
+          <article class="tx-card">
+            <div class="tx-head">
+              <strong>Retirement</strong>
+              <span>${escapeHtml(tx.date)}</span>
+            </div>
+            <div class="tx-details">${escapeHtml(tx.player)} retired${
+              tx.note ? ` • ${escapeHtml(tx.note)}` : ""
+            }</div>
+          </article>
+        `;
+      }
+      return `
+        <article class="tx-card">
+          <div class="tx-head">
+            <strong>Trade</strong>
+            <span>${escapeHtml(tx.date)}</span>
+          </div>
+          <div class="tx-details">${escapeHtml(tx.team1)} receive ${escapeHtml(
+            tx.team1Gets
+          )} | ${escapeHtml(tx.team2)} receive ${escapeHtml(tx.team2Gets)}</div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
 function findTradeEntriesForPick(pick, transactionRows) {
   const label = String(pick && pick.label ? pick.label : "").trim();
   const targets = getPickMatchTargets(label);
@@ -798,6 +910,13 @@ async function loadDraftCapital(teamName) {
 
 async function loadRoster() {
   const teamName = getTeamName();
+  if (els.statTransactions) {
+    els.statTransactions.textContent = "—";
+  }
+  if (els.teamTransactions) {
+    els.teamTransactions.innerHTML =
+      '<div class="tx-card"><div class="tx-details">Loading transactions...</div></div>';
+  }
   await loadDraftCapital(teamName);
   if (els.logo) {
     if (teamName === "The Future") {
@@ -971,6 +1090,22 @@ async function loadRoster() {
       }
     }
     updateLastUpdated();
+    try {
+      const txRes = await fetch(TRANSACTIONS_URL, { cache: "no-store" });
+      if (txRes.ok) {
+        loadTeamTransactionsPanel(teamName, parseCSV(await txRes.text()));
+      } else {
+        if (els.teamTransactions) {
+          els.teamTransactions.innerHTML =
+            '<div class="tx-card"><div class="tx-details">Unable to load transactions.</div></div>';
+        }
+      }
+    } catch (error) {
+      if (els.teamTransactions) {
+        els.teamTransactions.innerHTML =
+          '<div class="tx-card"><div class="tx-details">Unable to load transactions.</div></div>';
+      }
+    }
   } catch (error) {
     els.body.innerHTML = `<tr><td>${escapeHtml(error.message)}</td></tr>`;
   }

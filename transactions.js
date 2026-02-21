@@ -22,7 +22,8 @@ const els = {
 
 let transactionRows = [];
 let transactionHeaders = [];
-const TRANSACTION_RANGE = "A3:E81";
+const TRADE_RANGE = "A3:E81";
+const RETIREMENT_RANGE = "G3:J70";
 
 function parseCSV(text) {
   const rows = [];
@@ -195,6 +196,35 @@ function parseTransactionRow(row) {
   return { date, type, details, teams, players, team1, team1Gets, team2, team2Gets };
 }
 
+function parseRetirementRow(row) {
+  // G: Date, H: Team, I: Player, J: Details/Reason
+  const date = String(row[0] || "").trim();
+  const team = canonicalTeamName(row[1] || "");
+  const player = String(row[2] || "").trim();
+  const note = String(row[3] || "").trim();
+  if (!date && !team && !player && !note) {
+    return null;
+  }
+  const details = `${player || "Player"} retired${
+    team ? ` (${team})` : ""
+  }${note ? ` • ${note}` : ""}`;
+  const players = Array.from(new Set([...extractPlayers(player), ...extractPlayers(note)]));
+  if (player && player.startsWith("@") && !players.includes(player)) {
+    players.unshift(player);
+  }
+  const teams = team ? [team] : extractTeams(note);
+  return {
+    date,
+    type: "Retirement",
+    details,
+    teams,
+    players,
+    team,
+    player,
+    note,
+  };
+}
+
 function parseDateValue(value) {
   const text = String(value || "").trim();
   if (!text) {
@@ -286,7 +316,7 @@ function renderTransactions(filter = "") {
   const query = String(filter || "").trim().toLowerCase();
   const queryNorm = normalizeSearch(query);
   const parsed = transactionRows
-    .map((row, idx) => ({ ...parseTransactionRow(row), _idx: idx }))
+    .map((item, idx) => ({ ...item, _idx: idx }))
     .filter((tx) => tx.details || tx.date || tx.type);
 
   const visible = query
@@ -299,6 +329,9 @@ function renderTransactions(filter = "") {
           tx.team1Gets,
           tx.team2,
           tx.team2Gets,
+          tx.team,
+          tx.player,
+          tx.note,
           tx.teams.join(" "),
           tx.players.join(" "),
         ]
@@ -337,18 +370,35 @@ function renderTransactions(filter = "") {
             <strong>${escapeHtml(tx.type || "Transaction")}</strong>
             <span>${escapeHtml(tx.date || "—")}</span>
           </div>
-          <div class="tx-sides">
-            <div class="tx-side">
-              <div class="tx-side-team">${renderTeamHeader(tx.team1)}</div>
-              <div class="tx-side-label">Received</div>
-              <div class="tx-side-value">${linkifyPlayers(tx.team1Gets || "—")}</div>
-            </div>
-            <div class="tx-side">
-              <div class="tx-side-team">${renderTeamHeader(tx.team2)}</div>
-              <div class="tx-side-label">Received</div>
-              <div class="tx-side-value">${linkifyPlayers(tx.team2Gets || "—")}</div>
-            </div>
-          </div>
+          ${
+            tx.type === "Retirement"
+              ? `<div class="tx-sides">
+                  <div class="tx-side">
+                    <div class="tx-side-team">${renderTeamHeader(tx.team)}</div>
+                    <div class="tx-side-label">Player</div>
+                    <div class="tx-side-value">${linkifyPlayers(tx.player || "—")}</div>
+                    ${
+                      tx.note
+                        ? `<div class="tx-side-label">Details</div><div class="tx-side-value">${escapeHtml(
+                            tx.note
+                          )}</div>`
+                        : ""
+                    }
+                  </div>
+                </div>`
+              : `<div class="tx-sides">
+                  <div class="tx-side">
+                    <div class="tx-side-team">${renderTeamHeader(tx.team1)}</div>
+                    <div class="tx-side-label">Received</div>
+                    <div class="tx-side-value">${linkifyPlayers(tx.team1Gets || "—")}</div>
+                  </div>
+                  <div class="tx-side">
+                    <div class="tx-side-team">${renderTeamHeader(tx.team2)}</div>
+                    <div class="tx-side-label">Received</div>
+                    <div class="tx-side-value">${linkifyPlayers(tx.team2Gets || "—")}</div>
+                  </div>
+                </div>`
+          }
         </article>
       `
     )
@@ -367,17 +417,23 @@ async function loadTransactions() {
       throw new Error(`Fetch failed: ${response.status}`);
     }
     const rows = parseCSV(await response.text());
-    const sliced = sliceRange(rows, TRANSACTION_RANGE).filter(hasText);
-    if (!sliced.length) {
+    const tradeRows = sliceRange(rows, TRADE_RANGE).filter(hasText);
+    const retirementRows = sliceRange(rows, RETIREMENT_RANGE).filter(hasText);
+    if (!tradeRows.length && !retirementRows.length) {
       throw new Error("No transaction data found.");
     }
-    if (looksLikeHeader(sliced[0])) {
-      transactionHeaders = sliced[0];
-      transactionRows = sliced.slice(1).filter(hasText);
-    } else {
-      transactionHeaders = ["Date", "Type", "Details", "Team", "Player"];
-      transactionRows = sliced.filter(hasText);
-    }
+    const parsedTrades = looksLikeHeader(tradeRows[0] || [])
+      ? tradeRows.slice(1).filter(hasText).map(parseTransactionRow)
+      : tradeRows.map(parseTransactionRow);
+    const parsedRetirements = looksLikeHeader(retirementRows[0] || [])
+      ? retirementRows
+          .slice(1)
+          .filter(hasText)
+          .map(parseRetirementRow)
+          .filter(Boolean)
+      : retirementRows.map(parseRetirementRow).filter(Boolean);
+    transactionHeaders = ["Date", "Type", "Details", "Team", "Player"];
+    transactionRows = [...parsedTrades, ...parsedRetirements].filter(Boolean);
     const initialQuery = getInitialQuery();
     if (els.search) {
       els.search.value = initialQuery;

@@ -9,6 +9,7 @@ const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
 const TRANSACTIONS_RANGE = "A3:E81";
+const RETIREMENT_RANGE = "G3:J70";
 const DRAFT_ROUND_RANGES = [
   { title: "Round 1", range: "A1:C11" },
   { title: "Round 2", range: "A12:C22" },
@@ -821,6 +822,26 @@ function buildTransactionsDetails(row) {
   return `${team1} receive ${team1Gets} | ${team2} receive ${team2Gets}`;
 }
 
+function parseDateValue(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  const mdy = text.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (mdy) {
+    const month = Number(mdy[1]) - 1;
+    const day = Number(mdy[2]);
+    let year = mdy[3] ? Number(mdy[3]) : new Date().getFullYear();
+    if (year < 100) {
+      year += 2000;
+    }
+    const t = new Date(year, month, day).getTime();
+    return Number.isNaN(t) ? Number.NEGATIVE_INFINITY : t;
+  }
+  const parsed = Date.parse(text);
+  return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed;
+}
+
 function isDraftHeaderRow(row) {
   const combined = row.map((cell) => String(cell || "").toLowerCase()).join(" ");
   return (
@@ -909,13 +930,37 @@ function findTradeEvents(playerName, transactionRows, aliases) {
     });
 }
 
+function findRetirementEvents(playerName, retirementRows, aliases) {
+  if (!playerName || !retirementRows.length || !aliases.length) {
+    return [];
+  }
+  return retirementRows
+    .filter((row) => {
+      const combined = row.map((cell) => String(cell || "")).join(" ");
+      return matchesAnyAlias(combined, aliases);
+    })
+    .map((row) => {
+      const date = String(row[0] || "").trim() || "—";
+      const team = displayTeamName(String(row[1] || "").trim() || "");
+      const player = String(row[2] || "").trim() || playerName;
+      const note = String(row[3] || "").trim();
+      return {
+        date,
+        title: "Retirement",
+        details: `${player} retired${team ? ` (${team})` : ""}${
+          note ? ` • ${note}` : ""
+        }`,
+      };
+    });
+}
+
 function renderPlayerTransactions(events, playerName) {
   if (!els.transactions) {
     return;
   }
   if (!events.length) {
     els.transactions.innerHTML =
-      "<div class=\"tx-card\"><div class=\"tx-details\">No draft or trade history found.</div></div>";
+      "<div class=\"tx-card\"><div class=\"tx-details\">No transaction history found.</div></div>";
     return;
   }
   const query = encodeURIComponent(String(playerName || "").trim());
@@ -960,6 +1005,9 @@ async function loadPlayerTransactions(playerName, season) {
     const transactionRows = sliceRange(rawTransactions, TRANSACTIONS_RANGE).filter(
       (row) => row.some((cell) => String(cell || "").trim() !== "")
     );
+    const retirementRows = sliceRange(rawTransactions, RETIREMENT_RANGE).filter(
+      (row) => row.some((cell) => String(cell || "").trim() !== "")
+    );
 
     const aliases = getPlayerAliases(playerName);
     const events = [];
@@ -969,8 +1017,9 @@ async function loadPlayerTransactions(playerName, season) {
     ].filter(Boolean);
     draftEvents.forEach((event) => events.push(event));
     const trades = findTradeEvents(playerName, transactionRows, aliases);
-    if (trades.length) {
-      events.push(...trades);
+    const retirements = findRetirementEvents(playerName, retirementRows, aliases);
+    if (trades.length || retirements.length) {
+      events.push(...trades, ...retirements);
     } else if (!draftEvents.length) {
       events.push({
         date: "Status",
@@ -978,6 +1027,7 @@ async function loadPlayerTransactions(playerName, season) {
         details: "No transactions recorded.",
       });
     }
+    events.sort((a, b) => parseDateValue(b.date) - parseDateValue(a.date));
     renderPlayerTransactions(events, playerName);
   } catch (error) {
     els.transactions.innerHTML =
