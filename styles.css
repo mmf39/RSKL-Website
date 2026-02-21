@@ -710,6 +710,18 @@ input[type="text"] {
 .team-page #team-schedule th,
 .team-page #team-schedule td {
   text-align: center;
+  vertical-align: middle;
+}
+
+.team-page #roster-table,
+.team-page #team-schedule {
+  margin: 0 auto;
+}
+
+.team-page .roster-panel .table-wrap,
+.team-page .schedule-panel .table-wrap {
+  display: flex;
+  justify-content: center;
 }
 
 @media (min-width: 721px) {
@@ -739,7 +751,7 @@ input[type="text"] {
     grid-column: 1;
     grid-row: 3;
     order: 4;
-    margin-top: -220px;
+    margin-top: -280px;
   }
   .team-page .transactions-panel {
     grid-column: 1 / -1;
