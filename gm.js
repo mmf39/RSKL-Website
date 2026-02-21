@@ -201,14 +201,28 @@ function normalizeTradeBlockMap(value) {
   if (!value || typeof value !== "object") {
     return {};
   }
+  const toList = (input) => {
+    if (Array.isArray(input)) {
+      return input
+        .map((v) => String(v || "").trim())
+        .filter(Boolean);
+    }
+    if (typeof input === "string") {
+      return input
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean);
+    }
+    return [];
+  };
   const out = {};
   Object.entries(value).forEach(([team, block]) => {
     if (!team || !block || typeof block !== "object") {
       return;
     }
     out[team] = {
-      players: Array.isArray(block.players) ? block.players : [],
-      picks: Array.isArray(block.picks) ? block.picks : [],
+      players: toList(block.players),
+      picks: toList(block.picks),
       notes: String(block.notes || "").trim(),
       updatedAt: block.updatedAt || "",
     };
@@ -232,7 +246,9 @@ async function fetchTradeBlocksFromSheet() {
   if (payload.ok === false) {
     throw new Error(payload.message || "Trade block fetch failed.");
   }
-  return normalizeTradeBlockMap(payload.blocks || payload.data || {});
+  return normalizeTradeBlockMap(
+    payload.tradeBlocks || payload.blocks || payload.data || {}
+  );
 }
 
 async function saveTradeBlockToSheet(team, block) {
