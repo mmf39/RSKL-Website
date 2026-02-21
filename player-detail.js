@@ -335,7 +335,10 @@ async function findTeamForPlayer(season, playerName) {
   if (!playerName) {
     return "";
   }
-  const target = normalizeName(playerName);
+  const aliases = getPlayerAliases(playerName);
+  if (!aliases.length) {
+    return "";
+  }
   if (season === "c2s2-regular" || season === "career") {
     const response = await fetch("/api/sheet?name=roster", { cache: "no-store" });
     if (!response.ok) {
@@ -345,7 +348,7 @@ async function findTeamForPlayer(season, playerName) {
     for (const [team, range] of Object.entries(TEAM_RANGES)) {
       const sliced = sliceRange(rows, range);
       const hasPlayer = sliced.some((row) =>
-        row.some((cell) => matchesName(cell, target))
+        row.some((cell) => matchesAnyAlias(cell, aliases))
       );
       if (hasPlayer) {
         return team;
@@ -368,7 +371,7 @@ async function findTeamForPlayer(season, playerName) {
     for (const [team, range] of Object.entries(ARCHIVE_TEAM_ROSTERS)) {
       const sliced = sliceRange(archive, range);
       const hasPlayer = sliced.some((row) =>
-        row.some((cell) => matchesName(cell, target))
+        row.some((cell) => matchesAnyAlias(cell, aliases))
       );
       if (hasPlayer) {
         return team;
