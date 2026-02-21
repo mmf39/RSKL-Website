@@ -798,21 +798,10 @@ function bindEvents() {
       const checkedPlayers = Array.from(
         els.lineupPlayerList.querySelectorAll('input[data-lineup-player]:checked')
       ).map((node) => String(node.value || "").trim());
-      if (checkedPlayers.length !== 6) {
-        setLineupStatus(`Select exactly 6 starters (selected ${checkedPlayers.length}).`, true);
-        return;
-      }
       const captainNode = els.lineupPlayerList.querySelector('input[name="lineup-captain"]:checked');
       const captain = captainNode ? String(captainNode.value || "").trim() : "";
-      if (!captain) {
-        setLineupStatus("Select a captain.", true);
-        return;
-      }
-      if (!checkedPlayers.some((p) => normalizeName(p) === normalizeName(captain))) {
-        setLineupStatus("Captain must be one of the selected starters.", true);
-        return;
-      }
       try {
+        // Server-side Apps Script is source of truth for lineup validation/lock rules.
         await submitLineupToSheet(team, checkedPlayers, captain);
         setLineupStatus("Lineup submitted.");
         updateLastUpdated();
