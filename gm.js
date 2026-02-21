@@ -65,6 +65,7 @@ const els = {
   tradeSave: document.getElementById("trade-save"),
   tradeStatus: document.getElementById("trade-status"),
   tradeViewList: document.getElementById("trade-view-list"),
+  renameTeamSelect: document.getElementById("rename-team-select"),
   renamePlayerSelect: document.getElementById("rename-player-select"),
   renameNewName: document.getElementById("rename-new-name"),
   renameCode: document.getElementById("rename-code"),
@@ -456,19 +457,22 @@ function renderSelectedTeam(team) {
 
   renderTradePlayersList(team, selectedPlayers);
   renderTradePicksList(team, selectedPicks);
-  renderRenamePlayers(team);
   els.tradeNotes.value = block.notes || "";
   if (els.tradeCode) {
     els.tradeCode.value = "";
   }
+  renderOtherTradeBlocks(team);
+  setTradeStatus("");
+}
+
+function renderRenameTeam(team) {
+  renderRenamePlayers(team);
   if (els.renameCode) {
     els.renameCode.value = "";
   }
   if (els.renameNewName) {
     els.renameNewName.value = "";
   }
-  renderOtherTradeBlocks(team);
-  setTradeStatus("");
   setRenameStatus("");
 }
 
@@ -559,6 +563,11 @@ function bindEvents() {
       renderSelectedTeam(els.teamSelect.value);
     });
   }
+  if (els.renameTeamSelect) {
+    els.renameTeamSelect.addEventListener("change", () => {
+      renderRenameTeam(els.renameTeamSelect.value);
+    });
+  }
 
   if (els.tradeSave) {
     els.tradeSave.addEventListener("click", async () => {
@@ -604,7 +613,7 @@ function bindEvents() {
 
   if (els.renameSave) {
     els.renameSave.addEventListener("click", async () => {
-      const team = els.teamSelect.value;
+      const team = els.renameTeamSelect ? els.renameTeamSelect.value : "";
       if (!team) {
         setRenameStatus("Select a team first.", true);
         return;
@@ -637,7 +646,7 @@ function bindEvents() {
           normalizeName(p) === normalizeName(oldTag) ? newName : p
         );
         rosterByTeam.set(team, nextPlayers);
-        renderSelectedTeam(team);
+        renderRenameTeam(team);
         if (els.renamePlayerSelect) {
           els.renamePlayerSelect.value = newName;
         }
@@ -664,6 +673,7 @@ async function init() {
       );
     }
     renderSelectedTeam(els.teamSelect.value || "");
+    renderRenameTeam(els.renameTeamSelect ? els.renameTeamSelect.value : "");
     updateLastUpdated();
   } catch (error) {
     setTradeStatus(error.message, true);
