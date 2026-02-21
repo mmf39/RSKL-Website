@@ -935,6 +935,17 @@ function findTradeEvents(playerName, transactionRows, aliases) {
 }
 
 function findRetirementEvents(playerName, retirementRows, aliases) {
+  const extractDateAndTeam = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return { date: "", team: "" };
+    }
+    const firstFour = raw.slice(0, 4).trim();
+    if (/^\d{1,2}\/\d{1,2}$/.test(firstFour)) {
+      return { date: firstFour, team: raw.slice(4).trim() };
+    }
+    return { date: "", team: raw };
+  };
   if (!playerName || !retirementRows.length || !aliases.length) {
     return [];
   }
@@ -944,8 +955,10 @@ function findRetirementEvents(playerName, retirementRows, aliases) {
       return matchesAnyAlias(combined, aliases);
     })
     .map((row) => {
-      const date = "—";
-      const team = displayTeamName(String(row[2] || row[3] || "").trim() || "");
+      const mergedTeamCell = String(row[2] || row[3] || "").trim();
+      const parsed = extractDateAndTeam(mergedTeamCell);
+      const date = parsed.date || "—";
+      const team = displayTeamName(parsed.team || mergedTeamCell || "");
       const player = String(row[0] || row[1] || "").trim() || playerName;
       const note = "";
       return {

@@ -197,11 +197,24 @@ function parseTransactionRow(row) {
 }
 
 function parseRetirementRow(row) {
+  const extractDateAndTeam = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return { date: "", team: "" };
+    }
+    const firstFour = raw.slice(0, 4).trim();
+    if (/^\d{1,2}\/\d{1,2}$/.test(firstFour)) {
+      return { date: firstFour, team: raw.slice(4).trim() };
+    }
+    return { date: "", team: raw };
+  };
   // Merged layout:
   // G:H => player, I:J => team
   const player = String(row[0] || row[1] || "").trim();
-  const team = canonicalTeamName(row[2] || row[3] || "");
-  const date = String(row[4] || "").trim() || "—";
+  const mergedTeamCell = String(row[2] || row[3] || "").trim();
+  const parsed = extractDateAndTeam(mergedTeamCell);
+  const team = canonicalTeamName(parsed.team || mergedTeamCell);
+  const date = parsed.date || String(row[4] || "").trim() || "—";
   const note = "";
   if (!team && !player) {
     return null;
@@ -374,10 +387,11 @@ function renderTransactions(filter = "") {
           ${
             tx.type === "Retirement"
               ? `<div class="tx-sides">
-                  <div class="tx-side">
+                  <div class="tx-side tx-side-full">
+                    <div class="tx-retire-player">${linkifyPlayers(
+                      tx.player || "—"
+                    )}</div>
                     <div class="tx-side-team">${renderTeamHeader(tx.team)}</div>
-                    <div class="tx-side-label">Player</div>
-                    <div class="tx-side-value">${linkifyPlayers(tx.player || "—")}</div>
                     ${
                       tx.note
                         ? `<div class="tx-side-label">Details</div><div class="tx-side-value">${escapeHtml(
