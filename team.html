@@ -50,30 +50,7 @@
         </div>
       </section>
 
-      <section class="panel compact-panel standings-mini">
-        <div class="panel-head">
-          <h2>Standings</h2>
-        </div>
-        <div class="mini-row"><span>Team</span><strong id="stat-team">—</strong></div>
-        <div class="mini-row"><span>GP</span><strong id="stat-gp">—</strong></div>
-        <div class="mini-row"><span>Wins</span><strong id="stat-wins">—</strong></div>
-        <div class="mini-row"><span>Loss</span><strong id="stat-loss">—</strong></div>
-        <div class="mini-row"><span>GB</span><strong id="stat-gb">—</strong></div>
-        <div class="mini-row"><span>Win %</span><strong id="stat-winpct">—</strong></div>
-        <div class="mini-row"><span>SOS</span><strong id="stat-sos">—</strong></div>
-        <div class="mini-row"><span>PAM</span><strong id="stat-pam">—</strong></div>
-        <div class="mini-row"><span>tREL</span><strong id="stat-trel">—</strong></div>
-        <div class="mini-row"><span>Transactions</span><strong id="stat-transactions">—</strong></div>
-      </section>
-
-      <section class="panel compact-panel standings-mini">
-        <div class="panel-head">
-          <h2>Draft Capital</h2>
-        </div>
-        <div id="team-draft-capital" class="draft-picks-list"></div>
-      </section>
-
-      <section class="panel compact-panel">
+      <section class="panel compact-panel schedule-panel">
         <div class="panel-head">
           <h2>Team Schedule</h2>
         </div>
@@ -85,7 +62,34 @@
         </div>
       </section>
 
-      <section class="panel compact-panel">
+      <section class="panel compact-panel standings-panel">
+        <div class="panel-head">
+          <h2>Standings</h2>
+        </div>
+        <span id="stat-team" hidden>—</span>
+        <div class="stats-grid stats-grid-top">
+          <div class="stat-box"><span>GP</span><strong id="stat-gp">—</strong></div>
+          <div class="stat-box"><span>Wins</span><strong id="stat-wins">—</strong></div>
+          <div class="stat-box"><span>Loss</span><strong id="stat-loss">—</strong></div>
+          <div class="stat-box"><span>GB</span><strong id="stat-gb">—</strong></div>
+          <div class="stat-box"><span>Win %</span><strong id="stat-winpct">—</strong></div>
+        </div>
+        <div class="stats-grid stats-grid-bottom">
+          <div class="stat-box"><span>SOS</span><strong id="stat-sos">—</strong></div>
+          <div class="stat-box"><span>PAM</span><strong id="stat-pam">—</strong></div>
+          <div class="stat-box"><span>tREL</span><strong id="stat-trel">—</strong></div>
+          <div class="stat-box"><span>Transactions</span><strong id="stat-transactions">—</strong></div>
+        </div>
+      </section>
+
+      <section class="panel compact-panel draft-panel">
+        <div class="panel-head">
+          <h2>Draft Capital</h2>
+        </div>
+        <div id="team-draft-capital" class="draft-picks-list"></div>
+      </section>
+
+      <section class="panel compact-panel transactions-panel">
         <div class="panel-head">
           <h2>Team Transactions</h2>
         </div>

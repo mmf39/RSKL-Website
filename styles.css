@@ -525,7 +525,8 @@ input[type="text"] {
   max-width: 500px;
 }
 
-.standings-mini {
+.standings-panel,
+.draft-panel {
   max-width: 320px;
 }
 
@@ -560,20 +561,74 @@ input[type="text"] {
   padding: 6px 8px;
 }
 
-/* Reorder desktop cards to reduce empty grid gaps:
-   roster + draft first row, standings + schedule second row */
+.team-page .schedule-panel {
+  padding: 14px;
+}
+
+.team-page .stats-grid {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.team-page .stats-grid-top {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.team-page .stats-grid-bottom {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 0;
+}
+
+.team-page .stat-box {
+  border: 1px solid rgba(255, 140, 26, 0.28);
+  border-radius: 10px;
+  padding: 8px 6px;
+  background: rgba(15, 23, 42, 0.62);
+  display: grid;
+  gap: 4px;
+  text-align: center;
+}
+
+.team-page .stat-box span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.team-page .stat-box strong {
+  color: var(--accent-2);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.team-page .transactions-panel {
+  max-width: 100%;
+}
+
 @media (min-width: 721px) {
-  .team-page .roster-layout > :nth-child(2) {
-    order: 3;
+  .team-page .roster-panel {
+    grid-column: 1;
   }
-  .team-page .roster-layout > :nth-child(3) {
-    order: 2;
+  .team-page .schedule-panel {
+    grid-column: 1;
   }
-  .team-page .roster-layout > :nth-child(4) {
-    order: 4;
+  .team-page .standings-panel {
+    grid-column: 2;
   }
-  .team-page .roster-layout > :nth-child(5) {
-    order: 5;
+  .team-page .draft-panel {
+    grid-column: 2;
+  }
+  .team-page .transactions-panel {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 900px) {
+  .team-page .stats-grid-top {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .team-page .stats-grid-bottom {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
