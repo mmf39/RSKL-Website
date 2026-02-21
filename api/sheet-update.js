@@ -16,6 +16,12 @@ function parseQueryFromReq(req) {
   }
 }
 
+function withAction(url, action) {
+  if (!action) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}action=${encodeURIComponent(action)}`;
+}
+
 function forward(url, payload, redirects, res) {
   const target = new URL(url);
   const request = https.request(
@@ -88,7 +94,7 @@ module.exports = (req, res) => {
       params.action = "getTradeBlocks";
     }
     const payload = JSON.stringify(params);
-    forward(SCRIPT_URL, payload, 5, res);
+    forward(withAction(SCRIPT_URL, params.action), payload, 5, res);
     return;
   }
 
@@ -107,7 +113,12 @@ module.exports = (req, res) => {
     if (!payloadObj.action) {
       payloadObj.action = "getTradeBlocks";
     }
-    forward(SCRIPT_URL, JSON.stringify(payloadObj), 5, res);
+    forward(
+      withAction(SCRIPT_URL, payloadObj.action),
+      JSON.stringify(payloadObj),
+      5,
+      res
+    );
     return;
   }
 
@@ -131,6 +142,11 @@ module.exports = (req, res) => {
       payloadObj.action = "getTradeBlocks";
     }
 
-    forward(SCRIPT_URL, JSON.stringify(payloadObj), 5, res);
+    forward(
+      withAction(SCRIPT_URL, payloadObj.action),
+      JSON.stringify(payloadObj),
+      5,
+      res
+    );
   });
 };
