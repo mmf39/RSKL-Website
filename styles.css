@@ -1801,48 +1801,54 @@ input[type="text"] {
     min-width: 640px;
   }
 
-  /* Keep team page matching desktop layout on mobile */
+  /* Mobile-friendly team page layout */
   .team-page .container {
-    overflow-x: auto;
+    overflow-x: visible;
   }
 
   .team-page .roster-layout {
-    grid-template-columns: minmax(320px, 0.9fr) minmax(500px, 1.1fr);
-    min-width: 980px;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
     align-items: start;
   }
 
-  .team-page .standings-panel {
-    grid-column: 1 / -1;
-    grid-row: 1;
-    order: 1;
-    max-width: 100%;
-  }
-
-  .team-page .roster-panel {
-    grid-column: 1;
-    grid-row: 2;
-    order: 2;
-    max-width: 460px;
-  }
-
-  .team-page .schedule-panel {
-    grid-column: 2;
-    grid-row: 2;
-    order: 3;
-    max-width: 100%;
-  }
-
-  .team-page .draft-panel {
-    grid-column: 1;
-    grid-row: 3;
-    order: 4;
-    margin-top: -280px;
-  }
-
+  .team-page .standings-panel,
+  .team-page .roster-panel,
+  .team-page .schedule-panel,
+  .team-page .draft-panel,
   .team-page .transactions-panel {
-    grid-column: 1 / -1;
-    grid-row: 4;
-    order: 5;
+    grid-column: auto;
+    grid-row: auto;
+    order: initial;
+    max-width: 100%;
+    margin-top: 0;
+  }
+
+  .team-page .stats-grid-top {
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .team-page .stats-grid-bottom {
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .team-page .stat-box {
+    min-height: 74px;
+    padding: 8px 6px;
+  }
+
+  .team-page .stat-box strong {
+    font-size: 1.45rem;
+  }
+
+  .team-page .schedule-panel .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .team-page #team-schedule {
+    min-width: 560px;
   }
 }
