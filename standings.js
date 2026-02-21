@@ -1,8 +1,12 @@
 const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
 const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
+const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
+const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const SEASON_KEY = "season";
 const C2S2_SCHEDULE_RANGE = "A2:C77";
+const TRANSACTIONS_RANGE = "A3:E81";
+const RETIREMENT_RANGE = "G3:J70";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -12,6 +16,9 @@ const els = {
 let standingsRows = [];
 let standingsHeaders = [];
 let sosByTeam = new Map();
+let requestedMetric = "wins";
+let advancedByTeam = new Map();
+let transactionsByTeam = new Map();
 
 const ARCHIVE_RANGES = {
   standings: "A1:F7",
@@ -181,7 +188,25 @@ function renderStandings() {
     return;
   }
 
-  els.leaderboard.innerHTML = standingsRows
+  const sortedRows = [...standingsRows].sort((a, b) => {
+    const av = getMetricValue(a, standingsHeaders, requestedMetric);
+    const bv = getMetricValue(b, standingsHeaders, requestedMetric);
+    if (av === null && bv === null) {
+      return 0;
+    }
+    if (av === null) {
+      return 1;
+    }
+    if (bv === null) {
+      return -1;
+    }
+    if (metricOrder(requestedMetric) === "asc") {
+      return av - bv;
+    }
+    return bv - av;
+  });
+
+  els.leaderboard.innerHTML = sortedRows
     .map((row, index) => {
       const rawTeamName = row[0] || row[1] || "Team";
       const teamName = displayTeamName(rawTeamName);
@@ -231,6 +256,28 @@ function renderStandings() {
                 sosByTeam.has(rawTeamName) ? sosByTeam.get(rawTeamName) : "—"
               )}</span>
             </div>
+            <div class="leader-chip">
+              PAM
+              <span>${escapeHtml(
+                Number.isFinite((advancedByTeam.get(normalizeTeamLabel(rawTeamName)) || {}).pam)
+                  ? (advancedByTeam.get(normalizeTeamLabel(rawTeamName)).pam).toFixed(2)
+                  : "—"
+              )}</span>
+            </div>
+            <div class="leader-chip">
+              tREL
+              <span>${escapeHtml(
+                Number.isFinite((advancedByTeam.get(normalizeTeamLabel(rawTeamName)) || {}).tRel)
+                  ? (advancedByTeam.get(normalizeTeamLabel(rawTeamName)).tRel).toFixed(3)
+                  : "—"
+              )}</span>
+            </div>
+            <div class="leader-chip">
+              Transactions
+              <span>${escapeHtml(
+                String(transactionsByTeam.get(normalizeTeamLabel(rawTeamName)) || 0)
+              )}</span>
+            </div>
           </div>
         </a>
       `;
@@ -244,6 +291,281 @@ function parsePct(value) {
     return null;
   }
   return num > 1 ? num / 100 : num;
+}
+
+function parseNumber(value) {
+  const num = Number(String(value || "").replace(/[^0-9.\-]/g, ""));
+  return Number.isNaN(num) ? null : num;
+}
+
+function median(numbers) {
+  if (!numbers.length) {
+    return null;
+  }
+  const sorted = [...numbers].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+  return sorted[mid];
+}
+
+function normalizeTeamLabel(value) {
+  const normalized = String(value || "")
+    .replace(/\([^)]*\)/g, "")
+    .replace(/\*/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+  return normalized === "bullets" ? "storm" : normalized;
+}
+
+function teamMatches(value, teamName) {
+  const a = normalizeTeamLabel(value);
+  const b = normalizeTeamLabel(teamName);
+  if (!a || !b) {
+    return false;
+  }
+  return a === b || a.includes(b) || b.includes(a);
+}
+
+function isCaptainMarked(value) {
+  const text = String(value || "").trim();
+  return /\(c\)\s*$/i.test(text) || /\sc\s*$/i.test(text);
+}
+
+function parseAdjustedScore(row, columns) {
+  const base = parseNumber(row[columns.score]);
+  if (base === null) {
+    return null;
+  }
+  return isCaptainMarked(row[columns.player]) ? base - 0.5 : base;
+}
+
+function detectPlayerColumns(headerRow) {
+  const columns = { date: 0, team: 1, player: 2, score: 3, rank: 4, opponent: 5 };
+  if (!headerRow || !headerRow.length) {
+    return columns;
+  }
+  const lowered = headerRow.map((cell) => String(cell || "").toLowerCase());
+  const pick = (label) => lowered.indexOf(label);
+  const dateIdx = pick("date");
+  const teamIdx = pick("team");
+  const playerIdx = pick("player");
+  const scoreIdx = pick("score") !== -1 ? pick("score") : pick("points");
+  if (dateIdx !== -1) columns.date = dateIdx;
+  if (teamIdx !== -1) columns.team = teamIdx;
+  if (playerIdx !== -1) columns.player = playerIdx;
+  if (scoreIdx !== -1) columns.score = scoreIdx;
+  return columns;
+}
+
+function computeAdvancedByTeam(allRows) {
+  const map = new Map();
+  if (!allRows.length) {
+    return map;
+  }
+  const columns = detectPlayerColumns(allRows[0] || []);
+  const dataRows = allRows.slice(1);
+
+  const leagueScoresByDate = new Map();
+  dataRows.forEach((row) => {
+    const date = String(row[columns.date] || "").trim();
+    const score = parseAdjustedScore(row, columns);
+    if (!date || score === null) {
+      return;
+    }
+    if (!leagueScoresByDate.has(date)) {
+      leagueScoresByDate.set(date, []);
+    }
+    leagueScoresByDate.get(date).push(score);
+  });
+
+  const medianByDate = new Map();
+  leagueScoresByDate.forEach((scores, date) => {
+    const med = median(scores);
+    if (med !== null) {
+      medianByDate.set(date, med);
+    }
+  });
+
+  const teamTotalsByDate = new Map();
+  const playerAggByTeam = new Map();
+  dataRows.forEach((row) => {
+    const rowTeam = String(row[columns.team] || "").trim();
+    const teamKey = normalizeTeamLabel(rowTeam);
+    const date = String(row[columns.date] || "").trim();
+    const score = parseAdjustedScore(row, columns);
+    const med = medianByDate.get(date);
+    if (!teamKey || !date || score === null || !med || med <= 0) {
+      return;
+    }
+    if (!teamTotalsByDate.has(teamKey)) {
+      teamTotalsByDate.set(teamKey, new Map());
+    }
+    const totals = teamTotalsByDate.get(teamKey);
+    totals.set(date, (totals.get(date) || 0) + score);
+
+    if (!playerAggByTeam.has(teamKey)) {
+      playerAggByTeam.set(teamKey, new Map());
+    }
+    const playerKey = String(row[columns.player] || "").trim().toLowerCase();
+    if (!playerKey) {
+      return;
+    }
+    const playerAgg = playerAggByTeam.get(teamKey);
+    if (!playerAgg.has(playerKey)) {
+      playerAgg.set(playerKey, { relSum: 0, relGames: 0, gp: 0 });
+    }
+    const agg = playerAgg.get(playerKey);
+    agg.relSum += score / med;
+    agg.relGames += 1;
+    agg.gp += 1;
+  });
+
+  teamTotalsByDate.forEach((totals, team) => {
+    let pam = 0;
+    totals.forEach((teamTotal, date) => {
+      const med = medianByDate.get(date);
+      if (!med || med <= 0) {
+        return;
+      }
+      pam += teamTotal - med;
+    });
+
+    let tRelWeighted = 0;
+    let tRelWeight = 0;
+    const playerAgg = playerAggByTeam.get(team) || new Map();
+    playerAgg.forEach((agg) => {
+      if (!agg.relGames || !agg.gp) {
+        return;
+      }
+      const rel = agg.relSum / agg.relGames;
+      tRelWeighted += rel * agg.gp;
+      tRelWeight += agg.gp;
+    });
+
+    map.set(team, {
+      pam,
+      tRel: tRelWeight ? tRelWeighted / tRelWeight : null,
+    });
+  });
+
+  return map;
+}
+
+function parseTeamRetirementRow(row) {
+  const extractDateAndTeam = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return { date: "", team: "" };
+    }
+    const firstFour = raw.slice(0, 4).trim();
+    if (/^\d{1,2}\/\d{1,2}$/.test(firstFour)) {
+      return { date: firstFour, team: raw.slice(4).trim() };
+    }
+    return { date: "", team: raw };
+  };
+  const mergedTeamCell = String(row[2] || row[3] || "").trim();
+  const parsed = extractDateAndTeam(mergedTeamCell);
+  return {
+    team: displayTeamName(parsed.team || mergedTeamCell || ""),
+  };
+}
+
+function computeTransactionCounts(allRows) {
+  const counts = new Map();
+  const bump = (team) => {
+    const key = normalizeTeamLabel(team);
+    if (!key) {
+      return;
+    }
+    counts.set(key, (counts.get(key) || 0) + 1);
+  };
+
+  sliceRange(allRows, TRANSACTIONS_RANGE)
+    .filter((row) => row.some((cell) => String(cell || "").trim()))
+    .forEach((row) => {
+      bump(row[1]);
+      bump(row[3]);
+    });
+
+  sliceRange(allRows, RETIREMENT_RANGE)
+    .filter((row) => row.some((cell) => String(cell || "").trim()))
+    .map(parseTeamRetirementRow)
+    .forEach((row) => bump(row.team));
+
+  return counts;
+}
+
+function getRequestedMetric() {
+  const metric = new URLSearchParams(window.location.search)
+    .get("metric")
+    ?.toLowerCase();
+  const allowed = new Set([
+    "gp",
+    "wins",
+    "loss",
+    "gb",
+    "winpct",
+    "sos",
+    "pam",
+    "trel",
+    "transactions",
+  ]);
+  if (allowed.has(metric)) {
+    return metric;
+  }
+  if (metric === "win%" || metric === "pct") {
+    return "winpct";
+  }
+  return "wins";
+}
+
+function metricOrder(metric) {
+  return metric === "loss" || metric === "gb" ? "asc" : "desc";
+}
+
+function getMetricValue(row, headers, metric) {
+  const lower = headers.map((h) => String(h || "").toLowerCase());
+  const gpIdx = lower.findIndex((h) => h === "gp");
+  const winsIdx = lower.findIndex((h) => h === "wins");
+  const lossIdx = lower.findIndex((h) => h === "loss" || h === "losses");
+  const gbIdx = lower.findIndex((h) => h === "gb");
+  const pctIdx = lower.findIndex(
+    (h) => h === "win %" || h === "win%" || h === "pct"
+  );
+  const rawTeamName = row[0] || row[1] || "";
+  const teamKey = normalizeTeamLabel(rawTeamName);
+
+  if (metric === "sos") {
+    return parseNumber(sosByTeam.get(rawTeamName));
+  }
+  if (metric === "pam") {
+    return parseNumber((advancedByTeam.get(teamKey) || {}).pam);
+  }
+  if (metric === "trel") {
+    return parseNumber((advancedByTeam.get(teamKey) || {}).tRel);
+  }
+  if (metric === "transactions") {
+    return parseNumber(transactionsByTeam.get(teamKey));
+  }
+  if (metric === "winpct") {
+    return parsePct(row[pctIdx]);
+  }
+  if (metric === "gp") {
+    return parseNumber(row[gpIdx]);
+  }
+  if (metric === "wins") {
+    return parseNumber(row[winsIdx]);
+  }
+  if (metric === "loss") {
+    return parseNumber(row[lossIdx]);
+  }
+  if (metric === "gb") {
+    return parseNumber(row[gbIdx]);
+  }
+  return null;
 }
 
 function computeSosMap(
@@ -310,9 +632,11 @@ async function loadStandings() {
   try {
     const season = getSeason();
     if (season === "c2s2") {
-      const [standingsRes, scheduleRes] = await Promise.all([
+      const [standingsRes, scheduleRes, playerStatsRes, transactionsRes] = await Promise.all([
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
         fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
+        fetch(PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(TRANSACTIONS_URL, { cache: "no-store" }),
       ]);
       if (!standingsRes.ok) {
         throw new Error(`Fetch failed: ${standingsRes.status}`);
@@ -320,10 +644,14 @@ async function loadStandings() {
       if (!scheduleRes.ok) {
         throw new Error(`Fetch failed: ${scheduleRes.status}`);
       }
+      if (!playerStatsRes.ok) {
+        throw new Error(`Fetch failed: ${playerStatsRes.status}`);
+      }
       const rows = parseCSV(await standingsRes.text());
       const scheduleRows = getC2S2ScheduleRows(
         parseCSV(await scheduleRes.text())
       );
+      const playerRows = parseCSV(await playerStatsRes.text());
       if (!rows.length) {
         throw new Error("No data found.");
       }
@@ -336,6 +664,10 @@ async function loadStandings() {
         1,
         2
       );
+      advancedByTeam = computeAdvancedByTeam(playerRows);
+      transactionsByTeam = transactionsRes.ok
+        ? computeTransactionCounts(parseCSV(await transactionsRes.text()))
+        : new Map();
       renderStandings();
     } else {
       const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
@@ -348,6 +680,8 @@ async function loadStandings() {
         const scheduleTable = sliceRange(rows, "G31:I79");
         standingsHeaders = standingsTable[0] || [];
         standingsRows = standingsTable.slice(1);
+        advancedByTeam = new Map();
+        transactionsByTeam = new Map();
         sosByTeam = computeSosMap(
           standingsHeaders,
           standingsRows,
@@ -359,6 +693,8 @@ async function loadStandings() {
       } else {
         const sliced = sliceRange(rows, ARCHIVE_RANGES.bracket);
         sosByTeam = new Map();
+        advancedByTeam = new Map();
+        transactionsByTeam = new Map();
         renderTable(sliced);
       }
     }
@@ -380,4 +716,5 @@ function updateLastUpdated() {
 }
 
 initSeasonSelect();
+requestedMetric = getRequestedMetric();
 loadStandings();

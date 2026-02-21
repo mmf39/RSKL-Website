@@ -165,37 +165,55 @@ const ARCHIVE_RANGES = {
 };
 
 function getTeamLogo(name) {
+  const src = getTeamLogoSrc(name);
+  if (!src) {
+    return "";
+  }
+  return `<img class="team-logo" src="${src}" alt="${escapeHtml(name)} logo" />`;
+}
+
+function getTeamLogoSrc(name) {
   if (name === "The Future") {
-    return '<img class="team-logo" src="/assets/the-future.png" alt="The Future logo" />';
+    return "/assets/the-future.png";
   }
   if (name === "The Lions") {
-    return '<img class="team-logo" src="/assets/the-lions.png" alt="The Lions logo" />';
+    return "/assets/the-lions.png";
   }
   if (name === "The Snipers") {
-    return '<img class="team-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />';
+    return "/assets/the-snipers.png";
   }
   if (name === "The Phantoms") {
-    return '<img class="team-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';
+    return "/assets/the-phantoms.png";
   }
   if (name === "Yetis") {
-    return '<img class="team-logo" src="/assets/yetis.png" alt="Yetis logo" />';
+    return "/assets/yetis.png";
   }
   if (name === "Gus N Em") {
-    return '<img class="team-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />';
+    return "/assets/gus-n-em.png";
   }
   if (name === "Cheerios") {
-    return '<img class="team-logo" src="/assets/cheerios.png" alt="Cheerios logo" />';
+    return "/assets/cheerios.png";
   }
   if (name === "Illegals") {
-    return '<img class="team-logo" src="/assets/illegals.png" alt="Illegals logo" />';
+    return "/assets/illegals.png";
   }
   if (name === "Bullets" || name === "Storm") {
-    return '<img class="team-logo" src="/assets/storm.png" alt="Storm logo" />';
+    return "/assets/storm.png";
   }
   if (name === "Turkeys") {
-    return '<img class="team-logo" src="/assets/turkeys.png" alt="Turkeys logo" />';
+    return "/assets/turkeys.png";
   }
   return "";
+}
+
+function renderSmallTeamLogo(name) {
+  const src = getTeamLogoSrc(String(name || "").trim());
+  if (!src) {
+    return "";
+  }
+  return `<img class="standings-logo" src="${src}" alt="${escapeHtml(
+    String(name || "").trim()
+  )} logo" />`;
 }
 
 function renderTeamsCards(standingsRecordRows) {
@@ -434,10 +452,14 @@ function renderLiveScoring(rows, scheduleRows) {
         .map(
           (game, index) => `
             <div class="live-row-item" data-index="${index}">
-              <div>
-                <strong>${escapeHtml(game.team1)}</strong>
+              <div class="live-matchup">
+                <strong class="live-team-name">${renderSmallTeamLogo(
+                  game.team1
+                )}<span>${escapeHtml(game.team1)}</span></strong>
                 <span>vs</span>
-                <strong>${escapeHtml(game.team2)}</strong>
+                <strong class="live-team-name">${renderSmallTeamLogo(
+                  game.team2
+                )}<span>${escapeHtml(game.team2)}</span></strong>
               </div>
             </div>
           `
@@ -472,6 +494,7 @@ function renderLiveScoring(rows, scheduleRows) {
       const teamLink = `team.html?team=${encodeURIComponent(
         cleanTeamLabel(header)
       )}`;
+      const logo = renderSmallTeamLogo(cleanTeamLabel(header));
       const body = rowsList
         .filter((row) => String(row.player || "").trim() !== "")
         .map(
@@ -488,7 +511,9 @@ function renderLiveScoring(rows, scheduleRows) {
         .join("");
       return `
         <div class="boxscore-card">
-          <a class="boxscore-team" href="${teamLink}">${escapeHtml(header)}</a>
+          <a class="boxscore-team" href="${teamLink}">${logo}<span>${escapeHtml(
+            header
+          )}</span></a>
           <div class="boxscore-row">
             <span>Player</span>
             <span>Points</span>

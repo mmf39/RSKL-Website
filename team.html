@@ -66,19 +66,34 @@
         <div class="panel-head">
           <h2>Standings</h2>
         </div>
+        <div class="standings-tools">
+          <label for="standings-metric-select">League Leader</label>
+          <select id="standings-metric-select" class="season-select">
+            <option value="wins">Wins</option>
+            <option value="gp">GP</option>
+            <option value="loss">Loss</option>
+            <option value="gb">GB</option>
+            <option value="winpct">Win %</option>
+            <option value="sos">SOS</option>
+            <option value="pam">PAM</option>
+            <option value="trel">tREL</option>
+            <option value="transactions">Transactions</option>
+          </select>
+          <div id="standings-metric-leader" class="standings-metric-leader">Leader: —</div>
+        </div>
         <span id="stat-team" hidden>—</span>
         <div class="stats-grid stats-grid-top">
-          <div class="stat-box"><span>GP</span><strong id="stat-gp">—</strong></div>
-          <div class="stat-box"><span>Wins</span><strong id="stat-wins">—</strong></div>
-          <div class="stat-box"><span>Loss</span><strong id="stat-loss">—</strong></div>
-          <div class="stat-box"><span>GB</span><strong id="stat-gb">—</strong></div>
-          <div class="stat-box"><span>Win %</span><strong id="stat-winpct">—</strong></div>
+          <div class="stat-box" data-metric="gp"><span>GP</span><strong id="stat-gp">—</strong></div>
+          <div class="stat-box" data-metric="wins"><span>Wins</span><strong id="stat-wins">—</strong></div>
+          <div class="stat-box" data-metric="loss"><span>Loss</span><strong id="stat-loss">—</strong></div>
+          <div class="stat-box" data-metric="gb"><span>GB</span><strong id="stat-gb">—</strong></div>
+          <div class="stat-box" data-metric="winpct"><span>Win %</span><strong id="stat-winpct">—</strong></div>
         </div>
         <div class="stats-grid stats-grid-bottom">
-          <div class="stat-box"><span>SOS</span><strong id="stat-sos">—</strong></div>
-          <div class="stat-box"><span>PAM</span><strong id="stat-pam">—</strong></div>
-          <div class="stat-box"><span>tREL</span><strong id="stat-trel">—</strong></div>
-          <div class="stat-box"><span>Transactions</span><strong id="stat-transactions">—</strong></div>
+          <div class="stat-box" data-metric="sos"><span>SOS</span><strong id="stat-sos">—</strong></div>
+          <div class="stat-box" data-metric="pam"><span>PAM</span><strong id="stat-pam">—</strong></div>
+          <div class="stat-box" data-metric="trel"><span>tREL</span><strong id="stat-trel">—</strong></div>
+          <div class="stat-box" data-metric="transactions"><span>Transactions</span><strong id="stat-transactions">—</strong></div>
         </div>
       </section>
 

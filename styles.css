@@ -179,6 +179,18 @@ h1 {
   gap: 10px;
 }
 
+.live-matchup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.live-team-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .btn {
   appearance: none;
   border: none;
@@ -587,6 +599,30 @@ input[type="text"] {
   font-size: 2rem;
 }
 
+.team-page .standings-tools {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  justify-items: start;
+}
+
+.team-page .standings-tools label {
+  color: var(--muted);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.team-page .standings-metric-leader {
+  color: var(--accent-2);
+  font-size: 0.95rem;
+}
+
+.team-page .standings-metric-leader strong {
+  color: var(--accent);
+}
+
 .team-page .stats-grid {
   display: grid;
   gap: 10px;
@@ -618,6 +654,7 @@ input[type="text"] {
   align-content: center;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   transition: border-color 0.15s ease, transform 0.15s ease;
+  cursor: pointer;
 }
 
 .team-page .stat-box:hover {
@@ -676,14 +713,14 @@ input[type="text"] {
     order: 2;
   }
   .team-page .schedule-panel {
-    grid-column: 1;
-    grid-row: 3;
-    order: 4;
-  }
-  .team-page .draft-panel {
     grid-column: 2;
     grid-row: 2;
     order: 3;
+  }
+  .team-page .draft-panel {
+    grid-column: 1;
+    grid-row: 3;
+    order: 4;
   }
   .team-page .transactions-panel {
     grid-column: 1 / -1;
@@ -784,6 +821,9 @@ input[type="text"] {
   color: var(--ink);
   text-decoration: none;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .boxscore-team:hover {
@@ -1514,6 +1554,22 @@ input[type="text"] {
 
 .roster-link:hover {
   text-decoration: underline;
+}
+
+.schedule-team-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.schedule-team-static {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.schedule-team-link .standings-logo {
+  margin-right: 0;
 }
 
 .transactions-list {

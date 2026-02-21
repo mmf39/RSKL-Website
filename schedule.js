@@ -145,6 +145,32 @@ function isTeamColumn(header) {
   return text.includes("team");
 }
 
+function getTeamLogo(team) {
+  const clean = displayTeamName(team);
+  if (clean === "The Future") return "/assets/the-future.png";
+  if (clean === "The Lions") return "/assets/the-lions.png";
+  if (clean === "The Snipers") return "/assets/the-snipers.png";
+  if (clean === "The Phantoms") return "/assets/the-phantoms.png";
+  if (clean === "Yetis") return "/assets/yetis.png";
+  if (clean === "Gus N Em") return "/assets/gus-n-em.png";
+  if (clean === "Cheerios") return "/assets/cheerios.png";
+  if (clean === "Illegals") return "/assets/illegals.png";
+  if (clean === "Storm" || clean === "Bullets") return "/assets/storm.png";
+  if (clean === "Turkeys") return "/assets/turkeys.png";
+  return "";
+}
+
+function renderTeamCell(value) {
+  const shown = displayTeamName(value);
+  const logo = getTeamLogo(shown);
+  const logoHtml = logo
+    ? `<img class="standings-logo" src="${logo}" alt="${escapeHtml(
+        shown
+      )} logo" />`
+    : "";
+  return { shown, logoHtml };
+}
+
 function findBoxScoreRowsForDate(dateToken, boxRows) {
   if (!dateToken || !boxRows || !boxRows.length) {
     return [];
@@ -229,10 +255,16 @@ function renderTable(headers, dataRows, fullRows, boxScoreRows, scheduleRows) {
             .map((header, i) => {
               const value = row[i] ?? "";
               if (isTeamColumn(header) && String(value).trim() && !concluded) {
-                const shown = displayTeamName(value);
-                return `<td><a class="roster-link" href="/team.html?team=${encodeURIComponent(
+                const { shown, logoHtml } = renderTeamCell(value);
+                return `<td><a class="roster-link schedule-team-link" href="/team.html?team=${encodeURIComponent(
                   shown
-                )}">${escapeHtml(shown)}</a></td>`;
+                )}">${logoHtml}<span>${escapeHtml(shown)}</span></a></td>`;
+              }
+              if (isTeamColumn(header) && String(value).trim()) {
+                const { shown, logoHtml } = renderTeamCell(value);
+                return `<td><span class="schedule-team-link schedule-team-static">${logoHtml}<span>${escapeHtml(
+                  shown
+                )}</span></span></td>`;
               }
               return `<td>${escapeHtml(value)}</td>`;
             })
@@ -261,8 +293,17 @@ function renderBoxScore(rowEl, boxScoreBlock, team1Name, team2Name, dateLabel) {
     const teamLink = `team.html?team=${encodeURIComponent(
       cleanTeamLabel(header)
     )}`;
+    const cleanHeader = displayTeamName(cleanTeamLabel(header));
+    const logoSrc = getTeamLogo(cleanHeader);
+    const logoHtml = logoSrc
+      ? `<img class="standings-logo" src="${logoSrc}" alt="${escapeHtml(
+          cleanHeader
+        )} logo" />`
+      : "";
     const headerLine = header
-      ? `<a class="boxscore-team" href="${teamLink}">${escapeHtml(header)}</a>`
+      ? `<a class="boxscore-team" href="${teamLink}">${logoHtml}<span>${escapeHtml(
+          cleanHeader
+        )}</span></a>`
       : "";
     const headerRow = `
       <div class="boxscore-row">

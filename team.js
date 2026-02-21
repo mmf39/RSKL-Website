@@ -66,6 +66,7 @@ const DRAFT_CAPITAL_COLUMNS = {
   "The Snipers": "I",
   Illegals: "J",
 };
+const TEAM_STANDINGS_METRIC_KEY = "team_standings_metric";
 
 function getSeason() {
   return localStorage.getItem(SEASON_KEY) || "c2s2";
@@ -119,6 +120,9 @@ const els = {
   statTRel: document.getElementById("stat-trel"),
   statTransactions: document.getElementById("stat-transactions"),
   statTeam: document.getElementById("stat-team"),
+  standingsMetricSelect: document.getElementById("standings-metric-select"),
+  standingsMetricLeader: document.getElementById("standings-metric-leader"),
+  standingsStatBoxes: Array.from(document.querySelectorAll(".stat-box[data-metric]")),
   draftCapital: document.getElementById("team-draft-capital"),
   teamTransactions: document.getElementById("team-transactions"),
   scheduleHead: document.querySelector("#team-schedule thead"),
@@ -127,6 +131,207 @@ const els = {
   modalClose: document.querySelector(".modal-close"),
   boxDetails: document.getElementById("boxscore-details"),
 };
+
+let leagueStandingsMetrics = [];
+let leagueTransactionCounts = new Map();
+
+function getMetricOrder(metric) {
+  return metric === "gb" || metric === "loss" ? "asc" : "desc";
+}
+
+function parseMetricValue(metric, value) {
+  if (metric === "winpct") {
+    return parsePct(value);
+  }
+  return parseNumber(value);
+}
+
+function getTeamLogoSrc(team) {
+  const clean = displayTeamName(team);
+  if (clean === "The Future") return "/assets/the-future.png";
+  if (clean === "The Lions") return "/assets/the-lions.png";
+  if (clean === "The Snipers") return "/assets/the-snipers.png";
+  if (clean === "The Phantoms") return "/assets/the-phantoms.png";
+  if (clean === "Yetis") return "/assets/yetis.png";
+  if (clean === "Gus N Em") return "/assets/gus-n-em.png";
+  if (clean === "Cheerios") return "/assets/cheerios.png";
+  if (clean === "Illegals") return "/assets/illegals.png";
+  if (clean === "Storm" || clean === "Bullets") return "/assets/storm.png";
+  if (clean === "Turkeys") return "/assets/turkeys.png";
+  return "";
+}
+
+function getSelectedStandingsMetric() {
+  const fallback = "wins";
+  const raw = localStorage.getItem(TEAM_STANDINGS_METRIC_KEY) || fallback;
+  const allowed = new Set([
+    "gp",
+    "wins",
+    "loss",
+    "gb",
+    "winpct",
+    "sos",
+    "pam",
+    "trel",
+    "transactions",
+  ]);
+  return allowed.has(raw) ? raw : fallback;
+}
+
+function buildLeagueRowsFromC2S2(standingsRows, scheduleRows, playerRows) {
+  const uniqueTeams = new Map();
+  Object.keys(STANDINGS_RANGES).forEach((team) => {
+    const shown = displayTeamName(team);
+    if (!uniqueTeams.has(shown)) {
+      uniqueTeams.set(shown, STANDINGS_RANGES[team]);
+    }
+  });
+
+  const winPctMap = buildWinPctMapFromStandingsRows(standingsRows);
+  return Array.from(uniqueTeams.entries())
+    .map(([team, range]) => {
+      const sliced = sliceRange(standingsRows, range);
+      const row = sliced[0] || [];
+      if (!row.length) {
+        return null;
+      }
+      const advanced = computeAdvancedTeamStats(team, playerRows) || {};
+      return {
+        team: displayTeamName(row[0] || team),
+        gp: parseNumber(row[1]),
+        wins: parseNumber(row[2]),
+        loss: parseNumber(row[3]),
+        gb: parseNumber(row[4]),
+        winpct: parsePct(row[5]),
+        sos: computeTeamSOS(team, scheduleRows, winPctMap, "c2s2"),
+        pam: typeof advanced.pam === "number" ? advanced.pam : null,
+        trel: typeof advanced.tRel === "number" ? advanced.tRel : null,
+        transactions: 0,
+      };
+    })
+    .filter(Boolean);
+}
+
+function buildLeagueRowsFromArchive(standingsTable, scheduleTable, season) {
+  if (!standingsTable.length) {
+    return [];
+  }
+  const headers = (standingsTable[0] || []).map((h) =>
+    String(h || "").trim().toLowerCase()
+  );
+  const teamIdx = headers.findIndex((h) => h === "team");
+  const gpIdx = headers.findIndex((h) => h === "gp");
+  const winsIdx = headers.findIndex((h) => h === "wins");
+  const lossIdx = headers.findIndex((h) => h === "loss" || h === "losses");
+  const gbIdx = headers.findIndex((h) => h === "gb");
+  const pctIdx = headers.findIndex(
+    (h) => h === "win %" || h === "win%" || h === "pct"
+  );
+  const winPctMap = buildWinPctMapFromStandingsTable(standingsTable);
+
+  return standingsTable
+    .slice(1)
+    .map((row) => {
+      const team = displayTeamName(row[teamIdx] || "");
+      if (!team) {
+        return null;
+      }
+      return {
+        team,
+        gp: parseNumber(row[gpIdx]),
+        wins: parseNumber(row[winsIdx]),
+        loss: parseNumber(row[lossIdx]),
+        gb: parseNumber(row[gbIdx]),
+        winpct: parsePct(row[pctIdx]),
+        sos: computeTeamSOS(team, scheduleTable, winPctMap, season),
+        pam: null,
+        trel: null,
+        transactions: 0,
+      };
+    })
+    .filter(Boolean);
+}
+
+function applyTransactionCountsToLeagueRows(rows, counts) {
+  rows.forEach((row) => {
+    const key = normalizeTeamLabel(row.team);
+    row.transactions = counts.get(key) || 0;
+  });
+}
+
+function renderLeagueMetricLeader() {
+  if (!els.standingsMetricLeader || !els.standingsMetricSelect) {
+    return;
+  }
+  if (!leagueStandingsMetrics.length) {
+    els.standingsMetricLeader.textContent = "Leader: —";
+    return;
+  }
+  const metric = els.standingsMetricSelect.value || "wins";
+  const order = getMetricOrder(metric);
+  const sorted = leagueStandingsMetrics
+    .map((row) => ({ row, value: parseMetricValue(metric, row[metric]) }))
+    .filter((entry) => entry.value !== null)
+    .sort((a, b) => {
+      if (order === "asc") {
+        return a.value - b.value;
+      }
+      return b.value - a.value;
+    });
+  if (!sorted.length) {
+    els.standingsMetricLeader.textContent = "Leader: —";
+    return;
+  }
+  const leader = sorted[0];
+  const shownTeam = displayTeamName(leader.row.team);
+  const logoSrc = getTeamLogoSrc(shownTeam);
+  const logoHtml = logoSrc
+    ? `<img class="standings-logo" src="${logoSrc}" alt="${escapeHtml(
+        shownTeam
+      )} logo" />`
+    : "";
+  const valueText =
+    metric === "winpct" || metric === "sos" || metric === "trel"
+      ? Number(leader.value).toFixed(3)
+      : Number(leader.value).toLocaleString();
+  const label = els.standingsMetricSelect.options[
+    els.standingsMetricSelect.selectedIndex
+  ]?.textContent || metric;
+  els.standingsMetricLeader.innerHTML = `Leader (${escapeHtml(
+    label
+  )}): <a class="tx-link tx-team-link" href="/team.html?team=${encodeURIComponent(
+    shownTeam
+  )}">${logoHtml}${escapeHtml(shownTeam)}</a> <strong>${escapeHtml(
+    valueText
+  )}</strong>`;
+}
+
+function initStandingsInteractions() {
+  if (els.standingsMetricSelect) {
+    els.standingsMetricSelect.value = getSelectedStandingsMetric();
+    els.standingsMetricSelect.addEventListener("change", () => {
+      localStorage.setItem(TEAM_STANDINGS_METRIC_KEY, els.standingsMetricSelect.value);
+      renderLeagueMetricLeader();
+    });
+  }
+  els.standingsStatBoxes.forEach((box) => {
+    const metric = box.dataset.metric;
+    if (!metric) {
+      return;
+    }
+    box.addEventListener("click", (event) => {
+      if (event.target.closest("a")) {
+        return;
+      }
+      localStorage.setItem(TEAM_STANDINGS_METRIC_KEY, metric);
+      if (els.standingsMetricSelect) {
+        els.standingsMetricSelect.value = metric;
+      }
+      renderLeagueMetricLeader();
+      window.location.href = `/standings.html?metric=${encodeURIComponent(metric)}`;
+    });
+  });
+}
 
 function parseCSV(text) {
   const rows = [];
@@ -254,11 +459,22 @@ function renderSchedule(headers, dataRows) {
               const isTeamCol = String(header || "")
                 .toLowerCase()
                 .includes("team");
+              const shown = displayTeamName(value);
+              const logo = getTeamLogo(shown);
+              const logoHtml = logo
+                ? `<img class="standings-logo" src="${logo}" alt="${escapeHtml(
+                    shown
+                  )} logo" />`
+                : "";
               if (isTeamCol && String(value).trim() && !concluded) {
-                const shown = displayTeamName(value);
-                return `<td><a class="roster-link" href="/team.html?team=${encodeURIComponent(
+                return `<td><a class="roster-link schedule-team-link" href="/team.html?team=${encodeURIComponent(
                   shown
-                )}">${escapeHtml(shown)}</a></td>`;
+                )}">${logoHtml}<span>${escapeHtml(shown)}</span></a></td>`;
+              }
+              if (isTeamCol && String(value).trim()) {
+                return `<td><span class="schedule-team-link schedule-team-static">${logoHtml}<span>${escapeHtml(
+                  shown
+                )}</span></span></td>`;
               }
               return `<td>${escapeHtml(value)}</td>`;
             })
@@ -730,6 +946,34 @@ function parseTeamRetirementRow(row) {
   };
 }
 
+function computeLeagueTransactionCounts(allRows) {
+  const counts = new Map();
+  const bump = (team) => {
+    const key = normalizeTeamLabel(team);
+    if (!key) {
+      return;
+    }
+    counts.set(key, (counts.get(key) || 0) + 1);
+  };
+
+  sliceRange(allRows, TRANSACTIONS_RANGE)
+    .filter(hasText)
+    .map(parseTeamTradeRow)
+    .forEach((tx) => {
+      bump(tx.team1);
+      bump(tx.team2);
+    });
+
+  sliceRange(allRows, RETIREMENT_RANGE)
+    .filter(hasText)
+    .map(parseTeamRetirementRow)
+    .forEach((tx) => {
+      bump(tx.team);
+    });
+
+  return counts;
+}
+
 function linkifyPlayers(text) {
   const source = String(text || "");
   const parts = source.split(/(@[A-Za-z0-9_.]+)/g);
@@ -1081,6 +1325,16 @@ async function loadRoster() {
         parseCSV(await scheduleRes.text())
       );
       const playerStatRows = parseCSV(await playerStatsRes.text());
+      leagueStandingsMetrics = buildLeagueRowsFromC2S2(
+        standingsRows,
+        scheduleRows,
+        playerStatRows
+      );
+      applyTransactionCountsToLeagueRows(
+        leagueStandingsMetrics,
+        leagueTransactionCounts
+      );
+      renderLeagueMetricLeader();
       updateStandingsFromRanges(teamName, standingsRows);
       const winPctMap = buildWinPctMapFromStandingsRows(standingsRows);
       const sos = computeTeamSOS(teamName, scheduleRows, winPctMap, season);
@@ -1124,6 +1378,16 @@ async function loadRoster() {
       const standingsRow = standingsRange
         ? sliceRange(archive, standingsRange)[0]
         : null;
+      leagueStandingsMetrics = buildLeagueRowsFromArchive(
+        standingsTable,
+        scheduleTable,
+        season
+      );
+      applyTransactionCountsToLeagueRows(
+        leagueStandingsMetrics,
+        leagueTransactionCounts
+      );
+      renderLeagueMetricLeader();
       updateStandingsFromRow(standingsRow || []);
       const archiveWinPctMap = buildWinPctMapFromStandingsTable(standingsTable);
       const archiveSos = computeTeamSOS(
@@ -1154,7 +1418,14 @@ async function loadRoster() {
     try {
       const txRes = await fetch(TRANSACTIONS_URL, { cache: "no-store" });
       if (txRes.ok) {
-        loadTeamTransactionsPanel(teamName, parseCSV(await txRes.text()));
+        const txRows = parseCSV(await txRes.text());
+        loadTeamTransactionsPanel(teamName, txRows);
+        leagueTransactionCounts = computeLeagueTransactionCounts(txRows);
+        applyTransactionCountsToLeagueRows(
+          leagueStandingsMetrics,
+          leagueTransactionCounts
+        );
+        renderLeagueMetricLeader();
       } else {
         if (els.teamTransactions) {
           els.teamTransactions.innerHTML =
@@ -1352,8 +1623,17 @@ function renderBoxScoreModal(boxScore) {
     const teamLink = `team.html?team=${encodeURIComponent(
       cleanTeamLabel(header)
     )}`;
+    const cleanHeader = displayTeamName(cleanTeamLabel(header));
+    const logoSrc = getTeamLogo(cleanHeader);
+    const logoHtml = logoSrc
+      ? `<img class="standings-logo" src="${logoSrc}" alt="${escapeHtml(
+          cleanHeader
+        )} logo" />`
+      : "";
     const headerLine = header
-      ? `<a class="boxscore-team" href="${teamLink}">${escapeHtml(header)}</a>`
+      ? `<a class="boxscore-team" href="${teamLink}">${logoHtml}<span>${escapeHtml(
+          cleanHeader
+        )}</span></a>`
       : "";
     const headerRow = `
       <div class="boxscore-row">
@@ -1412,4 +1692,5 @@ document.addEventListener("click", (event) => {
 });
 
 initSeasonSelect();
+initStandingsInteractions();
 loadRoster();
