@@ -709,12 +709,56 @@ function parseTeamTradeRow(row) {
 
 function parseTeamRetirementRow(row) {
   return {
-    date: String(row[0] || "").trim() || "—",
+    date: "—",
     type: "Retirement",
-    team: displayTeamName(String(row[1] || "").trim() || ""),
-    player: String(row[2] || "").trim() || "—",
-    note: String(row[3] || "").trim(),
+    team: displayTeamName(String(row[2] || row[3] || "").trim() || ""),
+    player: String(row[0] || row[1] || "").trim() || "—",
+    note: "",
   };
+}
+
+function linkifyPlayers(text) {
+  const source = String(text || "");
+  const parts = source.split(/(@[A-Za-z0-9_.]+)/g);
+  return parts
+    .map((part) => {
+      if (/^@[A-Za-z0-9_.]+$/.test(part)) {
+        return `<a class="tx-link" href="/player-detail.html?player=${encodeURIComponent(
+          part
+        )}">${escapeHtml(part)}</a>`;
+      }
+      return escapeHtml(part);
+    })
+    .join("");
+}
+
+function getTeamLogo(team) {
+  const clean = displayTeamName(team);
+  if (clean === "The Future") return "/assets/the-future.png";
+  if (clean === "The Lions") return "/assets/the-lions.png";
+  if (clean === "The Snipers") return "/assets/the-snipers.png";
+  if (clean === "The Phantoms") return "/assets/the-phantoms.png";
+  if (clean === "Yetis") return "/assets/yetis.png";
+  if (clean === "Gus N Em") return "/assets/gus-n-em.png";
+  if (clean === "Cheerios") return "/assets/cheerios.png";
+  if (clean === "Illegals") return "/assets/illegals.png";
+  if (clean === "Storm" || clean === "Bullets") return "/assets/storm.png";
+  if (clean === "Turkeys") return "/assets/turkeys.png";
+  return "";
+}
+
+function renderTeamHeader(team) {
+  const clean = displayTeamName(team);
+  if (!clean) {
+    return "<span class=\"muted\">—</span>";
+  }
+  const logo = getTeamLogo(clean);
+  const logoHtml = logo
+    ? `<img class="standings-logo" src="${logo}" alt="${escapeHtml(clean)} logo" />`
+    : "";
+  return `<a class="tx-link tx-team-link" href="/team.html?team=${encodeURIComponent(
+    clean
+  )}">${logoHtml}${escapeHtml(clean)}</a>`;
 }
 
 function loadTeamTransactionsPanel(teamName, allRows) {
@@ -764,7 +808,8 @@ function loadTeamTransactionsPanel(teamName, allRows) {
               <strong>Retirement</strong>
               <span>${escapeHtml(tx.date)}</span>
             </div>
-            <div class="tx-details">${escapeHtml(tx.player)} retired${
+            <div class="tx-side-team">${renderTeamHeader(tx.team)}</div>
+            <div class="tx-details">${linkifyPlayers(tx.player)} retired${
               tx.note ? ` • ${escapeHtml(tx.note)}` : ""
             }</div>
           </article>

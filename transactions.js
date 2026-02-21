@@ -143,7 +143,7 @@ function canonicalTeamName(name) {
 }
 
 function extractPlayers(text) {
-  const matches = String(text || "").match(/@[A-Za-z0-9_]+/g) || [];
+  const matches = String(text || "").match(/@[A-Za-z0-9_.]+/g) || [];
   return Array.from(new Set(matches));
 }
 
@@ -197,12 +197,13 @@ function parseTransactionRow(row) {
 }
 
 function parseRetirementRow(row) {
-  // G: Date, H: Team, I: Player, J: Details/Reason
-  const date = String(row[0] || "").trim();
-  const team = canonicalTeamName(row[1] || "");
-  const player = String(row[2] || "").trim();
-  const note = String(row[3] || "").trim();
-  if (!date && !team && !player && !note) {
+  // Merged layout:
+  // G:H => player, I:J => team
+  const player = String(row[0] || row[1] || "").trim();
+  const team = canonicalTeamName(row[2] || row[3] || "");
+  const date = String(row[4] || "").trim() || "—";
+  const note = "";
+  if (!team && !player) {
     return null;
   }
   const details = `${player || "Player"} retired${
@@ -262,10 +263,10 @@ function renderLinks(list, kind) {
 
 function linkifyPlayers(text) {
   const source = String(text || "");
-  const parts = source.split(/(@[A-Za-z0-9_]+)/g);
+  const parts = source.split(/(@[A-Za-z0-9_.]+)/g);
   return parts
     .map((part) => {
-      if (/^@[A-Za-z0-9_]+$/.test(part)) {
+      if (/^@[A-Za-z0-9_.]+$/.test(part)) {
         return `<a class="tx-link" href="player-detail.html?player=${encodeURIComponent(
           part
         )}">${escapeHtml(part)}</a>`;

@@ -640,6 +640,10 @@ function renderPlayerTeam(teamName) {
     return;
   }
   const shownTeam = displayTeamName(teamName);
+  if (String(shownTeam).toLowerCase() === "retired") {
+    els.teamValue.innerHTML = "<span>Retired</span>";
+    return;
+  }
   const logo =
     shownTeam === "The Future"
       ? '<img class="player-team-logo" src="/assets/the-future.png" alt="The Future logo" />'
@@ -940,10 +944,10 @@ function findRetirementEvents(playerName, retirementRows, aliases) {
       return matchesAnyAlias(combined, aliases);
     })
     .map((row) => {
-      const date = String(row[0] || "").trim() || "—";
-      const team = displayTeamName(String(row[1] || "").trim() || "");
-      const player = String(row[2] || "").trim() || playerName;
-      const note = String(row[3] || "").trim();
+      const date = "—";
+      const team = displayTeamName(String(row[2] || row[3] || "").trim() || "");
+      const player = String(row[0] || row[1] || "").trim() || playerName;
+      const note = "";
       return {
         date,
         title: "Retirement",
@@ -1018,6 +1022,9 @@ async function loadPlayerTransactions(playerName, season) {
     draftEvents.forEach((event) => events.push(event));
     const trades = findTradeEvents(playerName, transactionRows, aliases);
     const retirements = findRetirementEvents(playerName, retirementRows, aliases);
+    if (retirements.length) {
+      renderPlayerTeam("Retired");
+    }
     if (trades.length || retirements.length) {
       events.push(...trades, ...retirements);
     } else if (!draftEvents.length) {
