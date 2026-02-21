@@ -1440,8 +1440,32 @@ async function loadPlayer() {
       updateSummary(filtered, baselines);
       renderCareerTeamBreakdown(filtered, baselines, season);
       const teamsFromStats = getTeamsFromRows(filtered);
-      if (season === "career" && teamsFromStats.length) {
-        renderPlayerTeam(teamsFromStats);
+      if (season === "career") {
+        const currentTeam = await findTeamForPlayer("c2s2-regular", playerName);
+        if (currentTeam) {
+          const shownCurrent = displayTeamName(currentTeam);
+          const ordered = [
+            shownCurrent,
+            ...teamsFromStats.filter(
+              (team) => displayTeamName(team) !== shownCurrent
+            ),
+          ];
+          renderPlayerTeam(ordered);
+        } else if (teamsFromStats.length) {
+          renderPlayerTeam(teamsFromStats);
+        } else {
+          const teamName = await findTeamForPlayer(season, playerName);
+          renderPlayerTeam(teamName);
+        }
+      } else if (season === "c2s2-regular") {
+        const currentTeam = await findTeamForPlayer(season, playerName);
+        if (currentTeam) {
+          renderPlayerTeam(currentTeam);
+        } else if (teamsFromStats.length) {
+          renderPlayerTeam(teamsFromStats[0]);
+        } else {
+          renderPlayerTeam("");
+        }
       } else if (teamsFromStats.length) {
         renderPlayerTeam(teamsFromStats[0]);
       } else {
