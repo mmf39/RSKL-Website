@@ -58,6 +58,7 @@ const els = {
   tabButtons: Array.from(document.querySelectorAll("[data-gm-tab]")),
   tabTradePanel: document.getElementById("gm-tab-trade"),
   tabRenamePanel: document.getElementById("gm-tab-rename"),
+  tabLineupPanel: document.getElementById("gm-tab-lineup"),
   lastUpdated: document.getElementById("last-updated"),
   teamSelect: document.getElementById("gm-team-select"),
   teamLabel: document.getElementById("gm-team-label"),
@@ -74,6 +75,11 @@ const els = {
   renameCode: document.getElementById("rename-code"),
   renameSave: document.getElementById("rename-save"),
   renameStatus: document.getElementById("rename-status"),
+  lineupTeamSelect: document.getElementById("lineup-team-select"),
+  lineupPlayerList: document.getElementById("lineup-player-list"),
+  lineupCode: document.getElementById("lineup-code"),
+  lineupSave: document.getElementById("lineup-save"),
+  lineupStatus: document.getElementById("lineup-status"),
 };
 
 let rosterByTeam = new Map();
@@ -81,12 +87,15 @@ let picksByTeam = new Map();
 let tradeBlocksCache = {};
 
 function setActiveTab(tab) {
-  const active = tab === "rename" ? "rename" : "trade";
+  const active = tab === "rename" ? "rename" : tab === "lineup" ? "lineup" : "trade";
   if (els.tabTradePanel) {
     els.tabTradePanel.hidden = active !== "trade";
   }
   if (els.tabRenamePanel) {
     els.tabRenamePanel.hidden = active !== "rename";
+  }
+  if (els.tabLineupPanel) {
+    els.tabLineupPanel.hidden = active !== "lineup";
   }
   if (els.tabButtons && els.tabButtons.length) {
     els.tabButtons.forEach((button) => {
@@ -147,6 +156,12 @@ function setRenameStatus(message, isError = false) {
   if (!els.renameStatus) return;
   els.renameStatus.textContent = message;
   els.renameStatus.className = `gm-status ${isError ? "error" : ""}`;
+}
+
+function setLineupStatus(message, isError = false) {
+  if (!els.lineupStatus) return;
+  els.lineupStatus.textContent = message;
+  els.lineupStatus.className = `gm-status ${isError ? "error" : ""}`;
 }
 
 function parseCSV(text) {
@@ -336,6 +351,31 @@ async function updatePlayerNameInSheet(team, oldTag, newName) {
   return payload;
 }
 
+async function submitLineupToSheet(team, lineup, captain) {
+  const response = await fetch(TRADE_BLOCKS_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "submitLineup",
+      team,
+      lineup,
+      captain,
+      submittedAt: new Date().toISOString(),
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Lineup submit failed: ${response.status}`);
+  }
+  const payload = await response.json();
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Invalid lineup submit response.");
+  }
+  if (payload.ok === false) {
+    throw new Error(payload.message || "Unable to submit lineup.");
+  }
+  return payload;
+}
+
 function getTeamPlayers(team) {
   return rosterByTeam.get(team) || [];
 }
@@ -413,6 +453,31 @@ function renderRenamePlayers(team) {
         `<option value="${escapeHtml(player)}">${escapeHtml(player)}</option>`
     ),
   ].join("");
+}
+
+function renderLineupPlayers(team) {
+  if (!els.lineupPlayerList) return;
+  if (!team) {
+    els.lineupPlayerList.innerHTML = '<div class="gm-empty">Select a team.</div>';
+    return;
+  }
+  const players = getTeamPlayers(team);
+  if (!players.length) {
+    els.lineupPlayerList.innerHTML = '<div class="gm-empty">No players found.</div>';
+    return;
+  }
+  els.lineupPlayerList.innerHTML = players
+    .map(
+      (player, idx) => `
+        <label class="gm-check">
+          <input type="checkbox" data-lineup-player value="${escapeHtml(player)}" />
+          <span>${escapeHtml(player)}</span>
+          <input type="radio" name="lineup-captain" value="${escapeHtml(player)}" />
+          <span>Captain</span>
+        </label>
+      `
+    )
+    .join("");
 }
 
 function renderOtherTradeBlocks(selectedTeam) {
@@ -493,6 +558,14 @@ function renderRenameTeam(team) {
     els.renameNewName.value = "";
   }
   setRenameStatus("");
+}
+
+function renderLineupTeam(team) {
+  renderLineupPlayers(team);
+  if (els.lineupCode) {
+    els.lineupCode.value = "";
+  }
+  setLineupStatus("");
 }
 
 async function loadRoster() {
@@ -593,6 +666,11 @@ function bindEvents() {
   if (els.renameTeamSelect) {
     els.renameTeamSelect.addEventListener("change", () => {
       renderRenameTeam(els.renameTeamSelect.value);
+    });
+  }
+  if (els.lineupTeamSelect) {
+    els.lineupTeamSelect.addEventListener("change", () => {
+      renderLineupTeam(els.lineupTeamSelect.value);
     });
   }
 
@@ -700,6 +778,49 @@ function bindEvents() {
       }
     });
   }
+
+  if (els.lineupSave) {
+    els.lineupSave.addEventListener("click", async () => {
+      const team = els.lineupTeamSelect ? els.lineupTeamSelect.value : "";
+      if (!team) {
+        setLineupStatus("Select a team first.", true);
+        return;
+      }
+      const expectedCode = getTeamUpdateCode(team);
+      if (!expectedCode) {
+        setLineupStatus("No update code configured for this team.", true);
+        return;
+      }
+      if (!els.lineupCode || els.lineupCode.value.trim() !== expectedCode) {
+        setLineupStatus("Invalid access code.", true);
+        return;
+      }
+      const checkedPlayers = Array.from(
+        els.lineupPlayerList.querySelectorAll('input[data-lineup-player]:checked')
+      ).map((node) => String(node.value || "").trim());
+      if (checkedPlayers.length !== 6) {
+        setLineupStatus(`Select exactly 6 starters (selected ${checkedPlayers.length}).`, true);
+        return;
+      }
+      const captainNode = els.lineupPlayerList.querySelector('input[name="lineup-captain"]:checked');
+      const captain = captainNode ? String(captainNode.value || "").trim() : "";
+      if (!captain) {
+        setLineupStatus("Select a captain.", true);
+        return;
+      }
+      if (!checkedPlayers.some((p) => normalizeName(p) === normalizeName(captain))) {
+        setLineupStatus("Captain must be one of the selected starters.", true);
+        return;
+      }
+      try {
+        await submitLineupToSheet(team, checkedPlayers, captain);
+        setLineupStatus("Lineup submitted.");
+        updateLastUpdated();
+      } catch (error) {
+        setLineupStatus(error.message || "Unable to submit lineup.", true);
+      }
+    });
+  }
 }
 
 async function init() {
@@ -718,6 +839,7 @@ async function init() {
     }
     renderSelectedTeam(els.teamSelect.value || "");
     renderRenameTeam(els.renameTeamSelect ? els.renameTeamSelect.value : "");
+    renderLineupTeam(els.lineupTeamSelect ? els.lineupTeamSelect.value : "");
     updateLastUpdated();
   } catch (error) {
     setTradeStatus(error.message, true);

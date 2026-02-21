@@ -37,6 +37,7 @@
           <div class="gm-tabs">
             <button class="gm-tab active" type="button" data-gm-tab="trade">Trade Block</button>
             <button class="gm-tab" type="button" data-gm-tab="rename">Player Name Changes</button>
+            <button class="gm-tab" type="button" data-gm-tab="lineup">Lineup Submit</button>
           </div>
         </div>
         <div id="gm-tab-trade" class="gm-tab-panel">
@@ -116,6 +117,35 @@
 
             <button id="rename-save" class="btn">Update Player Name</button>
             <div id="rename-status" class="gm-status"></div>
+          </div>
+        </div>
+
+        <div id="gm-tab-lineup" class="gm-tab-panel" hidden>
+          <div class="gm-card">
+            <div class="label">Submit Lineup</div>
+            <label class="label" for="lineup-team-select">Team</label>
+            <select id="lineup-team-select" class="text-input">
+              <option value="">Select team</option>
+              <option value="Gus N Em">Gus N Em</option>
+              <option value="Bullets">Storm</option>
+              <option value="Turkeys">Turkeys</option>
+              <option value="Cheerios">Cheerios</option>
+              <option value="Yetis">Yetis</option>
+              <option value="Illegals">Illegals</option>
+              <option value="The Lions">The Lions</option>
+              <option value="The Future">The Future</option>
+              <option value="The Snipers">The Snipers</option>
+              <option value="The Phantoms">The Phantoms</option>
+            </select>
+
+            <div class="label">Select 6 Starters and 1 Captain</div>
+            <div id="lineup-player-list" class="gm-checklist"></div>
+
+            <label class="label" for="lineup-code">Access Code</label>
+            <input id="lineup-code" class="text-input" type="password" placeholder="Enter code to submit" />
+
+            <button id="lineup-save" class="btn">Submit Lineup</button>
+            <div id="lineup-status" class="gm-status"></div>
           </div>
         </div>
       </section>

@@ -25,7 +25,7 @@ function withAction(url, action) {
 }
 
 function getScriptUrlByAction(action) {
-  return action === "updatePlayer"
+  return action === "updatePlayer" || action === "submitLineup"
     ? PLAYER_UPDATE_SCRIPT_URL
     : TRADEBLOCK_SCRIPT_URL;
 }
