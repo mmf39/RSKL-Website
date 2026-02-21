@@ -570,6 +570,7 @@ input[type="text"] {
     linear-gradient(165deg, rgba(255, 140, 26, 0.08), rgba(15, 23, 42, 0.68) 40%),
     rgba(0, 0, 0, 0.92);
   border: 1px solid rgba(255, 140, 26, 0.38);
+  overflow-x: auto;
 }
 
 .team-page .standings-panel .panel-head h2 {
@@ -585,11 +586,13 @@ input[type="text"] {
 
 .team-page .stats-grid-top {
   grid-template-columns: repeat(5, minmax(0, 1fr));
+  min-width: 760px;
 }
 
 .team-page .stats-grid-bottom {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 0;
+  min-width: 760px;
 }
 
 .team-page .stat-box {
@@ -665,14 +668,6 @@ input[type="text"] {
   }
 }
 
-@media (max-width: 900px) {
-  .team-page .stats-grid-top {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .team-page .stats-grid-bottom {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
 
 .mini-row {
   display: flex;
