@@ -78,6 +78,7 @@ const els = {
   rankRelMedian: document.getElementById("rank-rel-median"),
   rankWar: document.getElementById("rank-war"),
   transactions: document.getElementById("player-transactions"),
+  careerTeamBreakdown: document.getElementById("career-team-breakdown"),
 };
 
 let playerColumns = {
@@ -637,44 +638,59 @@ function initSeasonSelect() {
   }
 }
 
-function renderPlayerTeam(teamName) {
+function getTeamLogoHtml(teamName) {
+  const shownTeam = displayTeamName(teamName);
+  return shownTeam === "The Future"
+    ? '<img class="player-team-logo" src="/assets/the-future.png" alt="The Future logo" />'
+    : shownTeam === "The Lions"
+    ? '<img class="player-team-logo" src="/assets/the-lions.png" alt="The Lions logo" />'
+    : shownTeam === "The Snipers"
+    ? '<img class="player-team-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />'
+    : shownTeam === "The Phantoms"
+    ? '<img class="player-team-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />'
+    : shownTeam === "Yetis"
+    ? '<img class="player-team-logo" src="/assets/yetis.png" alt="Yetis logo" />'
+    : shownTeam === "Gus N Em"
+    ? '<img class="player-team-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />'
+    : shownTeam === "Cheerios"
+    ? '<img class="player-team-logo" src="/assets/cheerios.png" alt="Cheerios logo" />'
+    : shownTeam === "Illegals"
+    ? '<img class="player-team-logo" src="/assets/illegals.png" alt="Illegals logo" />'
+    : shownTeam === "Storm" || shownTeam === "Bullets"
+    ? '<img class="player-team-logo" src="/assets/storm.png" alt="Storm logo" />'
+    : shownTeam === "Turkeys"
+    ? '<img class="player-team-logo" src="/assets/turkeys.png" alt="Turkeys logo" />'
+    : "";
+}
+
+function renderPlayerTeam(teamNameOrList) {
   if (!els.teamValue) {
     return;
   }
-  if (!teamName) {
+  if (!teamNameOrList || (Array.isArray(teamNameOrList) && !teamNameOrList.length)) {
     els.teamValue.textContent = "—";
     return;
   }
-  const shownTeam = displayTeamName(teamName);
-  if (String(shownTeam).toLowerCase() === "retired") {
+  if (
+    !Array.isArray(teamNameOrList) &&
+    String(displayTeamName(teamNameOrList)).toLowerCase() === "retired"
+  ) {
     els.teamValue.innerHTML = "<span>Retired</span>";
     return;
   }
-  const logo =
-    shownTeam === "The Future"
-      ? '<img class="player-team-logo" src="/assets/the-future.png" alt="The Future logo" />'
-      : shownTeam === "The Lions"
-      ? '<img class="player-team-logo" src="/assets/the-lions.png" alt="The Lions logo" />'
-      : shownTeam === "The Snipers"
-      ? '<img class="player-team-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />'
-      : shownTeam === "The Phantoms"
-      ? '<img class="player-team-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />'
-      : shownTeam === "Yetis"
-      ? '<img class="player-team-logo" src="/assets/yetis.png" alt="Yetis logo" />'
-      : shownTeam === "Gus N Em"
-      ? '<img class="player-team-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />'
-      : shownTeam === "Cheerios"
-      ? '<img class="player-team-logo" src="/assets/cheerios.png" alt="Cheerios logo" />'
-      : shownTeam === "Illegals"
-      ? '<img class="player-team-logo" src="/assets/illegals.png" alt="Illegals logo" />'
-      : shownTeam === "Storm" || shownTeam === "Bullets"
-      ? '<img class="player-team-logo" src="/assets/storm.png" alt="Storm logo" />'
-      : teamName === "Turkeys"
-      ? '<img class="player-team-logo" src="/assets/turkeys.png" alt="Turkeys logo" />'
-      : "";
-  els.teamValue.innerHTML = `${logo}<a class="leader-team-link" href="team.html?team=${encodeURIComponent(
-    shownTeam
-  )}">${escapeHtml(shownTeam)}</a>`;
+  const teams = Array.isArray(teamNameOrList)
+    ? teamNameOrList.map((t) => displayTeamName(t)).filter(Boolean)
+    : [displayTeamName(teamNameOrList)];
+  const uniqueTeams = Array.from(new Set(teams));
+  const links = uniqueTeams
+    .map(
+      (team) =>
+        `<a class="leader-team-link player-team-chip" href="team.html?team=${encodeURIComponent(
+          team
+        )}">${getTeamLogoHtml(team)}<span>${escapeHtml(team)}</span></a>`
+    )
+    .join('<span class="player-team-sep">•</span>');
+  els.teamValue.innerHTML = `<span class="player-team-list">${links}</span>`;
 }
 
 function renderTable(rows) {
@@ -708,22 +724,17 @@ function renderTable(rows) {
     .join("");
 }
 
-function updateSummary(rows, baselines) {
+function summarizeRows(rows, baselines) {
   if (!rows.length) {
-    els.sumTotal.textContent = "—";
-    els.sumAvgScore.textContent = "—";
-    els.sumAvgRank.textContent = "—";
-    els.sumGp.textContent = "—";
-    if (els.sumRelMean) {
-      els.sumRelMean.textContent = "—";
-    }
-    if (els.sumRelMedian) {
-      els.sumRelMedian.textContent = "—";
-    }
-    if (els.sumWar) {
-      els.sumWar.textContent = "—";
-    }
-    return;
+    return {
+      total: null,
+      avgScore: null,
+      avgRank: null,
+      gp: 0,
+      relMean: null,
+      relMedian: null,
+      war: null,
+    };
   }
   let total = 0;
   let scoreGames = 0;
@@ -762,28 +773,136 @@ function updateSummary(rows, baselines) {
       rankGames += 1;
     }
   });
+  return {
+    total,
+    avgScore: scoreGames ? total / scoreGames : null,
+    avgRank: rankGames ? rankTotal / rankGames : null,
+    gp: scoreGames,
+    relMean: relMeanGames ? relMeanSum / relMeanGames : null,
+    relMedian: relMedianGames ? relMedianSum / relMedianGames : null,
+    war: warTotal,
+  };
+}
 
-  els.sumTotal.textContent = total.toFixed(0);
-  els.sumAvgScore.textContent = scoreGames
-    ? (total / scoreGames).toFixed(2)
-    : "—";
-  els.sumAvgRank.textContent = rankGames
-    ? (rankTotal / rankGames).toFixed(2)
-    : "—";
-  els.sumGp.textContent = String(scoreGames);
+function updateSummary(rows, baselines) {
+  const summary = summarizeRows(rows, baselines);
+  if (!summary.gp) {
+    els.sumTotal.textContent = "—";
+    els.sumAvgScore.textContent = "—";
+    els.sumAvgRank.textContent = "—";
+    els.sumGp.textContent = "—";
+    if (els.sumRelMean) {
+      els.sumRelMean.textContent = "—";
+    }
+    if (els.sumRelMedian) {
+      els.sumRelMedian.textContent = "—";
+    }
+    if (els.sumWar) {
+      els.sumWar.textContent = "—";
+    }
+    return;
+  }
+  els.sumTotal.textContent = summary.total.toFixed(0);
+  els.sumAvgScore.textContent = summary.avgScore.toFixed(2);
+  els.sumAvgRank.textContent = summary.avgRank !== null ? summary.avgRank.toFixed(2) : "—";
+  els.sumGp.textContent = String(summary.gp);
   if (els.sumRelMean) {
-    els.sumRelMean.textContent = relMeanGames
-      ? (relMeanSum / relMeanGames).toFixed(3)
-      : "—";
+    els.sumRelMean.textContent = summary.relMean !== null ? summary.relMean.toFixed(3) : "—";
   }
   if (els.sumRelMedian) {
-    els.sumRelMedian.textContent = relMedianGames
-      ? (relMedianSum / relMedianGames).toFixed(3)
-      : "—";
+    els.sumRelMedian.textContent = summary.relMedian !== null ? summary.relMedian.toFixed(3) : "—";
   }
   if (els.sumWar) {
-    els.sumWar.textContent = warTotal.toFixed(3);
+    els.sumWar.textContent = summary.war !== null ? summary.war.toFixed(3) : "—";
   }
+}
+
+function renderCareerTeamBreakdown(rows, baselines, season) {
+  if (!els.careerTeamBreakdown) {
+    return;
+  }
+  if (season !== "career" || !rows.length) {
+    els.careerTeamBreakdown.hidden = true;
+    els.careerTeamBreakdown.innerHTML = "";
+    return;
+  }
+  const byTeam = new Map();
+  rows.forEach((row) => {
+    const team = displayTeamName(String(row[playerColumns.team] || "").trim());
+    if (!team) {
+      return;
+    }
+    if (!byTeam.has(team)) {
+      byTeam.set(team, []);
+    }
+    byTeam.get(team).push(row);
+  });
+  const teamSummaries = Array.from(byTeam.entries()).map(([team, teamRows]) => ({
+    team,
+    summary: summarizeRows(teamRows, baselines),
+  }));
+  const combined = summarizeRows(rows, baselines);
+  teamSummaries.sort((a, b) => (b.summary.gp || 0) - (a.summary.gp || 0));
+
+  const renderStat = (value, digits = 2) =>
+    value === null || value === undefined ? "—" : Number(value).toFixed(digits);
+  const renderTeamCell = (team) =>
+    `<a class="leader-team-link player-team-chip" href="team.html?team=${encodeURIComponent(
+      team
+    )}">${getTeamLogoHtml(team)}<span>${escapeHtml(team)}</span></a>`;
+
+  els.careerTeamBreakdown.hidden = false;
+  els.careerTeamBreakdown.innerHTML = `
+    <div class="career-breakdown-title">Career Team Breakdown</div>
+    <div class="table-wrap">
+      <table class="career-breakdown-table">
+        <thead>
+          <tr>
+            <th>Team</th>
+            <th>GP</th>
+            <th>Total</th>
+            <th>Avg</th>
+            <th>Rank</th>
+            <th>REL</th>
+            <th>WAR</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${teamSummaries
+            .map(
+              ({ team, summary }) => `
+                <tr>
+                  <td>${renderTeamCell(team)}</td>
+                  <td>${escapeHtml(String(summary.gp || 0))}</td>
+                  <td>${renderStat(summary.total, 0)}</td>
+                  <td>${renderStat(summary.avgScore, 2)}</td>
+                  <td>${renderStat(summary.avgRank, 2)}</td>
+                  <td>${renderStat(summary.relMedian, 3)}</td>
+                  <td>${renderStat(summary.war, 3)}</td>
+                </tr>
+              `
+            )
+            .join("")}
+          <tr class="career-combined-row">
+            <td><strong>Combined</strong></td>
+            <td>${escapeHtml(String(combined.gp || 0))}</td>
+            <td>${renderStat(combined.total, 0)}</td>
+            <td>${renderStat(combined.avgScore, 2)}</td>
+            <td>${renderStat(combined.avgRank, 2)}</td>
+            <td>${renderStat(combined.relMedian, 3)}</td>
+            <td>${renderStat(combined.war, 3)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function getTeamsFromRows(rows) {
+  const teams = rows
+    .map((row) => displayTeamName(String(row[playerColumns.team] || "").trim()))
+    .filter(Boolean);
+  return Array.from(new Set(teams));
 }
 
 function findTeamFromStats(rows) {
@@ -1313,14 +1432,18 @@ async function loadPlayer() {
     if (season === "c2s1-regular") {
       els.body.innerHTML = `<tr><td>No stats available for C2S1 Regular Season.</td></tr>`;
       updateSummary([], baselines);
+      renderCareerTeamBreakdown([], baselines, season);
       const teamName = await findTeamForPlayer(season, playerName);
       renderPlayerTeam(teamName);
     } else {
       renderTable(filtered);
       updateSummary(filtered, baselines);
-      const teamFromStats = findTeamFromStats(filtered);
-      if (teamFromStats) {
-        renderPlayerTeam(teamFromStats);
+      renderCareerTeamBreakdown(filtered, baselines, season);
+      const teamsFromStats = getTeamsFromRows(filtered);
+      if (season === "career" && teamsFromStats.length) {
+        renderPlayerTeam(teamsFromStats);
+      } else if (teamsFromStats.length) {
+        renderPlayerTeam(teamsFromStats[0]);
       } else {
         const teamName = await findTeamForPlayer(season, playerName);
         renderPlayerTeam(teamName);
