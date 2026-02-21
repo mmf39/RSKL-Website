@@ -166,12 +166,13 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 url = SHEET_UPDATE_URL
                 redirects = 5
+                method = "POST"
                 while redirects >= 0:
                     req = urllib.request.Request(
                         url,
-                        data=body,
-                        headers={"Content-Type": "application/json"},
-                        method="POST",
+                        data=body if method == "POST" else None,
+                        headers={"Content-Type": "application/json"} if method == "POST" else {},
+                        method=method,
                     )
                     response = urllib.request.urlopen(req)
                     status = response.getcode()
@@ -180,6 +181,8 @@ class Handler(BaseHTTPRequestHandler):
                         if not location or redirects == 0:
                             break
                         url = location
+                        if status in (301, 302, 303):
+                            method = "GET"
                         redirects -= 1
                         continue
                     data = response.read()

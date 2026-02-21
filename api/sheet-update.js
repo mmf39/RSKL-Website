@@ -22,17 +22,20 @@ function withAction(url, action) {
   return `${url}${sep}action=${encodeURIComponent(action)}`;
 }
 
-function forward(url, payload, redirects, res) {
+function forward(url, payload, redirects, res, method = "POST") {
   const target = new URL(url);
   const request = https.request(
     {
-      method: "POST",
+      method,
       hostname: target.hostname,
       path: target.pathname + target.search,
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(payload),
-      },
+      headers:
+        method === "POST"
+          ? {
+              "Content-Type": "application/json",
+              "Content-Length": Buffer.byteLength(payload),
+            }
+          : undefined,
     },
     (response) => {
       const status = response.statusCode || 200;
@@ -46,7 +49,10 @@ function forward(url, payload, redirects, res) {
           ? response.headers.location
           : new URL(response.headers.location, url).toString();
         response.resume();
-        forward(nextUrl, payload, redirects - 1, res);
+        const nextMethod =
+          status === 307 || status === 308 ? method : "GET";
+        const nextPayload = nextMethod === "POST" ? payload : "";
+        forward(nextUrl, nextPayload, redirects - 1, res, nextMethod);
         return;
       }
 
@@ -68,7 +74,9 @@ function forward(url, payload, redirects, res) {
     res.end(JSON.stringify({ ok: false, message: error.message }));
   });
 
-  request.write(payload);
+  if (method === "POST" && payload) {
+    request.write(payload);
+  }
   request.end();
 }
 
@@ -94,7 +102,7 @@ module.exports = (req, res) => {
       params.action = "getTradeBlocks";
     }
     const payload = JSON.stringify(params);
-    forward(withAction(SCRIPT_URL, params.action), payload, 5, res);
+    forward(withAction(SCRIPT_URL, params.action), payload, 5, res, "POST");
     return;
   }
 
@@ -117,7 +125,8 @@ module.exports = (req, res) => {
       withAction(SCRIPT_URL, payloadObj.action),
       JSON.stringify(payloadObj),
       5,
-      res
+      res,
+      "POST"
     );
     return;
   }
@@ -146,7 +155,8 @@ module.exports = (req, res) => {
       withAction(SCRIPT_URL, payloadObj.action),
       JSON.stringify(payloadObj),
       5,
-      res
+      res,
+      "POST"
     );
   });
 };
