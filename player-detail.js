@@ -920,10 +920,13 @@ function findArchiveDraftEvent(playerName, archiveRows, aliases) {
   return null;
 }
 
-function findExpansionDraftEvent(playerName, draftRows, aliases) {
+function findExpansionDraftEvents(playerName, draftRows, aliases) {
   if (!playerName || !draftRows.length || !aliases.length) {
-    return null;
+    return [];
   }
+  const events = [];
+  const seen = new Set();
+
   for (const block of EXPANSION_DRAFT_RANGES) {
     const sliced = sliceRange(draftRows, block.range).filter((row) =>
       row.some((cell) => String(cell || "").trim() !== "")
@@ -932,18 +935,27 @@ function findExpansionDraftEvent(playerName, draftRows, aliases) {
       continue;
     }
     for (const row of sliced) {
-      const selection = String(row[0] || "").trim();
-      if (!selection || !matchesAnyAlias(selection, aliases)) {
+      // Some sheets can have player tag/name in col E and extra info in col F.
+      const left = String(row[0] || "").trim();
+      const right = String(row[1] || "").trim();
+      const combined = `${left} ${right}`.trim();
+      if (!combined || !matchesAnyAlias(combined, aliases)) {
         continue;
       }
-      return {
+      const key = `${block.team}|${normalizeName(left)}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      events.push({
         date: "Draft",
         title: "Expansion Draft",
         details: `Selected by ${block.team}`,
-      };
+      });
     }
   }
-  return null;
+
+  return events;
 }
 
 function findTradeEvents(playerName, transactionRows, aliases) {
@@ -1063,8 +1075,13 @@ async function loadPlayerTransactions(playerName, season) {
     const draftEvents = [
       findArchiveDraftEvent(playerName, archiveRows, aliases),
       findDraftEvent(playerName, c2s2DraftRows, aliases),
-      findExpansionDraftEvent(playerName, c2s2DraftRows, aliases),
     ].filter(Boolean);
+    const expansionDraftEvents = findExpansionDraftEvents(
+      playerName,
+      c2s2DraftRows,
+      aliases
+    );
+    draftEvents.push(...expansionDraftEvents);
     draftEvents.forEach((event) => events.push(event));
     const trades = findTradeEvents(playerName, transactionRows, aliases);
     const retirements = findRetirementEvents(playerName, retirementRows, aliases);
