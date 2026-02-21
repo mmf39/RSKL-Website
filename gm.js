@@ -52,7 +52,7 @@ const TEAM_ORDER = [
   "The Phantoms",
 ];
 
-const TRADE_BLOCKS_KEY = "tradeBlocksLocalV1";
+const TRADE_BLOCKS_API = "/api/sheet-update";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -69,6 +69,7 @@ const els = {
 
 let rosterByTeam = new Map();
 let picksByTeam = new Map();
+let tradeBlocksCache = {};
 
 function displayTeamName(value) {
   const team = String(value || "").trim();
@@ -196,17 +197,68 @@ function sliceRange(rows, range) {
   );
 }
 
-function loadTradeBlocks() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(TRADE_BLOCKS_KEY) || "{}");
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch (error) {
+function normalizeTradeBlockMap(value) {
+  if (!value || typeof value !== "object") {
     return {};
   }
+  const out = {};
+  Object.entries(value).forEach(([team, block]) => {
+    if (!team || !block || typeof block !== "object") {
+      return;
+    }
+    out[team] = {
+      players: Array.isArray(block.players) ? block.players : [],
+      picks: Array.isArray(block.picks) ? block.picks : [],
+      notes: String(block.notes || "").trim(),
+      updatedAt: block.updatedAt || "",
+    };
+  });
+  return out;
 }
 
-function saveTradeBlocks(data) {
-  localStorage.setItem(TRADE_BLOCKS_KEY, JSON.stringify(data));
+async function fetchTradeBlocksFromSheet() {
+  const response = await fetch(TRADE_BLOCKS_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "getTradeBlocks" }),
+  });
+  if (!response.ok) {
+    throw new Error(`Trade block fetch failed: ${response.status}`);
+  }
+  const payload = await response.json();
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Invalid trade block response.");
+  }
+  if (payload.ok === false) {
+    throw new Error(payload.message || "Trade block fetch failed.");
+  }
+  return normalizeTradeBlockMap(payload.blocks || payload.data || {});
+}
+
+async function saveTradeBlockToSheet(team, block) {
+  const response = await fetch(TRADE_BLOCKS_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "saveTradeBlock",
+      team,
+      players: Array.isArray(block.players) ? block.players : [],
+      picks: Array.isArray(block.picks) ? block.picks : [],
+      notes: String(block.notes || "").trim(),
+      updatedAt: block.updatedAt || new Date().toISOString(),
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Trade block save failed: ${response.status}`);
+  }
+  const payload = await response.json();
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Invalid trade block save response.");
+  }
+  if (payload.ok === false) {
+    throw new Error(payload.message || "Trade block save failed.");
+  }
+  return true;
 }
 
 function getTeamPlayers(team) {
@@ -267,7 +319,7 @@ function renderTradePicksList(team, selectedPicks) {
 }
 
 function renderOtherTradeBlocks(selectedTeam) {
-  const blocks = loadTradeBlocks();
+  const blocks = tradeBlocksCache;
   const teams = TEAM_ORDER.filter((team) => team !== selectedTeam);
 
   if (!teams.length) {
@@ -320,7 +372,7 @@ function renderOtherTradeBlocks(selectedTeam) {
 function renderSelectedTeam(team) {
   els.teamLabel.textContent = team ? displayTeamName(team) : "—";
 
-  const blocks = loadTradeBlocks();
+  const blocks = tradeBlocksCache;
   const block = team ? blocks[team] || {} : {};
   const selectedPlayers = Array.isArray(block.players) ? block.players : [];
   const selectedPicks = Array.isArray(block.picks) ? block.picks : [];
@@ -401,7 +453,7 @@ function bindEvents() {
   }
 
   if (els.tradeSave) {
-    els.tradeSave.addEventListener("click", () => {
+    els.tradeSave.addEventListener("click", async () => {
       const team = els.teamSelect.value;
       if (!team) {
         setTradeStatus("Select a team first.", true);
@@ -424,17 +476,21 @@ function bindEvents() {
         els.tradePicksList.querySelectorAll('input[type="checkbox"]:checked')
       ).map((node) => node.value);
 
-      const blocks = loadTradeBlocks();
-      blocks[team] = {
+      const nextBlock = {
         players: checked,
         picks: checkedPicks,
         notes: String(els.tradeNotes.value || "").trim(),
         updatedAt: new Date().toISOString(),
       };
-      saveTradeBlocks(blocks);
-      renderOtherTradeBlocks(team);
-      setTradeStatus("Trade block saved.");
-      updateLastUpdated();
+      try {
+        await saveTradeBlockToSheet(team, nextBlock);
+        tradeBlocksCache[team] = nextBlock;
+        renderOtherTradeBlocks(team);
+        setTradeStatus("Trade block saved.");
+        updateLastUpdated();
+      } catch (error) {
+        setTradeStatus(error.message || "Unable to save trade block.", true);
+      }
     });
   }
 }
@@ -443,6 +499,15 @@ async function init() {
   bindEvents();
   try {
     await Promise.all([loadRoster(), loadDraftCapital()]);
+    try {
+      tradeBlocksCache = await fetchTradeBlocksFromSheet();
+    } catch (error) {
+      tradeBlocksCache = {};
+      setTradeStatus(
+        "Could not load sheet trade blocks. Check Apps Script trade block actions.",
+        true
+      );
+    }
     renderSelectedTeam(els.teamSelect.value || "");
     updateLastUpdated();
   } catch (error) {
