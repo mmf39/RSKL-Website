@@ -481,16 +481,39 @@ async function loadRoster() {
   const rows = parseCSV(await response.text());
   const map = new Map();
 
+  const cleanRosterCell = (value) => {
+    const text = String(value || "").trim();
+    if (!text) return "";
+    const upper = text.toUpperCase();
+    if (upper === "PLAYER" || upper === "TEAM" || upper === "INFO") return "";
+    if (upper.startsWith("GM")) return "";
+    return text;
+  };
+
   Object.entries(TEAM_RANGES).forEach(([team, range]) => {
     const sliced = sliceRange(rows, range);
-    const names = sliced
-      .map((row) => String(row[0] || "").trim())
-      .filter((name) => {
-        if (!name) return false;
-        const upper = name.toUpperCase();
-        if (upper === "PLAYER" || upper === "TEAM") return false;
-        return true;
+    const seen = new Set();
+    const names = [];
+
+    sliced.forEach((row) => {
+      const left = cleanRosterCell(row[0]);
+      const right = cleanRosterCell(row[1]);
+
+      // Prefer tag-style values; fallback to whichever side has text.
+      const candidates = [];
+      if (left.startsWith("@")) candidates.push(left);
+      if (right.startsWith("@")) candidates.push(right);
+      if (!candidates.length && left) candidates.push(left);
+      if (!candidates.length && right) candidates.push(right);
+
+      candidates.forEach((name) => {
+        const key = normalizeName(name);
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        names.push(name);
       });
+    });
+
     map.set(team, names);
   });
 
