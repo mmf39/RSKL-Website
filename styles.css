@@ -1763,20 +1763,20 @@ input[type="text"] {
 
 @media (max-width: 720px) {
   .hero {
-    padding: 48px 20px 24px;
+    padding: 72px 24px 36px;
   }
 
   .panel {
-    padding: 18px;
+    padding: 24px;
   }
 
   .leader-row {
-    grid-template-columns: 32px 1fr;
+    grid-template-columns: 40px 1fr;
   }
 
   .leader-value {
-    grid-column: 2 / -1;
-    text-align: right;
+    grid-column: auto;
+    text-align: inherit;
   }
 
   .compact-panel,
@@ -1785,7 +1785,7 @@ input[type="text"] {
   }
 
   .roster-layout {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 320px);
   }
 
   .modal-card {
@@ -1794,10 +1794,55 @@ input[type="text"] {
   }
 
   .tx-sides {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .prospects-table {
     min-width: 640px;
+  }
+
+  /* Keep team page matching desktop layout on mobile */
+  .team-page .container {
+    overflow-x: auto;
+  }
+
+  .team-page .roster-layout {
+    grid-template-columns: minmax(320px, 0.9fr) minmax(500px, 1.1fr);
+    min-width: 980px;
+    align-items: start;
+  }
+
+  .team-page .standings-panel {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    order: 1;
+    max-width: 100%;
+  }
+
+  .team-page .roster-panel {
+    grid-column: 1;
+    grid-row: 2;
+    order: 2;
+    max-width: 460px;
+  }
+
+  .team-page .schedule-panel {
+    grid-column: 2;
+    grid-row: 2;
+    order: 3;
+    max-width: 100%;
+  }
+
+  .team-page .draft-panel {
+    grid-column: 1;
+    grid-row: 3;
+    order: 4;
+    margin-top: -280px;
+  }
+
+  .team-page .transactions-panel {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    order: 5;
   }
 }
