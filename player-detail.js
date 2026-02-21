@@ -852,6 +852,28 @@ function parseDateValue(value) {
   return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed;
 }
 
+function getEventSortValue(event) {
+  const parsed = parseDateValue(event && event.date);
+  if (parsed !== Number.NEGATIVE_INFINITY) {
+    return parsed;
+  }
+  const title = String((event && event.title) || "").toLowerCase();
+  const details = String((event && event.details) || "").toLowerCase();
+  if (title === "expansion draft") {
+    return Date.parse("2026-01-01");
+  }
+  if (title === "drafted" && details.includes("c2s1 draft")) {
+    return Date.parse("2024-01-01");
+  }
+  if (title === "drafted") {
+    return Date.parse("2025-01-01");
+  }
+  if (title === "trade status") {
+    return Number.NEGATIVE_INFINITY;
+  }
+  return Number.NEGATIVE_INFINITY + 1;
+}
+
 function isDraftHeaderRow(row) {
   const combined = row.map((cell) => String(cell || "").toLowerCase()).join(" ");
   return (
@@ -1097,7 +1119,7 @@ async function loadPlayerTransactions(playerName, season) {
         details: "No transactions recorded.",
       });
     }
-    events.sort((a, b) => parseDateValue(b.date) - parseDateValue(a.date));
+    events.sort((a, b) => getEventSortValue(b) - getEventSortValue(a));
     renderPlayerTransactions(events, playerName);
   } catch (error) {
     els.transactions.innerHTML =
