@@ -603,7 +603,7 @@ input[type="text"] {
   display: grid;
   gap: 8px;
   margin-bottom: 12px;
-  justify-items: start;
+  justify-items: center;
 }
 
 .team-page .standings-tools label {
@@ -700,9 +700,21 @@ input[type="text"] {
   color: var(--accent);
 }
 
+.team-page .roster-panel,
+.team-page .schedule-panel {
+  text-align: center;
+}
+
+.team-page #roster-table th,
+.team-page #roster-table td,
+.team-page #team-schedule th,
+.team-page #team-schedule td {
+  text-align: center;
+}
+
 @media (min-width: 721px) {
   .team-page .roster-layout {
-    grid-template-columns: minmax(260px, 0.8fr) minmax(520px, 1.2fr);
+    grid-template-columns: minmax(320px, 0.9fr) minmax(500px, 1.1fr);
     align-items: start;
   }
   .team-page .standings-panel {
@@ -715,7 +727,7 @@ input[type="text"] {
     grid-column: 1;
     grid-row: 2;
     order: 2;
-    max-width: 420px;
+    max-width: 460px;
   }
   .team-page .schedule-panel {
     grid-column: 2;
