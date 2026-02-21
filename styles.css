@@ -543,14 +543,25 @@ input[type="text"] {
   margin-bottom: 10px;
 }
 
+.team-page .panel-head h2 {
+  color: var(--accent-2);
+}
+
+.team-page .panel {
+  background: #000000;
+  border-color: rgba(255, 140, 26, 0.38);
+}
+
 .team-page #roster-table th,
 .team-page #roster-table td {
   padding: 6px 10px;
+  color: var(--accent);
 }
 
 .team-page #team-schedule th,
 .team-page #team-schedule td {
   padding: 8px 10px;
+  color: var(--accent);
 }
 
 .team-page .draft-picks-list {
@@ -566,9 +577,7 @@ input[type="text"] {
 }
 
 .team-page .standings-panel {
-  background:
-    linear-gradient(165deg, rgba(255, 140, 26, 0.08), rgba(15, 23, 42, 0.68) 40%),
-    rgba(0, 0, 0, 0.92);
+  background: #000000;
   border: 1px solid rgba(255, 140, 26, 0.38);
   overflow-x: auto;
 }
@@ -644,27 +653,37 @@ input[type="text"] {
   max-width: 100%;
 }
 
+.team-page .tx-head span,
+.team-page .tx-side-label {
+  color: var(--accent-2);
+}
+
+.team-page .tx-details,
+.team-page .tx-side-value {
+  color: var(--accent);
+}
+
 @media (min-width: 721px) {
-  .team-page .standings-panel {
-    grid-column: 1 / -1;
-    order: 1;
-    max-width: 100%;
-  }
   .team-page .roster-panel {
     grid-column: 1;
-    order: 2;
+    order: 1;
   }
-  .team-page .draft-panel {
+  .team-page .standings-panel {
     grid-column: 2;
-    order: 3;
+    order: 1;
+    max-width: 320px;
   }
   .team-page .schedule-panel {
     grid-column: 1;
-    order: 4;
+    order: 2;
   }
   .team-page .transactions-panel {
-    grid-column: 1 / -1;
-    order: 5;
+    grid-column: 1;
+    order: 3;
+  }
+  .team-page .draft-panel {
+    grid-column: 2;
+    order: 2;
   }
 }
 
