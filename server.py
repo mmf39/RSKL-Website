@@ -2,8 +2,9 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import urllib.request
 import urllib.error
 import os
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 import time
+import json
 
 PORT = int(os.environ.get("PORT", 5173))
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -117,10 +118,15 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/sheet-update":
             try:
-                url = SHEET_UPDATE_URL
-                if parsed.query:
-                    url = f"{SHEET_UPDATE_URL}?{parsed.query}"
-                with urllib.request.urlopen(url) as response:
+                params = parse_qs(parsed.query or "")
+                payload = {k: (v[0] if isinstance(v, list) and v else "") for k, v in params.items()}
+                req = urllib.request.Request(
+                    SHEET_UPDATE_URL,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with urllib.request.urlopen(req) as response:
                     data = response.read()
                     send(self, response.getcode(), data, "application/json; charset=utf-8")
             except urllib.error.HTTPError as err:

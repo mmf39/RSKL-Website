@@ -56,8 +56,10 @@ function forward(url, payload, redirects, res) {
 module.exports = (req, res) => {
   if (req.method === "GET") {
     const url = new URL(req.url, "http://localhost");
-    const target = `${SCRIPT_URL}?${url.searchParams.toString()}`;
-    forward(target, "{}", 5, res);
+    const payload = JSON.stringify(
+      Object.fromEntries(url.searchParams.entries())
+    );
+    forward(SCRIPT_URL, payload, 5, res);
     return;
   }
 
