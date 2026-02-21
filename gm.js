@@ -65,6 +65,11 @@ const els = {
   tradeSave: document.getElementById("trade-save"),
   tradeStatus: document.getElementById("trade-status"),
   tradeViewList: document.getElementById("trade-view-list"),
+  renamePlayerSelect: document.getElementById("rename-player-select"),
+  renameNewName: document.getElementById("rename-new-name"),
+  renameCode: document.getElementById("rename-code"),
+  renameSave: document.getElementById("rename-save"),
+  renameStatus: document.getElementById("rename-status"),
 };
 
 let rosterByTeam = new Map();
@@ -116,6 +121,12 @@ function updateLastUpdated() {
 function setTradeStatus(message, isError = false) {
   els.tradeStatus.textContent = message;
   els.tradeStatus.className = `gm-status ${isError ? "error" : ""}`;
+}
+
+function setRenameStatus(message, isError = false) {
+  if (!els.renameStatus) return;
+  els.renameStatus.textContent = message;
+  els.renameStatus.className = `gm-status ${isError ? "error" : ""}`;
 }
 
 function parseCSV(text) {
@@ -277,6 +288,34 @@ async function saveTradeBlockToSheet(team, block) {
   return true;
 }
 
+async function updatePlayerNameInSheet(team, oldTag, newName) {
+  const response = await fetch(TRADE_BLOCKS_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "updatePlayer",
+      team,
+      oldTag,
+      newDisplay: newName,
+      newTag: newName,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Player update failed: ${response.status}`);
+  }
+  const payload = await response.json();
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Invalid player update response.");
+  }
+  if (payload.ok === false) {
+    throw new Error(payload.message || "Unable to update player.");
+  }
+  if (payload.updated === false) {
+    throw new Error("Player not found on sheet.");
+  }
+  return true;
+}
+
 function getTeamPlayers(team) {
   return rosterByTeam.get(team) || [];
 }
@@ -332,6 +371,28 @@ function renderTradePicksList(team, selectedPicks) {
       `;
     })
     .join("");
+}
+
+function renderRenamePlayers(team) {
+  if (!els.renamePlayerSelect) return;
+  if (!team) {
+    els.renamePlayerSelect.innerHTML =
+      '<option value="">Select a player</option>';
+    return;
+  }
+  const players = getTeamPlayers(team);
+  if (!players.length) {
+    els.renamePlayerSelect.innerHTML =
+      '<option value="">No players found</option>';
+    return;
+  }
+  els.renamePlayerSelect.innerHTML = [
+    '<option value="">Select a player</option>',
+    ...players.map(
+      (player) =>
+        `<option value="${escapeHtml(player)}">${escapeHtml(player)}</option>`
+    ),
+  ].join("");
 }
 
 function renderOtherTradeBlocks(selectedTeam) {
@@ -395,12 +456,20 @@ function renderSelectedTeam(team) {
 
   renderTradePlayersList(team, selectedPlayers);
   renderTradePicksList(team, selectedPicks);
+  renderRenamePlayers(team);
   els.tradeNotes.value = block.notes || "";
   if (els.tradeCode) {
     els.tradeCode.value = "";
   }
+  if (els.renameCode) {
+    els.renameCode.value = "";
+  }
+  if (els.renameNewName) {
+    els.renameNewName.value = "";
+  }
   renderOtherTradeBlocks(team);
   setTradeStatus("");
+  setRenameStatus("");
 }
 
 async function loadRoster() {
@@ -506,6 +575,53 @@ function bindEvents() {
         updateLastUpdated();
       } catch (error) {
         setTradeStatus(error.message || "Unable to save trade block.", true);
+      }
+    });
+  }
+
+  if (els.renameSave) {
+    els.renameSave.addEventListener("click", async () => {
+      const team = els.teamSelect.value;
+      if (!team) {
+        setRenameStatus("Select a team first.", true);
+        return;
+      }
+      const oldTag = String(els.renamePlayerSelect?.value || "").trim();
+      if (!oldTag) {
+        setRenameStatus("Select a current player.", true);
+        return;
+      }
+      let newName = String(els.renameNewName?.value || "").trim();
+      if (!newName) {
+        setRenameStatus("Enter a new player name.", true);
+        return;
+      }
+      if (String(oldTag).startsWith("@") && !newName.startsWith("@")) {
+        newName = `@${newName}`;
+      }
+      const expectedCode = getTeamUpdateCode(team);
+      if (!expectedCode) {
+        setRenameStatus("No update code configured for this team.", true);
+        return;
+      }
+      if (!els.renameCode || els.renameCode.value.trim() !== expectedCode) {
+        setRenameStatus("Invalid access code.", true);
+        return;
+      }
+      try {
+        await updatePlayerNameInSheet(team, oldTag, newName);
+        const nextPlayers = (getTeamPlayers(team) || []).map((p) =>
+          normalizeName(p) === normalizeName(oldTag) ? newName : p
+        );
+        rosterByTeam.set(team, nextPlayers);
+        renderSelectedTeam(team);
+        if (els.renamePlayerSelect) {
+          els.renamePlayerSelect.value = newName;
+        }
+        setRenameStatus("Player name updated.");
+        updateLastUpdated();
+      } catch (error) {
+        setRenameStatus(error.message || "Unable to update player name.", true);
       }
     });
   }

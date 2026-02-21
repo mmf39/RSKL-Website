@@ -75,6 +75,23 @@
         </div>
 
         <div class="gm-card">
+          <div class="label">Player Name Changes</div>
+          <label class="label" for="rename-player-select">Current Player</label>
+          <select id="rename-player-select" class="text-input">
+            <option value="">Select a player</option>
+          </select>
+
+          <label class="label" for="rename-new-name">New Player Name</label>
+          <input id="rename-new-name" class="text-input" type="text" placeholder="@newname" />
+
+          <label class="label" for="rename-code">Access Code</label>
+          <input id="rename-code" class="text-input" type="password" placeholder="Enter code to update" />
+
+          <button id="rename-save" class="btn">Update Player Name</button>
+          <div id="rename-status" class="gm-status"></div>
+        </div>
+
+        <div class="gm-card">
           <div class="label">Other Teams (Read Only)</div>
           <div id="trade-view-list" class="gm-readonly-list"></div>
         </div>
