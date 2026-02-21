@@ -331,6 +331,17 @@ function matchesAnyAlias(cellValue, aliases) {
   );
 }
 
+function matchesAnyAliasStrict(cellValue, aliases) {
+  if (!cellValue || !aliases.length) {
+    return false;
+  }
+  const normalizedCell = normalizeName(cellValue);
+  if (!normalizedCell) {
+    return false;
+  }
+  return aliases.some((alias) => normalizedCell === alias);
+}
+
 async function findTeamForPlayer(season, playerName) {
   if (!playerName) {
     return "";
@@ -345,14 +356,27 @@ async function findTeamForPlayer(season, playerName) {
       throw new Error(`Fetch failed: ${response.status}`);
     }
     const rows = parseCSV(await response.text());
+    const matchedTeamsStrict = [];
+    const matchedTeamsLoose = [];
     for (const [team, range] of Object.entries(TEAM_RANGES)) {
       const sliced = sliceRange(rows, range);
-      const hasPlayer = sliced.some((row) =>
+      const hasStrict = sliced.some((row) =>
+        row.some((cell) => matchesAnyAliasStrict(cell, aliases))
+      );
+      const hasLoose = sliced.some((row) =>
         row.some((cell) => matchesAnyAlias(cell, aliases))
       );
-      if (hasPlayer) {
-        return team;
+      if (hasStrict) {
+        matchedTeamsStrict.push(team);
+      } else if (hasLoose) {
+        matchedTeamsLoose.push(team);
       }
+    }
+    if (matchedTeamsStrict.length) {
+      return matchedTeamsStrict[matchedTeamsStrict.length - 1];
+    }
+    if (matchedTeamsLoose.length) {
+      return matchedTeamsLoose[matchedTeamsLoose.length - 1];
     }
     if (season === "c2s2-regular") {
       return "";
@@ -368,14 +392,27 @@ async function findTeamForPlayer(season, playerName) {
       throw new Error(`Fetch failed: ${response.status}`);
     }
     const archive = parseCSV(await response.text());
+    const matchedTeamsStrict = [];
+    const matchedTeamsLoose = [];
     for (const [team, range] of Object.entries(ARCHIVE_TEAM_ROSTERS)) {
       const sliced = sliceRange(archive, range);
-      const hasPlayer = sliced.some((row) =>
+      const hasStrict = sliced.some((row) =>
+        row.some((cell) => matchesAnyAliasStrict(cell, aliases))
+      );
+      const hasLoose = sliced.some((row) =>
         row.some((cell) => matchesAnyAlias(cell, aliases))
       );
-      if (hasPlayer) {
-        return team;
+      if (hasStrict) {
+        matchedTeamsStrict.push(team);
+      } else if (hasLoose) {
+        matchedTeamsLoose.push(team);
       }
+    }
+    if (matchedTeamsStrict.length) {
+      return matchedTeamsStrict[matchedTeamsStrict.length - 1];
+    }
+    if (matchedTeamsLoose.length) {
+      return matchedTeamsLoose[matchedTeamsLoose.length - 1];
     }
   }
   return "";
