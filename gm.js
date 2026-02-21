@@ -333,7 +333,7 @@ async function updatePlayerNameInSheet(team, oldTag, newName) {
   if (payload.updated === false) {
     throw new Error("Player not found on sheet.");
   }
-  return true;
+  return payload;
 }
 
 function getTeamPlayers(team) {
@@ -668,7 +668,7 @@ function bindEvents() {
         return;
       }
       try {
-        await updatePlayerNameInSheet(team, oldTag, newName);
+        const result = await updatePlayerNameInSheet(team, oldTag, newName);
         const nextPlayers = (getTeamPlayers(team) || []).map((p) =>
           normalizeName(p) === normalizeName(oldTag) ? newName : p
         );
@@ -677,7 +677,23 @@ function bindEvents() {
         if (els.renamePlayerSelect) {
           els.renamePlayerSelect.value = newName;
         }
-        setRenameStatus("Player name updated.");
+        const mirrorOk = result && result.mirrorOk !== false;
+        const mirrorUpdated = !!(result && result.mirrorUpdated);
+        const mirrorMsg =
+          result && result.mirrorMessage ? String(result.mirrorMessage) : "";
+        if (mirrorOk && mirrorUpdated) {
+          setRenameStatus("Player name updated on both sheets.");
+        } else if (mirrorOk && !mirrorUpdated) {
+          setRenameStatus(
+            "Primary sheet updated, mirror sheet had no matching player.",
+            true
+          );
+        } else {
+          setRenameStatus(
+            `Primary sheet updated, mirror failed${mirrorMsg ? `: ${mirrorMsg}` : "."}`,
+            true
+          );
+        }
         updateLastUpdated();
       } catch (error) {
         setRenameStatus(error.message || "Unable to update player name.", true);
