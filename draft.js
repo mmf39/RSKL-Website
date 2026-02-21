@@ -29,78 +29,13 @@ const ROUND_RANGES_BY_YEAR = {
   ],
 };
 
-const PROSPECTS_RANGE = "J1:N65";
+const PROSPECTS_RANGE = "G1:K76";
 const EXPANSION_RANGES = [
   { title: "The Snipers", range: "E1:F7" },
   { title: "The Phantoms", range: "E9:F15" },
   { title: "The Future", range: "E17:F23" },
   { title: "The Lions", range: "E25:F31" },
 ];
-const EXPANSION_PROSPECTS_RANGE = "G2:I32";
-const EXPANSION_TOTAL_KARMA = {
-  rockiess: "722K",
-  dri: "1.12M",
-  lukeboss: "1.03M",
-  jr: "1.18M",
-  eclipse: "1.39M",
-  artifact: "1.58M",
-  robertjr: "1.68M",
-  etienne: "660K",
-  buc: "3.21M",
-  bobsburgers: "2.92M",
-  playexplainer: "2.25M",
-  aliyu_: "916.7K",
-  sotonyc: "2.76M",
-  xintervol: "1.33M",
-  king: "1.39M",
-  plemay: "1.93M",
-  snowy: "1.69M",
-  psyklone: "1.33M",
-  reinhart13: "1.43M",
-  bigk: "2.6M",
-  bojack: "3.49M",
-  xo: "2.94M",
-  snivy: "1.67M",
-  devinbooker: "2.15M",
-  griff168: "849.6K",
-  rockymountain: "1.45M",
-  shy: "1.85M",
-  keegan: "1.12M",
-  penixszn: "635.8K",
-  max: "3.6M",
-};
-const EXPANSION_RANKED_DAYS = {
-  rockiess: "107",
-  dri: "232",
-  lukeboss: "212",
-  jr: "259",
-  eclipse: "278",
-  artifact: "271",
-  robertjr: "324",
-  etienne: "139",
-  buc: "741",
-  bobsburgers: "637",
-  playexplainer: "498",
-  aliyu_: "193",
-  sotonyc: "611",
-  xintervol: "277",
-  king: "293",
-  plemay: "416",
-  snowy: "351",
-  psyklone: "249",
-  reinhart13: "294",
-  bigk: "576",
-  bojack: "932",
-  xo: "660",
-  snivy: "NA",
-  devinbooker: "392",
-  griff168: "186",
-  rockymountain: "298",
-  shy: "403",
-  keegan: "203",
-  penixszn: "138",
-  max: "861",
-};
 
 const TEAM_NAMES = new Set([
   "Gus N Em",
@@ -295,13 +230,6 @@ function canonicalTeamName(value) {
   if (lower === "snipers") return "The Snipers";
   if (lower === "bullets") return "Storm";
   return clean;
-}
-
-function normalizePlayerTag(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/^@/, "");
 }
 
 function linkifyTeamsAndPlayers(text) {
@@ -599,95 +527,6 @@ function renderExpansion(rows) {
   ).join("");
 }
 
-function renderExpansionProspects(rows) {
-  const sourceRows = sliceRange(rows, EXPANSION_PROSPECTS_RANGE).filter((row) =>
-    row.some((cell) => String(cell || "").trim() !== "")
-  );
-  if (!sourceRows.length) {
-    els.sections.innerHTML = `
-      <section class="panel draft-round">
-        <div class="panel-head"><h2>Expansion Draft</h2></div>
-        <p>No expansion prospects data available.</p>
-      </section>
-    `;
-    return;
-  }
-
-  const grouped = new Map();
-  const looksHeader = (sourceRows[0] || []).some((cell) =>
-    ["team", "player", "prospect", "info", "note", "monthly", "rank"].some((key) =>
-      String(cell || "").toLowerCase().includes(key)
-    )
-  );
-  const dataRows = looksHeader ? sourceRows.slice(1) : sourceRows;
-
-  dataRows.forEach((row) => {
-    const rawTeam = String(row[0] || "").trim();
-    const player = String(row[1] || "").trim();
-    const info = String(row[2] || "").trim();
-    const totalKarma = EXPANSION_TOTAL_KARMA[normalizePlayerTag(player)] || "";
-    const rankedDays = EXPANSION_RANKED_DAYS[normalizePlayerTag(player)] || "";
-    if (!rawTeam || !player) {
-      return;
-    }
-    const team = canonicalTeamName(rawTeam);
-    if (!grouped.has(team)) {
-      grouped.set(team, []);
-    }
-    grouped.get(team).push({ player, info, totalKarma, rankedDays });
-  });
-
-  const renderExpansionSection = (team, players) => {
-    const disclaimer =
-      canonicalTeamName(team) === "The Lions"
-        ? '<p class="expansion-disclaimer">The lions used last 2 picks in trade with Cheerios</p>'
-        : "";
-    const hasInfo = players.some((item) => String(item.info || "").trim() !== "");
-    const hasTotalKarma = players.some(
-      (item) => String(item.totalKarma || "").trim() !== ""
-    );
-    const hasRankedDays = players.some(
-      (item) => String(item.rankedDays || "").trim() !== ""
-    );
-    return `
-      <section class="panel draft-round">
-        <div class="panel-head">
-          <h2><a class="draft-link" href="/team.html?team=${encodeURIComponent(
-            team
-          )}">${escapeHtml(team)}</a></h2>
-        </div>
-        ${disclaimer}
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr><th>Team</th><th>Player</th>${hasInfo ? "<th>Monthly Rank</th>" : ""}${hasTotalKarma ? "<th>Total Karma</th>" : ""}${hasRankedDays ? "<th>Ranked Days</th>" : ""}</tr>
-            </thead>
-            <tbody>
-              ${players
-                .map(
-                  (item) => `
-                    <tr>
-                      <td>${escapeHtml(team)}</td>
-                      <td>${renderCell(item.player, "Player", 1)}</td>
-                      ${hasInfo ? `<td>${renderCell(item.info, "Monthly Rank", 2)}</td>` : ""}
-                      ${hasTotalKarma ? `<td>${escapeHtml(item.totalKarma || "—")}</td>` : ""}
-                      ${hasRankedDays ? `<td>${escapeHtml(item.rankedDays || "—")}</td>` : ""}
-                    </tr>
-                  `
-                )
-                .join("")}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    `;
-  };
-
-  els.sections.innerHTML = Array.from(grouped.entries())
-    .map(([team, players]) => renderExpansionSection(team, players))
-    .join("");
-}
-
 function getSelectedDraftYear() {
   const saved = localStorage.getItem(DRAFT_YEAR_KEY);
   if (saved === "c2s1" || saved === "c2s2") {
@@ -717,8 +556,6 @@ async function loadDraft() {
       renderProspects(rows, selectedYear);
     } else if (selectedView === "expansion") {
       renderExpansion(rows);
-    } else if (selectedView === "expansion-prospects") {
-      renderExpansionProspects(rows);
     } else {
       els.sections.innerHTML = roundRanges.map(({ id, title, range }) =>
         renderRound(id, title, sliceRange(rows, range))
@@ -754,8 +591,6 @@ if (els.viewSelect) {
     if (els.viewSelect.value === "prospects") {
       const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
       renderProspects(draftRowsCache, selectedYear);
-    } else if (els.viewSelect.value === "expansion-prospects") {
-      renderExpansionProspects(draftRowsCache);
     } else if (els.viewSelect.value === "expansion") {
       await loadDraft();
     } else {
