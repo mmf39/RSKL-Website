@@ -55,6 +55,9 @@ const TEAM_ORDER = [
 const TRADE_BLOCKS_API = "/api/sheet-update";
 
 const els = {
+  tabButtons: Array.from(document.querySelectorAll("[data-gm-tab]")),
+  tabTradePanel: document.getElementById("gm-tab-trade"),
+  tabRenamePanel: document.getElementById("gm-tab-rename"),
   lastUpdated: document.getElementById("last-updated"),
   teamSelect: document.getElementById("gm-team-select"),
   teamLabel: document.getElementById("gm-team-label"),
@@ -76,6 +79,22 @@ const els = {
 let rosterByTeam = new Map();
 let picksByTeam = new Map();
 let tradeBlocksCache = {};
+
+function setActiveTab(tab) {
+  const active = tab === "rename" ? "rename" : "trade";
+  if (els.tabTradePanel) {
+    els.tabTradePanel.hidden = active !== "trade";
+  }
+  if (els.tabRenamePanel) {
+    els.tabRenamePanel.hidden = active !== "rename";
+  }
+  if (els.tabButtons && els.tabButtons.length) {
+    els.tabButtons.forEach((button) => {
+      const isActive = button.dataset.gmTab === active;
+      button.classList.toggle("active", isActive);
+    });
+  }
+}
 
 function displayTeamName(value) {
   const team = String(value || "").trim();
@@ -558,6 +577,14 @@ async function loadDraftCapital() {
 }
 
 function bindEvents() {
+  if (els.tabButtons && els.tabButtons.length) {
+    els.tabButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setActiveTab(button.dataset.gmTab);
+      });
+    });
+  }
+
   if (els.teamSelect) {
     els.teamSelect.addEventListener("change", () => {
       renderSelectedTeam(els.teamSelect.value);
@@ -661,6 +688,7 @@ function bindEvents() {
 
 async function init() {
   bindEvents();
+  setActiveTab("trade");
   try {
     await Promise.all([loadRoster(), loadDraftCapital()]);
     try {
