@@ -67,6 +67,21 @@ function forward(url, payload, redirects, res) {
 }
 
 module.exports = (req, res) => {
+  const paramsForDebug = parseQueryFromReq(req);
+  if (paramsForDebug.ping === "1") {
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store");
+    res.end(
+      JSON.stringify({
+        ok: true,
+        endpoint: "api/sheet-update",
+        build: "2026-02-21-1",
+      })
+    );
+    return;
+  }
+
   if (req.method === "GET") {
     const params = parseQueryFromReq(req);
     if (!params.action) {
