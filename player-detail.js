@@ -16,6 +16,12 @@ const DRAFT_ROUND_RANGES = [
   { title: "Round 3", range: "A23:C33" },
   { title: "Round 4", range: "A34:C44" },
 ];
+const EXPANSION_DRAFT_RANGES = [
+  { team: "The Snipers", range: "E1:F7" },
+  { team: "The Phantoms", range: "E9:F15" },
+  { team: "The Future", range: "E17:F23" },
+  { team: "The Lions", range: "E25:F31" },
+];
 
 const ARCHIVE_RANGES = {
   player_stats: "A45:F117",
@@ -914,6 +920,32 @@ function findArchiveDraftEvent(playerName, archiveRows, aliases) {
   return null;
 }
 
+function findExpansionDraftEvent(playerName, draftRows, aliases) {
+  if (!playerName || !draftRows.length || !aliases.length) {
+    return null;
+  }
+  for (const block of EXPANSION_DRAFT_RANGES) {
+    const sliced = sliceRange(draftRows, block.range).filter((row) =>
+      row.some((cell) => String(cell || "").trim() !== "")
+    );
+    if (!sliced.length) {
+      continue;
+    }
+    for (const row of sliced) {
+      const selection = String(row[0] || "").trim();
+      if (!selection || !matchesAnyAlias(selection, aliases)) {
+        continue;
+      }
+      return {
+        date: "Draft",
+        title: "Expansion Draft",
+        details: `Selected by ${block.team}`,
+      };
+    }
+  }
+  return null;
+}
+
 function findTradeEvents(playerName, transactionRows, aliases) {
   if (!playerName || !transactionRows.length || !aliases.length) {
     return [];
@@ -1031,6 +1063,7 @@ async function loadPlayerTransactions(playerName, season) {
     const draftEvents = [
       findArchiveDraftEvent(playerName, archiveRows, aliases),
       findDraftEvent(playerName, c2s2DraftRows, aliases),
+      findExpansionDraftEvent(playerName, c2s2DraftRows, aliases),
     ].filter(Boolean);
     draftEvents.forEach((event) => events.push(event));
     const trades = findTradeEvents(playerName, transactionRows, aliases);
