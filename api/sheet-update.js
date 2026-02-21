@@ -4,6 +4,18 @@ const { URL } = require("url");
 const SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbylZD-O7LCsznZpnRpYsAdbp7bCbknV-qta8PO0uv_k4Tnevf8Klkbfcg6Hh5DXC9GFvg/exec";
 
+function parseQueryFromReq(req) {
+  if (req && req.query && typeof req.query === "object") {
+    return { ...req.query };
+  }
+  try {
+    const url = new URL(req.url, "http://localhost");
+    return Object.fromEntries(url.searchParams.entries());
+  } catch (_) {
+    return {};
+  }
+}
+
 function forward(url, payload, redirects, res) {
   const target = new URL(url);
   const request = https.request(
@@ -39,6 +51,7 @@ function forward(url, payload, redirects, res) {
       response.on("end", () => {
         res.statusCode = status;
         res.setHeader("Content-Type", "application/json; charset=utf-8");
+        res.setHeader("Cache-Control", "no-store");
         res.end(data || "{}");
       });
     }
@@ -55,8 +68,7 @@ function forward(url, payload, redirects, res) {
 
 module.exports = (req, res) => {
   if (req.method === "GET") {
-    const url = new URL(req.url, "http://localhost");
-    const params = Object.fromEntries(url.searchParams.entries());
+    const params = parseQueryFromReq(req);
     if (!params.action) {
       params.action = "getTradeBlocks";
     }
@@ -71,12 +83,39 @@ module.exports = (req, res) => {
     return;
   }
 
+  if (req.body && typeof req.body === "object") {
+    const payloadObj = { ...req.body };
+    if (!payloadObj.action) {
+      const params = parseQueryFromReq(req);
+      if (params.action) payloadObj.action = params.action;
+    }
+    if (!payloadObj.action) {
+      payloadObj.action = "getTradeBlocks";
+    }
+    forward(SCRIPT_URL, JSON.stringify(payloadObj), 5, res);
+    return;
+  }
+
   let body = "";
   req.on("data", (chunk) => {
     body += chunk;
   });
   req.on("end", () => {
-    const payload = body || "{}";
-    forward(SCRIPT_URL, payload, 5, res);
+    let payloadObj = {};
+    try {
+      payloadObj = body ? JSON.parse(body) : {};
+    } catch (_) {
+      payloadObj = {};
+    }
+
+    if (!payloadObj.action) {
+      const params = parseQueryFromReq(req);
+      if (params.action) payloadObj.action = params.action;
+    }
+    if (!payloadObj.action) {
+      payloadObj.action = "getTradeBlocks";
+    }
+
+    forward(SCRIPT_URL, JSON.stringify(payloadObj), 5, res);
   });
 };
