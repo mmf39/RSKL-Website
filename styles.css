@@ -701,6 +701,10 @@ input[type="text"] {
 }
 
 @media (min-width: 721px) {
+  .team-page .roster-layout {
+    grid-template-columns: minmax(260px, 0.8fr) minmax(520px, 1.2fr);
+    align-items: start;
+  }
   .team-page .standings-panel {
     grid-column: 1 / -1;
     grid-row: 1;
@@ -711,11 +715,13 @@ input[type="text"] {
     grid-column: 1;
     grid-row: 2;
     order: 2;
+    max-width: 420px;
   }
   .team-page .schedule-panel {
     grid-column: 2;
     grid-row: 2;
     order: 3;
+    max-width: 100%;
   }
   .team-page .draft-panel {
     grid-column: 1;
