@@ -1429,6 +1429,8 @@ input[type="text"] {
 
 .tx-side-full {
   grid-column: 1 / -1;
+  text-align: center;
+  justify-items: center;
 }
 
 .tx-side-team {
@@ -1436,9 +1438,10 @@ input[type="text"] {
 }
 
 .tx-retire-player {
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: var(--accent-2);
+  text-align: center;
 }
 
 .tx-side-label {
