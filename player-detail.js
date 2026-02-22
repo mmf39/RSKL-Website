@@ -719,6 +719,14 @@ function renderPlayerTeam(teamNameOrList) {
     els.teamValue.innerHTML = "<span>Retired</span>";
     return;
   }
+  if (
+    !Array.isArray(teamNameOrList) &&
+    (String(displayTeamName(teamNameOrList)).toLowerCase() === "cut" ||
+      String(displayTeamName(teamNameOrList)).toLowerCase() === "free agent")
+  ) {
+    els.teamValue.innerHTML = "<span>Free Agent</span>";
+    return;
+  }
   const teams = Array.isArray(teamNameOrList)
     ? teamNameOrList.map((t) => displayTeamName(t)).filter(Boolean)
     : [displayTeamName(teamNameOrList)];
@@ -1317,6 +1325,8 @@ async function loadPlayerTransactions(playerName, season) {
     const cuts = findCutEvents(playerName, cutRows, aliases);
     if (retirements.length) {
       renderPlayerTeam("Retired");
+    } else if (cuts.length) {
+      renderPlayerTeam("Free Agent");
     }
     if (trades.length || retirements.length || cuts.length) {
       events.push(...trades, ...retirements, ...cuts);
