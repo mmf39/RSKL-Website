@@ -334,39 +334,29 @@ function extractLeagueDay(rows) {
 }
 
 function parseLiveGames(rows) {
-  const startIndex = 4; // row 5 (0-based index)
+  const LIVE_GAME_RANGES = ["A5:G11", "A13:G20"];
   const games = [];
-
-  const isHeaderRow = (row) => {
-    if (!row) {
-      return false;
+  LIVE_GAME_RANGES.forEach((range) => {
+    const block = sliceRange(rows, range);
+    if (!block.length) {
+      return;
     }
-    const team1 = String(row[0] || "").trim();
-    const team2 = String(row[4] || "").trim();
+    const header = block[0] || [];
+    const team1 = String(header[0] || "").trim();
+    const team2 = String(header[4] || "").trim();
     if (!team1 || !team2) {
-      return false;
+      return;
     }
-    // Header rows are team labels; player rows typically start with @.
-    return !team1.startsWith("@") && !team2.startsWith("@");
-  };
-
-  for (let i = startIndex; i < rows.length; i += 1) {
-    const header = rows[i];
-    if (!isHeaderRow(header)) {
-      continue;
-    }
-    const team1 = header[0] || "Team 1";
-    const team2 = header[4] || "Team 2";
-    const players = rows.slice(i + 1, i + 6); // A6:G10 (5 rows)
+    const players = block
+      .slice(1)
+      .filter((row) => String(row[0] || row[4] || "").trim() !== "");
     games.push({
       team1,
       team2,
       key: `${normalizeTeamName(team1)}|${normalizeTeamName(team2)}`,
       players,
     });
-    // Skip the 5 player rows we just consumed.
-    i += 5;
-  }
+  });
 
   return games;
 }
