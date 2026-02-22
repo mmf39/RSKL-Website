@@ -24,6 +24,7 @@ let transactionRows = [];
 let transactionHeaders = [];
 const TRADE_RANGE = "A3:E81";
 const RETIREMENT_RANGE = "G3:J70";
+const CUT_RANGE = "L1:O81";
 
 function parseCSV(text) {
   const rows = [];
@@ -239,6 +240,48 @@ function parseRetirementRow(row) {
   };
 }
 
+function parseCutRow(row) {
+  const extractDateAndTeam = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return { date: "", team: "" };
+    }
+    const firstFour = raw.slice(0, 4).trim();
+    if (/^\d{1,2}\/\d{1,2}$/.test(firstFour)) {
+      return { date: firstFour, team: raw.slice(4).trim() };
+    }
+    return { date: "", team: raw };
+  };
+  // Merged layout:
+  // L:M => player, N:O => team(+optional date prefix)
+  const player = String(row[0] || row[1] || "").trim();
+  const mergedTeamCell = String(row[2] || row[3] || "").trim();
+  const parsed = extractDateAndTeam(mergedTeamCell);
+  const team = canonicalTeamName(parsed.team || mergedTeamCell);
+  const date = parsed.date || "—";
+  if (!team && !player) {
+    return null;
+  }
+  const details = `${player || "Player"} was cut${
+    team ? ` (${team})` : ""
+  }`;
+  const players = Array.from(new Set([...extractPlayers(player)]));
+  if (player && player.startsWith("@") && !players.includes(player)) {
+    players.unshift(player);
+  }
+  const teams = team ? [team] : [];
+  return {
+    date,
+    type: "Cut",
+    details,
+    teams,
+    players,
+    team,
+    player,
+    note: "",
+  };
+}
+
 function parseDateValue(value) {
   const text = String(value || "").trim();
   if (!text) {
@@ -385,22 +428,30 @@ function renderTransactions(filter = "") {
             <span>${escapeHtml(tx.date || "—")}</span>
           </div>
           ${
-            tx.type === "Retirement"
-              ? `<div class="tx-sides">
-                  <div class="tx-side tx-side-full">
-                    <div class="tx-retire-player">${linkifyPlayers(
-                      tx.player || "—"
-                    )}</div>
-                    <div class="tx-side-team">${renderTeamHeader(tx.team)}</div>
-                    ${
-                      tx.note
-                        ? `<div class="tx-side-label">Details</div><div class="tx-side-value">${escapeHtml(
-                            tx.note
-                          )}</div>`
-                        : ""
-                    }
-                  </div>
-                </div>`
+            tx.type === "Retirement" || tx.type === "Cut"
+              ? tx.type === "Cut"
+                ? `<div class="tx-sides">
+                    <div class="tx-side tx-side-full">
+                      <div class="tx-side-value">${renderTeamHeader(tx.team)} • ${linkifyPlayers(
+                        tx.player || "—"
+                      )}</div>
+                    </div>
+                  </div>`
+                : `<div class="tx-sides">
+                    <div class="tx-side tx-side-full">
+                      <div class="tx-retire-player">${linkifyPlayers(
+                        tx.player || "—"
+                      )}</div>
+                      <div class="tx-side-team">${renderTeamHeader(tx.team)}</div>
+                      ${
+                        tx.note
+                          ? `<div class="tx-side-label">Details</div><div class="tx-side-value">${escapeHtml(
+                              tx.note
+                            )}</div>`
+                          : ""
+                      }
+                    </div>
+                  </div>`
               : `<div class="tx-sides">
                   <div class="tx-side">
                     <div class="tx-side-team">${renderTeamHeader(tx.team1)}</div>
@@ -434,7 +485,8 @@ async function loadTransactions() {
     const rows = parseCSV(await response.text());
     const tradeRows = sliceRange(rows, TRADE_RANGE).filter(hasText);
     const retirementRows = sliceRange(rows, RETIREMENT_RANGE).filter(hasText);
-    if (!tradeRows.length && !retirementRows.length) {
+    const cutRows = sliceRange(rows, CUT_RANGE).filter(hasText);
+    if (!tradeRows.length && !retirementRows.length && !cutRows.length) {
       throw new Error("No transaction data found.");
     }
     const parsedTrades = looksLikeHeader(tradeRows[0] || [])
@@ -447,8 +499,15 @@ async function loadTransactions() {
           .map(parseRetirementRow)
           .filter(Boolean)
       : retirementRows.map(parseRetirementRow).filter(Boolean);
+    const parsedCuts = looksLikeHeader(cutRows[0] || [])
+      ? cutRows
+          .slice(1)
+          .filter(hasText)
+          .map(parseCutRow)
+          .filter(Boolean)
+      : cutRows.map(parseCutRow).filter(Boolean);
     transactionHeaders = ["Date", "Type", "Details", "Team", "Player"];
-    transactionRows = [...parsedTrades, ...parsedRetirements].filter(Boolean);
+    transactionRows = [...parsedTrades, ...parsedRetirements, ...parsedCuts].filter(Boolean);
     const initialQuery = getInitialQuery();
     if (els.search) {
       els.search.value = initialQuery;

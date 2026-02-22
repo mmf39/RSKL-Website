@@ -10,6 +10,7 @@ const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
 const TRANSACTIONS_RANGE = "A3:E81";
 const RETIREMENT_RANGE = "G3:J70";
+const CUT_RANGE = "L1:O81";
 const DRAFT_ROUND_RANGES = [
   { title: "Round 1", range: "A1:C11" },
   { title: "Round 2", range: "A12:C22" },
@@ -1196,6 +1197,40 @@ function findRetirementEvents(playerName, retirementRows, aliases) {
     });
 }
 
+function findCutEvents(playerName, cutRows, aliases) {
+  const extractDateAndTeam = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return { date: "", team: "" };
+    }
+    const firstFour = raw.slice(0, 4).trim();
+    if (/^\d{1,2}\/\d{1,2}$/.test(firstFour)) {
+      return { date: firstFour, team: raw.slice(4).trim() };
+    }
+    return { date: "", team: raw };
+  };
+  if (!playerName || !cutRows.length || !aliases.length) {
+    return [];
+  }
+  return cutRows
+    .filter((row) => {
+      const combined = row.map((cell) => String(cell || "")).join(" ");
+      return matchesAnyAlias(combined, aliases);
+    })
+    .map((row) => {
+      const mergedTeamCell = String(row[2] || row[3] || "").trim();
+      const parsed = extractDateAndTeam(mergedTeamCell);
+      const date = parsed.date || "—";
+      const team = displayTeamName(parsed.team || mergedTeamCell || "");
+      const player = String(row[0] || row[1] || "").trim() || playerName;
+      return {
+        date,
+        title: "Cut",
+        details: `${player} was cut${team ? ` (${team})` : ""}`,
+      };
+    });
+}
+
 function renderPlayerTransactions(events, playerName) {
   if (!els.transactions) {
     return;
@@ -1250,6 +1285,9 @@ async function loadPlayerTransactions(playerName, season) {
     const retirementRows = sliceRange(rawTransactions, RETIREMENT_RANGE).filter(
       (row) => row.some((cell) => String(cell || "").trim() !== "")
     );
+    const cutRows = sliceRange(rawTransactions, CUT_RANGE).filter(
+      (row) => row.some((cell) => String(cell || "").trim() !== "")
+    );
 
     const aliases = getPlayerAliases(playerName);
     const events = [];
@@ -1266,11 +1304,12 @@ async function loadPlayerTransactions(playerName, season) {
     draftEvents.forEach((event) => events.push(event));
     const trades = findTradeEvents(playerName, transactionRows, aliases);
     const retirements = findRetirementEvents(playerName, retirementRows, aliases);
+    const cuts = findCutEvents(playerName, cutRows, aliases);
     if (retirements.length) {
       renderPlayerTeam("Retired");
     }
-    if (trades.length || retirements.length) {
-      events.push(...trades, ...retirements);
+    if (trades.length || retirements.length || cuts.length) {
+      events.push(...trades, ...retirements, ...cuts);
     } else if (!draftEvents.length) {
       events.push({
         date: "Status",

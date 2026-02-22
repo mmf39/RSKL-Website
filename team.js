@@ -9,6 +9,7 @@ const SEASON_KEY = "season";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const TRANSACTIONS_RANGE = "A3:E81";
 const RETIREMENT_RANGE = "G3:J70";
+const CUT_RANGE = "L1:O81";
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
   Bullets: "E2:F13",
@@ -946,6 +947,29 @@ function parseTeamRetirementRow(row) {
   };
 }
 
+function parseTeamCutRow(row) {
+  const extractDateAndTeam = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return { date: "", team: "" };
+    }
+    const firstFour = raw.slice(0, 4).trim();
+    if (/^\d{1,2}\/\d{1,2}$/.test(firstFour)) {
+      return { date: firstFour, team: raw.slice(4).trim() };
+    }
+    return { date: "", team: raw };
+  };
+  const mergedTeamCell = String(row[2] || row[3] || "").trim();
+  const parsed = extractDateAndTeam(mergedTeamCell);
+  return {
+    date: parsed.date || "—",
+    type: "Cut",
+    team: displayTeamName(parsed.team || mergedTeamCell || ""),
+    player: String(row[0] || row[1] || "").trim() || "—",
+    note: "",
+  };
+}
+
 function computeLeagueTransactionCounts(allRows) {
   const counts = new Map();
   const bump = (team) => {
@@ -967,6 +991,12 @@ function computeLeagueTransactionCounts(allRows) {
   sliceRange(allRows, RETIREMENT_RANGE)
     .filter(hasText)
     .map(parseTeamRetirementRow)
+    .forEach((tx) => {
+      bump(tx.team);
+    });
+  sliceRange(allRows, CUT_RANGE)
+    .filter(hasText)
+    .map(parseTeamCutRow)
     .forEach((tx) => {
       bump(tx.team);
     });
@@ -1035,7 +1065,11 @@ function loadTeamTransactionsPanel(teamName, allRows) {
     .filter(hasText)
     .map(parseTeamRetirementRow)
     .filter((tx) => normalizeTeamLabel(tx.team) === normalizedTeam);
-  const merged = [...trades, ...retirements]
+  const cuts = sliceRange(allRows, CUT_RANGE)
+    .filter(hasText)
+    .map(parseTeamCutRow)
+    .filter((tx) => normalizeTeamLabel(tx.team) === normalizedTeam);
+  const merged = [...trades, ...retirements, ...cuts]
     .map((tx, idx) => ({ ...tx, _idx: idx }))
     .sort((a, b) => {
       const dateDiff = parseDateValue(b.date) - parseDateValue(a.date);
@@ -1058,18 +1092,24 @@ function loadTeamTransactionsPanel(teamName, allRows) {
 
   els.teamTransactions.innerHTML = merged
     .map((tx) => {
-      if (tx.type === "Retirement") {
+      if (tx.type === "Retirement" || tx.type === "Cut") {
         return `
           <article class="tx-card">
             <div class="tx-head">
-              <strong>Retirement</strong>
+              <strong>${escapeHtml(tx.type)}</strong>
               <span>${escapeHtml(tx.date)}</span>
             </div>
             <div class="tx-sides">
               <div class="tx-side tx-side-full">
-                <div class="tx-retire-player">${linkifyPlayers(tx.player)}</div>
-                <div class="tx-side-team">${renderTeamHeader(tx.team)}</div>
-                <div class="tx-details">Retired${tx.note ? ` • ${escapeHtml(tx.note)}` : ""}</div>
+                ${
+                  tx.type === "Cut"
+                    ? `<div class="tx-details">${renderTeamHeader(tx.team)} • ${linkifyPlayers(
+                        tx.player
+                      )}</div>`
+                    : `<div class="tx-retire-player">${linkifyPlayers(tx.player)}</div>
+                       <div class="tx-side-team">${renderTeamHeader(tx.team)}</div>
+                       <div class="tx-details">Retired${tx.note ? ` • ${escapeHtml(tx.note)}` : ""}</div>`
+                }
               </div>
             </div>
           </article>
