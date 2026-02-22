@@ -3,19 +3,18 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>RSKL Player Stats</title>
+    <title>RSKL Free Agent Stats</title>
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body class="player-page">
+  <body>
     <div class="bg"></div>
     <header class="hero">
       <div class="hero-inner">
         <div class="badge">Real Sports Karma League</div>
-        <h1>Player Stats</h1>
-        
+        <h1>FA Stats</h1>
         <div class="meta">
           <span id="last-updated">Last updated: —</span>
           <div class="nav-links">
@@ -27,11 +26,6 @@
             <a class="btn ghost" href="/transactions.html">Transactions</a>
             <a class="btn ghost" href="/draft.html">Draft</a>
             <a class="btn ghost" href="/awards.html">Awards</a>
-            <select id="season-select" class="season-select">
-              <option value="c2s2">C2S2 (Current)</option>
-              <option value="c2s1-regular">C2S1 Regular Season</option>
-              <option value="c2s1-post">C2S1 Postseason</option>
-            </select>
           </div>
         </div>
       </div>
@@ -40,29 +34,13 @@
     <main class="container">
       <section class="panel">
         <div class="panel-head">
-          <h2>Top 25 (Avg/Game)</h2>
+          <h2>Free Agent Player Cards</h2>
           <div class="controls">
-            <label for="player-season-select" class="label">Season</label>
-            <select id="player-season-select">
-              <option value="c2s2-regular">C2S2 Regular Season</option>
-              <option value="c2s1-playoffs">C2S1 Playoffs</option>
-              <option value="c2s1-regular">C2S1 Regular Season</option>
-            </select>
-            <label for="player-filter" class="label">Filter</label>
-            <select id="player-filter">
-              <option value="avg_score">Score Average</option>
-              <option value="total_score">Total Score</option>
-              <option value="avg_rank">Rank Average</option>
-              <option value="rel_median">REL (Median)</option>
-              <option value="rel_mean">REL (Mean)</option>
-              <option value="war">WAR</option>
-              <option value="gp">GP</option>
-            </select>
-            <label for="player-search" class="label">Player</label>
-            <input id="player-search" type="text" placeholder="Type a player name" />
+            <label for="fa-search" class="label">Player</label>
+            <input id="fa-search" type="text" placeholder="Search player" />
           </div>
         </div>
-        <div id="player-results" class="player-results"></div>
+        <div id="fa-stats-grid" class="fa-grid"></div>
       </section>
     </main>
 
@@ -70,6 +48,6 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="player.js"></script>
+    <script src="fa-stats.js"></script>
   </body>
 </html>
