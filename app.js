@@ -454,23 +454,25 @@ function renderLiveScoring(rows, scheduleRows) {
     <div class="live-count">${games.length} live game${games.length === 1 ? "" : "s"}${leagueDay ? ` • ${escapeHtml(leagueDay)}` : ""}</div>
     <div class="live-list">
       ${games
-        .map(
-          (game, index) => `
-            <div class="live-row-item ${getTeamColorClass(game.team1)} ${getTeamColorClass(
-              game.team2
-            )}" data-index="${index}">
+        .map((game, index) => {
+          const team1Label = cleanTeamLabel(game.team1);
+          const team2Label = cleanTeamLabel(game.team2);
+          return `
+            <div class="live-row-item ${getTeamColorClass(team1Label)} ${getTeamColorClass(
+            team2Label
+          )}" data-index="${index}">
               <div class="live-matchup">
-                <strong class="live-team-name ${getTeamColorClass(game.team1)}">${renderSmallTeamLogo(
-                  game.team1
+                <strong class="live-team-name ${getTeamColorClass(team1Label)}">${renderSmallTeamLogo(
+                  team1Label
                 )}<span>${escapeHtml(game.team1)}</span></strong>
                 <span>vs</span>
-                <strong class="live-team-name ${getTeamColorClass(game.team2)}">${renderSmallTeamLogo(
-                  game.team2
+                <strong class="live-team-name ${getTeamColorClass(team2Label)}">${renderSmallTeamLogo(
+                  team2Label
                 )}<span>${escapeHtml(game.team2)}</span></strong>
               </div>
             </div>
-          `
-        )
+          `;
+        })
         .join("")}
     </div>
   `;
