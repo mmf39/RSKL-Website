@@ -24,7 +24,7 @@ let transactionRows = [];
 let transactionHeaders = [];
 const TRADE_RANGE = "A3:E81";
 const RETIREMENT_RANGE = "G3:J70";
-const CUT_RANGE = "L1:O81";
+const CUT_RANGE = "L3:O81";
 
 function parseCSV(text) {
   const rows = [];
@@ -256,6 +256,16 @@ function parseCutRow(row) {
   // L:M => player, N:O => team(+optional date prefix)
   const player = String(row[0] || row[1] || "").trim();
   const mergedTeamCell = String(row[2] || row[3] || "").trim();
+  const playerLower = player.toLowerCase();
+  const teamLower = mergedTeamCell.toLowerCase();
+  if (
+    playerLower === "cuts" ||
+    playerLower === "player" ||
+    teamLower === "date/team" ||
+    teamLower === "team"
+  ) {
+    return null;
+  }
   const parsed = extractDateAndTeam(mergedTeamCell);
   const team = canonicalTeamName(parsed.team || mergedTeamCell);
   const date = parsed.date || "—";
@@ -431,14 +441,16 @@ function renderTransactions(filter = "") {
             tx.type === "Retirement" || tx.type === "Cut"
               ? `<div class="tx-sides">
                   <div class="tx-side tx-side-full">
-                    <div class="tx-side-value">${
+                    <div class="tx-side-value tx-sentence">${
                       tx.type === "Cut"
-                        ? `${renderTeamHeader(tx.team)} cuts ${linkifyPlayers(
+                        ? `<span class="tx-part">${renderTeamHeader(tx.team)}</span><span class="tx-verb">cuts</span><span class="tx-part">${linkifyPlayers(
                             tx.player || "—"
-                          )}`
-                        : `${linkifyPlayers(
+                          )}</span>`
+                        : `<span class="tx-part">${linkifyPlayers(
                             tx.player || "—"
-                          )} retires from ${renderTeamHeader(tx.team)}`
+                          )}</span><span class="tx-verb">retires from</span><span class="tx-part">${renderTeamHeader(
+                            tx.team
+                          )}</span>`
                     }</div>
                   </div>
                 </div>`

@@ -10,7 +10,7 @@ const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
 const TRANSACTIONS_RANGE = "A3:E81";
 const RETIREMENT_RANGE = "G3:J70";
-const CUT_RANGE = "L1:O81";
+const CUT_RANGE = "L3:O81";
 const DRAFT_ROUND_RANGES = [
   { title: "Round 1", range: "A1:C11" },
   { title: "Round 2", range: "A12:C22" },
@@ -1214,6 +1214,16 @@ function findCutEvents(playerName, cutRows, aliases) {
   }
   return cutRows
     .filter((row) => {
+      const player = String(row[0] || row[1] || "").trim().toLowerCase();
+      const teamCell = String(row[2] || row[3] || "").trim().toLowerCase();
+      if (
+        player === "cuts" ||
+        player === "player" ||
+        teamCell === "date/team" ||
+        teamCell === "team"
+      ) {
+        return false;
+      }
       const combined = row.map((cell) => String(cell || "")).join(" ");
       return matchesAnyAlias(combined, aliases);
     })

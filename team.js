@@ -9,7 +9,7 @@ const SEASON_KEY = "season";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const TRANSACTIONS_RANGE = "A3:E81";
 const RETIREMENT_RANGE = "G3:J70";
-const CUT_RANGE = "L1:O81";
+const CUT_RANGE = "L3:O81";
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
   Bullets: "E2:F13",
@@ -960,12 +960,23 @@ function parseTeamCutRow(row) {
     return { date: "", team: raw };
   };
   const mergedTeamCell = String(row[2] || row[3] || "").trim();
+  const player = String(row[0] || row[1] || "").trim() || "—";
+  const playerLower = String(player).toLowerCase();
+  const teamLower = mergedTeamCell.toLowerCase();
+  if (
+    playerLower === "cuts" ||
+    playerLower === "player" ||
+    teamLower === "date/team" ||
+    teamLower === "team"
+  ) {
+    return null;
+  }
   const parsed = extractDateAndTeam(mergedTeamCell);
   return {
     date: parsed.date || "—",
     type: "Cut",
     team: displayTeamName(parsed.team || mergedTeamCell || ""),
-    player: String(row[0] || row[1] || "").trim() || "—",
+    player,
     note: "",
   };
 }
@@ -997,6 +1008,7 @@ function computeLeagueTransactionCounts(allRows) {
   sliceRange(allRows, CUT_RANGE)
     .filter(hasText)
     .map(parseTeamCutRow)
+    .filter(Boolean)
     .forEach((tx) => {
       bump(tx.team);
     });
@@ -1068,6 +1080,7 @@ function loadTeamTransactionsPanel(teamName, allRows) {
   const cuts = sliceRange(allRows, CUT_RANGE)
     .filter(hasText)
     .map(parseTeamCutRow)
+    .filter(Boolean)
     .filter((tx) => normalizeTeamLabel(tx.team) === normalizedTeam);
   const merged = [...trades, ...retirements, ...cuts]
     .map((tx, idx) => ({ ...tx, _idx: idx }))
@@ -1101,14 +1114,16 @@ function loadTeamTransactionsPanel(teamName, allRows) {
             </div>
             <div class="tx-sides">
               <div class="tx-side tx-side-full">
-                <div class="tx-details">${
+                <div class="tx-details tx-sentence">${
                   tx.type === "Cut"
-                    ? `${renderTeamHeader(tx.team)} cuts ${linkifyPlayers(
+                    ? `<span class="tx-part">${renderTeamHeader(tx.team)}</span><span class="tx-verb">cuts</span><span class="tx-part">${linkifyPlayers(
                         tx.player || "—"
-                      )}`
-                    : `${linkifyPlayers(
+                      )}</span>`
+                    : `<span class="tx-part">${linkifyPlayers(
                         tx.player || "—"
-                      )} retires from ${renderTeamHeader(tx.team)}`
+                      )}</span><span class="tx-verb">retires from</span><span class="tx-part">${renderTeamHeader(
+                        tx.team
+                      )}</span>`
                 }</div>
               </div>
             </div>

@@ -1743,14 +1743,9 @@ input[type="text"] {
 
 .tx-side-value {
   color: var(--ink);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  white-space: nowrap;
-  font-size: 1.08rem;
-  line-height: 1.2;
-  font-weight: 600;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .tx-side-value .tx-link,
@@ -1763,9 +1758,32 @@ input[type="text"] {
   font-weight: 700;
 }
 
+.tx-sentence {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-size: 1.08rem;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
 .tx-side-value .tx-team-link .standings-logo {
   width: 28px;
   height: 28px;
+}
+
+.tx-sentence .tx-part {
+  display: inline-flex;
+  align-items: center;
+}
+
+.tx-sentence .tx-verb {
+  color: var(--ink);
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: 600;
 }
 
 .expansion-disclaimer {
