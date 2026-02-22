@@ -1,0 +1,9 @@
+{
+  "name": "realsports-live-scoring",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Standalone live draft scoring website for realsports.io player IDs",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

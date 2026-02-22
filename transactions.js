@@ -25,6 +25,7 @@ let transactionHeaders = [];
 const TRADE_RANGE = "A3:E81";
 const RETIREMENT_RANGE = "G3:J70";
 const CUT_RANGE = "L3:O81";
+const SIGNING_RANGE = "Q3:T81";
 
 function parseCSV(text) {
   const rows = [];
@@ -292,6 +293,56 @@ function parseCutRow(row) {
   };
 }
 
+function parseSigningRow(row) {
+  const extractDateAndTeam = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return { date: "", team: "" };
+    }
+    const firstFour = raw.slice(0, 4).trim();
+    if (/^\d{1,2}\/\d{1,2}$/.test(firstFour)) {
+      return { date: firstFour, team: raw.slice(4).trim() };
+    }
+    return { date: "", team: raw };
+  };
+  // Merged layout:
+  // Q:R => player, S:T => team(+optional date prefix)
+  const player = String(row[0] || row[1] || "").trim();
+  const mergedTeamCell = String(row[2] || row[3] || "").trim();
+  const playerLower = player.toLowerCase();
+  const teamLower = mergedTeamCell.toLowerCase();
+  if (
+    playerLower === "signings" ||
+    playerLower === "player" ||
+    teamLower === "date/team" ||
+    teamLower === "team"
+  ) {
+    return null;
+  }
+  const parsed = extractDateAndTeam(mergedTeamCell);
+  const team = canonicalTeamName(parsed.team || mergedTeamCell);
+  const date = parsed.date || "—";
+  if (!team && !player) {
+    return null;
+  }
+  const details = `${team || "Team"} signs ${player || "Player"}`;
+  const players = Array.from(new Set([...extractPlayers(player)]));
+  if (player && player.startsWith("@") && !players.includes(player)) {
+    players.unshift(player);
+  }
+  const teams = team ? [team] : [];
+  return {
+    date,
+    type: "Signing",
+    details,
+    teams,
+    players,
+    team,
+    player,
+    note: "",
+  };
+}
+
 function parseDateValue(value) {
   const text = String(value || "").trim();
   if (!text) {
@@ -438,12 +489,16 @@ function renderTransactions(filter = "") {
             <span>${escapeHtml(tx.date || "—")}</span>
           </div>
           ${
-            tx.type === "Retirement" || tx.type === "Cut"
+            tx.type === "Retirement" || tx.type === "Cut" || tx.type === "Signing"
               ? `<div class="tx-sides">
                   <div class="tx-side tx-side-full">
                     <div class="tx-side-value tx-sentence">${
                       tx.type === "Cut"
                         ? `<span class="tx-part">${renderTeamHeader(tx.team)}</span><span class="tx-verb">cuts</span><span class="tx-part">${linkifyPlayers(
+                            tx.player || "—"
+                          )}</span>`
+                        : tx.type === "Signing"
+                        ? `<span class="tx-part">${renderTeamHeader(tx.team)}</span><span class="tx-verb">signs</span><span class="tx-part">${linkifyPlayers(
                             tx.player || "—"
                           )}</span>`
                         : `<span class="tx-part">${linkifyPlayers(
@@ -488,7 +543,8 @@ async function loadTransactions() {
     const tradeRows = sliceRange(rows, TRADE_RANGE).filter(hasText);
     const retirementRows = sliceRange(rows, RETIREMENT_RANGE).filter(hasText);
     const cutRows = sliceRange(rows, CUT_RANGE).filter(hasText);
-    if (!tradeRows.length && !retirementRows.length && !cutRows.length) {
+    const signingRows = sliceRange(rows, SIGNING_RANGE).filter(hasText);
+    if (!tradeRows.length && !retirementRows.length && !cutRows.length && !signingRows.length) {
       throw new Error("No transaction data found.");
     }
     const parsedTrades = looksLikeHeader(tradeRows[0] || [])
@@ -508,8 +564,15 @@ async function loadTransactions() {
           .map(parseCutRow)
           .filter(Boolean)
       : cutRows.map(parseCutRow).filter(Boolean);
+    const parsedSignings = looksLikeHeader(signingRows[0] || [])
+      ? signingRows
+          .slice(1)
+          .filter(hasText)
+          .map(parseSigningRow)
+          .filter(Boolean)
+      : signingRows.map(parseSigningRow).filter(Boolean);
     transactionHeaders = ["Date", "Type", "Details", "Team", "Player"];
-    transactionRows = [...parsedTrades, ...parsedRetirements, ...parsedCuts].filter(Boolean);
+    transactionRows = [...parsedTrades, ...parsedRetirements, ...parsedCuts, ...parsedSignings].filter(Boolean);
     const initialQuery = getInitialQuery();
     if (els.search) {
       els.search.value = initialQuery;

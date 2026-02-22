@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Live Draft Scoring</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="header card">
+        <p class="eyebrow">RealSports Live Tool</p>
+        <h1>Draft Live Scoring</h1>
+        <p class="muted">
+          Enter player API IDs, define point rules, and auto-refresh live totals.
+        </p>
+      </header>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>API Config</h2>
+        </div>
+        <div class="grid-2">
+          <label>
+            <span>API Base URL</span>
+            <input id="api-base" type="text" placeholder="https://api.realsports.io" />
+          </label>
+          <label>
+            <span>Path Template</span>
+            <input id="path-template" type="text" placeholder="/v1/players/{id}/stats/live" />
+          </label>
+          <label>
+            <span>API Token (optional)</span>
+            <input id="api-token" type="password" placeholder="token" autocomplete="off" />
+          </label>
+          <label>
+            <span>Refresh Every (sec)</span>
+            <input id="refresh-seconds" type="number" min="10" max="600" step="5" />
+          </label>
+        </div>
+        <p class="muted small">
+          Use <code>{id}</code> where the player ID should be injected.
+        </p>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Scoring Rules</h2>
+          <button id="add-rule" type="button">Add Rule</button>
+        </div>
+        <div id="rules-list" class="stack"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Drafted Players</h2>
+          <button id="add-player" type="button">Add Player</button>
+        </div>
+        <div id="players-list" class="stack"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Actions</h2>
+          <p id="last-updated" class="muted">Last updated: —</p>
+        </div>
+        <div class="actions">
+          <button id="save-setup" type="button" class="primary">Save Setup</button>
+          <button id="refresh-now" type="button">Refresh Now</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Live Results</h2>
+          <strong id="total-points">Total: 0.00</strong>
+        </div>
+        <div id="results" class="results"></div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

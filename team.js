@@ -10,6 +10,7 @@ const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const TRANSACTIONS_RANGE = "A3:E81";
 const RETIREMENT_RANGE = "G3:J70";
 const CUT_RANGE = "L3:O81";
+const SIGNING_RANGE = "Q3:T81";
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
   Bullets: "E2:F13",
@@ -981,6 +982,40 @@ function parseTeamCutRow(row) {
   };
 }
 
+function parseTeamSigningRow(row) {
+  const extractDateAndTeam = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return { date: "", team: "" };
+    }
+    const firstFour = raw.slice(0, 4).trim();
+    if (/^\d{1,2}\/\d{1,2}$/.test(firstFour)) {
+      return { date: firstFour, team: raw.slice(4).trim() };
+    }
+    return { date: "", team: raw };
+  };
+  const player = String(row[0] || row[1] || "").trim() || "—";
+  const mergedTeamCell = String(row[2] || row[3] || "").trim();
+  const playerLower = String(player).toLowerCase();
+  const teamLower = mergedTeamCell.toLowerCase();
+  if (
+    playerLower === "signings" ||
+    playerLower === "player" ||
+    teamLower === "date/team" ||
+    teamLower === "team"
+  ) {
+    return null;
+  }
+  const parsed = extractDateAndTeam(mergedTeamCell);
+  return {
+    date: parsed.date || "—",
+    type: "Signing",
+    team: displayTeamName(parsed.team || mergedTeamCell || ""),
+    player,
+    note: "",
+  };
+}
+
 function computeLeagueTransactionCounts(allRows) {
   const counts = new Map();
   const bump = (team) => {
@@ -1008,6 +1043,13 @@ function computeLeagueTransactionCounts(allRows) {
   sliceRange(allRows, CUT_RANGE)
     .filter(hasText)
     .map(parseTeamCutRow)
+    .filter(Boolean)
+    .forEach((tx) => {
+      bump(tx.team);
+    });
+  sliceRange(allRows, SIGNING_RANGE)
+    .filter(hasText)
+    .map(parseTeamSigningRow)
     .filter(Boolean)
     .forEach((tx) => {
       bump(tx.team);
@@ -1082,7 +1124,12 @@ function loadTeamTransactionsPanel(teamName, allRows) {
     .map(parseTeamCutRow)
     .filter(Boolean)
     .filter((tx) => normalizeTeamLabel(tx.team) === normalizedTeam);
-  const merged = [...trades, ...retirements, ...cuts]
+  const signings = sliceRange(allRows, SIGNING_RANGE)
+    .filter(hasText)
+    .map(parseTeamSigningRow)
+    .filter(Boolean)
+    .filter((tx) => normalizeTeamLabel(tx.team) === normalizedTeam);
+  const merged = [...trades, ...retirements, ...cuts, ...signings]
     .map((tx, idx) => ({ ...tx, _idx: idx }))
     .sort((a, b) => {
       const dateDiff = parseDateValue(b.date) - parseDateValue(a.date);
@@ -1105,7 +1152,7 @@ function loadTeamTransactionsPanel(teamName, allRows) {
 
   els.teamTransactions.innerHTML = merged
     .map((tx) => {
-      if (tx.type === "Retirement" || tx.type === "Cut") {
+      if (tx.type === "Retirement" || tx.type === "Cut" || tx.type === "Signing") {
         return `
           <article class="tx-card">
             <div class="tx-head">
@@ -1117,6 +1164,10 @@ function loadTeamTransactionsPanel(teamName, allRows) {
                 <div class="tx-details tx-sentence">${
                   tx.type === "Cut"
                     ? `<span class="tx-part">${renderTeamHeader(tx.team)}</span><span class="tx-verb">cuts</span><span class="tx-part">${linkifyPlayers(
+                        tx.player || "—"
+                      )}</span>`
+                    : tx.type === "Signing"
+                    ? `<span class="tx-part">${renderTeamHeader(tx.team)}</span><span class="tx-verb">signs</span><span class="tx-part">${linkifyPlayers(
                         tx.player || "—"
                       )}</span>`
                     : `<span class="tx-part">${linkifyPlayers(
