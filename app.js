@@ -216,6 +216,21 @@ function renderSmallTeamLogo(name) {
   )} logo" />`;
 }
 
+function getTeamColorClass(name) {
+  const clean = String(name || "").trim().toLowerCase();
+  if (clean === "turkeys") return "team-color-turkeys";
+  if (clean === "gus n em") return "team-color-gus";
+  if (clean === "storm" || clean === "bullets") return "team-color-storm";
+  if (clean === "cheerios") return "team-color-cheerios";
+  if (clean === "yetis") return "team-color-yetis";
+  if (clean === "illegals") return "team-color-illegals";
+  if (clean === "the lions") return "team-color-lions";
+  if (clean === "the future") return "team-color-future";
+  if (clean === "the snipers") return "team-color-snipers";
+  if (clean === "the phantoms") return "team-color-phantoms";
+  return "team-color-default";
+}
+
 function renderTeamsCards(standingsRecordRows) {
   const teamNames = Object.keys(TEAM_RANGES).slice(0, TEAMS_LIMIT);
   if (!teamNames.length) {
@@ -441,13 +456,15 @@ function renderLiveScoring(rows, scheduleRows) {
       ${games
         .map(
           (game, index) => `
-            <div class="live-row-item" data-index="${index}">
+            <div class="live-row-item ${getTeamColorClass(game.team1)} ${getTeamColorClass(
+              game.team2
+            )}" data-index="${index}">
               <div class="live-matchup">
-                <strong class="live-team-name">${renderSmallTeamLogo(
+                <strong class="live-team-name ${getTeamColorClass(game.team1)}">${renderSmallTeamLogo(
                   game.team1
                 )}<span>${escapeHtml(game.team1)}</span></strong>
                 <span>vs</span>
-                <strong class="live-team-name">${renderSmallTeamLogo(
+                <strong class="live-team-name ${getTeamColorClass(game.team2)}">${renderSmallTeamLogo(
                   game.team2
                 )}<span>${escapeHtml(game.team2)}</span></strong>
               </div>

@@ -205,6 +205,53 @@ h1 {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  font-weight: 800;
+}
+
+.live-team-name .standings-logo {
+  width: 38px;
+  height: 38px;
+  border-width: 2px;
+}
+
+.live-team-name.team-color-turkeys {
+  color: #d7b84a;
+}
+
+.live-team-name.team-color-gus {
+  color: #ffcf4c;
+}
+
+.live-team-name.team-color-storm {
+  color: #4fb0ff;
+}
+
+.live-team-name.team-color-cheerios {
+  color: #ffe06a;
+}
+
+.live-team-name.team-color-yetis {
+  color: #9fd2ff;
+}
+
+.live-team-name.team-color-illegals {
+  color: #c9c9c9;
+}
+
+.live-team-name.team-color-lions {
+  color: #46a7ff;
+}
+
+.live-team-name.team-color-future {
+  color: #c08bff;
+}
+
+.live-team-name.team-color-snipers {
+  color: #ff8d8d;
+}
+
+.live-team-name.team-color-phantoms {
+  color: #95a4b8;
 }
 
 .btn {
