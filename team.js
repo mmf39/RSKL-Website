@@ -1101,15 +1101,15 @@ function loadTeamTransactionsPanel(teamName, allRows) {
             </div>
             <div class="tx-sides">
               <div class="tx-side tx-side-full">
-                ${
+                <div class="tx-details">${
                   tx.type === "Cut"
-                    ? `<div class="tx-details">${renderTeamHeader(tx.team)} • ${linkifyPlayers(
-                        tx.player
-                      )}</div>`
-                    : `<div class="tx-retire-player">${linkifyPlayers(tx.player)}</div>
-                       <div class="tx-side-team">${renderTeamHeader(tx.team)}</div>
-                       <div class="tx-details">Retired${tx.note ? ` • ${escapeHtml(tx.note)}` : ""}</div>`
-                }
+                    ? `${renderTeamHeader(tx.team)} cuts ${linkifyPlayers(
+                        tx.player || "—"
+                      )}`
+                    : `${linkifyPlayers(
+                        tx.player || "—"
+                      )} retires from ${renderTeamHeader(tx.team)}`
+                }</div>
               </div>
             </div>
           </article>

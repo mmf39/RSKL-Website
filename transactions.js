@@ -429,29 +429,19 @@ function renderTransactions(filter = "") {
           </div>
           ${
             tx.type === "Retirement" || tx.type === "Cut"
-              ? tx.type === "Cut"
-                ? `<div class="tx-sides">
-                    <div class="tx-side tx-side-full">
-                      <div class="tx-side-value">${renderTeamHeader(tx.team)} • ${linkifyPlayers(
-                        tx.player || "—"
-                      )}</div>
-                    </div>
-                  </div>`
-                : `<div class="tx-sides">
-                    <div class="tx-side tx-side-full">
-                      <div class="tx-retire-player">${linkifyPlayers(
-                        tx.player || "—"
-                      )}</div>
-                      <div class="tx-side-team">${renderTeamHeader(tx.team)}</div>
-                      ${
-                        tx.note
-                          ? `<div class="tx-side-label">Details</div><div class="tx-side-value">${escapeHtml(
-                              tx.note
-                            )}</div>`
-                          : ""
-                      }
-                    </div>
-                  </div>`
+              ? `<div class="tx-sides">
+                  <div class="tx-side tx-side-full">
+                    <div class="tx-side-value">${
+                      tx.type === "Cut"
+                        ? `${renderTeamHeader(tx.team)} cuts ${linkifyPlayers(
+                            tx.player || "—"
+                          )}`
+                        : `${linkifyPlayers(
+                            tx.player || "—"
+                          )} retires from ${renderTeamHeader(tx.team)}`
+                    }</div>
+                  </div>
+                </div>`
               : `<div class="tx-sides">
                   <div class="tx-side">
                     <div class="tx-side-team">${renderTeamHeader(tx.team1)}</div>
