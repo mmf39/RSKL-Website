@@ -12,6 +12,7 @@ const TEAM_UPDATE_CODES = {
   "The Snipers": "Atlas=63Bloom",
   "The Phantoms": "Velvet+90Stone",
 };
+const UNIVERSAL_UPDATE_CODE = "1739";
 
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
@@ -118,6 +119,17 @@ function getTeamUpdateCode(team) {
     return TEAM_UPDATE_CODES.Bullets || "";
   }
   return TEAM_UPDATE_CODES[team] || "";
+}
+
+function isValidUpdateCode(inputCode, expectedTeamCode) {
+  const code = String(inputCode || "").trim();
+  if (!code) {
+    return false;
+  }
+  if (code === UNIVERSAL_UPDATE_CODE) {
+    return true;
+  }
+  return !!expectedTeamCode && code === expectedTeamCode;
 }
 
 function normalizeName(value) {
@@ -686,7 +698,7 @@ function bindEvents() {
         setTradeStatus("No update code configured for this team.", true);
         return;
       }
-      if (!els.tradeCode || els.tradeCode.value.trim() !== expectedCode) {
+      if (!isValidUpdateCode(els.tradeCode ? els.tradeCode.value : "", expectedCode)) {
         setTradeStatus("Invalid access code.", true);
         return;
       }
@@ -741,7 +753,7 @@ function bindEvents() {
         setRenameStatus("No update code configured for this team.", true);
         return;
       }
-      if (!els.renameCode || els.renameCode.value.trim() !== expectedCode) {
+      if (!isValidUpdateCode(els.renameCode ? els.renameCode.value : "", expectedCode)) {
         setRenameStatus("Invalid access code.", true);
         return;
       }
@@ -791,7 +803,7 @@ function bindEvents() {
         setLineupStatus("No update code configured for this team.", true);
         return;
       }
-      if (!els.lineupCode || els.lineupCode.value.trim() !== expectedCode) {
+      if (!isValidUpdateCode(els.lineupCode ? els.lineupCode.value : "", expectedCode)) {
         setLineupStatus("Invalid access code.", true);
         return;
       }
