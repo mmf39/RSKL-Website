@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MLBKL | League Hub</title>
+    <meta
+      name="description"
+      content="MLBKL official league hub: standings, schedule, teams, player leaders, transactions, awards, draft board, expansion notes, and commissioner updates."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid" aria-hidden="true"></div>
+
+    <header class="hero" id="top">
+      <nav class="nav shell">
+        <a class="brand" href="#top">MLBKL</a>
+        <button class="menu-btn" id="menuBtn" aria-label="Toggle menu">Menu</button>
+        <ul class="nav-links" id="navLinks">
+          <li><a href="#standings">Standings</a></li>
+          <li><a href="#schedule">Schedule</a></li>
+          <li><a href="#teams">Teams</a></li>
+          <li><a href="#leaders">Leaders</a></li>
+          <li><a href="#transactions">Transactions</a></li>
+          <li><a href="#gm">GM Center</a></li>
+        </ul>
+      </nav>
+
+      <div class="hero-main shell reveal">
+        <p class="tag">Official League Website</p>
+        <h1>Major League Baseball Karma League</h1>
+        <p class="subtitle">
+          Everything in one place: records, upcoming matchups, team profiles, stat leaders,
+          awards race, draft pipeline, expansion watch, and commissioner notes.
+        </p>
+        <div class="hero-actions">
+          <a href="#standings" class="btn btn-primary">View Standings</a>
+          <a href="#gm" class="btn btn-ghost">Open GM Center</a>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="panel reveal" id="standings">
+        <div class="panel-head">
+          <h2>Standings</h2>
+          <p>Regular season race by division</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th>W</th>
+                <th>L</th>
+                <th>PCT</th>
+                <th>GB</th>
+                <th>Streak</th>
+              </tr>
+            </thead>
+            <tbody id="standingsBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel reveal" id="schedule">
+        <div class="panel-head">
+          <h2>Schedule</h2>
+          <p>Upcoming series and recent finals</p>
+        </div>
+        <div class="cards" id="scheduleCards"></div>
+      </section>
+
+      <section class="panel reveal" id="teams">
+        <div class="panel-head">
+          <h2>Teams</h2>
+          <p>Clubs, parks, identities, and current direction</p>
+        </div>
+        <div class="cards teams" id="teamCards"></div>
+      </section>
+
+      <section class="panel reveal" id="leaders">
+        <div class="panel-head">
+          <h2>Player Leaders</h2>
+          <p>Top performers across major categories</p>
+        </div>
+        <div class="leader-grid" id="leaderGrid"></div>
+      </section>
+
+      <section class="panel reveal" id="transactions">
+        <div class="panel-head">
+          <h2>Transactions</h2>
+          <p>Trades, call-ups, signings, and injured list moves</p>
+        </div>
+        <ul class="feed" id="transactionFeed"></ul>
+      </section>
+
+      <section class="split reveal" id="awards">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>Awards Watch</h2>
+            <p>Live race snapshots</p>
+          </div>
+          <ul class="simple-list" id="awardsList"></ul>
+        </article>
+
+        <article class="panel" id="draft">
+          <div class="panel-head">
+            <h2>Draft Board</h2>
+            <p>Top prospects and pick order pulse</p>
+          </div>
+          <ol class="simple-list ordered" id="draftList"></ol>
+        </article>
+      </section>
+
+      <section class="split reveal" id="expansion">
+        <article class="panel">
+          <div class="panel-head">
+            <h2>Expansion Tracker</h2>
+            <p>Possible future franchises</p>
+          </div>
+          <ul class="simple-list" id="expansionList"></ul>
+        </article>
+
+        <article class="panel" id="gm">
+          <div class="panel-head">
+            <h2>GM Center</h2>
+            <p>League operations</p>
+          </div>
+          <div class="gm-grid">
+            <div>
+              <h3>Waiver Deadline</h3>
+              <p id="waiverDeadline"></p>
+            </div>
+            <div>
+              <h3>Trade Deadline</h3>
+              <p id="tradeDeadline"></p>
+            </div>
+            <div>
+              <h3>Rule Poll</h3>
+              <p id="rulePoll"></p>
+            </div>
+            <div>
+              <h3>Commissioner Note</h3>
+              <p id="commissionerNote"></p>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer class="shell footer">
+      <p>MLBKL League Hub</p>
+      <a href="#top">Back to top</a>
+    </footer>
+
+    <script src="./site.js"></script>
+  </body>
+</html>
