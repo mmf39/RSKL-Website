@@ -1719,7 +1719,7 @@ input[type="text"] {
 .fa-grid {
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: 1fr;
 }
 
 .fa-card {
@@ -1749,35 +1749,32 @@ input[type="text"] {
   font-weight: 600;
 }
 
-.fa-row-labels,
-.fa-row-values {
+.fa-stat-list {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.fa-stat-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
-  align-items: baseline;
-  text-align: center;
+  align-items: center;
+  text-align: left;
   padding: 8px;
   border-radius: 10px;
   border: 1px solid rgba(255, 140, 0, 0.25);
   background: rgba(15, 23, 42, 0.7);
 }
 
-.fa-row-labels span {
+.fa-stat-line span {
   color: var(--muted);
   font-weight: 600;
   font-size: 0.95rem;
 }
 
-.fa-row-values strong {
+.fa-stat-line strong {
   color: var(--accent);
   font-size: 1.08rem;
-}
-
-@media (max-width: 720px) {
-  .fa-row-labels,
-  .fa-row-values {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 .tx-card {

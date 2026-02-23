@@ -103,6 +103,14 @@ function formatValue(value) {
   return text || "—";
 }
 
+function normalizeFilterText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/,/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function parseFARows(rows) {
   return rows
     .filter((row) => row.some((cell) => String(cell || "").trim() !== ""))
@@ -129,8 +137,9 @@ function matchesField(row, field, query) {
   if (!query) {
     return true;
   }
-  const value = String(row[field] || "").toLowerCase();
-  return value.includes(query);
+  const value = normalizeFilterText(row[field] || "");
+  const q = normalizeFilterText(query);
+  return value.includes(q);
 }
 
 function render(rows, query = "", field = "player") {
@@ -160,29 +169,17 @@ function render(rows, query = "", field = "player") {
               formatValue(row.avgRankOnRankedDays)
             )} Avg Rank)</span>
           </h3>
-          <div class="fa-row-labels">
-            <span>Daily Karma</span>
-            <span>Weekly Karma</span>
-            <span>Monthly Karma</span>
-            <span>Total Karma</span>
-          </div>
-          <div class="fa-row-values">
-            <strong>${escapeHtml(formatValue(row.dailyKarma))}</strong>
-            <strong>${escapeHtml(formatValue(row.weeklyKarma))}</strong>
-            <strong>${escapeHtml(formatValue(row.monthlyKarma))}</strong>
-            <strong>${escapeHtml(formatValue(row.totalKarma))}</strong>
-          </div>
-          <div class="fa-row-labels">
-            <span>Daily Rank</span>
-            <span>Weekly Rank</span>
-            <span>Monthly Rank</span>
-            <span>Total Karma Rank</span>
-          </div>
-          <div class="fa-row-values">
-            <strong>${escapeHtml(formatValue(row.dailyRank))}</strong>
-            <strong>${escapeHtml(formatValue(row.weeklyRank))}</strong>
-            <strong>${escapeHtml(formatValue(row.monthlyRank))}</strong>
-            <strong>${escapeHtml(formatValue(row.totalKarmaRank))}</strong>
+          <div class="fa-stat-list">
+            <div class="fa-stat-line"><span>Daily Karma</span><strong>${escapeHtml(formatValue(row.dailyKarma))}</strong></div>
+            <div class="fa-stat-line"><span>Daily Rank</span><strong>${escapeHtml(formatValue(row.dailyRank))}</strong></div>
+            <div class="fa-stat-line"><span>Weekly Karma</span><strong>${escapeHtml(formatValue(row.weeklyKarma))}</strong></div>
+            <div class="fa-stat-line"><span>Weekly Rank</span><strong>${escapeHtml(formatValue(row.weeklyRank))}</strong></div>
+            <div class="fa-stat-line"><span>Monthly Karma</span><strong>${escapeHtml(formatValue(row.monthlyKarma))}</strong></div>
+            <div class="fa-stat-line"><span>Monthly Rank</span><strong>${escapeHtml(formatValue(row.monthlyRank))}</strong></div>
+            <div class="fa-stat-line"><span>Total Karma</span><strong>${escapeHtml(formatValue(row.totalKarma))}</strong></div>
+            <div class="fa-stat-line"><span>Total Karma Rank</span><strong>${escapeHtml(formatValue(row.totalKarmaRank))}</strong></div>
+            <div class="fa-stat-line"><span>Ranked Days</span><strong>${escapeHtml(formatValue(row.rankedDays))}</strong></div>
+            <div class="fa-stat-line"><span>Avg Rank (Ranked Days)</span><strong>${escapeHtml(formatValue(row.avgRankOnRankedDays))}</strong></div>
           </div>
         </article>
       `
