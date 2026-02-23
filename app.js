@@ -349,27 +349,76 @@ function extractLeagueDay(rows) {
 }
 
 function parseLiveGames(rows) {
-  const LIVE_GAME_RANGES = ["A5:G11", "A13:G20"];
+  const LIVE_GAME_RANGES = [
+    { range: "A4:D11", format: "compact" },
+    { range: "A13:G20", format: "standard" },
+  ];
   const games = [];
-  LIVE_GAME_RANGES.forEach((range) => {
+  LIVE_GAME_RANGES.forEach(({ range, format }) => {
     const block = sliceRange(rows, range);
     if (!block.length) {
       return;
     }
     const header = block[0] || [];
-    const team1 = String(header[0] || "").trim();
-    const team2 = String(header[4] || "").trim();
+    let team1 = "";
+    let team2 = "";
+    if (format === "compact") {
+      const headerText = String(header[0] || "").trim();
+      const vsMatch = headerText.match(/(.+?)\s+vs\s+(.+)/i);
+      if (vsMatch) {
+        team1 = String(vsMatch[1] || "").trim();
+        team2 = String(vsMatch[2] || "").trim();
+      } else {
+        team1 = String(header[0] || "").trim();
+        team2 = String(header[3] || "").trim();
+      }
+    } else {
+      team1 = String(header[0] || "").trim();
+      team2 = String(header[4] || "").trim();
+    }
     if (!team1 || !team2) {
       return;
     }
-    const players = block
-      .slice(1)
-      .filter((row) => String(row[0] || row[4] || "").trim() !== "");
+    let players = [];
+    let team1Players = [];
+    let team2Players = [];
+    if (format === "compact") {
+      const lines = block
+        .slice(1)
+        .filter((row) => String(row[0] || row[3] || "").trim() !== "");
+      team1Players = lines.map((row) => ({
+        player: row[0] || "",
+        points: row[1] || "",
+        rank: row[2] || "",
+      }));
+      team2Players = lines.map((row) => ({
+        player: row[3] || "",
+        points: "",
+        rank: "",
+      }));
+      players = lines;
+    } else {
+      players = block
+        .slice(1)
+        .filter((row) => String(row[0] || row[4] || "").trim() !== "");
+      team1Players = players.map((row) => ({
+        player: row[0] || "",
+        points: row[1] || "",
+        rank: row[2] || "",
+      }));
+      team2Players = players.map((row) => ({
+        player: row[4] || "",
+        points: row[5] || "",
+        rank: row[6] || "",
+      }));
+    }
     games.push({
       team1,
       team2,
       key: `${normalizeTeamName(team1)}|${normalizeTeamName(team2)}`,
       players,
+      team1Players,
+      team2Players,
     });
   });
 
@@ -440,6 +489,8 @@ function renderLiveScoring(rows, scheduleRows) {
         team1,
         team2,
         players: live ? live.players : [],
+        team1Players: live ? live.team1Players : [],
+        team2Players: live ? live.team2Players : [],
       };
     });
 
@@ -488,16 +539,20 @@ function renderLiveScoring(rows, scheduleRows) {
       return;
     }
 
-    const team1Players = (game.players || []).map((row) => ({
-      player: row[0] || "",
-      points: row[1] || "",
-      rank: row[2] || "",
-    }));
-    const team2Players = (game.players || []).map((row) => ({
-      player: row[4] || "",
-      points: row[5] || "",
-      rank: row[6] || "",
-    }));
+    const team1Players = (game.team1Players || []).length
+      ? game.team1Players
+      : (game.players || []).map((row) => ({
+          player: row[0] || "",
+          points: row[1] || "",
+          rank: row[2] || "",
+        }));
+    const team2Players = (game.team2Players || []).length
+      ? game.team2Players
+      : (game.players || []).map((row) => ({
+          player: row[4] || "",
+          points: row[5] || "",
+          rank: row[6] || "",
+        }));
 
     const renderTeamTable = (rowsList, header) => {
       const teamLink = `team.html?team=${encodeURIComponent(
