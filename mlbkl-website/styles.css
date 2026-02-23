@@ -1,0 +1,49 @@
+* { box-sizing: border-box; }
+html, body { overflow-x: hidden; }
+body { margin: 0; font-family: Arial, sans-serif; background: #020912; color: #fff; }
+.wrap { width: 100%; max-width: 1500px; margin: 0 auto; padding: 12px 14px 18px; }
+h1 { margin: 0 0 4px; font-size: 32px; line-height: 1.05; }
+.meta, #status { color: #b8c1d3; }
+
+.site-header { border-bottom: 2px solid rgba(255,255,255,.12); background: #082654; }
+.site-top { height: 72px; display: grid; grid-template-columns: 64px 1fr 120px; align-items: center; max-width: 1500px; margin: 0 auto; padding: 0 12px; }
+.site-menu, .site-icon { color: #fff; text-decoration: none; font-size: 28px; line-height: 1; }
+.site-brand { justify-self: center; color: #fff; text-decoration: none; font-weight: 800; font-size: 24px; border: 3px solid rgba(255,255,255,.9); border-radius: 12px; padding: 6px 16px; }
+.site-actions { justify-self: end; display: flex; gap: 16px; }
+.site-tabs { max-width: 1500px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); }
+.site-tab { text-align: center; color: #fff; text-decoration: none; font-weight: 700; font-size: 18px; padding: 14px 8px 16px; border-top: 1px solid rgba(255,255,255,.08); }
+.site-tab.active { color: #ffbe4f; box-shadow: inset 0 -3px 0 #ff961d; }
+
+.division { margin: 12px 0 16px; border: 2px solid #ff961d; border-radius: 24px; padding: 10px; background: rgba(4, 19, 54, 0.4); }
+.division-title { border: 2px solid #ff961d; background: #041336; border-radius: 14px; padding: 8px 10px; font-size: 20px; font-weight: 700; text-align: center; width: 100%; margin: 0 0 8px; }
+.tabs { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 8px; width: 100%; margin: 8px 0 10px; }
+.team-card { border: 2px solid #ff961d; background: #041336; color: #fff; border-radius: 14px; padding: 10px 8px 12px; text-decoration: none; display: block; width: 100%; min-width: 0; }
+.logo { width: 50px; height: 50px; border: 2px solid #ff961d; border-radius: 999px; background: #0f213f; display: grid; place-items: center; margin: 0 auto 6px; font-size: 15px; font-weight: 700; }
+.team-title { margin: 0 0 6px; text-align: center; font-size: 26px; line-height: 1.1; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 1px; font-size: 14px; white-space: nowrap; }
+.stat-pair { display: inline-flex; gap: 6px; align-items: baseline; }
+.stat-label { color: #b8c1d3; }
+.stat-value { color: #ffbe4f; font-weight: 700; }
+
+.panel { border: 1px solid #2b3f5f; border-radius: 8px; background: #13253f; padding: 10px; }
+.roster { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 6px; list-style: none; padding: 0; margin: 0; }
+.roster li { border: 1px solid #2b3f5f; border-radius: 6px; padding: 6px; background: #0f223c; font-size: 14px; }
+.back-link { display: inline-block; color: #ffbe4f; text-decoration: none; margin: 4px 0 8px; font-size: 14px; }
+
+.standings-wrap { overflow-x: auto; }
+.standings-table { width: 100%; border-collapse: collapse; min-width: 760px; background: #041336; border: 2px solid #ff961d; border-radius: 12px; overflow: hidden; }
+.standings-table th, .standings-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,150,29,.25); text-align: center; }
+.standings-table th { color: #ffbe4f; font-weight: 700; background: rgba(255,150,29,.08); }
+.standings-table tr:last-child td { border-bottom: 0; }
+.division-row td { background: rgba(255,150,29,.12); color: #ffbe4f; font-weight: 700; text-align: center; }
+.standings-team-link { color: #fff; text-decoration: none; border-bottom: 1px solid transparent; display: inline-block; }
+.standings-team-link:hover { color: #ffbe4f; border-bottom-color: #ffbe4f; }
+
+@media (max-width: 900px) {
+  h1 { font-size: 26px; }
+  .site-top { grid-template-columns: 48px 1fr 90px; height: 64px; padding: 0 8px; }
+  .site-brand { font-size: 18px; padding: 5px 10px; }
+  .site-tab { font-size: 14px; padding: 12px 4px; }
+  .tabs { grid-template-columns: repeat(5, minmax(0,1fr)); gap: 6px; }
+  .team-title { font-size: 18px; }
+}

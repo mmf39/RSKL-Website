@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MLBKL Team</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-top">
+      <a class="site-menu" href="index.html">&#9776;</a>
+      <a class="site-brand" href="index.html">MLBKL</a>
+      <div class="site-actions">
+        <a class="site-icon" href="standings.html">&#128269;</a>
+        <a class="site-icon" href="stats.html">&#9711;</a>
+      </div>
+    </div>
+    <nav class="site-tabs">
+      <a class="site-tab active" href="index.html">TEAMS</a>
+      <a class="site-tab" href="standings.html">STANDINGS</a>
+      <a class="site-tab" href="schedule.html">SCHEDULE</a>
+      <a class="site-tab" href="stats.html">STATS</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <a class="back-link" href="index.html">Back to Teams</a>
+    <h1 id="teamName">Team</h1>
+    <p id="status">Source: live roster sheet</p>
+    <section class="panel">
+      <p id="teamMeta" class="meta"></p>
+      <p id="teamRange" class="meta"></p>
+      <p id="teamOpen" class="meta"></p>
+      <ul id="teamRoster" class="roster"></ul>
+    </section>
+  </main>
+
+  <script src="team.js"></script>
+</body>
+</html>
