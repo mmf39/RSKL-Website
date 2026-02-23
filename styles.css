@@ -238,7 +238,10 @@ h1 {
   display: grid;
   gap: 10px;
   padding: 12px;
-  background: rgba(6, 23, 56, 0.98);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 140, 26, 0.2), transparent 45%),
+    radial-gradient(circle at 80% 15%, rgba(255, 179, 71, 0.16), transparent 48%),
+    #000000;
   border: 1px solid rgba(255, 140, 0, 0.5);
   border-radius: 12px;
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.42);
@@ -2085,42 +2088,51 @@ input[type="text"] {
 
 @media (max-width: 720px) {
   .hero {
-    padding: 16px 24px 36px;
+    padding: 12px 12px 28px;
   }
 
   .meta {
-    padding: 8px 10px 10px;
+    padding: 6px 8px 8px;
   }
 
   .site-nav {
-    min-height: 100px;
+    min-height: 84px;
+    grid-template-columns: auto 1fr auto;
   }
 
   .site-nav::before {
-    width: 58px;
-    height: 58px;
+    width: 44px;
+    height: 44px;
+    top: 2px;
   }
 
   .site-nav-main {
-    margin-top: 70px;
-    gap: 16px;
+    margin-top: 48px;
+    gap: 10px;
     justify-content: flex-start;
     padding: 0 2px;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
   }
 
   .site-menu-btn {
-    top: 2px;
+    top: 0;
     left: 0;
+    width: 30px;
+    height: 30px;
+    font-size: 26px;
   }
 
   .site-nav-main .btn.ghost {
-    font-size: 0.95rem;
+    font-size: 0.8rem;
+    flex: 0 0 auto;
   }
 
   .season-select {
-    max-width: 148px;
-    font-size: 0.76rem;
-    padding: 6px 10px;
+    max-width: 122px;
+    font-size: 0.68rem;
+    padding: 4px 8px;
   }
 
   .site-menu {
