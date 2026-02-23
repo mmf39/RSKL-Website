@@ -94,7 +94,7 @@ body {
 }
 
 .badge {
-  display: inline-flex;
+  display: none !important;
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
@@ -131,7 +131,10 @@ h1 {
   width: 100vw;
   margin-left: calc(50% - 50vw);
   padding: 8px 14px 10px;
-  background: linear-gradient(180deg, #050505 0%, #0a0a0a 100%);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 140, 26, 0.2), transparent 45%),
+    radial-gradient(circle at 80% 15%, rgba(255, 179, 71, 0.16), transparent 48%),
+    #000000;
   border-bottom: 1px solid rgba(255, 140, 0, 0.45);
 }
 
