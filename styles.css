@@ -83,7 +83,7 @@ body {
 }
 
 .hero {
-  padding: 152px 24px 36px;
+  padding: 118px 24px 36px;
 }
 
 .hero-inner {
@@ -153,7 +153,7 @@ h1 {
   grid-template-columns: auto 1fr auto;
   align-items: start;
   width: 100%;
-  min-height: 86px;
+  min-height: 106px;
   row-gap: 8px;
 }
 
@@ -163,8 +163,8 @@ h1 {
   left: 50%;
   top: 0;
   transform: translateX(-50%);
-  width: 82px;
-  height: 82px;
+  width: 74px;
+  height: 74px;
   background-image: url("/assets/rskl-logo.png");
   background-size: cover;
   background-repeat: no-repeat;
@@ -182,7 +182,7 @@ h1 {
   flex-wrap: nowrap;
   justify-content: center;
   grid-column: 1 / -1;
-  margin-top: 62px;
+  margin-top: 76px;
   padding: 0 6px;
   overflow-x: auto;
 }
@@ -210,9 +210,9 @@ h1 {
   background: transparent;
   color: var(--ink);
   border-radius: 8px;
-  width: 42px;
-  height: 42px;
-  font-size: 34px;
+  width: 38px;
+  height: 38px;
+  font-size: 32px;
   line-height: 1;
   cursor: pointer;
   justify-self: start;
@@ -252,7 +252,7 @@ h1 {
 }
 
 .league-hero-logo {
-  display: none;
+  display: none !important;
 }
 
 .site-menu[hidden] {
@@ -2072,7 +2072,7 @@ input[type="text"] {
 
 @media (max-width: 720px) {
   .hero {
-    padding: 144px 24px 36px;
+    padding: 112px 24px 36px;
   }
 
   .meta {
@@ -2080,16 +2080,16 @@ input[type="text"] {
   }
 
   .site-nav {
-    min-height: 80px;
+    min-height: 94px;
   }
 
   .site-nav::before {
-    width: 66px;
-    height: 66px;
+    width: 58px;
+    height: 58px;
   }
 
   .site-nav-main {
-    margin-top: 56px;
+    margin-top: 64px;
     gap: 16px;
     justify-content: flex-start;
     padding: 0 2px;
