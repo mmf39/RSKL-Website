@@ -36,8 +36,22 @@
         <div class="panel-head">
           <h2>Free Agent Player Cards</h2>
           <div class="controls">
+            <label for="fa-field" class="label">Search By</label>
+            <select id="fa-field">
+              <option value="player">Player</option>
+              <option value="dailyKarma">Daily Karma</option>
+              <option value="dailyRank">Daily Rank</option>
+              <option value="weeklyKarma">Weekly Karma</option>
+              <option value="weeklyRank">Weekly Rank</option>
+              <option value="monthlyKarma">Monthly Karma</option>
+              <option value="monthlyRank">Monthly Rank</option>
+              <option value="totalKarma">Total Karma</option>
+              <option value="totalKarmaRank">Total Karma Rank</option>
+              <option value="rankedDays">Ranked Days</option>
+              <option value="avgRankOnRankedDays">Avg Rank (Ranked Days)</option>
+            </select>
             <label for="fa-search" class="label">Player</label>
-            <input id="fa-search" type="text" placeholder="Search player" />
+            <input id="fa-search" type="text" placeholder="Search value" />
           </div>
         </div>
         <div id="fa-stats-grid" class="fa-grid"></div>

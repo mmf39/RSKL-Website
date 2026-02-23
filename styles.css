@@ -1726,38 +1726,58 @@ input[type="text"] {
   background: rgba(10, 20, 48, 0.88);
   border: 1px solid rgba(255, 140, 0, 0.45);
   border-radius: var(--radius-sm);
-  padding: 14px;
+  padding: 16px;
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .fa-card h3 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.16rem;
 }
 
-.fa-stats {
-  display: grid;
-  gap: 8px;
+.fa-card-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
 }
 
-.fa-stat {
+.fa-card-sub {
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.fa-row-labels,
+.fa-row-values {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  align-items: center;
-  padding: 8px 10px;
+  align-items: baseline;
+  text-align: center;
+  padding: 8px;
   border-radius: 10px;
   border: 1px solid rgba(255, 140, 0, 0.25);
   background: rgba(15, 23, 42, 0.7);
 }
 
-.fa-stat span {
+.fa-row-labels span {
   color: var(--muted);
+  font-weight: 600;
+  font-size: 0.95rem;
 }
 
-.fa-stat strong {
+.fa-row-values strong {
   color: var(--accent);
+  font-size: 1.08rem;
+}
+
+@media (max-width: 720px) {
+  .fa-row-labels,
+  .fa-row-values {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .tx-card {

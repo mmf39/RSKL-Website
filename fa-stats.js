@@ -4,6 +4,7 @@ const FA_STATS_RANGE = "A7:K162";
 const els = {
   lastUpdated: document.getElementById("last-updated"),
   search: document.getElementById("fa-search"),
+  field: document.getElementById("fa-field"),
   grid: document.getElementById("fa-stats-grid"),
 };
 
@@ -124,14 +125,21 @@ function parseFARows(rows) {
     });
 }
 
-function render(rows, query = "") {
+function matchesField(row, field, query) {
+  if (!query) {
+    return true;
+  }
+  const value = String(row[field] || "").toLowerCase();
+  return value.includes(query);
+}
+
+function render(rows, query = "", field = "player") {
   if (!els.grid) {
     return;
   }
   const q = String(query || "").trim().toLowerCase();
-  const visible = q
-    ? rows.filter((row) => row.player.toLowerCase().includes(q))
-    : rows;
+  const selectedField = String(field || "player");
+  const visible = rows.filter((row) => matchesField(row, selectedField, q));
 
   if (!visible.length) {
     els.grid.innerHTML = "<p>No free agent stats found.</p>";
@@ -142,22 +150,39 @@ function render(rows, query = "") {
     .map(
       (row) => `
         <article class="fa-card">
-          <h3>
+          <h3 class="fa-card-title">
             <a class="tx-link" href="/player-detail.html?player=${encodeURIComponent(
               row.player
             )}">${escapeHtml(row.player)}</a>
+            <span class="fa-card-sub"> - ${escapeHtml(
+              formatValue(row.rankedDays)
+            )} Ranked Days (${escapeHtml(
+              formatValue(row.avgRankOnRankedDays)
+            )} Avg Rank)</span>
           </h3>
-          <div class="fa-stats">
-            <div class="fa-stat"><span>Daily Karma</span><strong>${escapeHtml(formatValue(row.dailyKarma))}</strong></div>
-            <div class="fa-stat"><span>Daily Rank</span><strong>${escapeHtml(formatValue(row.dailyRank))}</strong></div>
-            <div class="fa-stat"><span>Weekly Karma</span><strong>${escapeHtml(formatValue(row.weeklyKarma))}</strong></div>
-            <div class="fa-stat"><span>Weekly Rank</span><strong>${escapeHtml(formatValue(row.weeklyRank))}</strong></div>
-            <div class="fa-stat"><span>Monthly Karma</span><strong>${escapeHtml(formatValue(row.monthlyKarma))}</strong></div>
-            <div class="fa-stat"><span>Monthly Rank</span><strong>${escapeHtml(formatValue(row.monthlyRank))}</strong></div>
-            <div class="fa-stat"><span>Total Karma</span><strong>${escapeHtml(formatValue(row.totalKarma))}</strong></div>
-            <div class="fa-stat"><span>Total Karma Rank</span><strong>${escapeHtml(formatValue(row.totalKarmaRank))}</strong></div>
-            <div class="fa-stat"><span>Ranked Days</span><strong>${escapeHtml(formatValue(row.rankedDays))}</strong></div>
-            <div class="fa-stat"><span>Avg Rank (Ranked Days)</span><strong>${escapeHtml(formatValue(row.avgRankOnRankedDays))}</strong></div>
+          <div class="fa-row-labels">
+            <span>Daily Karma</span>
+            <span>Weekly Karma</span>
+            <span>Monthly Karma</span>
+            <span>Total Karma</span>
+          </div>
+          <div class="fa-row-values">
+            <strong>${escapeHtml(formatValue(row.dailyKarma))}</strong>
+            <strong>${escapeHtml(formatValue(row.weeklyKarma))}</strong>
+            <strong>${escapeHtml(formatValue(row.monthlyKarma))}</strong>
+            <strong>${escapeHtml(formatValue(row.totalKarma))}</strong>
+          </div>
+          <div class="fa-row-labels">
+            <span>Daily Rank</span>
+            <span>Weekly Rank</span>
+            <span>Monthly Rank</span>
+            <span>Total Karma Rank</span>
+          </div>
+          <div class="fa-row-values">
+            <strong>${escapeHtml(formatValue(row.dailyRank))}</strong>
+            <strong>${escapeHtml(formatValue(row.weeklyRank))}</strong>
+            <strong>${escapeHtml(formatValue(row.monthlyRank))}</strong>
+            <strong>${escapeHtml(formatValue(row.totalKarmaRank))}</strong>
           </div>
         </article>
       `
@@ -187,7 +212,11 @@ async function load() {
     const rows = parseCSV(await response.text());
     const sliced = sliceRange(rows, FA_STATS_RANGE);
     faRows = parseFARows(sliced);
-    render(faRows, els.search ? els.search.value : "");
+    render(
+      faRows,
+      els.search ? els.search.value : "",
+      els.field ? els.field.value : "player"
+    );
     updateLastUpdated();
   } catch (error) {
     if (els.grid) {
@@ -198,7 +227,13 @@ async function load() {
 
 if (els.search) {
   els.search.addEventListener("input", () => {
-    render(faRows, els.search.value);
+    render(faRows, els.search.value, els.field ? els.field.value : "player");
+  });
+}
+
+if (els.field) {
+  els.field.addEventListener("change", () => {
+    render(faRows, els.search ? els.search.value : "", els.field.value);
   });
 }
 
