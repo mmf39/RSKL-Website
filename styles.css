@@ -83,7 +83,7 @@ body {
 }
 
 .hero {
-  padding: 72px 24px 36px;
+  padding: 152px 24px 36px;
 }
 
 .hero-inner {
@@ -121,12 +121,22 @@ h1 {
 }
 
 .meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  flex-direction: row;
-  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 120;
+  display: grid;
+  gap: 0;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  padding: 8px 14px 10px;
+  background: linear-gradient(180deg, #032252 0%, #031b46 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.meta > span[id="last-updated"] {
+  display: none;
 }
 
 .nav-links {
@@ -137,49 +147,104 @@ h1 {
 }
 
 .site-nav {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  position: relative;
+  margin-left: 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
   width: 100%;
-  justify-content: flex-end;
+  min-height: 86px;
+  row-gap: 8px;
+}
+
+.site-nav::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  width: 108px;
+  height: 48px;
+  background-image: url("/assets/rskl-logo.png");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 .site-nav-main {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  gap: clamp(14px, 2.1vw, 42px);
+  flex-wrap: nowrap;
+  justify-content: center;
+  grid-column: 1 / -1;
+  margin-top: 52px;
+  padding: 0 6px;
+  overflow-x: auto;
+}
+
+.site-nav-main .btn.ghost {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: #eaf0fb;
+  padding: 0;
+  font-weight: 700;
+  font-size: clamp(0.95rem, 1.3vw, 1.6rem);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.site-nav-main .btn.ghost:hover {
+  color: var(--accent);
+  transform: none;
+  box-shadow: none;
 }
 
 .site-menu-btn {
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  background: #0f172a;
-  color: var(--ink);
-  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: #eaf0fb;
+  border-radius: 8px;
   width: 42px;
   height: 42px;
-  font-size: 24px;
+  font-size: 34px;
   line-height: 1;
   cursor: pointer;
+  justify-self: start;
 }
 
 .site-menu {
-  width: 100%;
-  display: flex;
-  flex-wrap: wrap;
+  position: absolute;
+  top: 56px;
+  left: 8px;
+  min-width: 250px;
+  display: grid;
   gap: 10px;
-  justify-content: flex-end;
+  padding: 12px;
+  background: rgba(6, 23, 56, 0.98);
+  border: 1px solid rgba(255, 140, 0, 0.5);
+  border-radius: 12px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.42);
+}
+
+.site-menu .btn.ghost {
+  justify-content: flex-start;
+  border: 1px solid rgba(255, 140, 0, 0.35);
+  padding: 8px 12px;
 }
 
 .season-select {
-  background: #000000;
-  color: var(--accent);
-  border: 1px solid var(--accent);
+  background: rgba(3, 17, 43, 0.92);
+  color: #eaf0fb;
+  border: 1px solid rgba(255, 140, 0, 0.7);
   border-radius: 999px;
   padding: 8px 12px;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
+  justify-self: end;
+  align-self: start;
+  grid-column: 3;
+  grid-row: 1;
 }
 
 .site-menu[hidden] {
@@ -1998,34 +2063,44 @@ input[type="text"] {
 }
 
 @media (max-width: 720px) {
+  .hero {
+    padding: 144px 24px 36px;
+  }
+
   .meta {
-    align-items: flex-start;
+    padding: 8px 10px 10px;
   }
 
   .site-nav {
-    justify-content: space-between;
+    min-height: 80px;
+  }
+
+  .site-nav::before {
+    width: 92px;
+    height: 42px;
   }
 
   .site-nav-main {
-    gap: 8px;
+    margin-top: 46px;
+    gap: 16px;
     justify-content: flex-start;
+    padding: 0 2px;
   }
 
   .site-nav-main .btn.ghost {
-    padding: 8px 12px;
-    font-size: 0.86rem;
+    font-size: 0.95rem;
   }
 
   .season-select {
-    width: 100%;
+    max-width: 148px;
+    font-size: 0.76rem;
+    padding: 6px 10px;
   }
 
   .site-menu {
-    justify-content: flex-start;
-  }
-
-  .hero {
-    padding: 72px 24px 36px;
+    left: 6px;
+    right: 6px;
+    min-width: 0;
   }
 
   .panel {
