@@ -131,8 +131,8 @@ h1 {
   width: 100vw;
   margin-left: calc(50% - 50vw);
   padding: 8px 14px 10px;
-  background: linear-gradient(180deg, #032252 0%, #031b46 100%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, #050505 0%, #0a0a0a 100%);
+  border-bottom: 1px solid rgba(255, 140, 0, 0.45);
 }
 
 .meta > span[id="last-updated"] {
@@ -163,12 +163,16 @@ h1 {
   left: 50%;
   top: 0;
   transform: translateX(-50%);
-  width: 108px;
-  height: 48px;
+  width: 82px;
+  height: 82px;
   background-image: url("/assets/rskl-logo.png");
-  background-size: contain;
+  background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  background-color: #000;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
 }
 
 .site-nav-main {
@@ -178,7 +182,7 @@ h1 {
   flex-wrap: nowrap;
   justify-content: center;
   grid-column: 1 / -1;
-  margin-top: 52px;
+  margin-top: 62px;
   padding: 0 6px;
   overflow-x: auto;
 }
@@ -187,7 +191,7 @@ h1 {
   border: none;
   background: transparent;
   box-shadow: none;
-  color: #eaf0fb;
+  color: var(--ink);
   padding: 0;
   font-weight: 700;
   font-size: clamp(0.95rem, 1.3vw, 1.6rem);
@@ -204,7 +208,7 @@ h1 {
 .site-menu-btn {
   border: none;
   background: transparent;
-  color: #eaf0fb;
+  color: var(--ink);
   border-radius: 8px;
   width: 42px;
   height: 42px;
@@ -236,7 +240,7 @@ h1 {
 
 .season-select {
   background: rgba(3, 17, 43, 0.92);
-  color: #eaf0fb;
+  color: var(--ink);
   border: 1px solid rgba(255, 140, 0, 0.7);
   border-radius: 999px;
   padding: 8px 12px;
@@ -245,6 +249,10 @@ h1 {
   align-self: start;
   grid-column: 3;
   grid-row: 1;
+}
+
+.league-hero-logo {
+  display: none;
 }
 
 .site-menu[hidden] {
@@ -2076,12 +2084,12 @@ input[type="text"] {
   }
 
   .site-nav::before {
-    width: 92px;
-    height: 42px;
+    width: 66px;
+    height: 66px;
   }
 
   .site-nav-main {
-    margin-top: 46px;
+    margin-top: 56px;
     gap: 16px;
     justify-content: flex-start;
     padding: 0 2px;
