@@ -137,6 +137,8 @@ h1 {
     #000000;
   border-bottom: 1px solid rgba(255, 140, 0, 0.45);
   order: -1;
+  z-index: 200;
+  overflow: visible;
 }
 
 .meta > span[id="last-updated"] {
@@ -159,6 +161,8 @@ h1 {
   width: 100%;
   min-height: 112px;
   row-gap: 8px;
+  z-index: 201;
+  overflow: visible;
 }
 
 .site-nav::before {
@@ -238,6 +242,7 @@ h1 {
   border: 1px solid rgba(255, 140, 0, 0.5);
   border-radius: 12px;
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.42);
+  z-index: 9999;
 }
 
 .site-menu .btn.ghost {
