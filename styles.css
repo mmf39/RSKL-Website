@@ -83,7 +83,7 @@ body {
 }
 
 .hero {
-  padding: 118px 24px 36px;
+  padding: 20px 24px 36px;
 }
 
 .hero-inner {
@@ -114,6 +114,10 @@ h1 {
   letter-spacing: 0.02em;
 }
 
+.hero-inner > h1 {
+  display: none !important;
+}
+
 .sub {
   color: var(--muted);
   font-size: 1.05rem;
@@ -121,21 +125,18 @@ h1 {
 }
 
 .meta {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 120;
+  position: relative;
   display: grid;
   gap: 0;
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
+  width: 100%;
+  margin-left: 0;
   padding: 8px 14px 10px;
   background:
     radial-gradient(circle at 20% 20%, rgba(255, 140, 26, 0.2), transparent 45%),
     radial-gradient(circle at 80% 15%, rgba(255, 179, 71, 0.16), transparent 48%),
     #000000;
   border-bottom: 1px solid rgba(255, 140, 0, 0.45);
+  order: -1;
 }
 
 .meta > span[id="last-updated"] {
@@ -2079,7 +2080,7 @@ input[type="text"] {
 
 @media (max-width: 720px) {
   .hero {
-    padding: 112px 24px 36px;
+    padding: 16px 24px 36px;
   }
 
   .meta {
