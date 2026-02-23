@@ -338,6 +338,20 @@ h2 {
   align-items: center;
 }
 
+.fa-controls {
+  width: min(100%, 860px);
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr) auto minmax(220px, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.fa-controls input[type="text"],
+.fa-controls select {
+  min-width: 0;
+  width: 100%;
+}
+
 .label {
   font-size: 0.9rem;
   color: var(--muted);
@@ -1749,32 +1763,42 @@ input[type="text"] {
   font-weight: 600;
 }
 
-.fa-stat-list {
+.fa-box-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.fa-metric-box {
   display: grid;
   gap: 8px;
+  align-content: start;
+  min-height: 88px;
+  padding: 12px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: linear-gradient(180deg, rgba(46, 63, 95, 0.88), rgba(32, 46, 74, 0.88));
+  text-align: center;
 }
 
-.fa-stat-line {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
-  text-align: left;
-  padding: 8px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 140, 0, 0.25);
-  background: rgba(15, 23, 42, 0.7);
+.fa-metric-box span {
+  color: #9fb0c8;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
-.fa-stat-line span {
-  color: var(--muted);
-  font-weight: 600;
-  font-size: 0.95rem;
+.fa-metric-box strong {
+  color: #e9eef8;
+  font-size: 2rem;
+  line-height: 1;
 }
 
-.fa-stat-line strong {
-  color: var(--accent);
-  font-size: 1.08rem;
+@media (max-width: 860px) {
+  .fa-controls {
+    grid-template-columns: 1fr;
+  }
 }
 
 .tx-card {

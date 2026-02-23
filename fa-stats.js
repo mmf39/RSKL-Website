@@ -111,6 +111,31 @@ function normalizeFilterText(value) {
     .trim();
 }
 
+function parseStatNumber(value) {
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/,/g, "")
+    .replace(/\s+/g, "");
+  if (!raw || raw === "na" || raw === "—" || raw === "-") {
+    return Number.NEGATIVE_INFINITY;
+  }
+  const match = raw.match(/^(-?\d+(?:\.\d+)?)([km])?$/);
+  if (!match) {
+    const num = Number(raw.replace(/[^0-9.\-]/g, ""));
+    return Number.isNaN(num) ? Number.NEGATIVE_INFINITY : num;
+  }
+  const base = Number(match[1]);
+  const suffix = match[2];
+  if (suffix === "k") {
+    return base * 1000;
+  }
+  if (suffix === "m") {
+    return base * 1000000;
+  }
+  return base;
+}
+
 function parseFARows(rows) {
   return rows
     .filter((row) => row.some((cell) => String(cell || "").trim() !== ""))
@@ -142,13 +167,35 @@ function matchesField(row, field, query) {
   return value.includes(q);
 }
 
+function sortRows(rows, field) {
+  const rankFields = new Set([
+    "dailyRank",
+    "weeklyRank",
+    "monthlyRank",
+    "totalKarmaRank",
+    "avgRankOnRankedDays",
+  ]);
+  if (!field || field === "player") {
+    return [...rows].sort((a, b) =>
+      String(a.player || "").localeCompare(String(b.player || ""))
+    );
+  }
+  const asc = rankFields.has(field);
+  return [...rows].sort((a, b) => {
+    const av = parseStatNumber(a[field]);
+    const bv = parseStatNumber(b[field]);
+    return asc ? av - bv : bv - av;
+  });
+}
+
 function render(rows, query = "", field = "player") {
   if (!els.grid) {
     return;
   }
   const q = String(query || "").trim().toLowerCase();
   const selectedField = String(field || "player");
-  const visible = rows.filter((row) => matchesField(row, selectedField, q));
+  const sorted = sortRows(rows, selectedField);
+  const visible = sorted.filter((row) => matchesField(row, selectedField, q));
 
   if (!visible.length) {
     els.grid.innerHTML = "<p>No free agent stats found.</p>";
@@ -169,17 +216,17 @@ function render(rows, query = "", field = "player") {
               formatValue(row.avgRankOnRankedDays)
             )} Avg Rank)</span>
           </h3>
-          <div class="fa-stat-list">
-            <div class="fa-stat-line"><span>Daily Karma</span><strong>${escapeHtml(formatValue(row.dailyKarma))}</strong></div>
-            <div class="fa-stat-line"><span>Daily Rank</span><strong>${escapeHtml(formatValue(row.dailyRank))}</strong></div>
-            <div class="fa-stat-line"><span>Weekly Karma</span><strong>${escapeHtml(formatValue(row.weeklyKarma))}</strong></div>
-            <div class="fa-stat-line"><span>Weekly Rank</span><strong>${escapeHtml(formatValue(row.weeklyRank))}</strong></div>
-            <div class="fa-stat-line"><span>Monthly Karma</span><strong>${escapeHtml(formatValue(row.monthlyKarma))}</strong></div>
-            <div class="fa-stat-line"><span>Monthly Rank</span><strong>${escapeHtml(formatValue(row.monthlyRank))}</strong></div>
-            <div class="fa-stat-line"><span>Total Karma</span><strong>${escapeHtml(formatValue(row.totalKarma))}</strong></div>
-            <div class="fa-stat-line"><span>Total Karma Rank</span><strong>${escapeHtml(formatValue(row.totalKarmaRank))}</strong></div>
-            <div class="fa-stat-line"><span>Ranked Days</span><strong>${escapeHtml(formatValue(row.rankedDays))}</strong></div>
-            <div class="fa-stat-line"><span>Avg Rank (Ranked Days)</span><strong>${escapeHtml(formatValue(row.avgRankOnRankedDays))}</strong></div>
+          <div class="fa-box-grid">
+            <div class="fa-metric-box"><span>Daily Karma</span><strong>${escapeHtml(formatValue(row.dailyKarma))}</strong></div>
+            <div class="fa-metric-box"><span>Daily Rank</span><strong>${escapeHtml(formatValue(row.dailyRank))}</strong></div>
+            <div class="fa-metric-box"><span>Weekly Karma</span><strong>${escapeHtml(formatValue(row.weeklyKarma))}</strong></div>
+            <div class="fa-metric-box"><span>Weekly Rank</span><strong>${escapeHtml(formatValue(row.weeklyRank))}</strong></div>
+            <div class="fa-metric-box"><span>Monthly Karma</span><strong>${escapeHtml(formatValue(row.monthlyKarma))}</strong></div>
+            <div class="fa-metric-box"><span>Monthly Rank</span><strong>${escapeHtml(formatValue(row.monthlyRank))}</strong></div>
+            <div class="fa-metric-box"><span>Total Karma</span><strong>${escapeHtml(formatValue(row.totalKarma))}</strong></div>
+            <div class="fa-metric-box"><span>Total Karma Rank</span><strong>${escapeHtml(formatValue(row.totalKarmaRank))}</strong></div>
+            <div class="fa-metric-box"><span>Ranked Days</span><strong>${escapeHtml(formatValue(row.rankedDays))}</strong></div>
+            <div class="fa-metric-box"><span>Avg Rank (Ranked Days)</span><strong>${escapeHtml(formatValue(row.avgRankOnRankedDays))}</strong></div>
           </div>
         </article>
       `
