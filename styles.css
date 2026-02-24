@@ -2172,6 +2172,68 @@ input[type="text"] {
   background: rgba(7, 20, 46, 0.9);
 }
 
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.preview-team-card {
+  border: 1px solid rgba(255, 140, 0, 0.35);
+  border-radius: 12px;
+  background: rgba(10, 22, 52, 0.88);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.preview-team-card h4 {
+  margin: 0;
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.preview-team-card h4 span {
+  color: var(--muted);
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+.preview-sub {
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.preview-team-card ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}
+
+.preview-team-card li {
+  color: var(--ink);
+  font-size: 0.88rem;
+}
+
+.preview-metric {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.84rem;
+}
+
+.preview-metric span {
+  color: var(--muted);
+}
+
+.preview-metric strong {
+  color: var(--accent-2);
+  text-align: right;
+}
+
 @keyframes livePulse {
   0% {
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.65);

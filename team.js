@@ -1473,6 +1473,7 @@ async function loadRoster() {
         parseCSV(await scheduleRes.text())
       );
       const playerStatRows = parseCSV(await playerStatsRes.text());
+      teamLeadersMap = computeTeamLeaders(playerStatRows);
       leagueStandingsMetrics = buildLeagueRowsFromC2S2(
         standingsRows,
         scheduleRows,
@@ -1565,6 +1566,7 @@ async function loadRoster() {
       } else {
         clearAdvancedTeamStats();
       }
+      teamLeadersMap = new Map();
     }
     updateLastUpdated();
     try {
@@ -1638,6 +1640,9 @@ let teamScheduleRows = [];
 let boxScoreRows = [];
 let scheduleIndexes = { date: 0, team1: 1, team2: 2 };
 let liveScoreMap = new Map();
+let finalScoreMap = new Map();
+let teamLeadersMap = new Map();
+let leagueScheduleGames = [];
 
 function normalizeTeamLabel(value) {
   const normalized = String(value || "")
@@ -1722,6 +1727,101 @@ function buildLiveScoreMap(rows) {
   return map;
 }
 
+function buildFinalScoreMap(rows) {
+  const map = new Map();
+  let day = "";
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i];
+    const a = String(row[0] || "").trim();
+    const b = String(row[1] || "").trim();
+    if (a.includes("League Day") || b.includes("League Day")) {
+      day = extractLeagueDay([row]) || day;
+      continue;
+    }
+    const left = String(row[0] || "").trim();
+    const right = String(row[4] || "").trim();
+    if (!day || !left || !right) continue;
+    if (left.startsWith("@") || right.startsWith("@")) continue;
+    const t1 = parseTeamHeader(left);
+    const t2 = parseTeamHeader(right);
+    if (!t1.name || !t2.name || !t1.score || !t2.score) continue;
+    map.set(buildGameKey(day, t1.name, t2.name), {
+      team1Score: t1.score,
+      team2Score: t2.score,
+    });
+    map.set(buildGameKey(day, t2.name, t1.name), {
+      team1Score: t2.score,
+      team2Score: t1.score,
+    });
+  }
+  return map;
+}
+
+function parseDateObj(token) {
+  const m = String(token || "").match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (!m) return null;
+  const d = new Date(new Date().getFullYear(), Number(m[1]) - 1, Number(m[2]));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function computeTeamLeaders(playerRows) {
+  const map = new Map();
+  if (!playerRows.length) return map;
+  const data = playerRows.slice(1);
+  const byDate = new Map();
+  data.forEach((row) => {
+    const date = String(row[0] || "").trim();
+    const key = (date.match(/(\d{1,2}\/\d{1,2})/) || [])[1];
+    const score = parseNumber(row[3]);
+    if (!key || score === null) return;
+    if (!byDate.has(key)) byDate.set(key, []);
+    byDate.get(key).push(score);
+  });
+  const medByDate = new Map();
+  byDate.forEach((scores, k) => {
+    const s = [...scores].sort((a, b) => a - b);
+    const mid = Math.floor(s.length / 2);
+    medByDate.set(k, s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2);
+  });
+  const agg = new Map();
+  data.forEach((row) => {
+    const team = displayTeamName(String(row[1] || "").trim());
+    const player = String(row[2] || "").trim();
+    const date = (String(row[0] || "").match(/(\d{1,2}\/\d{1,2})/) || [])[1];
+    const score = parseNumber(row[3]);
+    if (!team || !player || !date || score === null) return;
+    const med = medByDate.get(date) || 0;
+    const rel = med > 0 ? score / med : 0;
+    const war = med > 0 ? (score - 0.9 * med) / (0.92 * med) : 0;
+    const key = `${team}|${player}`;
+    const cur = agg.get(key) || { team, player, gp: 0, total: 0, rel: 0, war: 0 };
+    cur.gp += 1;
+    cur.total += score;
+    cur.rel += rel;
+    cur.war += war;
+    agg.set(key, cur);
+  });
+  const teamBuckets = new Map();
+  agg.forEach((v) => {
+    const item = {
+      player: v.player,
+      avg: v.gp ? v.total / v.gp : 0,
+      rel: v.gp ? v.rel / v.gp : 0,
+      war: v.war,
+    };
+    if (!teamBuckets.has(v.team)) teamBuckets.set(v.team, []);
+    teamBuckets.get(v.team).push(item);
+  });
+  teamBuckets.forEach((arr, team) => {
+    map.set(team, {
+      topAvg: [...arr].sort((a, b) => b.avg - a.avg)[0] || null,
+      topRel: [...arr].sort((a, b) => b.rel - a.rel)[0] || null,
+      topWar: [...arr].sort((a, b) => b.war - a.war)[0] || null,
+    });
+  });
+  return map;
+}
+
 function getScheduleScoreState(scheduleRow) {
   const dateToken = String(scheduleRow[scheduleIndexes.date] || "").trim();
   const team1 = String(scheduleRow[scheduleIndexes.team1] || "").trim();
@@ -1735,17 +1835,12 @@ function getScheduleScoreState(scheduleRow) {
     };
   }
 
-  const box = buildBoxScore(getTeamName(), scheduleRow, getSeason());
-  if (!box) {
-    return { status: "upcoming", team1Score: "", team2Score: "" };
-  }
-  const h1 = parseTeamHeader(box.team1Name);
-  const h2 = parseTeamHeader(box.team2Name);
-  if (h1.score || h2.score) {
+  const final = finalScoreMap.get(buildGameKey(dateToken, team1, team2));
+  if (final && (final.team1Score || final.team2Score)) {
     return {
       status: "final",
-      team1Score: h1.score || "",
-      team2Score: h2.score || "",
+      team1Score: final.team1Score || "",
+      team2Score: final.team2Score || "",
     };
   }
   return { status: "upcoming", team1Score: "", team2Score: "" };
@@ -1820,6 +1915,18 @@ function updateTeamSchedule(teamName, scheduleRows, boxScoreData, season) {
   const headers = scheduleRows[0];
   scheduleIndexes = getScheduleIndexes(headers, season);
   const dataRows = scheduleRows.slice(1);
+  leagueScheduleGames = dataRows
+    .map((row) => {
+      const dateToken = String(row[scheduleIndexes.date] || "").trim();
+      return {
+        row,
+        dateToken,
+        dateObj: parseDateObj(dateToken),
+        team1: displayTeamName(String(row[scheduleIndexes.team1] || "").trim()),
+        team2: displayTeamName(String(row[scheduleIndexes.team2] || "").trim()),
+      };
+    })
+    .filter((g) => g.dateToken && g.team1 && g.team2);
   const filtered = dataRows.filter((row) => {
     const team1 = String(row[scheduleIndexes.team1] || "").trim();
     const team2 = String(row[scheduleIndexes.team2] || "").trim();
@@ -1830,6 +1937,7 @@ function updateTeamSchedule(teamName, scheduleRows, boxScoreData, season) {
   const trimmedRows = filtered.map((row) => row.slice(0, headers.length));
   teamScheduleRows = filtered;
   boxScoreRows = boxScoreData.slice(0, 1000);
+  finalScoreMap = buildFinalScoreMap(boxScoreRows);
   renderSchedule(trimmedHeaders, trimmedRows);
 }
 
@@ -1965,6 +2073,50 @@ function buildBoxScoreMarkup(boxScore) {
   `;
 }
 
+function buildGamePreviewMarkup(scheduleRow) {
+  const dateToken = String(scheduleRow[scheduleIndexes.date] || "").trim();
+  const gameDate = parseDateObj(dateToken);
+  const team1 = displayTeamName(String(scheduleRow[scheduleIndexes.team1] || "").trim());
+  const team2 = displayTeamName(String(scheduleRow[scheduleIndexes.team2] || "").trim());
+
+  const previewForTeam = (teamName, oppName) => {
+    const history = leagueScheduleGames
+      .filter((g) => {
+        if (!g.dateObj || !gameDate || g.dateObj >= gameDate) return false;
+        if (g.team1 !== teamName && g.team2 !== teamName) return false;
+        return finalScoreMap.has(buildGameKey(g.dateToken, g.team1, g.team2));
+      })
+      .sort((a, b) => b.dateObj - a.dateObj)
+      .slice(0, 3)
+      .map((g) => {
+        const s = finalScoreMap.get(buildGameKey(g.dateToken, g.team1, g.team2));
+        const isTeam1 = g.team1 === teamName;
+        const mine = isTeam1 ? s.team1Score : s.team2Score;
+        const opp = isTeam1 ? s.team2Score : s.team1Score;
+        const opponent = isTeam1 ? g.team2 : g.team1;
+        const result = parseNumber(mine) > parseNumber(opp) ? "W" : "L";
+        return `${g.dateToken} • ${result} ${mine}-${opp} vs ${opponent}`;
+      });
+
+    const leaders = teamLeadersMap.get(teamName) || {};
+    const row = (label, item, fmt) =>
+      `<div class="preview-metric"><span>${label}</span><strong>${item ? `${item.player} (${fmt(item)})` : "—"}</strong></div>`;
+    return `<div class="preview-team-card">
+      <h4>${escapeHtml(teamName)} <span>vs ${escapeHtml(oppName)}</span></h4>
+      <div class="preview-sub">Last 3 Games</div>
+      <ul>${history.map((h) => `<li>${escapeHtml(h)}</li>`).join("") || "<li>No completed games yet.</li>"}</ul>
+      ${row("Top AVG", leaders.topAvg, (v) => v.avg.toFixed(1))}
+      ${row("Top REL", leaders.topRel, (v) => v.rel.toFixed(3))}
+      ${row("Top WAR", leaders.topWar, (v) => v.war.toFixed(2))}
+    </div>`;
+  };
+
+  return `<div class="preview-grid">
+    ${previewForTeam(team1, team2)}
+    ${previewForTeam(team2, team1)}
+  </div>`;
+}
+
 els.scheduleBody.addEventListener("click", (event) => {
   if (event.target.closest("a")) {
     return;
@@ -1999,7 +2151,12 @@ els.scheduleBody.addEventListener("click", (event) => {
   if (isOpening) {
     rowEl.classList.add("active");
     detailRow.hidden = false;
-    boxWrap.innerHTML = buildBoxScoreMarkup(boxScore);
+    const scoreState = getScheduleScoreState(scheduleRow);
+    if (scoreState.status === "upcoming") {
+      boxWrap.innerHTML = buildGamePreviewMarkup(scheduleRow);
+    } else {
+      boxWrap.innerHTML = buildBoxScoreMarkup(boxScore);
+    }
   }
 });
 

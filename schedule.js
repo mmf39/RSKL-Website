@@ -1,6 +1,7 @@
 const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
+const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const SEASON_KEY = "season";
 
@@ -21,6 +22,8 @@ const els = {
 
 let cachedBoxScoreRows = [];
 let liveScoreMap = new Map();
+let finalScoreMap = new Map();
+let teamLeadersMap = new Map();
 let scheduleGames = [];
 let gamesByDate = new Map();
 let currentMonth = null;
@@ -208,29 +211,156 @@ function buildLiveScoreMap(rows) {
   const day = extractLeagueDay(rows);
   if (!day) return map;
 
-  rows.forEach((row) => {
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i];
     const left = String(row[0] || "").trim();
     const right = String(row[4] || "").trim();
-    if (!left || !right) return;
-    if (left.includes("League Day") || right.includes("League Day")) return;
-    if (left.startsWith("@") || right.startsWith("@")) return;
+    if (!left || !right) continue;
+    if (left.includes("League Day") || right.includes("League Day")) continue;
+    if (left.startsWith("@") || right.startsWith("@")) continue;
 
     const team1 = parseTeamHeader(left);
     const team2 = parseTeamHeader(right);
-    if (!team1.name || !team2.name) return;
+    if (!team1.name || !team2.name) continue;
 
-    map.set(buildGameKey(day, team1.name, team2.name), {
+    const team1Players = [];
+    const team2Players = [];
+    for (let j = i + 1; j < rows.length; j += 1) {
+      const next = rows[j];
+      const nLeft = String(next[0] || "").trim();
+      const nRight = String(next[4] || "").trim();
+      if ((nLeft && !nLeft.startsWith("@")) || (nRight && !nRight.startsWith("@"))) {
+        break;
+      }
+      if (!nLeft && !nRight) {
+        continue;
+      }
+      if (nLeft) {
+        team1Players.push({
+          player: nLeft,
+          points: String(next[1] || ""),
+          rank: String(next[2] || ""),
+        });
+      }
+      if (nRight) {
+        team2Players.push({
+          player: nRight,
+          points: String(next[5] || ""),
+          rank: String(next[6] || ""),
+        });
+      }
+    }
+
+    const payload = {
       status: "live",
       team1Score: team1.score || "",
       team2Score: team2.score || "",
-    });
+      team1Header: left,
+      team2Header: right,
+      team1Players,
+      team2Players,
+    };
+    map.set(buildGameKey(day, team1.name, team2.name), payload);
     map.set(buildGameKey(day, team2.name, team1.name), {
       status: "live",
       team1Score: team2.score || "",
       team2Score: team1.score || "",
+      team1Header: right,
+      team2Header: left,
+      team1Players: team2Players,
+      team2Players: team1Players,
+    });
+  }
+
+  return map;
+}
+
+function buildFinalScoreMap(rows) {
+  const map = new Map();
+  let day = "";
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i];
+    const a = String(row[0] || "").trim();
+    const b = String(row[1] || "").trim();
+    if (a.includes("League Day") || b.includes("League Day")) {
+      day = extractLeagueDay([row]) || day;
+      continue;
+    }
+    const left = String(row[0] || "").trim();
+    const right = String(row[4] || "").trim();
+    if (!day || !left || !right) continue;
+    if (left.startsWith("@") || right.startsWith("@")) continue;
+    const t1 = parseTeamHeader(left);
+    const t2 = parseTeamHeader(right);
+    if (!t1.name || !t2.name || !t1.score || !t2.score) continue;
+    const payload = { team1Score: t1.score, team2Score: t2.score };
+    map.set(buildGameKey(day, t1.name, t2.name), payload);
+    map.set(buildGameKey(day, t2.name, t1.name), {
+      team1Score: t2.score,
+      team2Score: t1.score,
+    });
+  }
+  return map;
+}
+
+function computeTeamLeaders(playerRows) {
+  const map = new Map();
+  if (!playerRows.length) return map;
+  const data = playerRows.slice(1);
+  const byDate = new Map();
+  data.forEach((row) => {
+    const date = normalizeDateToken(row[0]);
+    const score = parseNumericScore(row[3]);
+    if (!date || score === null) return;
+    if (!byDate.has(date)) byDate.set(date, []);
+    byDate.get(date).push(score);
+  });
+  const medianByDate = new Map();
+  byDate.forEach((scores, date) => {
+    const s = [...scores].sort((a, b) => a - b);
+    const mid = Math.floor(s.length / 2);
+    const median = s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+    medianByDate.set(date, median || 0);
+  });
+
+  const teamPlayer = new Map();
+  data.forEach((row) => {
+    const team = displayTeamName(String(row[1] || "").trim());
+    const player = String(row[2] || "").trim();
+    const date = normalizeDateToken(row[0]);
+    const score = parseNumericScore(row[3]);
+    if (!team || !player || score === null) return;
+    const med = medianByDate.get(date) || 0;
+    const rel = med > 0 ? score / med : 0;
+    const war = med > 0 ? (score - 0.9 * med) / (0.92 * med) : 0;
+    const key = `${team}|${player}`;
+    const agg = teamPlayer.get(key) || { team, player, gp: 0, total: 0, relTotal: 0, war: 0 };
+    agg.gp += 1;
+    agg.total += score;
+    agg.relTotal += rel;
+    agg.war += war;
+    teamPlayer.set(key, agg);
+  });
+
+  const byTeam = new Map();
+  teamPlayer.forEach((entry) => {
+    const avg = entry.gp ? entry.total / entry.gp : 0;
+    const relAvg = entry.gp ? entry.relTotal / entry.gp : 0;
+    if (!byTeam.has(entry.team)) byTeam.set(entry.team, []);
+    byTeam.get(entry.team).push({
+      player: entry.player,
+      avg,
+      rel: relAvg,
+      war: entry.war,
     });
   });
 
+  byTeam.forEach((list, team) => {
+    const topAvg = [...list].sort((a, b) => b.avg - a.avg)[0] || null;
+    const topRel = [...list].sort((a, b) => b.rel - a.rel)[0] || null;
+    const topWar = [...list].sort((a, b) => b.war - a.war)[0] || null;
+    map.set(team, { topAvg, topRel, topWar });
+  });
   return map;
 }
 
@@ -496,6 +626,19 @@ function getGameScoreState(game) {
       team2Score: live.team2Score || "",
       team1Outcome: outcomes.team1,
       team2Outcome: outcomes.team2,
+      livePayload: live,
+    };
+  }
+  const final = finalScoreMap.get(buildGameKey(game.dateToken, game.team1, game.team2));
+  if (final && final.team1Score && final.team2Score) {
+    const outcomes = getOutcomeFromScores(final.team1Score, final.team2Score);
+    return {
+      status: "final",
+      label: "FINAL",
+      team1Score: final.team1Score,
+      team2Score: final.team2Score,
+      team1Outcome: outcomes.team1,
+      team2Outcome: outcomes.team2,
     };
   }
   const payload = getBoxScorePayload(game);
@@ -518,6 +661,76 @@ function getGameScoreState(game) {
     team1Outcome: "",
     team2Outcome: "",
   };
+}
+
+function buildLiveBoxMarkup(game, livePayload) {
+  if (!livePayload) return "";
+  const renderTeam = (header, players) => {
+    const parsed = parseTeamHeader(header);
+    const team = parsed.name || "";
+    const logo = getTeamLogo(team);
+    const logoHtml = logo
+      ? `<img class="standings-logo" src="${logo}" alt="${escapeHtml(team)} logo" />`
+      : "";
+    const teamLink = `/team.html?team=${encodeURIComponent(team)}`;
+    const rows = (players || [])
+      .map(
+        (p) => `<div class="boxscore-row">
+          <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(p.player)}">${escapeHtml(p.player)}</a>
+          <span>${escapeHtml(p.points || "")}</span>
+          <span>${escapeHtml(p.rank || "")}</span>
+        </div>`
+      )
+      .join("");
+    return `<div class="boxscore-card">
+      <a class="boxscore-team" href="${teamLink}">${logoHtml}<span>${escapeHtml(parsed.name || header)}</span></a>
+      <div class="boxscore-row"><span>Player</span><span>Points</span><span>Rank</span></div>
+      ${rows || '<div class="boxscore-empty">No stats available.</div>'}
+    </div>`;
+  };
+  return `<div class="boxscore-meta">League Day: ${escapeHtml(game.dateToken)}</div>
+    ${renderTeam(livePayload.team1Header, livePayload.team1Players)}
+    ${renderTeam(livePayload.team2Header, livePayload.team2Players)}`;
+}
+
+function buildPreviewMarkup(game) {
+  const previewForTeam = (teamName, opponentName) => {
+    const history = scheduleGames
+      .filter((g) => {
+        if (!g.dateObj || !game.dateObj || g.dateObj >= game.dateObj) return false;
+        if (g.team1 !== teamName && g.team2 !== teamName) return false;
+        return finalScoreMap.has(buildGameKey(g.dateToken, g.team1, g.team2));
+      })
+      .sort((a, b) => b.dateObj - a.dateObj)
+      .slice(0, 3)
+      .map((g) => {
+        const s = finalScoreMap.get(buildGameKey(g.dateToken, g.team1, g.team2));
+        const isHome = g.team1 === teamName;
+        const my = isHome ? s.team1Score : s.team2Score;
+        const opp = isHome ? s.team2Score : s.team1Score;
+        const oppName = isHome ? g.team2 : g.team1;
+        const result = parseNumericScore(my) > parseNumericScore(opp) ? "W" : "L";
+        return `${g.dateToken} • ${result} ${my}-${opp} vs ${oppName}`;
+      });
+
+    const leaders = teamLeadersMap.get(teamName) || {};
+    const renderLeader = (label, item, formatter) =>
+      `<div class="preview-metric"><span>${label}</span><strong>${item ? `${item.player} (${formatter(item)})` : "—"}</strong></div>`;
+
+    return `<div class="preview-team-card">
+      <h4>${escapeHtml(teamName)} <span>vs ${escapeHtml(opponentName)}</span></h4>
+      <div class="preview-sub">Last 3 Games</div>
+      <ul>${history.map((h) => `<li>${escapeHtml(h)}</li>`).join("") || "<li>No completed games yet.</li>"}</ul>
+      ${renderLeader("Top AVG", leaders.topAvg, (v) => v.avg.toFixed(1))}
+      ${renderLeader("Top REL", leaders.topRel, (v) => v.rel.toFixed(3))}
+      ${renderLeader("Top WAR", leaders.topWar, (v) => v.war.toFixed(2))}
+    </div>`;
+  };
+
+  return `<div class="preview-grid">
+    ${previewForTeam(game.team1, game.team2)}
+    ${previewForTeam(game.team2, game.team1)}
+  </div>`;
 }
 
 function renderGameList() {
@@ -653,8 +866,15 @@ function bindCalendarEvents() {
       details.hidden = !details.hidden;
       card.classList.toggle("open", willOpen);
       if (willOpen && !details.dataset.loaded) {
-        const payload = getBoxScorePayload(game);
-        details.innerHTML = payload.html;
+        const scoreState = getGameScoreState(game);
+        if (scoreState.status === "upcoming") {
+          details.innerHTML = buildPreviewMarkup(game);
+        } else if (scoreState.status === "live") {
+          details.innerHTML = buildLiveBoxMarkup(game, scoreState.livePayload);
+        } else {
+          const payload = getBoxScorePayload(game);
+          details.innerHTML = payload.html;
+        }
         details.dataset.loaded = "1";
       }
     };
@@ -688,16 +908,20 @@ async function loadSchedule() {
     let rows = [];
 
     if (season === "c2s2") {
-      const [scheduleRes, boxRes, liveRes] = await Promise.all([
+      const [scheduleRes, boxRes, liveRes, playerStatsRes] = await Promise.all([
         fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
         fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
         fetch(LIVE_CSV_URL, { cache: "no-store" }),
+        fetch(PLAYER_STATS_URL, { cache: "no-store" }),
       ]);
       if (!scheduleRes.ok) throw new Error(`Fetch failed: ${scheduleRes.status}`);
       rows = getC2S2ScheduleRows(parseCSV(await scheduleRes.text()));
       cachedBoxScoreRows = parseCSV(await boxRes.text()).slice(0, 1000);
+      finalScoreMap = buildFinalScoreMap(cachedBoxScoreRows);
       const liveRows = liveRes.ok ? parseCSV(await liveRes.text()) : [];
       liveScoreMap = buildLiveScoreMap(liveRows);
+      const playerRows = playerStatsRes.ok ? parseCSV(await playerStatsRes.text()) : [];
+      teamLeadersMap = computeTeamLeaders(playerRows);
     } else {
       const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
       if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
@@ -705,7 +929,9 @@ async function loadSchedule() {
       const range = season === "c2s1-post" ? ARCHIVE_RANGES.schedule_post : ARCHIVE_RANGES.schedule_regular;
       rows = sliceRange(archive, range);
       cachedBoxScoreRows = sliceRange(archive, ARCHIVE_RANGES.boxscore);
+      finalScoreMap = buildFinalScoreMap(cachedBoxScoreRows);
       liveScoreMap = new Map();
+      teamLeadersMap = new Map();
     }
 
     if (!rows.length) throw new Error("No data found.");
