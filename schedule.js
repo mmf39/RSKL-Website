@@ -26,7 +26,7 @@ const ARCHIVE_RANGES = {
   schedule_post: "A31:D43",
   boxscore: "L31:R149",
 };
-const C2S2_SCHEDULE_RANGE = "A2:C77";
+const C2S2_SCHEDULE_RANGE = "A2:E77";
 
 function getSeason() {
   return localStorage.getItem(SEASON_KEY) || "c2s2";
@@ -114,7 +114,7 @@ function sliceRange(rows, range) {
 
 function getC2S2ScheduleRows(rows) {
   const sliced = sliceRange(rows, C2S2_SCHEDULE_RANGE);
-  return [["Date", "Team 1", "Team 2"], ...sliced];
+  return [["Round", "Date", "Team 1", "Team 2", "Game Type"], ...sliced];
 }
 
 function escapeHtml(value) {
@@ -163,6 +163,19 @@ function parseDateFromToken(token) {
   return d;
 }
 
+function normalizeGameType(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return { key: "", label: "" };
+  const lower = raw.toLowerCase();
+  if (lower.includes("pre")) {
+    return { key: "preseason", label: "Pre-Season" };
+  }
+  if (lower.includes("regular")) {
+    return { key: "regular", label: "Regular Season" };
+  }
+  return { key: "other", label: raw };
+}
+
 function updateLastUpdated() {
   const now = new Date();
   const formatted = now.toLocaleString(undefined, {
@@ -178,9 +191,14 @@ function updateLastUpdated() {
 
 function buildGames(rows, season) {
   const isThreeCol = (rows[0] || []).length <= 3;
+  const headerLower = (rows[0] || []).map((h) => String(h || "").toLowerCase());
   const dateIndex = isThreeCol || season === "c2s1-regular" ? 0 : 1;
   const team1Index = isThreeCol || season === "c2s1-regular" ? 1 : 2;
   const team2Index = isThreeCol || season === "c2s1-regular" ? 2 : 3;
+  let gameTypeIndex = headerLower.findIndex((h) => h.includes("type"));
+  if (gameTypeIndex === -1 && !isThreeCol && (rows[0] || []).length >= 5) {
+    gameTypeIndex = 4;
+  }
 
   const dataRows = rows.slice(1).filter((r) => r.some((c) => String(c || "").trim() !== ""));
   return dataRows
@@ -190,6 +208,8 @@ function buildGames(rows, season) {
       const dateObj = parseDateFromToken(dateToken);
       const team1 = displayTeamName(String(row[team1Index] || "").trim());
       const team2 = displayTeamName(String(row[team2Index] || "").trim());
+      const gameTypeRaw = gameTypeIndex >= 0 ? String(row[gameTypeIndex] || "").trim() : "";
+      const gameType = normalizeGameType(gameTypeRaw);
       if (!dateToken || !team1 || !team2) return null;
       return {
         idx: i,
@@ -198,6 +218,8 @@ function buildGames(rows, season) {
         dateObj,
         team1,
         team2,
+        gameTypeRaw,
+        gameType,
       };
     })
     .filter(Boolean);
@@ -379,6 +401,11 @@ function renderGameList() {
         : "";
       return `
         <button class="calendar-game" type="button" data-game-index="${g.idx}">
+          ${
+            g.gameType.label
+              ? `<div class="game-type-badge game-type-${escapeHtml(g.gameType.key || "other")}">${escapeHtml(g.gameType.label)}</div>`
+              : ""
+          }
           <div class="calendar-game-date">${escapeHtml(g.dateToken)}</div>
           <div class="calendar-game-matchup">
             <a class="schedule-team-link" href="/team.html?team=${encodeURIComponent(g.team1)}">${l1}<span>${escapeHtml(g.team1)}</span></a>

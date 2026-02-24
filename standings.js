@@ -4,7 +4,7 @@ const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const SEASON_KEY = "season";
-const C2S2_SCHEDULE_RANGE = "A2:C77";
+const C2S2_SCHEDULE_RANGE = "A2:E77";
 const TRANSACTIONS_RANGE = "A3:E81";
 const RETIREMENT_RANGE = "G3:J70";
 
@@ -140,7 +140,7 @@ function sliceRange(rows, range) {
 
 function getC2S2ScheduleRows(rows) {
   const sliced = sliceRange(rows, C2S2_SCHEDULE_RANGE);
-  return [["Date", "Team 1", "Team 2"], ...sliced];
+  return [["Round", "Date", "Team 1", "Team 2", "Game Type"], ...sliced];
 }
 
 function renderTable(rows) {

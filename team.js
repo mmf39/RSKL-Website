@@ -33,7 +33,7 @@ const ARCHIVE_RANGES = {
   schedule_post: "A31:D43",
   boxscore: "L31:R149",
 };
-const C2S2_SCHEDULE_RANGE = "A2:C77";
+const C2S2_SCHEDULE_RANGE = "A2:E77";
 
 const ARCHIVE_TEAM_ROSTERS = {
   "Gus N Em": "H1:I12",
@@ -458,9 +458,11 @@ function renderSchedule(headers, dataRows) {
           ${headers
             .map((header, i) => {
               const value = row[i] ?? "";
+              const headerLabel = String(header || "").toLowerCase();
               const isTeamCol = String(header || "")
                 .toLowerCase()
                 .includes("team");
+              const isTypeCol = headerLabel.includes("type");
               const shown = displayTeamName(value);
               const logo = getTeamLogo(shown);
               const logoHtml = logo
@@ -477,6 +479,23 @@ function renderSchedule(headers, dataRows) {
                 return `<td><span class="schedule-team-link schedule-team-static">${logoHtml}<span>${escapeHtml(
                   shown
                 )}</span></span></td>`;
+              }
+              if (isTypeCol && String(value).trim()) {
+                const typeRaw = String(value).trim();
+                const typeLower = typeRaw.toLowerCase();
+                const typeClass = typeLower.includes("pre")
+                  ? "preseason"
+                  : typeLower.includes("regular")
+                  ? "regular"
+                  : "other";
+                const typeLabel = typeLower.includes("pre")
+                  ? "Pre-Season"
+                  : typeLower.includes("regular")
+                  ? "Regular Season"
+                  : typeRaw;
+                return `<td><span class="game-type-badge game-type-${typeClass}">${escapeHtml(
+                  typeLabel
+                )}</span></td>`;
               }
               return `<td>${escapeHtml(value)}</td>`;
             })
@@ -1620,7 +1639,7 @@ function getScheduleIndexes(headers, season) {
 
 function getC2S2ScheduleRows(rows) {
   const sliced = sliceRange(rows, C2S2_SCHEDULE_RANGE);
-  return [["Date", "Team 1", "Team 2"], ...sliced];
+  return [["Round", "Date", "Team 1", "Team 2", "Game Type"], ...sliced];
 }
 
 function updateTeamSchedule(teamName, scheduleRows, boxScoreData, season) {
