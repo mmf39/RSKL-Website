@@ -259,12 +259,13 @@ function renderCalendar() {
 
   for (let day = 1; day <= last.getDate(); day += 1) {
     const token = `${first.getMonth() + 1}/${day}`;
-    const hasGames = gamesByDate.has(token);
+    const gameCount = (gamesByDate.get(token) || []).length;
+    const hasGames = gameCount > 0;
     const isSelected = token === selectedDateKey;
     cells.push(`
       <button class="calendar-day ${hasGames ? "has-games" : ""} ${isSelected ? "selected" : ""}" data-date="${token}" type="button">
         <span class="calendar-num">${day}</span>
-        ${hasGames ? `<span class="calendar-dot">${gamesByDate.get(token).length}</span>` : ""}
+        <span class="calendar-count">${gameCount} ${gameCount === 1 ? "game" : "games"}</span>
       </button>
     `);
   }

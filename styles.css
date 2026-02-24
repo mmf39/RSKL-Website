@@ -1007,6 +1007,106 @@ input[type="text"] {
   padding: 20px;
 }
 
+.calendar-toolbar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  margin: 12px 0 16px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  background: rgba(11, 35, 75, 0.8);
+}
+
+#calendar-month {
+  justify-self: center;
+  color: #dbeafe;
+  letter-spacing: 0.08em;
+  font-size: clamp(1rem, 2.4vw, 1.8rem);
+  text-transform: uppercase;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  border-radius: var(--radius-sm);
+  background: rgba(10, 31, 67, 0.84);
+}
+
+.calendar-weekday {
+  text-align: center;
+  color: #cbd5e1;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  padding: 4px 0;
+}
+
+.calendar-day {
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  border-radius: 16px;
+  background: rgba(29, 78, 151, 0.42);
+  color: #e2e8f0;
+  text-align: left;
+  min-height: 112px;
+  padding: 12px 12px 10px;
+  display: grid;
+  align-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+
+.calendar-day:hover {
+  border-color: rgba(96, 165, 250, 0.75);
+  transform: translateY(-1px);
+}
+
+.calendar-day.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(255, 140, 0, 0.65) inset;
+}
+
+.calendar-day.empty {
+  border: none;
+  background: transparent;
+  min-height: 0;
+  padding: 0;
+  cursor: default;
+}
+
+.calendar-day.empty:hover {
+  transform: none;
+}
+
+.calendar-num {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #f8fafc;
+}
+
+.calendar-count {
+  font-size: 0.95rem;
+  color: #cbd5e1;
+}
+
+.calendar-day.has-games .calendar-count {
+  color: #93c5fd;
+  font-weight: 700;
+}
+
+.calendar-games {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
 .boxscore-empty {
   color: var(--muted);
   font-size: 0.95rem;
@@ -2193,6 +2293,39 @@ input[type="text"] {
 
   .panel {
     padding: 24px;
+  }
+
+  .calendar-toolbar {
+    gap: 10px;
+    padding: 8px;
+  }
+
+  #calendar-month {
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+  }
+
+  .calendar-grid {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .calendar-weekday {
+    font-size: 0.72rem;
+  }
+
+  .calendar-day {
+    min-height: 90px;
+    border-radius: 12px;
+    padding: 10px;
+  }
+
+  .calendar-num {
+    font-size: 1.35rem;
+  }
+
+  .calendar-count {
+    font-size: 0.76rem;
   }
 
   .leader-row {
