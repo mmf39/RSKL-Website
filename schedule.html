@@ -53,11 +53,15 @@
             <input id="schedule-search" type="text" placeholder="Search games" />
           </div>
         </div>
-        <div class="table-wrap">
-          <table id="schedule-table">
-            <thead></thead>
-            <tbody></tbody>
-          </table>
+        <div class="calendar-toolbar">
+          <button id="calendar-prev" class="btn ghost" type="button">Prev</button>
+          <strong id="calendar-month">Month</strong>
+          <button id="calendar-next" class="btn ghost" type="button">Next</button>
+        </div>
+        <div id="calendar-grid" class="calendar-grid"></div>
+        <div id="calendar-games" class="calendar-games"></div>
+        <div class="table-wrap" hidden>
+          <table id="schedule-table"><thead></thead><tbody></tbody></table>
         </div>
       </section>
     </main>

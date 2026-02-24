@@ -514,8 +514,8 @@ function renderLiveScoring(rows, scheduleRows) {
     return;
   }
 
+  // Intentionally render only matchup cards (no "X live games • date" summary line).
   els.liveRow.innerHTML = `
-    <div class="live-count">${games.length} live game${games.length === 1 ? "" : "s"}${leagueDay ? ` • ${escapeHtml(leagueDay)}` : ""}</div>
     <div class="live-list">
       ${games
         .map((game, index) => {
