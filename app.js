@@ -362,19 +362,17 @@ function parseLiveGames(rows) {
     let team1 = "";
     let team2 = "";
     if (format === "compact") {
-      const cellAValues = block.map((row) => String(row[0] || "").trim());
-      const cellDValues = block.map((row) => String(row[3] || "").trim());
-      const teamA = cellAValues.find((v) => v && !v.startsWith("@")) || "";
-      const teamD = cellDValues.find((v) => v && !v.startsWith("@")) || "";
-
-      const combinedHeader = [teamA, teamD].filter(Boolean).join(" ");
+      const header = block[0] || [];
+      const headerA = String(header[0] || "").trim();
+      const headerD = String(header[3] || "").trim();
+      const combinedHeader = [headerA, headerD].filter(Boolean).join(" ");
       const vsMatch = combinedHeader.match(/(.+?)\s+vs\s+(.+)/i);
       if (vsMatch) {
         team1 = String(vsMatch[1] || "").trim();
         team2 = String(vsMatch[2] || "").trim();
       } else {
-        team1 = teamA;
-        team2 = teamD;
+        team1 = headerA;
+        team2 = headerD;
       }
     } else {
       const header = block[0] || [];
@@ -388,10 +386,10 @@ function parseLiveGames(rows) {
     let team1Players = [];
     let team2Players = [];
     if (format === "compact") {
-      const lines = block.filter((row) => {
+      const lines = block.slice(1).filter((row) => {
         const left = String(row[0] || "").trim();
         const right = String(row[3] || "").trim();
-        return left.startsWith("@") || right.startsWith("@");
+        return !!left || !!right;
       });
       team1Players = lines.map((row) => ({
         player: row[0] || "",
