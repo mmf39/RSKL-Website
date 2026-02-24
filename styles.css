@@ -2067,6 +2067,95 @@ input[type="text"] {
   margin-right: 0;
 }
 
+.team-name-stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.team-score-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #cbd5e1;
+}
+
+.team-score-line.live {
+  color: #fca5a5;
+}
+
+.team-score-line.final {
+  color: #86efac;
+}
+
+.live-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ef4444;
+  box-shadow: 0 0 0 rgba(239, 68, 68, 0.7);
+  animation: livePulse 1.2s infinite;
+}
+
+.final-check {
+  color: #22c55e;
+  font-weight: 900;
+}
+
+.type-cell {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+
+.row-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.row-state.live {
+  color: #fca5a5;
+}
+
+.row-state.final {
+  color: #86efac;
+}
+
+.row-state.upcoming {
+  color: #cbd5e1;
+}
+
+.schedule-detail-row td {
+  padding: 0 !important;
+  border-top: none;
+}
+
+.schedule-detail-box {
+  margin: 8px 10px 12px;
+  padding: 10px;
+  border: 1px solid rgba(255, 140, 0, 0.35);
+  border-radius: 12px;
+  background: rgba(7, 20, 46, 0.9);
+}
+
+@keyframes livePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.65);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
 .game-type-badge {
   display: inline-flex;
   align-items: center;

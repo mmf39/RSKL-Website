@@ -2,6 +2,7 @@ const ROSTER_CSV_URL = "/api/sheet?name=roster";
 const STANDINGS_CSV_URL = "/api/sheet?name=standings";
 const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
+const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
@@ -436,27 +437,24 @@ function renderTable(headers, dataRows, teamName) {
 }
 
 function renderSchedule(headers, dataRows) {
+  const visibleCols = headers
+    .map((h, index) => ({ h, index }))
+    .filter(({ h }) => !String(h || "").toLowerCase().includes("info"));
+  const visibleHeaders = visibleCols.map((c) => c.h);
+
   els.scheduleHead.innerHTML = `
     <tr>
-      ${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}
+      ${visibleHeaders.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}
     </tr>
   `;
 
   els.scheduleBody.innerHTML = dataRows
     .map((row, index) => {
-      const box = buildBoxScore(getTeamName(), row, getSeason());
-      const concluded =
-        box &&
-        (box.team1.some((entry) =>
-          String(entry.player || "").trim().startsWith("@")
-        ) ||
-          box.team2.some((entry) =>
-            String(entry.player || "").trim().startsWith("@")
-          ));
+      const scoreState = getScheduleScoreState(row);
       return `
         <tr class="schedule-row" data-index="${index}">
-          ${headers
-            .map((header, i) => {
+          ${visibleCols
+            .map(({ h: header, index: i }) => {
               const value = row[i] ?? "";
               const headerLabel = String(header || "").toLowerCase();
               const isTeamCol = String(header || "")
@@ -470,15 +468,27 @@ function renderSchedule(headers, dataRows) {
                     shown
                   )} logo" />`
                 : "";
-              if (isTeamCol && String(value).trim() && !concluded) {
+              if (isTeamCol && String(value).trim()) {
+                const teamScore =
+                  i === scheduleIndexes.team1
+                    ? scoreState.team1Score
+                    : i === scheduleIndexes.team2
+                    ? scoreState.team2Score
+                    : "";
+                const scoreLine = teamScore
+                  ? `<span class="team-score-line ${scoreState.status}">${
+                      scoreState.status === "live"
+                        ? '<span class="live-pulse-dot"></span>'
+                        : scoreState.status === "final"
+                        ? '<span class="final-check">✓</span>'
+                        : ""
+                    }${escapeHtml(teamScore)}</span>`
+                  : "";
                 return `<td><a class="roster-link schedule-team-link" href="/team.html?team=${encodeURIComponent(
                   shown
-                )}">${logoHtml}<span>${escapeHtml(shown)}</span></a></td>`;
-              }
-              if (isTeamCol && String(value).trim()) {
-                return `<td><span class="schedule-team-link schedule-team-static">${logoHtml}<span>${escapeHtml(
+                )}">${logoHtml}<span class="team-name-stack"><span>${escapeHtml(
                   shown
-                )}</span></span></td>`;
+                )}</span>${scoreLine}</span></a></td>`;
               }
               if (isTypeCol && String(value).trim()) {
                 const typeRaw = String(value).trim();
@@ -493,13 +503,24 @@ function renderSchedule(headers, dataRows) {
                   : typeLower.includes("regular")
                   ? "Regular Season"
                   : typeRaw;
-                return `<td><span class="game-type-badge game-type-${typeClass}">${escapeHtml(
+                const statusLine =
+                  scoreState.status === "live"
+                    ? '<span class="row-state live"><span class="live-pulse-dot"></span>Live</span>'
+                    : scoreState.status === "final"
+                    ? '<span class="row-state final"><span class="final-check">✓</span>Final</span>'
+                    : '<span class="row-state upcoming">Upcoming</span>';
+                return `<td><div class="type-cell"><span class="game-type-badge game-type-${typeClass}">${escapeHtml(
                   typeLabel
-                )}</span></td>`;
+                )}</span>${statusLine}</div></td>`;
               }
               return `<td>${escapeHtml(value)}</td>`;
             })
             .join("")}
+        </tr>
+        <tr class="schedule-detail-row" data-detail-index="${index}" hidden>
+          <td colspan="${visibleHeaders.length}">
+            <div class="schedule-detail-box"></div>
+          </td>
         </tr>
       `;
     })
@@ -1405,12 +1426,13 @@ async function loadRoster() {
   try {
     const season = getSeason();
     if (season === "c2s2") {
-      const [rosterRes, standingsRes, scheduleRes, boxscoreRes, playerStatsRes] = await Promise.all([
+      const [rosterRes, standingsRes, scheduleRes, boxscoreRes, playerStatsRes, liveRes] = await Promise.all([
         fetch(ROSTER_CSV_URL, { cache: "no-store" }),
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
         fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
         fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
         fetch(PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(LIVE_CSV_URL, { cache: "no-store" }),
       ]);
 
       if (!rosterRes.ok) {
@@ -1466,10 +1488,13 @@ async function loadRoster() {
       if (els.statSos) {
         els.statSos.textContent = sos !== null ? sos.toFixed(3) : "—";
       }
+      const boxScoreData = parseCSV(await boxscoreRes.text());
+      const liveRows = liveRes.ok ? parseCSV(await liveRes.text()) : [];
+      liveScoreMap = buildLiveScoreMap(liveRows);
       updateTeamSchedule(
         teamName,
         scheduleRows,
-        parseCSV(await boxscoreRes.text()),
+        boxScoreData,
         season
       );
       updateAdvancedTeamStats(computeAdvancedTeamStats(teamName, playerStatRows));
@@ -1530,6 +1555,7 @@ async function loadRoster() {
           els.statSos.textContent = "—";
         }
       }
+      liveScoreMap = new Map();
       updateTeamSchedule(teamName, scheduleTable, boxscoreTable, season);
       if (season === "c2s1-post") {
         updateAdvancedTeamStats(
@@ -1610,6 +1636,7 @@ function updateStandingsFromRow(values) {
 let teamScheduleRows = [];
 let boxScoreRows = [];
 let scheduleIndexes = { date: 0, team1: 1, team2: 2 };
+let liveScoreMap = new Map();
 
 function normalizeTeamLabel(value) {
   const normalized = String(value || "")
@@ -1619,6 +1646,108 @@ function normalizeTeamLabel(value) {
     .toLowerCase()
     .replace(/\s+/g, " ");
   return normalized === "bullets" ? "storm" : normalized;
+}
+
+function buildGameKey(dateToken, team1, team2) {
+  return `${String(dateToken || "").trim()}|${normalizeTeamLabel(team1)}|${normalizeTeamLabel(team2)}`;
+}
+
+function parseTeamHeader(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return { name: "", score: "" };
+  }
+  const match = text.match(/^(.*?)(?:\(([-+]?\d+)\))?\s*$/);
+  const name = displayTeamName((match ? match[1] : text).trim());
+  const score = match && match[2] ? String(match[2]).trim() : "";
+  return { name, score };
+}
+
+function extractLeagueDay(rows) {
+  const row = rows.find(
+    (r) =>
+      String(r[0] || "").includes("League Day") ||
+      String(r[1] || "").includes("League Day")
+  );
+  if (!row) {
+    return "";
+  }
+  const raw = String(row[0] || row[1] || "");
+  const parts = raw.split(":");
+  return parts.length > 1 ? parts[1].trim() : raw.trim();
+}
+
+function buildLiveScoreMap(rows) {
+  const map = new Map();
+  if (!rows.length) {
+    return map;
+  }
+  const day = extractLeagueDay(rows);
+  if (!day) {
+    return map;
+  }
+
+  rows.forEach((row) => {
+    const left = String(row[0] || "").trim();
+    const right = String(row[4] || "").trim();
+    if (!left || !right) {
+      return;
+    }
+    if (left.includes("League Day") || right.includes("League Day")) {
+      return;
+    }
+    if (left.startsWith("@") || right.startsWith("@")) {
+      return;
+    }
+
+    const team1 = parseTeamHeader(left);
+    const team2 = parseTeamHeader(right);
+    if (!team1.name || !team2.name) {
+      return;
+    }
+
+    map.set(buildGameKey(day, team1.name, team2.name), {
+      status: "live",
+      team1Score: team1.score || "",
+      team2Score: team2.score || "",
+    });
+    map.set(buildGameKey(day, team2.name, team1.name), {
+      status: "live",
+      team1Score: team2.score || "",
+      team2Score: team1.score || "",
+    });
+  });
+
+  return map;
+}
+
+function getScheduleScoreState(scheduleRow) {
+  const dateToken = String(scheduleRow[scheduleIndexes.date] || "").trim();
+  const team1 = String(scheduleRow[scheduleIndexes.team1] || "").trim();
+  const team2 = String(scheduleRow[scheduleIndexes.team2] || "").trim();
+  const live = liveScoreMap.get(buildGameKey(dateToken, team1, team2));
+  if (live) {
+    return {
+      status: "live",
+      team1Score: live.team1Score || "",
+      team2Score: live.team2Score || "",
+    };
+  }
+
+  const box = buildBoxScore(getTeamName(), scheduleRow, getSeason());
+  if (!box) {
+    return { status: "upcoming", team1Score: "", team2Score: "" };
+  }
+  const h1 = parseTeamHeader(box.team1Name);
+  const h2 = parseTeamHeader(box.team2Name);
+  if (h1.score || h2.score) {
+    return {
+      status: "final",
+      team1Score: h1.score || "",
+      team2Score: h2.score || "",
+    };
+  }
+  return { status: "upcoming", team1Score: "", team2Score: "" };
 }
 
 function teamMatches(value, teamName) {
@@ -1756,9 +1885,9 @@ function buildBoxScore(teamName, scheduleRow, season) {
   };
 }
 
-function renderBoxScoreModal(boxScore) {
+function buildBoxScoreMarkup(boxScore) {
   if (!boxScore) {
-    return;
+    return '<div class="boxscore-empty">No stats available.</div>';
   }
   const cleanTeamLabel = (name) =>
     String(name || "").replace(/\([^)]*\)/g, "").trim();
@@ -1804,7 +1933,7 @@ function renderBoxScoreModal(boxScore) {
     return `<div class="boxscore-table">${headerLine}${headerRow}${body}</div>`;
   };
 
-  els.boxDetails.innerHTML = `
+  return `
     <div class="boxscore-meta">${escapeHtml(boxScore.dateLabel || "")}</div>
     <div class="boxscore-card">
       ${renderTeamTable(boxScore.team1, boxScore.team1Name)}
@@ -1813,8 +1942,6 @@ function renderBoxScoreModal(boxScore) {
       ${renderTeamTable(boxScore.team2, boxScore.team2Name)}
     </div>
   `;
-
-  els.modal.hidden = false;
 }
 
 els.scheduleBody.addEventListener("click", (event) => {
@@ -1828,7 +1955,31 @@ els.scheduleBody.addEventListener("click", (event) => {
   const index = Number(rowEl.dataset.index);
   const scheduleRow = teamScheduleRows[index];
   const boxScore = buildBoxScore(getTeamName(), scheduleRow, getSeason());
-  renderBoxScoreModal(boxScore);
+  const detailRow = els.scheduleBody.querySelector(
+    `.schedule-detail-row[data-detail-index="${index}"]`
+  );
+  if (!detailRow) {
+    return;
+  }
+
+  const boxWrap = detailRow.querySelector(".schedule-detail-box");
+  if (!boxWrap) {
+    return;
+  }
+
+  const isOpening = detailRow.hidden;
+  els.scheduleBody
+    .querySelectorAll(".schedule-detail-row")
+    .forEach((row) => (row.hidden = true));
+  els.scheduleBody
+    .querySelectorAll(".schedule-row")
+    .forEach((row) => row.classList.remove("active"));
+
+  if (isOpening) {
+    rowEl.classList.add("active");
+    detailRow.hidden = false;
+    boxWrap.innerHTML = buildBoxScoreMarkup(boxScore);
+  }
 });
 
 document.addEventListener("click", (event) => {
