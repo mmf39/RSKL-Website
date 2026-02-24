@@ -1,5 +1,6 @@
 const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
+const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const SEASON_KEY = "season";
 
@@ -19,6 +20,7 @@ const els = {
 };
 
 let cachedBoxScoreRows = [];
+let liveScoreMap = new Map();
 let scheduleGames = [];
 let gamesByDate = new Map();
 let currentMonth = null;
@@ -134,6 +136,15 @@ function displayTeamName(value) {
   return name === "Bullets" ? "Storm" : name;
 }
 
+function normalizeTeamName(value) {
+  return displayTeamName(String(value || ""))
+    .replace(/\([^)]*\)/g, "")
+    .replace(/\*/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
 function getTeamLogo(team) {
   const clean = displayTeamName(team);
   if (clean === "The Future") return "/assets/the-future.png";
@@ -164,6 +175,57 @@ function parseDateFromToken(token) {
   const d = new Date(year, month, day);
   if (Number.isNaN(d.getTime())) return null;
   return d;
+}
+
+function buildGameKey(dateToken, team1, team2) {
+  return `${String(dateToken || "").trim()}|${normalizeTeamName(team1)}|${normalizeTeamName(team2)}`;
+}
+
+function parseTeamHeader(value) {
+  const text = String(value || "").trim();
+  if (!text) return { name: "", score: "" };
+  const match = text.match(/^(.*?)(?:\(([-+]?\d+)\))?\s*$/);
+  const name = displayTeamName((match ? match[1] : text).trim());
+  const score = match && match[2] ? String(match[2]).trim() : "";
+  return { name, score };
+}
+
+function extractLeagueDay(rows) {
+  const hit = rows.find(
+    (row) =>
+      String(row[0] || "").includes("League Day") ||
+      String(row[1] || "").includes("League Day")
+  );
+  if (!hit) return "";
+  const raw = String(hit[0] || hit[1] || "");
+  const parts = raw.split(":");
+  return parts.length > 1 ? parts[1].trim() : raw.trim();
+}
+
+function buildLiveScoreMap(rows) {
+  const map = new Map();
+  if (!rows.length) return map;
+  const day = extractLeagueDay(rows);
+  if (!day) return map;
+
+  rows.forEach((row) => {
+    const left = String(row[0] || "").trim();
+    const right = String(row[4] || "").trim();
+    if (!left || !right) return;
+    if (left.includes("League Day") || right.includes("League Day")) return;
+    if (left.startsWith("@") || right.startsWith("@")) return;
+
+    const team1 = parseTeamHeader(left);
+    const team2 = parseTeamHeader(right);
+    if (!team1.name || !team2.name) return;
+
+    const score = team1.score && team2.score ? `${team1.score}-${team2.score}` : "Live";
+    const value = { status: "live", score };
+    map.set(buildGameKey(day, team1.name, team2.name), value);
+    map.set(buildGameKey(day, team2.name, team1.name), value);
+  });
+
+  return map;
 }
 
 function normalizeGameType(value) {
@@ -319,7 +381,7 @@ function findBoxScoreRowsForDate(dateToken) {
   return out;
 }
 
-function renderBoxScore(game) {
+function getBoxScorePayload(game) {
   const rows = findBoxScoreRowsForDate(game.dateToken);
 
   const toTeamRows = (rowsIn, side) => {
@@ -375,12 +437,35 @@ function renderBoxScore(game) {
     `;
   };
 
-  els.boxDetails.innerHTML = `
-    <div class="boxscore-meta">League Day: ${escapeHtml(game.dateToken)}</div>
-    ${renderTeamTable(team1, team1Header)}
-    ${renderTeamTable(team2, team2Header)}
-  `;
-  els.modal.hidden = false;
+  const parsed1 = parseTeamHeader(team1Header);
+  const parsed2 = parseTeamHeader(team2Header);
+  const finalScore =
+    parsed1.score && parsed2.score ? `${parsed1.score}-${parsed2.score}` : "";
+
+  return {
+    team1Header: parsed1.name || game.team1,
+    team2Header: parsed2.name || game.team2,
+    team1,
+    team2,
+    finalScore,
+    html: `
+      <div class="boxscore-meta">League Day: ${escapeHtml(game.dateToken)}</div>
+      ${renderTeamTable(team1, team1Header)}
+      ${renderTeamTable(team2, team2Header)}
+    `,
+  };
+}
+
+function getGameScoreState(game) {
+  const live = liveScoreMap.get(buildGameKey(game.dateToken, game.team1, game.team2));
+  if (live) {
+    return { status: "live", label: "LIVE", score: live.score || "Live" };
+  }
+  const payload = getBoxScorePayload(game);
+  if (payload.finalScore) {
+    return { status: "final", label: "FINAL", score: payload.finalScore };
+  }
+  return { status: "upcoming", label: "UPCOMING", score: "" };
 }
 
 function renderGameList() {
@@ -414,15 +499,20 @@ function renderGameList() {
       const l2 = logo2
         ? `<img class="standings-logo" src="${logo2}" alt="${escapeHtml(g.team2)} logo" />`
         : "";
+      const scoreState = getGameScoreState(g);
       return `
-        <button class="calendar-game" type="button" data-game-index="${g.idx}">
+        <div class="calendar-game" data-game-index="${g.idx}">
           <div class="calendar-game-date">${escapeHtml(g.dateToken)}</div>
           <div class="calendar-game-matchup">
             <a class="schedule-team-link" href="/team.html?team=${encodeURIComponent(g.team1)}">${l1}<span>${escapeHtml(g.team1)}</span></a>
             <span>vs</span>
             <a class="schedule-team-link" href="/team.html?team=${encodeURIComponent(g.team2)}">${l2}<span>${escapeHtml(g.team2)}</span></a>
           </div>
-        </button>
+          <div class="calendar-game-status ${escapeHtml(scoreState.status)}">
+            <strong>${escapeHtml(scoreState.label)}</strong>${scoreState.score ? `<span>${escapeHtml(scoreState.score)}</span>` : ""}
+          </div>
+          <div class="calendar-game-details" hidden></div>
+        </div>
       `;
     })
     .join("");
@@ -479,10 +569,16 @@ function bindCalendarEvents() {
       const idx = Number(card.dataset.gameIndex);
       const game = scheduleGames[idx];
       if (!game) return;
-      if (els.gamesModal) {
-        els.gamesModal.hidden = true;
+      const details = card.querySelector(".calendar-game-details");
+      if (!details) return;
+      const willOpen = details.hidden;
+      details.hidden = !details.hidden;
+      card.classList.toggle("open", willOpen);
+      if (willOpen && !details.dataset.loaded) {
+        const payload = getBoxScorePayload(game);
+        details.innerHTML = payload.html;
+        details.dataset.loaded = "1";
       }
-      renderBoxScore(game);
     };
 
   if (els.games) {
@@ -514,11 +610,16 @@ async function loadSchedule() {
     let rows = [];
 
     if (season === "c2s2") {
-      const response = await fetch(SCHEDULE_CSV_URL, { cache: "no-store" });
-      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
-      rows = getC2S2ScheduleRows(parseCSV(await response.text()));
-      const boxRes = await fetch(BOXSCORE_CSV_URL, { cache: "no-store" });
+      const [scheduleRes, boxRes, liveRes] = await Promise.all([
+        fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
+        fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
+        fetch(LIVE_CSV_URL, { cache: "no-store" }),
+      ]);
+      if (!scheduleRes.ok) throw new Error(`Fetch failed: ${scheduleRes.status}`);
+      rows = getC2S2ScheduleRows(parseCSV(await scheduleRes.text()));
       cachedBoxScoreRows = parseCSV(await boxRes.text()).slice(0, 1000);
+      const liveRows = liveRes.ok ? parseCSV(await liveRes.text()) : [];
+      liveScoreMap = buildLiveScoreMap(liveRows);
     } else {
       const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
       if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
@@ -526,6 +627,7 @@ async function loadSchedule() {
       const range = season === "c2s1-post" ? ARCHIVE_RANGES.schedule_post : ARCHIVE_RANGES.schedule_regular;
       rows = sliceRange(archive, range);
       cachedBoxScoreRows = sliceRange(archive, ARCHIVE_RANGES.boxscore);
+      liveScoreMap = new Map();
     }
 
     if (!rows.length) throw new Error("No data found.");
