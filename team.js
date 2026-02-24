@@ -1609,7 +1609,7 @@ function updateStandingsFromRow(values) {
 
 let teamScheduleRows = [];
 let boxScoreRows = [];
-let scheduleIndexes = { date: 1, team1: 2, team2: 3 };
+let scheduleIndexes = { date: 0, team1: 1, team2: 2 };
 
 function normalizeTeamLabel(value) {
   const normalized = String(value || "")
@@ -1631,15 +1631,36 @@ function teamMatches(value, teamName) {
 }
 
 function getScheduleIndexes(headers, season) {
-  if (headers.length <= 3) {
-    return { date: 0, team1: 1, team2: 2 };
+  const lower = headers.map((h) => String(h || "").trim().toLowerCase());
+  const findIdx = (checks) =>
+    lower.findIndex((h) => checks.some((check) => h.includes(check)));
+
+  let date = findIdx(["date"]);
+  let team1 = findIdx(["team 1", "team1", "away"]);
+  let team2 = findIdx(["team 2", "team2", "home"]);
+
+  if (date === -1 || team1 === -1 || team2 === -1) {
+    if (season === "c2s2") {
+      if (date === -1) date = 0;
+      if (team1 === -1) team1 = 1;
+      if (team2 === -1) team2 = 2;
+    } else if (headers.length <= 3) {
+      if (date === -1) date = 0;
+      if (team1 === -1) team1 = 1;
+      if (team2 === -1) team2 = 2;
+    } else {
+      if (date === -1) date = 1;
+      if (team1 === -1) team1 = 2;
+      if (team2 === -1) team2 = 3;
+    }
   }
-  return { date: 1, team1: 2, team2: 3 };
+
+  return { date, team1, team2 };
 }
 
 function getC2S2ScheduleRows(rows) {
   const sliced = sliceRange(rows, C2S2_SCHEDULE_RANGE);
-  return [["Round", "Date", "Team 1", "Team 2", "Game Type"], ...sliced];
+  return [["Date", "Team 1", "Team 2", "Info", "Game Type"], ...sliced];
 }
 
 function updateTeamSchedule(teamName, scheduleRows, boxScoreData, season) {

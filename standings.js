@@ -140,7 +140,7 @@ function sliceRange(rows, range) {
 
 function getC2S2ScheduleRows(rows) {
   const sliced = sliceRange(rows, C2S2_SCHEDULE_RANGE);
-  return [["Round", "Date", "Team 1", "Team 2", "Game Type"], ...sliced];
+  return [["Date", "Team 1", "Team 2", "Info", "Game Type"], ...sliced];
 }
 
 function renderTable(rows) {
@@ -595,12 +595,27 @@ function computeSosMap(
     winPctByTeam.set(team, pct);
   });
 
+  const scheduleHeader = (scheduleRows[0] || []).map((h) =>
+    String(h || "").trim().toLowerCase()
+  );
+  const findScheduleIdx = (checks) =>
+    scheduleHeader.findIndex((h) => checks.some((check) => h.includes(check)));
+
+  const resolvedTeam1Idx = (() => {
+    const idx = findScheduleIdx(["team 1", "team1", "away"]);
+    return idx !== -1 ? idx : team1Idx;
+  })();
+  const resolvedTeam2Idx = (() => {
+    const idx = findScheduleIdx(["team 2", "team2", "home"]);
+    return idx !== -1 ? idx : team2Idx;
+  })();
+
   const scheduleData = scheduleRows.slice(1);
   const sums = new Map();
   const counts = new Map();
   scheduleData.forEach((row) => {
-    const team1 = String(row[team1Idx] || "").trim();
-    const team2 = String(row[team2Idx] || "").trim();
+    const team1 = String(row[resolvedTeam1Idx] || "").trim();
+    const team2 = String(row[resolvedTeam2Idx] || "").trim();
     if (!team1 || !team2) {
       return;
     }

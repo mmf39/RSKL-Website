@@ -114,7 +114,7 @@ function sliceRange(rows, range) {
 
 function getC2S2ScheduleRows(rows) {
   const sliced = sliceRange(rows, C2S2_SCHEDULE_RANGE);
-  return [["Round", "Date", "Team 1", "Team 2", "Game Type"], ...sliced];
+  return [["Date", "Team 1", "Team 2", "Info", "Game Type"], ...sliced];
 }
 
 function escapeHtml(value) {
@@ -190,14 +190,25 @@ function updateLastUpdated() {
 }
 
 function buildGames(rows, season) {
-  const isThreeCol = (rows[0] || []).length <= 3;
   const headerLower = (rows[0] || []).map((h) => String(h || "").toLowerCase());
-  const dateIndex = isThreeCol || season === "c2s1-regular" ? 0 : 1;
-  const team1Index = isThreeCol || season === "c2s1-regular" ? 1 : 2;
-  const team2Index = isThreeCol || season === "c2s1-regular" ? 2 : 3;
-  let gameTypeIndex = headerLower.findIndex((h) => h.includes("type"));
-  if (gameTypeIndex === -1 && !isThreeCol && (rows[0] || []).length >= 5) {
-    gameTypeIndex = 4;
+  const findIdx = (checks) =>
+    headerLower.findIndex((h) => checks.some((check) => h.includes(check)));
+
+  let dateIndex = findIdx(["date"]);
+  let team1Index = findIdx(["team 1", "team1", "away"]);
+  let team2Index = findIdx(["team 2", "team2", "home"]);
+  let gameTypeIndex = findIdx(["game type", "type"]);
+
+  if (season === "c2s2") {
+    if (dateIndex === -1) dateIndex = 0;
+    if (team1Index === -1) team1Index = 1;
+    if (team2Index === -1) team2Index = 2;
+    if (gameTypeIndex === -1 && (rows[0] || []).length >= 5) gameTypeIndex = 4;
+  } else {
+    const isThreeCol = (rows[0] || []).length <= 3;
+    if (dateIndex === -1) dateIndex = isThreeCol || season === "c2s1-regular" ? 0 : 1;
+    if (team1Index === -1) team1Index = isThreeCol || season === "c2s1-regular" ? 1 : 2;
+    if (team2Index === -1) team2Index = isThreeCol || season === "c2s1-regular" ? 2 : 3;
   }
 
   const dataRows = rows.slice(1).filter((r) => r.some((c) => String(c || "").trim() !== ""));
