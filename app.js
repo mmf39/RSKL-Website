@@ -350,8 +350,7 @@ function extractLeagueDay(rows) {
 
 function parseLiveGames(rows) {
   const LIVE_GAME_RANGES = [
-    { range: "A4:D11", format: "compact" },
-    { range: "A13:G20", format: "standard" },
+    { range: "A5:G14", format: "standard" },
   ];
   const games = [];
   LIVE_GAME_RANGES.forEach(({ range, format }) => {
@@ -374,6 +373,10 @@ function parseLiveGames(rows) {
         team1 = headerA;
         team2 = headerD;
       }
+      if (String(team1).startsWith("@") || String(team2).startsWith("@")) {
+        team1 = "";
+        team2 = "";
+      }
     } else {
       const header = block[0] || [];
       team1 = String(header[0] || "").trim();
@@ -386,7 +389,12 @@ function parseLiveGames(rows) {
     let team1Players = [];
     let team2Players = [];
     if (format === "compact") {
-      const lines = block.slice(1).filter((row) => {
+      const firstRow = block[0] || [];
+      const firstRowLooksPlayer =
+        String(firstRow[0] || "").trim().startsWith("@") ||
+        String(firstRow[3] || "").trim().startsWith("@");
+      const sourceRows = firstRowLooksPlayer ? block : block.slice(1);
+      const lines = sourceRows.filter((row) => {
         const left = String(row[0] || "").trim();
         const right = String(row[3] || "").trim();
         return !!left || !!right;
@@ -485,11 +493,11 @@ function renderLiveScoring(rows, scheduleRows) {
       const dateValue = String(row[scheduleIdx.date] || "").trim();
       return leagueDay && dateValue === leagueDay;
     })
-    .map((row) => {
+    .map((row, idx) => {
       const team1 = String(row[scheduleIdx.team1] || "").trim();
       const team2 = String(row[scheduleIdx.team2] || "").trim();
       const key = `${normalizeTeamName(team1)}|${normalizeTeamName(team2)}`;
-      const live = liveMap.get(key);
+      const live = liveMap.get(key) || liveGames[idx];
       return {
         team1,
         team2,
