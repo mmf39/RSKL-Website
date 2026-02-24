@@ -479,10 +479,11 @@ function renderSchedule(headers, dataRows) {
                   ? `<span class="team-score-line ${scoreState.status}">${
                       scoreState.status === "live"
                         ? '<span class="live-pulse-dot"></span>'
-                        : scoreState.status === "final"
-                        ? '<span class="final-check">✓</span>'
                         : ""
-                    }${escapeHtml(teamScore)}</span>`
+                    }${getOutcomeForTeam(
+                      scoreState,
+                      i === scheduleIndexes.team1 ? 1 : 2
+                    )}${escapeHtml(teamScore)}</span>`
                   : "";
                 return `<td><a class="roster-link schedule-team-link" href="/team.html?team=${encodeURIComponent(
                   shown
@@ -1748,6 +1749,26 @@ function getScheduleScoreState(scheduleRow) {
     };
   }
   return { status: "upcoming", team1Score: "", team2Score: "" };
+}
+
+function parseNumericScore(value) {
+  const num = Number(String(value || "").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(num) ? num : null;
+}
+
+function getOutcomeForTeam(scoreState, teamIndex) {
+  if (!scoreState || scoreState.status !== "final") {
+    return "";
+  }
+  const s1 = parseNumericScore(scoreState.team1Score);
+  const s2 = parseNumericScore(scoreState.team2Score);
+  if (s1 === null || s2 === null || s1 === s2) {
+    return "";
+  }
+  const isWin = teamIndex === 1 ? s1 > s2 : s2 > s1;
+  return isWin
+    ? '<span class="outcome-mark win">✓</span>'
+    : '<span class="outcome-mark loss">✕</span>';
 }
 
 function teamMatches(value, teamName) {

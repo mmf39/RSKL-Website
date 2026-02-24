@@ -219,13 +219,36 @@ function buildLiveScoreMap(rows) {
     const team2 = parseTeamHeader(right);
     if (!team1.name || !team2.name) return;
 
-    const score = team1.score && team2.score ? `${team1.score}-${team2.score}` : "Live";
-    const value = { status: "live", score };
-    map.set(buildGameKey(day, team1.name, team2.name), value);
-    map.set(buildGameKey(day, team2.name, team1.name), value);
+    map.set(buildGameKey(day, team1.name, team2.name), {
+      status: "live",
+      team1Score: team1.score || "",
+      team2Score: team2.score || "",
+    });
+    map.set(buildGameKey(day, team2.name, team1.name), {
+      status: "live",
+      team1Score: team2.score || "",
+      team2Score: team1.score || "",
+    });
   });
 
   return map;
+}
+
+function parseNumericScore(value) {
+  const num = Number(String(value || "").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(num) ? num : null;
+}
+
+function getOutcomeFromScores(score1, score2) {
+  const s1 = parseNumericScore(score1);
+  const s2 = parseNumericScore(score2);
+  if (s1 === null || s2 === null || s1 === s2) {
+    return { team1: "", team2: "" };
+  }
+  return {
+    team1: s1 > s2 ? "win" : "loss",
+    team2: s2 > s1 ? "win" : "loss",
+  };
 }
 
 function normalizeGameType(value) {
@@ -338,8 +361,13 @@ function renderCalendar() {
     const gameCount = (gamesByDate.get(token) || []).length;
     const hasGames = gameCount > 0;
     const isSelected = token === selectedDateKey;
+    const now = new Date();
+    const isToday =
+      now.getFullYear() === first.getFullYear() &&
+      now.getMonth() === first.getMonth() &&
+      now.getDate() === day;
     cells.push(`
-      <button class="calendar-day ${hasGames ? "has-games" : ""} ${isSelected ? "selected" : ""}" data-date="${token}" type="button">
+      <button class="calendar-day ${hasGames ? "has-games" : ""} ${isSelected ? "selected" : ""} ${isToday ? "today" : ""}" data-date="${token}" type="button">
         <span class="calendar-num">${day}</span>
         <span class="calendar-count">${gameCount} ${gameCount === 1 ? "game" : "games"}</span>
       </button>
@@ -439,12 +467,13 @@ function getBoxScorePayload(game) {
 
   const parsed1 = parseTeamHeader(team1Header);
   const parsed2 = parseTeamHeader(team2Header);
-  const finalScore =
-    parsed1.score && parsed2.score ? `${parsed1.score}-${parsed2.score}` : "";
+  const finalScore = parsed1.score && parsed2.score ? `${parsed1.score}-${parsed2.score}` : "";
 
   return {
     team1Header: parsed1.name || game.team1,
     team2Header: parsed2.name || game.team2,
+    team1Score: parsed1.score || "",
+    team2Score: parsed2.score || "",
     team1,
     team2,
     finalScore,
@@ -459,13 +488,36 @@ function getBoxScorePayload(game) {
 function getGameScoreState(game) {
   const live = liveScoreMap.get(buildGameKey(game.dateToken, game.team1, game.team2));
   if (live) {
-    return { status: "live", label: "LIVE", score: live.score || "Live" };
+    const outcomes = getOutcomeFromScores(live.team1Score, live.team2Score);
+    return {
+      status: "live",
+      label: "LIVE",
+      team1Score: live.team1Score || "",
+      team2Score: live.team2Score || "",
+      team1Outcome: outcomes.team1,
+      team2Outcome: outcomes.team2,
+    };
   }
   const payload = getBoxScorePayload(game);
   if (payload.finalScore) {
-    return { status: "final", label: "FINAL", score: payload.finalScore };
+    const outcomes = getOutcomeFromScores(payload.team1Score, payload.team2Score);
+    return {
+      status: "final",
+      label: "FINAL",
+      team1Score: payload.team1Score || "",
+      team2Score: payload.team2Score || "",
+      team1Outcome: outcomes.team1,
+      team2Outcome: outcomes.team2,
+    };
   }
-  return { status: "upcoming", label: "UPCOMING", score: "" };
+  return {
+    status: "upcoming",
+    label: "UPCOMING",
+    team1Score: "",
+    team2Score: "",
+    team1Outcome: "",
+    team2Outcome: "",
+  };
 }
 
 function renderGameList() {
@@ -500,16 +552,42 @@ function renderGameList() {
         ? `<img class="standings-logo" src="${logo2}" alt="${escapeHtml(g.team2)} logo" />`
         : "";
       const scoreState = getGameScoreState(g);
+      const team1ScoreLine = scoreState.team1Score
+        ? `<span class="team-score-line ${escapeHtml(scoreState.status)}">${
+            scoreState.status === "live"
+              ? '<span class="live-pulse-dot"></span>'
+              : ""
+          }${
+            scoreState.team1Outcome === "win"
+              ? '<span class="outcome-mark win">✓</span>'
+              : scoreState.team1Outcome === "loss"
+              ? '<span class="outcome-mark loss">✕</span>'
+              : ""
+          }${escapeHtml(scoreState.team1Score)}</span>`
+        : "";
+      const team2ScoreLine = scoreState.team2Score
+        ? `<span class="team-score-line ${escapeHtml(scoreState.status)}">${
+            scoreState.status === "live"
+              ? '<span class="live-pulse-dot"></span>'
+              : ""
+          }${
+            scoreState.team2Outcome === "win"
+              ? '<span class="outcome-mark win">✓</span>'
+              : scoreState.team2Outcome === "loss"
+              ? '<span class="outcome-mark loss">✕</span>'
+              : ""
+          }${escapeHtml(scoreState.team2Score)}</span>`
+        : "";
       return `
         <div class="calendar-game" data-game-index="${g.idx}">
           <div class="calendar-game-date">${escapeHtml(g.dateToken)}</div>
           <div class="calendar-game-matchup">
-            <a class="schedule-team-link" href="/team.html?team=${encodeURIComponent(g.team1)}">${l1}<span>${escapeHtml(g.team1)}</span></a>
+            <a class="schedule-team-link" href="/team.html?team=${encodeURIComponent(g.team1)}">${l1}<span class="team-name-stack"><span>${escapeHtml(g.team1)}</span>${team1ScoreLine}</span></a>
             <span>vs</span>
-            <a class="schedule-team-link" href="/team.html?team=${encodeURIComponent(g.team2)}">${l2}<span>${escapeHtml(g.team2)}</span></a>
+            <a class="schedule-team-link" href="/team.html?team=${encodeURIComponent(g.team2)}">${l2}<span class="team-name-stack"><span>${escapeHtml(g.team2)}</span>${team2ScoreLine}</span></a>
           </div>
           <div class="calendar-game-status ${escapeHtml(scoreState.status)}">
-            <strong>${escapeHtml(scoreState.label)}</strong>${scoreState.score ? `<span>${escapeHtml(scoreState.score)}</span>` : ""}
+            <strong>${escapeHtml(scoreState.label)}</strong>
           </div>
           <div class="calendar-game-details" hidden></div>
         </div>
