@@ -416,11 +416,6 @@ function renderGameList() {
         : "";
       return `
         <button class="calendar-game" type="button" data-game-index="${g.idx}">
-          ${
-            g.gameType.label
-              ? `<div class="game-type-badge game-type-${escapeHtml(g.gameType.key || "other")}">${escapeHtml(g.gameType.label)}</div>`
-              : ""
-          }
           <div class="calendar-game-date">${escapeHtml(g.dateToken)}</div>
           <div class="calendar-game-matchup">
             <a class="schedule-team-link" href="/team.html?team=${encodeURIComponent(g.team1)}">${l1}<span>${escapeHtml(g.team1)}</span></a>
