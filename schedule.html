@@ -59,7 +59,7 @@
           <button id="calendar-next" class="btn ghost" type="button">Next</button>
         </div>
         <div id="calendar-grid" class="calendar-grid"></div>
-        <div id="calendar-games" class="calendar-games"></div>
+        <div id="calendar-games" class="calendar-games" hidden></div>
         <div class="table-wrap" hidden>
           <table id="schedule-table"><thead></thead><tbody></tbody></table>
         </div>
@@ -76,12 +76,22 @@
         <div id="boxscore-details" class="boxscore-details"></div>
       </div>
     </div>
+    <div id="games-modal" class="modal" hidden>
+      <div class="modal-backdrop" data-close="true"></div>
+      <div class="modal-card" role="dialog" aria-modal="true">
+        <div class="modal-head">
+          <h2 id="games-modal-title">Games</h2>
+          <button class="modal-close" data-close="true">Close</button>
+        </div>
+        <div id="games-modal-details" class="calendar-games"></div>
+      </div>
+    </div>
 
     <footer class="footer">
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="schedule.js?v=20260224c"></script>
+    <script src="schedule.js?v=20260224d"></script>
       <script src="header-nav.js"></script>
   </body>
 </html>

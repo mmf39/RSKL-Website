@@ -8,6 +8,9 @@ const els = {
   search: document.getElementById("schedule-search"),
   modal: document.getElementById("boxscore-modal"),
   boxDetails: document.getElementById("boxscore-details"),
+  gamesModal: document.getElementById("games-modal"),
+  gamesModalTitle: document.getElementById("games-modal-title"),
+  gamesModalDetails: document.getElementById("games-modal-details"),
   month: document.getElementById("calendar-month"),
   prev: document.getElementById("calendar-prev"),
   next: document.getElementById("calendar-next"),
@@ -381,7 +384,7 @@ function renderBoxScore(game) {
 }
 
 function renderGameList() {
-  if (!els.games) return;
+  if (!els.games) return [];
   const term = String(els.search?.value || "").trim().toLowerCase();
 
   let games = selectedDateKey ? (gamesByDate.get(selectedDateKey) || []) : [];
@@ -398,10 +401,10 @@ function renderGameList() {
 
   if (!filtered.length) {
     els.games.innerHTML = '<div class="gm-empty">No games found.</div>';
-    return;
+    return [];
   }
 
-  els.games.innerHTML = filtered
+  const html = filtered
     .map((g, idx) => {
       const logo1 = getTeamLogo(g.team1);
       const logo2 = getTeamLogo(g.team2);
@@ -428,6 +431,20 @@ function renderGameList() {
       `;
     })
     .join("");
+  els.games.innerHTML = html;
+  return filtered;
+}
+
+function openGamesModal(games) {
+  if (!els.gamesModal || !els.gamesModalDetails || !els.gamesModalTitle) return;
+  const titleDate = selectedDateKey || "Selected Date";
+  els.gamesModalTitle.textContent = `Games • ${titleDate}`;
+  if (!games.length) {
+    els.gamesModalDetails.innerHTML = '<div class="gm-empty">No games found.</div>';
+  } else {
+    els.gamesModalDetails.innerHTML = els.games.innerHTML;
+  }
+  els.gamesModal.hidden = false;
 }
 
 function bindCalendarEvents() {
@@ -454,12 +471,12 @@ function bindCalendarEvents() {
       if (!cell) return;
       selectedDateKey = String(cell.dataset.date || "");
       renderCalendar();
-      renderGameList();
+      const games = renderGameList();
+      openGamesModal(games);
     });
   }
 
-  if (els.games) {
-    els.games.addEventListener("click", (event) => {
+  const handleGameClick = (event) => {
       const link = event.target.closest("a");
       if (link) return;
       const card = event.target.closest("[data-game-index]");
@@ -467,8 +484,17 @@ function bindCalendarEvents() {
       const idx = Number(card.dataset.gameIndex);
       const game = scheduleGames[idx];
       if (!game) return;
+      if (els.gamesModal) {
+        els.gamesModal.hidden = true;
+      }
       renderBoxScore(game);
-    });
+    };
+
+  if (els.games) {
+    els.games.addEventListener("click", handleGameClick);
+  }
+  if (els.gamesModalDetails) {
+    els.gamesModalDetails.addEventListener("click", handleGameClick);
   }
 
   if (els.search) {
@@ -480,6 +506,9 @@ function bindCalendarEvents() {
   document.addEventListener("click", (event) => {
     if (event.target.matches('[data-close="true"]')) {
       els.modal.hidden = true;
+      if (els.gamesModal) {
+        els.gamesModal.hidden = true;
+      }
     }
   });
 }
