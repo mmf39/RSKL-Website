@@ -642,14 +642,15 @@ function detectPlayerColumns(headerRow) {
   if (!headerRow || !headerRow.length) {
     return columns;
   }
-  const lowered = headerRow.map((cell) => String(cell || "").toLowerCase());
-  const pick = (label) => lowered.indexOf(label);
-  const dateIdx = pick("date");
-  const teamIdx = pick("team");
-  const playerIdx = pick("player");
-  const scoreIdx = pick("score") !== -1 ? pick("score") : pick("points");
-  const rankIdx = pick("rank");
-  const opponentIdx = pick("opponent");
+  const lowered = headerRow.map((cell) => String(cell || "").trim().toLowerCase());
+  const pickByIncludes = (tokens) =>
+    lowered.findIndex((h) => tokens.some((token) => h.includes(token)));
+  const dateIdx = pickByIncludes(["date", "day"]);
+  const teamIdx = pickByIncludes(["team"]);
+  const playerIdx = pickByIncludes(["player", "user", "tag"]);
+  const scoreIdx = pickByIncludes(["score", "points", "karma"]);
+  const rankIdx = pickByIncludes(["rank"]);
+  const opponentIdx = pickByIncludes(["opponent", "opp"]);
 
   if (dateIdx !== -1) columns.date = dateIdx;
   if (teamIdx !== -1) columns.team = teamIdx;
