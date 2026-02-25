@@ -35,23 +35,6 @@ const ARCHIVE_RANGES = {
   boxscore: "L31:R149",
 };
 const C2S2_SCHEDULE_RANGE = "A2:E77";
-const LIVE_GAME_RANGES = [
-  "A5:G11",
-  "A13:G19",
-  "A21:G27",
-  "A29:G35",
-  "A37:G43",
-  "A45:G51",
-  "A53:G59",
-  "A61:G67",
-  "A69:G75",
-  "A77:G83",
-  "A85:G91",
-  "A93:G99",
-  "A101:G107",
-  "A109:G115",
-  "A117:G122",
-];
 
 function getSeason() {
   return localStorage.getItem(SEASON_KEY) || "c2s2";
@@ -231,30 +214,52 @@ function buildLiveScoreMap(rows) {
   if (!rows.length) return map;
   const day = extractLeagueDay(rows);
   if (!day) return map;
+  const startIndex = rows.findIndex(
+    (row) =>
+      String(row[0] || "").includes("League Day") ||
+      String(row[1] || "").includes("League Day")
+  );
+  const dataRows = rows.slice(startIndex >= 0 ? startIndex + 1 : 0);
 
-  LIVE_GAME_RANGES.forEach((range) => {
-    const block = sliceRange(rows, range);
-    if (!block.length) return;
-    const header = block[0] || [];
+  const looksLikeHeader = (left, right) =>
+    left &&
+    right &&
+    !left.startsWith("@") &&
+    !right.startsWith("@") &&
+    (/\(\s*-?\d+\s*\)/.test(left) || /\(\s*-?\d+\s*\)/.test(right));
+
+  const games = [];
+  let current = null;
+  dataRows.forEach((row) => {
+    const left = String(row[0] || "").trim();
+    const right = String(row[4] || "").trim();
+    if (looksLikeHeader(left, right)) {
+      current = { header: row, players: [] };
+      games.push(current);
+      return;
+    }
+    if (current && (left || right)) {
+      current.players.push(row);
+    }
+  });
+
+  games.forEach((game) => {
+    const header = game.header || [];
     const left = String(header[0] || "").trim();
     const right = String(header[4] || "").trim();
-    if (!left || !right) return;
     const team1 = parseTeamHeader(left);
     const team2 = parseTeamHeader(right);
     if (!team1.name || !team2.name) return;
 
-    const lines = block
-      .slice(1)
-      .filter((r) => String(r[0] || r[4] || "").trim() !== "");
-    const team1Players = lines
-      .filter((r) => String(r[0] || "").trim().startsWith("@"))
+    const team1Players = game.players
+      .filter((r) => String(r[0] || "").trim() !== "")
       .map((r) => ({
         player: String(r[0] || "").trim(),
         points: String(r[1] || ""),
         rank: String(r[2] || ""),
       }));
-    const team2Players = lines
-      .filter((r) => String(r[4] || "").trim().startsWith("@"))
+    const team2Players = game.players
+      .filter((r) => String(r[4] || "").trim() !== "")
       .map((r) => ({
         player: String(r[4] || "").trim(),
         points: String(r[5] || ""),
@@ -519,15 +524,11 @@ function renderCalendar() {
 
 function findBoxScoreRowsForGame(game) {
   if (!game || !game.dateToken || !cachedBoxScoreRows.length) return [];
+  const tokenMatches = (cell, token) => normalizeDateToken(cell) === token;
   const isDateRow = (row) => {
     const a = String(row[0] || "");
     const b = String(row[1] || "");
-    return (
-      (a.includes("League Day") && a.includes(game.dateToken)) ||
-      (b.includes("League Day") && b.includes(game.dateToken)) ||
-      a.includes(game.dateToken) ||
-      b.includes(game.dateToken)
-    );
+    return tokenMatches(a, game.dateToken) || tokenMatches(b, game.dateToken);
   };
 
   const start = cachedBoxScoreRows.findIndex(isDateRow);

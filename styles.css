@@ -1300,7 +1300,7 @@ input[type="text"] {
 .modal {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 30000;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
