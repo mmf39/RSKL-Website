@@ -152,6 +152,9 @@ const els = {
   boxDetails: document.getElementById("boxscore-details"),
 };
 
+const AUTO_REFRESH_MS = 60 * 1000;
+let isTeamPageRefreshing = false;
+
 let leagueStandingsMetrics = [];
 let leagueTransactionCounts = new Map();
 
@@ -821,6 +824,9 @@ function computeTeamSOS(teamName, scheduleRows, winPctMap, season) {
   }
   const headers = scheduleRows[0] || [];
   const idx = getScheduleIndexes(headers, season);
+  const gameTypeIdx = headers.findIndex((h) =>
+    String(h || "").toLowerCase().includes("type")
+  );
   const winPctByNormalizedTeam = new Map();
   winPctMap.forEach((pct, team) => {
     winPctByNormalizedTeam.set(normalizeTeamLabel(team), pct);
@@ -829,6 +835,12 @@ function computeTeamSOS(teamName, scheduleRows, winPctMap, season) {
   let sum = 0;
   let games = 0;
   dataRows.forEach((row) => {
+    if (gameTypeIdx >= 0) {
+      const gameType = String(row[gameTypeIdx] || "").toLowerCase();
+      if (gameType.includes("pre")) {
+        return;
+      }
+    }
     const team1 = String(row[idx.team1] || "").trim();
     const team2 = String(row[idx.team2] || "").trim();
     if (!team1 || !team2) {
@@ -1394,6 +1406,10 @@ async function loadDraftCapital(teamName) {
 }
 
 async function loadRoster() {
+  if (isTeamPageRefreshing) {
+    return;
+  }
+  isTeamPageRefreshing = true;
   const teamName = getTeamName();
   if (els.statTransactions) {
     els.statTransactions.textContent = "—";
@@ -1627,6 +1643,8 @@ async function loadRoster() {
     }
   } catch (error) {
     els.body.innerHTML = `<tr><td>${escapeHtml(error.message)}</td></tr>`;
+  } finally {
+    isTeamPageRefreshing = false;
   }
 }
 
@@ -2296,3 +2314,4 @@ document.addEventListener("click", (event) => {
 initSeasonSelect();
 initStandingsInteractions();
 loadRoster();
+setInterval(loadRoster, AUTO_REFRESH_MS);
