@@ -7,6 +7,8 @@ const SEASON_KEY = "season";
 const C2S2_SCHEDULE_RANGE = "A2:E77";
 const TRANSACTIONS_RANGE = "A3:E81";
 const RETIREMENT_RANGE = "G3:J70";
+const CUT_RANGE = "L3:O81";
+const SIGNING_RANGE = "Q3:T81";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -256,7 +258,9 @@ function renderStandings() {
             <div class="leader-chip">
               SOS
               <span>${escapeHtml(
-                sosByTeam.has(rawTeamName) ? sosByTeam.get(rawTeamName) : "—"
+                sosByTeam.has(normalizeTeamLabel(rawTeamName))
+                  ? sosByTeam.get(normalizeTeamLabel(rawTeamName))
+                  : "—"
               )}</span>
             </div>
             <div class="leader-chip">
@@ -372,13 +376,22 @@ function computeAdvancedByTeam(allRows) {
   const columns = detectPlayerColumns(allRows[0] || []);
   const dataRows = allRows.slice(1);
 
+  const leagueTeamTotalsByDate = new Map();
   const leagueScoresByDate = new Map();
   dataRows.forEach((row) => {
     const date = String(row[columns.date] || "").trim();
+    const rowTeam = String(row[columns.team] || "").trim();
     const score = parseAdjustedScore(row, columns);
-    if (!date || score === null) {
+    if (!date || score === null || !rowTeam) {
       return;
     }
+    if (!leagueTeamTotalsByDate.has(date)) {
+      leagueTeamTotalsByDate.set(date, new Map());
+    }
+    const teamTotals = leagueTeamTotalsByDate.get(date);
+    const teamKey = normalizeTeamLabel(rowTeam);
+    teamTotals.set(teamKey, (teamTotals.get(teamKey) || 0) + score);
+
     if (!leagueScoresByDate.has(date)) {
       leagueScoresByDate.set(date, []);
     }
@@ -390,6 +403,16 @@ function computeAdvancedByTeam(allRows) {
     const med = median(scores);
     if (med !== null) {
       medianByDate.set(date, med);
+    }
+  });
+  const teamMedianByDate = new Map();
+  leagueTeamTotalsByDate.forEach((teamTotals, date) => {
+    const totals = Array.from(teamTotals.values()).filter((v) =>
+      Number.isFinite(v)
+    );
+    const med = median(totals);
+    if (med !== null) {
+      teamMedianByDate.set(date, med);
     }
   });
 
@@ -430,7 +453,7 @@ function computeAdvancedByTeam(allRows) {
   teamTotalsByDate.forEach((totals, team) => {
     let pam = 0;
     totals.forEach((teamTotal, date) => {
-      const med = medianByDate.get(date);
+      const med = teamMedianByDate.get(date);
       if (!med || med <= 0) {
         return;
       }
@@ -477,6 +500,66 @@ function parseTeamRetirementRow(row) {
   };
 }
 
+function parseTeamCutRow(row) {
+  const extractDateAndTeam = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return { date: "", team: "" };
+    }
+    const firstFour = raw.slice(0, 4).trim();
+    if (/^\d{1,2}\/\d{1,2}$/.test(firstFour)) {
+      return { date: firstFour, team: raw.slice(4).trim() };
+    }
+    return { date: "", team: raw };
+  };
+  const mergedTeamCell = String(row[2] || row[3] || "").trim();
+  const player = String(row[0] || row[1] || "").trim() || "—";
+  const playerLower = String(player).toLowerCase();
+  const teamLower = mergedTeamCell.toLowerCase();
+  if (
+    playerLower === "cuts" ||
+    playerLower === "player" ||
+    teamLower === "date/team" ||
+    teamLower === "team"
+  ) {
+    return null;
+  }
+  const parsed = extractDateAndTeam(mergedTeamCell);
+  return {
+    team: displayTeamName(parsed.team || mergedTeamCell || ""),
+  };
+}
+
+function parseTeamSigningRow(row) {
+  const extractDateAndTeam = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return { date: "", team: "" };
+    }
+    const firstFour = raw.slice(0, 4).trim();
+    if (/^\d{1,2}\/\d{1,2}$/.test(firstFour)) {
+      return { date: firstFour, team: raw.slice(4).trim() };
+    }
+    return { date: "", team: raw };
+  };
+  const player = String(row[0] || row[1] || "").trim() || "—";
+  const mergedTeamCell = String(row[2] || row[3] || "").trim();
+  const playerLower = String(player).toLowerCase();
+  const teamLower = mergedTeamCell.toLowerCase();
+  if (
+    playerLower === "signings" ||
+    playerLower === "player" ||
+    teamLower === "date/team" ||
+    teamLower === "team"
+  ) {
+    return null;
+  }
+  const parsed = extractDateAndTeam(mergedTeamCell);
+  return {
+    team: displayTeamName(parsed.team || mergedTeamCell || ""),
+  };
+}
+
 function computeTransactionCounts(allRows) {
   const counts = new Map();
   const bump = (team) => {
@@ -497,6 +580,18 @@ function computeTransactionCounts(allRows) {
   sliceRange(allRows, RETIREMENT_RANGE)
     .filter((row) => row.some((cell) => String(cell || "").trim()))
     .map(parseTeamRetirementRow)
+    .forEach((row) => bump(row.team));
+
+  sliceRange(allRows, CUT_RANGE)
+    .filter((row) => row.some((cell) => String(cell || "").trim()))
+    .map(parseTeamCutRow)
+    .filter(Boolean)
+    .forEach((row) => bump(row.team));
+
+  sliceRange(allRows, SIGNING_RANGE)
+    .filter((row) => row.some((cell) => String(cell || "").trim()))
+    .map(parseTeamSigningRow)
+    .filter(Boolean)
     .forEach((row) => bump(row.team));
 
   return counts;
@@ -543,7 +638,7 @@ function getMetricValue(row, headers, metric) {
   const teamKey = normalizeTeamLabel(rawTeamName);
 
   if (metric === "sos") {
-    return parseNumber(sosByTeam.get(rawTeamName));
+    return parseNumber(sosByTeam.get(teamKey));
   }
   if (metric === "pam") {
     return parseNumber((advancedByTeam.get(teamKey) || {}).pam);
@@ -572,6 +667,26 @@ function getMetricValue(row, headers, metric) {
   return null;
 }
 
+function parseDateValue(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  const mdy = text.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (mdy) {
+    const month = Number(mdy[1]) - 1;
+    const day = Number(mdy[2]);
+    let year = mdy[3] ? Number(mdy[3]) : new Date().getFullYear();
+    if (year < 100) {
+      year += 2000;
+    }
+    const t = new Date(year, month, day).getTime();
+    return Number.isNaN(t) ? Number.NEGATIVE_INFINITY : t;
+  }
+  const parsed = Date.parse(text);
+  return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed;
+}
+
 function computeSosMap(
   standingsHeader,
   standingsDataRows,
@@ -586,17 +701,26 @@ function computeSosMap(
   const lower = standingsHeader.map((h) => String(h || "").toLowerCase());
   const teamIdx = lower.findIndex((h) => h === "team");
   const winIdx = lower.findIndex((h) => h === "win %" || h === "win%" || h === "pct");
+  const gpIdx = lower.findIndex((h) => h === "gp");
   if (teamIdx === -1 || winIdx === -1) {
     return map;
   }
   const winPctByTeam = new Map();
+  const gpByTeam = new Map();
   standingsDataRows.forEach((row) => {
     const team = String(row[teamIdx] || "").trim();
     const pct = parsePct(row[winIdx]);
     if (!team || pct === null) {
       return;
     }
-    winPctByTeam.set(team, pct);
+    const key = normalizeTeamLabel(team);
+    winPctByTeam.set(key, pct);
+    if (gpIdx !== -1) {
+      const gp = parseNumber(row[gpIdx]);
+      if (Number.isFinite(gp)) {
+        gpByTeam.set(key, gp);
+      }
+    }
   });
 
   const scheduleHeader = (scheduleRows[0] || []).map((h) =>
@@ -613,36 +737,56 @@ function computeSosMap(
     const idx = findScheduleIdx(["team 2", "team2", "home"]);
     return idx !== -1 ? idx : team2Idx;
   })();
+  const resolvedDateIdx = (() => {
+    const idx = findScheduleIdx(["date"]);
+    return idx !== -1 ? idx : 0;
+  })();
+  const resolvedTypeIdx = (() => {
+    const idx = findScheduleIdx(["type", "game type"]);
+    return idx;
+  })();
 
-  const scheduleData = scheduleRows.slice(1);
-  const sums = new Map();
-  const counts = new Map();
-  scheduleData.forEach((row) => {
-    const team1 = String(row[resolvedTeam1Idx] || "").trim();
-    const team2 = String(row[resolvedTeam2Idx] || "").trim();
-    if (!team1 || !team2) {
-      return;
-    }
-    const pct1 = winPctByTeam.get(team1);
-    const pct2 = winPctByTeam.get(team2);
-    if (pct2 !== undefined) {
-      sums.set(team1, (sums.get(team1) || 0) + pct2);
-      counts.set(team1, (counts.get(team1) || 0) + 1);
-    }
-    if (pct1 !== undefined) {
-      sums.set(team2, (sums.get(team2) || 0) + pct1);
-      counts.set(team2, (counts.get(team2) || 0) + 1);
-    }
-  });
+  const scheduleData = scheduleRows
+    .slice(1)
+    .map((row, order) => {
+      const team1 = normalizeTeamLabel(String(row[resolvedTeam1Idx] || "").trim());
+      const team2 = normalizeTeamLabel(String(row[resolvedTeam2Idx] || "").trim());
+      const gameType = resolvedTypeIdx >= 0 ? String(row[resolvedTypeIdx] || "").toLowerCase() : "";
+      return {
+        row,
+        order,
+        team1,
+        team2,
+        dateValue: parseDateValue(row[resolvedDateIdx]),
+        isPreseason: gameType.includes("pre"),
+      };
+    })
+    .filter((g) => g.team1 && g.team2 && !g.isPreseason);
 
-  winPctByTeam.forEach((_, team) => {
-    const count = counts.get(team) || 0;
-    if (!count) {
-      map.set(team, "—");
-      return;
-    }
-    const value = (sums.get(team) || 0) / count;
-    map.set(team, value.toFixed(3));
+  winPctByTeam.forEach((_, teamKey) => {
+    const teamGames = scheduleData
+      .filter((g) => g.team1 === teamKey || g.team2 === teamKey)
+      .sort((a, b) => {
+        if (a.dateValue === b.dateValue) return a.order - b.order;
+        return a.dateValue - b.dateValue;
+      });
+    const gpLimit = gpByTeam.get(teamKey);
+    const playedGames =
+      Number.isFinite(gpLimit) && gpLimit >= 0
+        ? teamGames.slice(0, gpLimit)
+        : teamGames;
+
+    let sum = 0;
+    let count = 0;
+    playedGames.forEach((g) => {
+      const oppKey = g.team1 === teamKey ? g.team2 : g.team1;
+      const oppPct = winPctByTeam.get(oppKey);
+      if (oppPct === undefined || oppPct === null) return;
+      sum += oppPct;
+      count += 1;
+    });
+
+    map.set(teamKey, count ? (sum / count).toFixed(3) : "—");
   });
   return map;
 }

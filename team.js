@@ -697,13 +697,22 @@ function computeAdvancedTeamStats(teamName, allRows) {
   const columns = detectPlayerColumns(allRows[0] || []);
   const dataRows = allRows.slice(1);
 
+  const leagueTeamTotalsByDate = new Map();
   const leagueScoresByDate = new Map();
   dataRows.forEach((row) => {
     const date = String(row[columns.date] || "").trim();
+    const rowTeam = String(row[columns.team] || "").trim();
     const score = parseAdjustedScore(row, columns);
-    if (!date || score === null) {
+    if (!date || score === null || !rowTeam) {
       return;
     }
+    if (!leagueTeamTotalsByDate.has(date)) {
+      leagueTeamTotalsByDate.set(date, new Map());
+    }
+    const teamTotals = leagueTeamTotalsByDate.get(date);
+    const teamKey = normalizeTeamLabel(rowTeam);
+    teamTotals.set(teamKey, (teamTotals.get(teamKey) || 0) + score);
+
     if (!leagueScoresByDate.has(date)) {
       leagueScoresByDate.set(date, []);
     }
@@ -715,6 +724,16 @@ function computeAdvancedTeamStats(teamName, allRows) {
     const med = median(scores);
     if (med !== null) {
       medianByDate.set(date, med);
+    }
+  });
+  const teamMedianByDate = new Map();
+  leagueTeamTotalsByDate.forEach((teamTotals, date) => {
+    const totals = Array.from(teamTotals.values()).filter((v) =>
+      Number.isFinite(v)
+    );
+    const med = median(totals);
+    if (med !== null) {
+      teamMedianByDate.set(date, med);
     }
   });
 
@@ -755,7 +774,7 @@ function computeAdvancedTeamStats(teamName, allRows) {
   let pctSum = 0;
   let pctGames = 0;
   teamTotalsByDate.forEach((teamTotal, date) => {
-    const med = medianByDate.get(date);
+    const med = teamMedianByDate.get(date);
     if (!med || med <= 0) {
       return;
     }
