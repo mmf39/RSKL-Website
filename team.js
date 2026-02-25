@@ -1688,36 +1688,73 @@ function buildLiveScoreMap(rows) {
     return map;
   }
 
-  rows.forEach((row) => {
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i];
     const left = String(row[0] || "").trim();
     const right = String(row[4] || "").trim();
     if (!left || !right) {
-      return;
+      continue;
     }
     if (left.includes("League Day") || right.includes("League Day")) {
-      return;
+      continue;
     }
     if (left.startsWith("@") || right.startsWith("@")) {
-      return;
+      continue;
     }
 
     const team1 = parseTeamHeader(left);
     const team2 = parseTeamHeader(right);
     if (!team1.name || !team2.name) {
-      return;
+      continue;
+    }
+
+    const team1Players = [];
+    const team2Players = [];
+    for (let j = i + 1; j < rows.length; j += 1) {
+      const next = rows[j] || [];
+      const nLeft = String(next[0] || "").trim();
+      const nRight = String(next[4] || "").trim();
+      if ((nLeft && !nLeft.startsWith("@")) || (nRight && !nRight.startsWith("@"))) {
+        break;
+      }
+      if (!nLeft && !nRight) {
+        continue;
+      }
+      if (nLeft) {
+        team1Players.push({
+          player: nLeft,
+          points: String(next[1] || ""),
+          rank: String(next[2] || ""),
+        });
+      }
+      if (nRight) {
+        team2Players.push({
+          player: nRight,
+          points: String(next[5] || ""),
+          rank: String(next[6] || ""),
+        });
+      }
     }
 
     map.set(buildGameKey(day, team1.name, team2.name), {
       status: "live",
       team1Score: team1.score || "",
       team2Score: team2.score || "",
+      team1Header: left,
+      team2Header: right,
+      team1Players,
+      team2Players,
     });
     map.set(buildGameKey(day, team2.name, team1.name), {
       status: "live",
       team1Score: team2.score || "",
       team2Score: team1.score || "",
+      team1Header: right,
+      team2Header: left,
+      team1Players: team2Players,
+      team2Players: team1Players,
     });
-  });
+  }
 
   return map;
 }
@@ -1827,6 +1864,7 @@ function getScheduleScoreState(scheduleRow) {
       status: "live",
       team1Score: live.team1Score || "",
       team2Score: live.team2Score || "",
+      livePayload: live,
     };
   }
 
@@ -1839,6 +1877,49 @@ function getScheduleScoreState(scheduleRow) {
     };
   }
   return { status: "upcoming", team1Score: "", team2Score: "" };
+}
+
+function buildLiveBoxMarkup(scoreState, scheduleRow) {
+  const payload = scoreState && scoreState.livePayload ? scoreState.livePayload : null;
+  if (!payload) {
+    return '<div class="boxscore-empty">No live stats available.</div>';
+  }
+
+  const renderTeam = (header, players) => {
+    const parsed = parseTeamHeader(header);
+    const team = parsed.name || "";
+    const logoSrc = getTeamLogo(team);
+    const logoHtml = logoSrc
+      ? `<img class="standings-logo" src="${logoSrc}" alt="${escapeHtml(team)} logo" />`
+      : "";
+    const teamLink = `/team.html?team=${encodeURIComponent(team)}`;
+    const headerLine = `<a class="boxscore-team" href="${teamLink}">${logoHtml}<span>${escapeHtml(
+      team || header
+    )}</span></a>`;
+    const rows = (players || [])
+      .map(
+        (p) => `<div class="boxscore-row">
+            <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(
+              String(p.player || "").trim()
+            )}">${escapeHtml(p.player || "")}</a>
+            <span>${escapeHtml(p.points || "")}</span>
+            <span>${escapeHtml(p.rank || "")}</span>
+          </div>`
+      )
+      .join("");
+    return `<div class="boxscore-table">
+      ${headerLine}
+      <div class="boxscore-row"><span>Player</span><span>Points</span><span>Rank</span></div>
+      ${rows || '<div class="boxscore-empty">No stats available.</div>'}
+    </div>`;
+  };
+
+  const dateLabel = String(scheduleRow[scheduleIndexes.date] || "").trim();
+  return `
+    <div class="boxscore-meta">League Day: ${escapeHtml(dateLabel)}</div>
+    <div class="boxscore-card">${renderTeam(payload.team1Header, payload.team1Players)}</div>
+    <div class="boxscore-card">${renderTeam(payload.team2Header, payload.team2Players)}</div>
+  `;
 }
 
 function parseNumericScore(value) {
@@ -2173,6 +2254,8 @@ els.scheduleBody.addEventListener("click", (event) => {
     const scoreState = getScheduleScoreState(scheduleRow);
     if (scoreState.status === "upcoming") {
       boxWrap.innerHTML = buildGamePreviewMarkup(scheduleRow);
+    } else if (scoreState.status === "live") {
+      boxWrap.innerHTML = buildLiveBoxMarkup(scoreState, scheduleRow);
     } else {
       boxWrap.innerHTML = buildBoxScoreMarkup(boxScore);
     }
