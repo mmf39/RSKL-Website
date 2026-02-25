@@ -895,83 +895,9 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
   const bySeason = new Map();
   rows.forEach((row) => {
     const seasonLabel = String(row.__seasonLabel || "Unknown Season");
-    if (!bySeason.has(seasonLabel)) {
-      bySeason.set(seasonLabel, []);
-    }
+    if (!bySeason.has(seasonLabel)) bySeason.set(seasonLabel, []);
     bySeason.get(seasonLabel).push(row);
   });
-
-  const renderStat = (value, digits = 2) =>
-    value === null || value === undefined ? "—" : Number(value).toFixed(digits);
-  const renderTeamCell = (team) =>
-    `<a class="leader-team-link player-team-chip" href="team.html?team=${encodeURIComponent(
-      team
-    )}">${getTeamLogoHtml(team)}<span>${escapeHtml(team)}</span></a>`;
-
-  const buildSeasonTable = (seasonLabel, seasonRows) => {
-    const byTeam = new Map();
-    seasonRows.forEach((row) => {
-      const team = displayTeamName(String(row[playerColumns.team] || "").trim());
-      if (!team) {
-        return;
-      }
-      if (!byTeam.has(team)) {
-        byTeam.set(team, []);
-      }
-      byTeam.get(team).push(row);
-    });
-    const teamSummaries = Array.from(byTeam.entries()).map(([team, teamRows]) => ({
-      team,
-      summary: summarizeRows(teamRows, baselines),
-    }));
-    teamSummaries.sort((a, b) => (b.summary.gp || 0) - (a.summary.gp || 0));
-    const combined = summarizeRows(seasonRows, baselines);
-
-    return `
-      <div class="career-season-title">${escapeHtml(seasonLabel)}</div>
-      <div class="table-wrap">
-        <table class="career-breakdown-table">
-          <thead>
-            <tr>
-              <th>Team</th>
-              <th>GP</th>
-              <th>Total</th>
-              <th>Avg</th>
-              <th>Rank</th>
-              <th>REL</th>
-              <th>WAR</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${teamSummaries
-              .map(
-                ({ team, summary }) => `
-                  <tr>
-                    <td>${renderTeamCell(team)}</td>
-                    <td>${escapeHtml(String(summary.gp || 0))}</td>
-                    <td>${renderStat(summary.total, 0)}</td>
-                    <td>${renderStat(summary.avgScore, 2)}</td>
-                    <td>${renderStat(summary.avgRank, 2)}</td>
-                    <td>${renderStat(summary.relMedian, 3)}</td>
-                    <td>${renderStat(summary.war, 3)}</td>
-                  </tr>
-                `
-              )
-              .join("")}
-            <tr class="career-combined-row">
-              <td><strong>${escapeHtml(`${seasonLabel} Total`)}</strong></td>
-              <td>${escapeHtml(String(combined.gp || 0))}</td>
-              <td>${renderStat(combined.total, 0)}</td>
-              <td>${renderStat(combined.avgScore, 2)}</td>
-              <td>${renderStat(combined.avgRank, 2)}</td>
-              <td>${renderStat(combined.relMedian, 3)}</td>
-              <td>${renderStat(combined.war, 3)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    `;
-  };
 
   const seasonOrder = ["C2S2 Regular Season", "C2S1 Playoffs"];
   const orderedSeasons = Array.from(bySeason.keys()).sort((a, b) => {
@@ -982,19 +908,71 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
     if (bi === -1) return -1;
     return ai - bi;
   });
+
+  const renderStat = (value, digits = 2) =>
+    value === null || value === undefined ? "—" : Number(value).toFixed(digits);
+  const renderTeamCell = (team) =>
+    `<a class="leader-team-link player-team-chip" href="team.html?team=${encodeURIComponent(team)}">${getTeamLogoHtml(team)}<span>${escapeHtml(team)}</span></a>`;
+
+  const rowsHtml = orderedSeasons
+    .map((seasonLabel) => {
+      const seasonRows = bySeason.get(seasonLabel) || [];
+      const byTeam = new Map();
+      seasonRows.forEach((row) => {
+        const team = displayTeamName(String(row[playerColumns.team] || "").trim());
+        if (!team) return;
+        if (!byTeam.has(team)) byTeam.set(team, []);
+        byTeam.get(team).push(row);
+      });
+      const teamSummaries = Array.from(byTeam.entries())
+        .map(([team, teamRows]) => ({ team, summary: summarizeRows(teamRows, baselines) }))
+        .sort((a, b) => (b.summary.gp || 0) - (a.summary.gp || 0));
+      const seasonTotal = summarizeRows(seasonRows, baselines);
+
+      const teamRowsHtml = teamSummaries
+        .map(
+          ({ team, summary }) => `
+            <tr>
+              <td>${escapeHtml(seasonLabel)}</td>
+              <td>${renderTeamCell(team)}</td>
+              <td>${escapeHtml(String(summary.gp || 0))}</td>
+              <td>${renderStat(summary.total, 0)}</td>
+              <td>${renderStat(summary.avgScore, 2)}</td>
+              <td>${renderStat(summary.avgRank, 2)}</td>
+              <td>${renderStat(summary.relMedian, 3)}</td>
+              <td>${renderStat(summary.war, 3)}</td>
+            </tr>
+          `
+        )
+        .join("");
+
+      return `
+        ${teamRowsHtml}
+        <tr class="career-combined-row">
+          <td><strong>${escapeHtml(seasonLabel)}</strong></td>
+          <td><strong>Season Total</strong></td>
+          <td>${escapeHtml(String(seasonTotal.gp || 0))}</td>
+          <td>${renderStat(seasonTotal.total, 0)}</td>
+          <td>${renderStat(seasonTotal.avgScore, 2)}</td>
+          <td>${renderStat(seasonTotal.avgRank, 2)}</td>
+          <td>${renderStat(seasonTotal.relMedian, 3)}</td>
+          <td>${renderStat(seasonTotal.war, 3)}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
   const careerCombined = summarizeRows(rows, baselines);
 
   els.careerTeamBreakdown.hidden = false;
   els.careerTeamBreakdown.innerHTML = `
     <div class="career-breakdown-title">Career Team Breakdown</div>
-    ${orderedSeasons
-      .map((seasonLabel) => buildSeasonTable(seasonLabel, bySeason.get(seasonLabel) || []))
-      .join("")}
     <div class="table-wrap">
       <table class="career-breakdown-table">
         <thead>
           <tr>
-            <th>Career Total</th>
+            <th>Season</th>
+            <th>Team</th>
             <th>GP</th>
             <th>Total</th>
             <th>Avg</th>
@@ -1004,7 +982,9 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
           </tr>
         </thead>
         <tbody>
+          ${rowsHtml}
           <tr class="career-combined-row">
+            <td><strong>Career</strong></td>
             <td><strong>Combined</strong></td>
             <td>${escapeHtml(String(careerCombined.gp || 0))}</td>
             <td>${renderStat(careerCombined.total, 0)}</td>
