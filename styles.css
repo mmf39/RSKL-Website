@@ -954,8 +954,8 @@ input[type="text"] {
 
 @media (min-width: 721px) {
   .team-page .roster-layout {
-    grid-template-columns: minmax(280px, 420px) minmax(0, 1fr);
-    gap: 10px;
+    grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+    gap: 6px;
     align-items: start;
   }
   .team-page .standings-panel {
@@ -969,7 +969,7 @@ input[type="text"] {
     grid-row: 2;
     order: 2;
     width: 100%;
-    max-width: 420px;
+    max-width: 320px;
     justify-self: end;
   }
   .team-page .schedule-panel {
@@ -978,6 +978,7 @@ input[type="text"] {
     order: 3;
     max-width: 100%;
     justify-self: start;
+    margin-left: -10px;
   }
   .team-page .draft-panel {
     grid-column: 1;
@@ -2674,6 +2675,11 @@ input[type="text"] {
     order: -1;
   }
 
+  .team-page .roster-panel {
+    max-width: 68%;
+    margin-inline: auto;
+  }
+
   .team-page .stats-grid-top {
     min-width: 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2696,11 +2702,13 @@ input[type="text"] {
   .team-page .schedule-panel .table-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
   }
 
   .team-page .schedule-panel {
-    max-width: 92%;
-    margin-inline: auto;
+    max-width: 112%;
+    margin-left: -28px;
+    margin-right: 0;
   }
 
   .team-page #team-schedule {
