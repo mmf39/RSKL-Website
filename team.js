@@ -89,7 +89,10 @@ const DRAFT_CAPITAL_COLUMNS = {
 const TEAM_STANDINGS_METRIC_KEY = "team_standings_metric";
 
 function getSeason() {
-  return localStorage.getItem(SEASON_KEY) || "c2s2";
+  const raw = localStorage.getItem(SEASON_KEY) || "c2s2";
+  if (raw === "c2s2-regular") return "c2s2";
+  if (raw === "c2s1-playoffs") return "c2s1-post";
+  return raw;
 }
 
 function displayTeamName(value) {

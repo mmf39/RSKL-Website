@@ -26,7 +26,10 @@ const ARCHIVE_RANGES = {
 };
 
 function getSeason() {
-  return localStorage.getItem(SEASON_KEY) || "c2s2";
+  const raw = localStorage.getItem(SEASON_KEY) || "c2s2";
+  if (raw === "c2s2-regular") return "c2s2";
+  if (raw === "c2s1-playoffs") return "c2s1-post";
+  return raw;
 }
 
 function initSeasonSelect() {
@@ -347,12 +350,13 @@ function detectPlayerColumns(headerRow) {
   if (!headerRow || !headerRow.length) {
     return columns;
   }
-  const lowered = headerRow.map((cell) => String(cell || "").toLowerCase());
-  const pick = (label) => lowered.indexOf(label);
-  const dateIdx = pick("date");
-  const teamIdx = pick("team");
-  const playerIdx = pick("player");
-  const scoreIdx = pick("score") !== -1 ? pick("score") : pick("points");
+  const lowered = headerRow.map((cell) => String(cell || "").trim().toLowerCase());
+  const pickByIncludes = (tokens) =>
+    lowered.findIndex((h) => tokens.some((token) => h.includes(token)));
+  const dateIdx = pickByIncludes(["date", "day"]);
+  const teamIdx = pickByIncludes(["team"]);
+  const playerIdx = pickByIncludes(["player", "user", "tag"]);
+  const scoreIdx = pickByIncludes(["score", "points", "karma"]);
   if (dateIdx !== -1) columns.date = dateIdx;
   if (teamIdx !== -1) columns.team = teamIdx;
   if (playerIdx !== -1) columns.player = playerIdx;

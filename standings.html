@@ -52,47 +52,13 @@
         <div id="leaderboard" class="leaderboard"></div>
       </section>
 
-      <section class="panel stat-definitions">
-        <div class="panel-head">
-          <h2>Team Stat Definitions</h2>
-        </div>
-        <div class="stat-def-grid">
-          <article class="stat-def-card">
-            <h3>PAM (Points Above Median)</h3>
-            <p>
-              PAM represents the cumulative number of points a team has scored above the
-              league median on its gamedays.
-            </p>
-            <pre>PAM = (total points scored) - (total gameday medians)</pre>
-          </article>
-
-          <article class="stat-def-card">
-            <h3>apPAM (Average Percentage Points Above Median)</h3>
-            <p>
-              apPAM is the average percent by which a team exceeds the league median on
-              each gameday.
-            </p>
-            <pre>pPAM_i = percentage above median in game i
-apPAM = (pPAM_1 + pPAM_2 + ... + pPAM_n) / n</pre>
-          </article>
-
-          <article class="stat-def-card">
-            <h3>tREL (Team REL)</h3>
-            <p>
-              tREL is the weighted average REL of players on a team. Players with more
-              games played have more weight.
-            </p>
-            <pre>tREL = Σ(REL_i × GP_i) / Σ(GP_i)</pre>
-          </article>
-        </div>
-      </section>
     </main>
 
     <footer class="footer">
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="standings.js"></script>
+    <script src="standings.js?v=20260225a"></script>
       <script src="header-nav.js"></script>
   </body>
 </html>
