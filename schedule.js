@@ -142,8 +142,12 @@ function displayTeamName(value) {
 function normalizeTeamName(value) {
   return displayTeamName(String(value || ""))
     .replace(/\([^)]*\)/g, "")
+    .replace(/[:*]/g, "")
+    .replace(/[^a-zA-Z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
     .replace(/\*/g, "")
     .trim()
+    .replace(/^bullets$/i, "storm")
     .toLowerCase()
     .replace(/\s+/g, " ");
 }
@@ -562,9 +566,16 @@ function findBoxScoreRowsForGame(game) {
     const header = block[0] || [];
     const h1 = normalizeTeamName(parseTeamHeader(header[0]).name);
     const h2 = normalizeTeamName(parseTeamHeader(header[4]).name);
-    return (h1 === target1 && h2 === target2) || (h1 === target2 && h2 === target1);
+    const exact = (h1 === target1 && h2 === target2) || (h1 === target2 && h2 === target1);
+    const fuzzy =
+      (h1.includes(target1) || target1.includes(h1)) &&
+      (h2.includes(target2) || target2.includes(h2));
+    const fuzzySwap =
+      (h1.includes(target2) || target2.includes(h1)) &&
+      (h2.includes(target1) || target1.includes(h2));
+    return exact || fuzzy || fuzzySwap;
   });
-  return match || blocks[0];
+  return match || [];
 }
 
 function getBoxScorePayload(game) {

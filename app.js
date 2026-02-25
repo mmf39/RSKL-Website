@@ -326,7 +326,11 @@ function renderTeamsCardsArchive(standingsRows) {
 function normalizeTeamName(name) {
   return String(name || "")
     .replace(/\([^)]*\)/g, "")
+    .replace(/[:*]/g, "")
+    .replace(/[^a-zA-Z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
     .trim()
+    .replace(/^bullets$/i, "storm")
     .toLowerCase();
 }
 
@@ -529,7 +533,7 @@ function renderLiveScoring(rows, scheduleRows) {
       const team1 = String(row[scheduleIdx.team1] || "").trim();
       const team2 = String(row[scheduleIdx.team2] || "").trim();
       const key = `${normalizeTeamName(team1)}|${normalizeTeamName(team2)}`;
-      const live = liveMap.get(key) || liveGames[idx];
+      const live = liveMap.get(key) || null;
       return {
         team1,
         team2,
