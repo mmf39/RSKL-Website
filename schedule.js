@@ -445,8 +445,8 @@ function buildGames(rows, season) {
   }
 
   const dataRows = rows.slice(1).filter((r) => r.some((c) => String(c || "").trim() !== ""));
-  return dataRows
-    .map((row, i) => {
+  const games = dataRows
+    .map((row) => {
       const rawDate = String(row[dateIndex] || "").trim();
       const dateToken = normalizeDateToken(rawDate);
       const dateObj = parseDateFromToken(dateToken);
@@ -456,7 +456,6 @@ function buildGames(rows, season) {
       const gameType = normalizeGameType(gameTypeRaw);
       if (!dateToken || !team1 || !team2) return null;
       return {
-        idx: i,
         rawDate,
         dateToken,
         dateObj,
@@ -467,6 +466,7 @@ function buildGames(rows, season) {
       };
     })
     .filter(Boolean);
+  return games.map((game, idx) => ({ ...game, idx }));
 }
 
 function rebuildGamesByDate() {
