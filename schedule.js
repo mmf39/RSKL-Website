@@ -173,6 +173,11 @@ function normalizeDateToken(value) {
   return match ? match[1] : "";
 }
 
+function getTodayToken() {
+  const now = new Date();
+  return `${now.getMonth() + 1}/${now.getDate()}`;
+}
+
 function parseDateFromToken(token) {
   const m = String(token || "").match(/^(\d{1,2})\/(\d{1,2})$/);
   if (!m) return null;
@@ -837,8 +842,9 @@ function renderGameList() {
               : ""
           }${escapeHtml(scoreState.team2Score)}</span>`
         : "";
+      const isTodayGame = g.dateToken === getTodayToken();
       return `
-        <div class="calendar-game" data-game-index="${g.idx}">
+        <div class="calendar-game ${isTodayGame ? "today-game" : ""}" data-game-index="${g.idx}">
           <div class="calendar-game-date">${escapeHtml(g.dateToken)}</div>
           <div class="calendar-game-matchup">
             <a class="schedule-team-link" href="/team.html?team=${encodeURIComponent(g.team1)}">${l1}<span class="team-name-stack"><span>${escapeHtml(g.team1)}</span>${team1ScoreLine}</span></a>
@@ -908,10 +914,15 @@ function bindCalendarEvents() {
       if (!game) return;
       const details = card.querySelector(".calendar-game-details");
       if (!details) return;
-      const willOpen = details.hidden;
-      details.hidden = !details.hidden;
-      card.classList.toggle("open", willOpen);
-      if (willOpen && !details.dataset.loaded) {
+      const isOpen = !details.hidden;
+      if (isOpen) {
+        details.hidden = true;
+        card.classList.remove("open");
+        return;
+      }
+      details.hidden = false;
+      card.classList.add("open");
+      if (!details.dataset.loaded) {
         const scoreState = getGameScoreState(game);
         if (scoreState.status === "upcoming") {
           details.innerHTML = buildPreviewMarkup(game);
@@ -989,7 +1000,10 @@ async function loadSchedule() {
 
     const firstGameDate = scheduleGames.find((g) => g.dateObj)?.dateObj || new Date();
     currentMonth = new Date(firstGameDate.getFullYear(), firstGameDate.getMonth(), 1);
-    selectedDateKey = scheduleGames[0].dateToken;
+    const todayToken = getTodayToken();
+    selectedDateKey = gamesByDate.has(todayToken)
+      ? todayToken
+      : scheduleGames[0].dateToken;
 
     renderCalendar();
     renderGameList();
