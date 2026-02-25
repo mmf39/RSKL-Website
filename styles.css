@@ -979,12 +979,14 @@ input[type="text"] {
     max-width: 100%;
     justify-self: start;
     margin-left: -10px;
+    max-height: 620px;
+    overflow-y: auto;
   }
   .team-page .draft-panel {
     grid-column: 1;
     grid-row: 3;
     order: 4;
-    margin-top: -280px;
+    margin-top: 0;
   }
   .team-page .transactions-panel {
     grid-column: 1 / -1;

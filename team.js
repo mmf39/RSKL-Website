@@ -1244,6 +1244,7 @@ function findTradeEntriesForPick(pick, transactionRows) {
   }
   const found = new Map();
   const meta = parsePickMeta(label);
+  const baseNoOrigin = normalizePickLabel(label).replace(/\s+\b(via|from)\b\s+.+$/i, "").trim();
   const originalTeam = normalizeTeamLabel(pick && pick.original_team);
   const currentTeam = normalizeTeamLabel(pick && pick.current_team);
   const teamCandidates = Array.from(
@@ -1267,19 +1268,25 @@ function findTradeEntriesForPick(pick, transactionRows) {
       continue;
     }
     const normalizedRow = normalizePickLabel(joined);
-    const directMatch = targets.some((target) => {
-      if (!normalizedRow.includes(target)) {
-        return false;
-      }
-      if (meta.viaTeam) {
-        return normalizedRow.includes(meta.viaTeam);
-      }
-      // If this pick has no origin qualifier, do not match rows that explicitly
-      // reference an origin for the same base pick.
-      const escaped = target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const originPattern = new RegExp(`${escaped}\\s+(via|from)\\s+`, "i");
-      return !originPattern.test(normalizedRow);
-    });
+    let directMatch = false;
+    if (meta.viaTeam) {
+      const hasExactOrigin = targets.some((target) => normalizedRow.includes(target));
+      const hasBasePick = baseNoOrigin ? normalizedRow.includes(baseNoOrigin) : false;
+      const hasViaContext = normalizedRow.includes(meta.viaTeam);
+      const hasCurrentContext = currentTeam ? normalizedRow.includes(currentTeam) : true;
+      directMatch = hasExactOrigin || (hasBasePick && hasViaContext && hasCurrentContext);
+    } else {
+      directMatch = targets.some((target) => {
+        if (!normalizedRow.includes(target)) {
+          return false;
+        }
+        // If this pick has no origin qualifier, do not match rows that explicitly
+        // reference an origin for the same base pick.
+        const escaped = target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const originPattern = new RegExp(`${escaped}\\s+(via|from)\\s+`, "i");
+        return !originPattern.test(normalizedRow);
+      });
+    }
 
     if (directMatch) {
       if (!found.has(joined)) {
@@ -1328,14 +1335,28 @@ async function loadDraftCapital(teamName) {
       els.draftCapital.innerHTML = "<div class=\"gm-empty\">No picks found.</div>";
       return;
     }
-    els.draftCapital.innerHTML = picks
-      .map((label) => {
+    const parsedPicks = picks.map((label) => {
+      const meta = parsePickMeta(label);
+      const base = normalizePickLabel(label).replace(/\s+\b(via|from)\b\s+.+$/i, "").trim();
+      return {
+        label,
+        meta,
+        base,
+      };
+    });
+    const viaBaseSet = new Set(parsedPicks.filter((p) => p.meta.viaTeam).map((p) => p.base));
+
+    els.draftCapital.innerHTML = parsedPicks
+      .map(({ label, meta, base }) => {
         const pickMeta = {
           label,
           current_team: teamName,
-          original_team: teamName,
+          original_team: meta.viaTeam ? displayTeamName(meta.viaTeam) : teamName,
         };
-        const tradeEntries = findTradeEntriesForPick(pickMeta, txRows);
+        const suppressAmbiguousBase = !meta.viaTeam && viaBaseSet.has(base);
+        const tradeEntries = suppressAmbiguousBase
+          ? []
+          : findTradeEntriesForPick(pickMeta, txRows);
         const tradeLine = tradeEntries.length
           ? `<div class="draft-pick-trade">Trade: ${tradeEntries
               .map(
