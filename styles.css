@@ -1512,6 +1512,13 @@ input[type="text"] {
   text-align: center;
 }
 
+.career-season-title {
+  margin: 14px 0 8px;
+  font-weight: 700;
+  color: var(--accent);
+  text-align: center;
+}
+
 .career-breakdown-table th,
 .career-breakdown-table td {
   text-align: center;

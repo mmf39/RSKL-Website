@@ -892,23 +892,14 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
     els.careerTeamBreakdown.innerHTML = "";
     return;
   }
-  const byTeam = new Map();
+  const bySeason = new Map();
   rows.forEach((row) => {
-    const team = displayTeamName(String(row[playerColumns.team] || "").trim());
-    if (!team) {
-      return;
+    const seasonLabel = String(row.__seasonLabel || "Unknown Season");
+    if (!bySeason.has(seasonLabel)) {
+      bySeason.set(seasonLabel, []);
     }
-    if (!byTeam.has(team)) {
-      byTeam.set(team, []);
-    }
-    byTeam.get(team).push(row);
+    bySeason.get(seasonLabel).push(row);
   });
-  const teamSummaries = Array.from(byTeam.entries()).map(([team, teamRows]) => ({
-    team,
-    summary: summarizeRows(teamRows, baselines),
-  }));
-  const combined = summarizeRows(rows, baselines);
-  teamSummaries.sort((a, b) => (b.summary.gp || 0) - (a.summary.gp || 0));
 
   const renderStat = (value, digits = 2) =>
     value === null || value === undefined ? "—" : Number(value).toFixed(digits);
@@ -917,14 +908,93 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
       team
     )}">${getTeamLogoHtml(team)}<span>${escapeHtml(team)}</span></a>`;
 
+  const buildSeasonTable = (seasonLabel, seasonRows) => {
+    const byTeam = new Map();
+    seasonRows.forEach((row) => {
+      const team = displayTeamName(String(row[playerColumns.team] || "").trim());
+      if (!team) {
+        return;
+      }
+      if (!byTeam.has(team)) {
+        byTeam.set(team, []);
+      }
+      byTeam.get(team).push(row);
+    });
+    const teamSummaries = Array.from(byTeam.entries()).map(([team, teamRows]) => ({
+      team,
+      summary: summarizeRows(teamRows, baselines),
+    }));
+    teamSummaries.sort((a, b) => (b.summary.gp || 0) - (a.summary.gp || 0));
+    const combined = summarizeRows(seasonRows, baselines);
+
+    return `
+      <div class="career-season-title">${escapeHtml(seasonLabel)}</div>
+      <div class="table-wrap">
+        <table class="career-breakdown-table">
+          <thead>
+            <tr>
+              <th>Team</th>
+              <th>GP</th>
+              <th>Total</th>
+              <th>Avg</th>
+              <th>Rank</th>
+              <th>REL</th>
+              <th>WAR</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${teamSummaries
+              .map(
+                ({ team, summary }) => `
+                  <tr>
+                    <td>${renderTeamCell(team)}</td>
+                    <td>${escapeHtml(String(summary.gp || 0))}</td>
+                    <td>${renderStat(summary.total, 0)}</td>
+                    <td>${renderStat(summary.avgScore, 2)}</td>
+                    <td>${renderStat(summary.avgRank, 2)}</td>
+                    <td>${renderStat(summary.relMedian, 3)}</td>
+                    <td>${renderStat(summary.war, 3)}</td>
+                  </tr>
+                `
+              )
+              .join("")}
+            <tr class="career-combined-row">
+              <td><strong>${escapeHtml(`${seasonLabel} Total`)}</strong></td>
+              <td>${escapeHtml(String(combined.gp || 0))}</td>
+              <td>${renderStat(combined.total, 0)}</td>
+              <td>${renderStat(combined.avgScore, 2)}</td>
+              <td>${renderStat(combined.avgRank, 2)}</td>
+              <td>${renderStat(combined.relMedian, 3)}</td>
+              <td>${renderStat(combined.war, 3)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+  };
+
+  const seasonOrder = ["C2S2 Regular Season", "C2S1 Playoffs"];
+  const orderedSeasons = Array.from(bySeason.keys()).sort((a, b) => {
+    const ai = seasonOrder.indexOf(a);
+    const bi = seasonOrder.indexOf(b);
+    if (ai === -1 && bi === -1) return a.localeCompare(b);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+  const careerCombined = summarizeRows(rows, baselines);
+
   els.careerTeamBreakdown.hidden = false;
   els.careerTeamBreakdown.innerHTML = `
     <div class="career-breakdown-title">Career Team Breakdown</div>
+    ${orderedSeasons
+      .map((seasonLabel) => buildSeasonTable(seasonLabel, bySeason.get(seasonLabel) || []))
+      .join("")}
     <div class="table-wrap">
       <table class="career-breakdown-table">
         <thead>
           <tr>
-            <th>Team</th>
+            <th>Career Total</th>
             <th>GP</th>
             <th>Total</th>
             <th>Avg</th>
@@ -934,29 +1004,14 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
           </tr>
         </thead>
         <tbody>
-          ${teamSummaries
-            .map(
-              ({ team, summary }) => `
-                <tr>
-                  <td>${renderTeamCell(team)}</td>
-                  <td>${escapeHtml(String(summary.gp || 0))}</td>
-                  <td>${renderStat(summary.total, 0)}</td>
-                  <td>${renderStat(summary.avgScore, 2)}</td>
-                  <td>${renderStat(summary.avgRank, 2)}</td>
-                  <td>${renderStat(summary.relMedian, 3)}</td>
-                  <td>${renderStat(summary.war, 3)}</td>
-                </tr>
-              `
-            )
-            .join("")}
           <tr class="career-combined-row">
             <td><strong>Combined</strong></td>
-            <td>${escapeHtml(String(combined.gp || 0))}</td>
-            <td>${renderStat(combined.total, 0)}</td>
-            <td>${renderStat(combined.avgScore, 2)}</td>
-            <td>${renderStat(combined.avgRank, 2)}</td>
-            <td>${renderStat(combined.relMedian, 3)}</td>
-            <td>${renderStat(combined.war, 3)}</td>
+            <td>${escapeHtml(String(careerCombined.gp || 0))}</td>
+            <td>${renderStat(careerCombined.total, 0)}</td>
+            <td>${renderStat(careerCombined.avgScore, 2)}</td>
+            <td>${renderStat(careerCombined.avgRank, 2)}</td>
+            <td>${renderStat(careerCombined.relMedian, 3)}</td>
+            <td>${renderStat(careerCombined.war, 3)}</td>
           </tr>
         </tbody>
       </table>
