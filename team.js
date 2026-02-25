@@ -863,13 +863,12 @@ function getPickMatchTargets(pickLabel) {
     return [];
   }
   const targets = new Set([base]);
-
-  // Match rows that only show the base pick (without origin text).
-  targets.add(base.replace(/\s+via\s+.+$/i, "").trim());
-  targets.add(base.replace(/\s+from\s+.+$/i, "").trim());
-
-  // Match rows where the origin is wrapped in extra descriptors.
-  targets.add(base.replace(/\s+\b(via|from)\b\s+.+$/i, "").trim());
+  const hasOrigin = /\b(via|from)\b/i.test(base);
+  if (!hasOrigin) {
+    // For picks without origin in the label, keep only the direct label.
+    // This prevents matching "C2S3 3rd via X" against plain "C2S3 3rd".
+    targets.add(base);
+  }
 
   return Array.from(targets).filter(Boolean);
 }
@@ -1254,9 +1253,6 @@ function findTradeEntriesForPick(pick, transactionRows) {
         .filter(Boolean)
     )
   );
-  const teamsPerRound = 10;
-  const roundMin = meta.round ? (meta.round - 1) * teamsPerRound + 1 : null;
-  const roundMax = meta.round ? meta.round * teamsPerRound : null;
 
   for (const row of transactionRows) {
     const joined = row
@@ -1271,22 +1267,21 @@ function findTradeEntriesForPick(pick, transactionRows) {
       continue;
     }
     const normalizedRow = normalizePickLabel(joined);
-    const directMatch = targets.some((target) => normalizedRow.includes(target));
-    let fallbackMatch = false;
+    const directMatch = targets.some((target) => {
+      if (!normalizedRow.includes(target)) {
+        return false;
+      }
+      if (meta.viaTeam) {
+        return normalizedRow.includes(meta.viaTeam);
+      }
+      // If this pick has no origin qualifier, do not match rows that explicitly
+      // reference an origin for the same base pick.
+      const escaped = target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const originPattern = new RegExp(`${escaped}\\s+(via|from)\\s+`, "i");
+      return !originPattern.test(normalizedRow);
+    });
 
-    if (!directMatch && meta.round) {
-      const nums = extractOverallNumbers(joined);
-      const hasRoundNumber =
-        nums.length > 0 &&
-        nums.some((n) => roundMin !== null && roundMax !== null && n >= roundMin && n <= roundMax);
-      const hasTeamContext =
-        (meta.viaTeam && normalizedRow.includes(meta.viaTeam)) ||
-        (originalTeam && normalizedRow.includes(originalTeam)) ||
-        (currentTeam && normalizedRow.includes(currentTeam));
-      fallbackMatch = hasRoundNumber && hasTeamContext;
-    }
-
-    if (directMatch || fallbackMatch) {
+    if (directMatch) {
       if (!found.has(joined)) {
         found.set(joined, {
           query: joined,
