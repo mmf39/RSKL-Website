@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260225c" />
   </head>
   <body class="standings-page">
     <div class="bg"></div>
@@ -50,6 +50,41 @@
           <h2>Standings</h2>
         </div>
         <div id="leaderboard" class="leaderboard"></div>
+      </section>
+
+      <section class="panel stat-definitions">
+        <div class="panel-head">
+          <h2>Team Stat Definitions</h2>
+        </div>
+        <div class="stat-def-grid">
+          <article class="stat-def-card">
+            <h3>PAM (Points Above Median)</h3>
+            <p>
+              PAM represents the cumulative number of points a team has scored above the
+              league median on its gamedays.
+            </p>
+            <pre>PAM = (total points scored) - (total gameday medians)</pre>
+          </article>
+
+          <article class="stat-def-card">
+            <h3>apPAM (Average Percentage Points Above Median)</h3>
+            <p>
+              apPAM is the average percent by which a team exceeds the league median on
+              each gameday.
+            </p>
+            <pre>pPAM_i = percentage above median in game i
+apPAM = (pPAM_1 + pPAM_2 + ... + pPAM_n) / n</pre>
+          </article>
+
+          <article class="stat-def-card">
+            <h3>tREL (Team REL)</h3>
+            <p>
+              tREL is the weighted average REL of players on a team. Players with more
+              games played have more weight.
+            </p>
+            <pre>tREL = Σ(REL_i × GP_i) / Σ(GP_i)</pre>
+          </article>
+        </div>
       </section>
     </main>
 

@@ -218,15 +218,16 @@ function buildLeagueRowsFromC2S2(standingsRows, scheduleRows, playerRows) {
       if (!row.length) {
         return null;
       }
+      const gp = parseNumber(row[1]);
       const advanced = computeAdvancedTeamStats(team, playerRows) || {};
       return {
         team: displayTeamName(row[0] || team),
-        gp: parseNumber(row[1]),
+        gp,
         wins: parseNumber(row[2]),
         loss: parseNumber(row[3]),
         gb: parseNumber(row[4]),
         winpct: parsePct(row[5]),
-        sos: computeTeamSOS(team, scheduleRows, winPctMap, "c2s2"),
+        sos: computeTeamSOS(team, scheduleRows, winPctMap, "c2s2", gp),
         pam: typeof advanced.pam === "number" ? advanced.pam : null,
         trel: typeof advanced.tRel === "number" ? advanced.tRel : null,
         transactions: 0,
@@ -819,7 +820,7 @@ function buildWinPctMapFromStandingsTable(tableRows) {
   return map;
 }
 
-function computeTeamSOS(teamName, scheduleRows, winPctMap, season) {
+function computeTeamSOS(teamName, scheduleRows, winPctMap, season, gpLimit = null) {
   if (!teamName || !scheduleRows.length || !winPctMap.size) {
     return null;
   }
@@ -832,10 +833,37 @@ function computeTeamSOS(teamName, scheduleRows, winPctMap, season) {
   winPctMap.forEach((pct, team) => {
     winPctByNormalizedTeam.set(normalizeTeamLabel(team), pct);
   });
-  const dataRows = scheduleRows.slice(1);
+  const dataRows = scheduleRows
+    .slice(1)
+    .map((row, order) => ({ row, order }))
+    .filter(({ row }) => {
+      if (gameTypeIdx >= 0) {
+        const gameType = String(row[gameTypeIdx] || "").toLowerCase();
+        if (gameType.includes("pre")) {
+          return false;
+        }
+      }
+      const team1 = String(row[idx.team1] || "").trim();
+      const team2 = String(row[idx.team2] || "").trim();
+      return teamMatches(team1, teamName) || teamMatches(team2, teamName);
+    })
+    .sort((a, b) => {
+      const aDate = parseDateValue(a.row[idx.date]);
+      const bDate = parseDateValue(b.row[idx.date]);
+      if (aDate === bDate) {
+        return a.order - b.order;
+      }
+      return aDate - bDate;
+    });
+
+  const limitedRows =
+    Number.isFinite(gpLimit) && gpLimit >= 0
+      ? dataRows.slice(0, gpLimit)
+      : dataRows;
+
   let sum = 0;
   let games = 0;
-  dataRows.forEach((row) => {
+  limitedRows.forEach(({ row }) => {
     if (gameTypeIdx >= 0) {
       const gameType = String(row[gameTypeIdx] || "").toLowerCase();
       if (gameType.includes("pre")) {
@@ -864,6 +892,18 @@ function computeTeamSOS(teamName, scheduleRows, winPctMap, season) {
     games += 1;
   });
   return games ? sum / games : null;
+}
+
+function getTeamGpFromStandingsRows(teamName, standingsRows) {
+  const range = STANDINGS_RANGES[teamName];
+  if (!range || !standingsRows.length) {
+    return null;
+  }
+  const sliced = sliceRange(standingsRows, range);
+  if (!sliced.length) {
+    return null;
+  }
+  return parseNumber(sliced[0][1]);
 }
 
 function hasText(row) {
@@ -1536,7 +1576,8 @@ async function loadRoster() {
       renderLeagueMetricLeader();
       updateStandingsFromRanges(teamName, standingsRows);
       const winPctMap = buildWinPctMapFromStandingsRows(standingsRows);
-      const sos = computeTeamSOS(teamName, scheduleRows, winPctMap, season);
+      const teamGp = getTeamGpFromStandingsRows(teamName, standingsRows);
+      const sos = computeTeamSOS(teamName, scheduleRows, winPctMap, season, teamGp);
       if (els.statSos) {
         els.statSos.textContent = sos !== null ? sos.toFixed(3) : "—";
       }
@@ -1592,11 +1633,13 @@ async function loadRoster() {
       renderLeagueMetricLeader();
       updateStandingsFromRow(standingsRow || []);
       const archiveWinPctMap = buildWinPctMapFromStandingsTable(standingsTable);
+      const archiveGp = standingsRow ? parseNumber(standingsRow[1]) : null;
       const archiveSos = computeTeamSOS(
         teamName,
         scheduleTable,
         archiveWinPctMap,
-        season
+        season,
+        archiveGp
       );
       if (els.statSos) {
         els.statSos.textContent =

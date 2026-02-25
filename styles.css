@@ -554,6 +554,45 @@ input[type="text"] {
   border-color: rgba(255, 183, 3, 0.35);
 }
 
+.stat-definitions .panel-head {
+  margin-bottom: 12px;
+}
+
+.stat-def-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.stat-def-card {
+  background: rgba(8, 22, 54, 0.82);
+  border: 1px solid rgba(255, 140, 0, 0.42);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.stat-def-card h3 {
+  margin: 0 0 10px;
+  color: #8db5ff;
+  font-size: clamp(1.05rem, 2vw, 1.8rem);
+}
+
+.stat-def-card p {
+  margin: 0 0 10px;
+  color: #d1d5db;
+  line-height: 1.45;
+}
+
+.stat-def-card pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px;
+  color: #e5e7eb;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 .leader-rank {
   font-size: 1.2rem;
   font-weight: 700;
