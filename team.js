@@ -35,6 +35,23 @@ const ARCHIVE_RANGES = {
   boxscore: "L31:R149",
 };
 const C2S2_SCHEDULE_RANGE = "A2:E77";
+const LIVE_GAME_RANGES = [
+  "A5:G11",
+  "A13:G19",
+  "A21:G27",
+  "A29:G35",
+  "A37:G43",
+  "A45:G51",
+  "A53:G59",
+  "A61:G67",
+  "A69:G75",
+  "A77:G83",
+  "A85:G91",
+  "A93:G99",
+  "A101:G107",
+  "A109:G115",
+  "A117:G122",
+];
 
 const ARCHIVE_TEAM_ROSTERS = {
   "Gus N Em": "H1:I12",
@@ -1709,53 +1726,40 @@ function buildLiveScoreMap(rows) {
     return map;
   }
 
-  for (let i = 0; i < rows.length; i += 1) {
-    const row = rows[i];
-    const left = String(row[0] || "").trim();
-    const right = String(row[4] || "").trim();
+  LIVE_GAME_RANGES.forEach((range) => {
+    const block = sliceRange(rows, range);
+    if (!block.length) {
+      return;
+    }
+    const header = block[0] || [];
+    const left = String(header[0] || "").trim();
+    const right = String(header[4] || "").trim();
     if (!left || !right) {
-      continue;
+      return;
     }
-    if (left.includes("League Day") || right.includes("League Day")) {
-      continue;
-    }
-    if (left.startsWith("@") || right.startsWith("@")) {
-      continue;
-    }
-
     const team1 = parseTeamHeader(left);
     const team2 = parseTeamHeader(right);
     if (!team1.name || !team2.name) {
-      continue;
+      return;
     }
 
-    const team1Players = [];
-    const team2Players = [];
-    for (let j = i + 1; j < rows.length; j += 1) {
-      const next = rows[j] || [];
-      const nLeft = String(next[0] || "").trim();
-      const nRight = String(next[4] || "").trim();
-      if ((nLeft && !nLeft.startsWith("@")) || (nRight && !nRight.startsWith("@"))) {
-        break;
-      }
-      if (!nLeft && !nRight) {
-        continue;
-      }
-      if (nLeft) {
-        team1Players.push({
-          player: nLeft,
-          points: String(next[1] || ""),
-          rank: String(next[2] || ""),
-        });
-      }
-      if (nRight) {
-        team2Players.push({
-          player: nRight,
-          points: String(next[5] || ""),
-          rank: String(next[6] || ""),
-        });
-      }
-    }
+    const lines = block
+      .slice(1)
+      .filter((r) => String(r[0] || r[4] || "").trim() !== "");
+    const team1Players = lines
+      .filter((r) => String(r[0] || "").trim().startsWith("@"))
+      .map((r) => ({
+        player: String(r[0] || "").trim(),
+        points: String(r[1] || ""),
+        rank: String(r[2] || ""),
+      }));
+    const team2Players = lines
+      .filter((r) => String(r[4] || "").trim().startsWith("@"))
+      .map((r) => ({
+        player: String(r[4] || "").trim(),
+        points: String(r[5] || ""),
+        rank: String(r[6] || ""),
+      }));
 
     map.set(buildGameKey(day, team1.name, team2.name), {
       status: "live",
@@ -1775,7 +1779,7 @@ function buildLiveScoreMap(rows) {
       team1Players: team2Players,
       team2Players: team1Players,
     });
-  }
+  });
 
   return map;
 }
