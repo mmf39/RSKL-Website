@@ -2678,8 +2678,8 @@ input[type="text"] {
   }
 
   .team-page .roster-panel {
-    max-width: 68%;
-    margin-inline: auto;
+    max-width: 100%;
+    margin-inline: 0;
   }
 
   .team-page .stats-grid-top {
