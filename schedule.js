@@ -507,40 +507,68 @@ function renderCalendar() {
   els.grid.innerHTML = cells.join("");
 }
 
-function findBoxScoreRowsForDate(dateToken) {
-  if (!dateToken || !cachedBoxScoreRows.length) return [];
+function findBoxScoreRowsForGame(game) {
+  if (!game || !game.dateToken || !cachedBoxScoreRows.length) return [];
   const isDateRow = (row) => {
     const a = String(row[0] || "");
     const b = String(row[1] || "");
     return (
-      (a.includes("League Day") && a.includes(dateToken)) ||
-      (b.includes("League Day") && b.includes(dateToken)) ||
-      a.includes(dateToken) ||
-      b.includes(dateToken)
+      (a.includes("League Day") && a.includes(game.dateToken)) ||
+      (b.includes("League Day") && b.includes(game.dateToken)) ||
+      a.includes(game.dateToken) ||
+      b.includes(game.dateToken)
     );
   };
 
   const start = cachedBoxScoreRows.findIndex(isDateRow);
   if (start === -1) return [];
 
-  const out = [];
+  let end = cachedBoxScoreRows.length;
   for (let i = start + 1; i < cachedBoxScoreRows.length; i += 1) {
-    const row = cachedBoxScoreRows[i];
-    if (!row) break;
-    if (isDateRow(row)) break;
-    const hasTeam1 = String(row[0] || "").trim() !== "";
-    const hasTeam2 = String(row[4] || "").trim() !== "";
-    if (!hasTeam1 && !hasTeam2) {
-      if (out.length) break;
-      continue;
+    if (isDateRow(cachedBoxScoreRows[i])) {
+      end = i;
+      break;
     }
-    out.push(row);
   }
-  return out;
+  const dayRows = cachedBoxScoreRows.slice(start + 1, end);
+  const blocks = [];
+  let current = null;
+
+  dayRows.forEach((row) => {
+    const left = String(row[0] || "").trim();
+    const right = String(row[4] || "").trim();
+    const isHeader =
+      left &&
+      right &&
+      !left.startsWith("@") &&
+      !right.startsWith("@") &&
+      !left.includes("League Day") &&
+      !right.includes("League Day");
+    const isPlayer = left.startsWith("@") || right.startsWith("@");
+    if (isHeader) {
+      current = [row];
+      blocks.push(current);
+      return;
+    }
+    if (isPlayer && current) {
+      current.push(row);
+    }
+  });
+
+  if (!blocks.length) return [];
+  const target1 = normalizeTeamName(game.team1);
+  const target2 = normalizeTeamName(game.team2);
+  const match = blocks.find((block) => {
+    const header = block[0] || [];
+    const h1 = normalizeTeamName(parseTeamHeader(header[0]).name);
+    const h2 = normalizeTeamName(parseTeamHeader(header[4]).name);
+    return (h1 === target1 && h2 === target2) || (h1 === target2 && h2 === target1);
+  });
+  return match || blocks[0];
 }
 
 function getBoxScorePayload(game) {
-  const rows = findBoxScoreRowsForDate(game.dateToken);
+  const rows = findBoxScoreRowsForGame(game);
 
   const toTeamRows = (rowsIn, side) => {
     if (side === 1) {

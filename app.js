@@ -350,7 +350,21 @@ function extractLeagueDay(rows) {
 
 function parseLiveGames(rows) {
   const LIVE_GAME_RANGES = [
-    { range: "A5:G14", format: "standard" },
+    { range: "A5:G11", format: "standard" },
+    { range: "A13:G19", format: "standard" },
+    { range: "A21:G27", format: "standard" },
+    { range: "A29:G35", format: "standard" },
+    { range: "A37:G43", format: "standard" },
+    { range: "A45:G51", format: "standard" },
+    { range: "A53:G59", format: "standard" },
+    { range: "A61:G67", format: "standard" },
+    { range: "A69:G75", format: "standard" },
+    { range: "A77:G83", format: "standard" },
+    { range: "A85:G91", format: "standard" },
+    { range: "A93:G99", format: "standard" },
+    { range: "A101:G107", format: "standard" },
+    { range: "A109:G115", format: "standard" },
+    { range: "A117:G122", format: "standard" },
   ];
   const games = [];
   LIVE_GAME_RANGES.forEach(({ range, format }) => {
@@ -360,6 +374,7 @@ function parseLiveGames(rows) {
     }
     let team1 = "";
     let team2 = "";
+    let headerIndex = 0;
     if (format === "compact") {
       const header = block[0] || [];
       const headerA = String(header[0] || "").trim();
@@ -378,7 +393,24 @@ function parseLiveGames(rows) {
         team2 = "";
       }
     } else {
-      const header = block[0] || [];
+      let header = block[0] || [];
+      for (let i = 0; i < block.length; i += 1) {
+        const candidate = block[i] || [];
+        const left = String(candidate[0] || "").trim();
+        const right = String(candidate[4] || "").trim();
+        const looksHeader =
+          left &&
+          right &&
+          !left.startsWith("@") &&
+          !right.startsWith("@") &&
+          !left.includes("League Day") &&
+          !right.includes("League Day");
+        if (looksHeader) {
+          header = candidate;
+          headerIndex = i;
+          break;
+        }
+      }
       team1 = String(header[0] || "").trim();
       team2 = String(header[4] || "").trim();
     }
@@ -412,7 +444,7 @@ function parseLiveGames(rows) {
       players = lines;
     } else {
       players = block
-        .slice(1)
+        .slice(headerIndex + 1)
         .filter((row) => String(row[0] || row[4] || "").trim() !== "");
       team1Players = players.map((row) => ({
         player: row[0] || "",

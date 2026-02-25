@@ -1971,28 +1971,52 @@ function buildBoxScore(teamName, scheduleRow, season) {
     };
   }
 
-  const teamRows = [];
+  let dayEnd = boxScoreRows.length;
   for (let i = matchIndex + 1; i < boxScoreRows.length; i += 1) {
-    const row = boxScoreRows[i];
-    if (!row) {
+    if (isDateRow(boxScoreRows[i])) {
+      dayEnd = i;
       break;
     }
-    if (isDateRow(row)) {
-      break;
-    }
-    const hasTeam1 = String(row[0] || "").trim() !== "";
-    const hasTeam2 = String(row[4] || "").trim() !== "";
-    if (!hasTeam1 && !hasTeam2) {
-      if (teamRows.length) {
-        break;
-      }
-      continue;
-    }
-    teamRows.push(row);
   }
+  const dayRows = boxScoreRows.slice(matchIndex + 1, dayEnd);
+  const blocks = [];
+  let current = null;
+  dayRows.forEach((row) => {
+    const left = String(row[0] || "").trim();
+    const right = String(row[4] || "").trim();
+    const isHeader =
+      left &&
+      right &&
+      !left.startsWith("@") &&
+      !right.startsWith("@") &&
+      !left.includes("League Day") &&
+      !right.includes("League Day");
+    const isPlayer = left.startsWith("@") || right.startsWith("@");
+    if (isHeader) {
+      current = [row];
+      blocks.push(current);
+      return;
+    }
+    if (isPlayer && current) {
+      current.push(row);
+    }
+  });
 
-  const team1Rows = teamRows.filter((row) => String(row[0] || "").trim() !== "");
-  const team2Rows = teamRows.filter((row) => String(row[4] || "").trim() !== "");
+  const normalizedTeam1 = normalizeTeamLabel(team1Name);
+  const normalizedTeam2 = normalizeTeamLabel(team2Name);
+  const selectedBlock =
+    blocks.find((block) => {
+      const header = block[0] || [];
+      const h1 = normalizeTeamLabel(parseTeamHeader(header[0]).name);
+      const h2 = normalizeTeamLabel(parseTeamHeader(header[4]).name);
+      return (
+        (h1 === normalizedTeam1 && h2 === normalizedTeam2) ||
+        (h1 === normalizedTeam2 && h2 === normalizedTeam1)
+      );
+    }) || blocks[0] || [];
+
+  const team1Rows = selectedBlock.filter((row) => String(row[0] || "").trim() !== "");
+  const team2Rows = selectedBlock.filter((row) => String(row[4] || "").trim() !== "");
 
   const team1Header = team1Rows.length ? team1Rows[0][0] : team1Name;
   const team2Header = team2Rows.length ? team2Rows[0][4] : team2Name;
