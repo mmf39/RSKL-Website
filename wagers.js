@@ -240,6 +240,14 @@ function notify(msg) {
   }
 }
 
+function cleanEmail(value) {
+  return String(value || "")
+    .trim()
+    .replace(/^"+|"+$/g, "")
+    .replace(/^'+|'+$/g, "")
+    .toLowerCase();
+}
+
 async function buildSupabaseClient(url, anonKey) {
   if (window.supabase && typeof window.supabase.createClient === "function") {
     return window.supabase.createClient(url, anonKey);
@@ -401,10 +409,13 @@ async function renderHistory() {
 function wireAuth() {
   els.signUp.addEventListener("click", async () => {
     try {
-      const email = String(els.email.value || "").trim();
+      const email = cleanEmail(els.email.value);
       const password = String(els.password.value || "");
       if (!email || !password) {
         throw new Error("Enter email and password.");
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        throw new Error("Enter a valid email address.");
       }
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
@@ -418,10 +429,13 @@ function wireAuth() {
 
   els.signIn.addEventListener("click", async () => {
     try {
-      const email = String(els.email.value || "").trim();
+      const email = cleanEmail(els.email.value);
       const password = String(els.password.value || "");
       if (!email || !password) {
         throw new Error("Enter email and password.");
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        throw new Error("Enter a valid email address.");
       }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
