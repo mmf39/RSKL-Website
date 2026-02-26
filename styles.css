@@ -593,6 +593,67 @@ input[type="text"] {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
+.input {
+  background: rgba(7, 16, 36, 0.9);
+  color: var(--ink);
+  border: 1px solid rgba(255, 140, 0, 0.45);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.wagers-auth-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.wallet-row {
+  margin-top: 10px;
+}
+
+.wagers-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.wager-card {
+  border: 1px solid rgba(255, 140, 0, 0.35);
+  border-radius: 12px;
+  background: rgba(8, 22, 54, 0.88);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.wager-title {
+  font-weight: 700;
+}
+
+.wager-sub {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.wager-actions {
+  display: grid;
+  grid-template-columns: 160px 1fr 1fr;
+  gap: 8px;
+}
+
+.wagers-history {
+  display: grid;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .wagers-auth-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .wager-actions {
+    grid-template-columns: 1fr;
+  }
+}
+
 .leader-rank {
   font-size: 1.2rem;
   font-weight: 700;

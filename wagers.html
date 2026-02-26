@@ -3,19 +3,18 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>RSKL Schedule</title>
+    <title>RSKL Wagers</title>
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css?v=20260225b" />
+    <link rel="stylesheet" href="styles.css?v=20260225d" />
   </head>
   <body>
     <div class="bg"></div>
     <header class="hero">
       <div class="hero-inner">
         <div class="badge">Real Sports Karma League</div>
-        <h1>Schedule</h1>
-        
+        <h1>Wagers</h1>
         <div class="meta">
           <span id="last-updated">Last updated: —</span>
           <div class="site-nav">
@@ -46,53 +45,44 @@
     </header>
 
     <main class="container">
-      <section class="panel schedule-panel">
+      <section class="panel">
         <div class="panel-head">
-          <h2>Schedule</h2>
-          <div class="controls">
-            <label for="schedule-search" class="label">Search</label>
-            <input id="schedule-search" type="text" placeholder="Search games" />
-          </div>
+          <h2>Account</h2>
         </div>
-        <div class="calendar-toolbar">
-          <button id="calendar-prev" class="btn ghost" type="button">Prev</button>
-          <strong id="calendar-month">Month</strong>
-          <button id="calendar-next" class="btn ghost" type="button">Next</button>
+        <div class="wagers-auth-row">
+          <input id="auth-email" class="input" type="email" placeholder="Email" />
+          <input id="auth-password" class="input" type="password" placeholder="Password" />
+          <button id="btn-signup" class="btn">Sign Up</button>
+          <button id="btn-signin" class="btn">Sign In</button>
+          <button id="btn-signout" class="btn ghost">Sign Out</button>
         </div>
-        <div id="calendar-grid" class="calendar-grid"></div>
-        <div id="calendar-games" class="calendar-games" hidden></div>
-        <div class="table-wrap" hidden>
-          <table id="schedule-table"><thead></thead><tbody></tbody></table>
+        <p id="auth-status" class="sub">Not signed in.</p>
+        <div class="wallet-row">
+          <div class="leader-chip">Bankroll <span id="wallet-balance">$0</span></div>
         </div>
       </section>
-    </main>
 
-    <div id="boxscore-modal" class="modal" hidden>
-      <div class="modal-backdrop" data-close="true"></div>
-      <div class="modal-card" role="dialog" aria-modal="true">
-        <div class="modal-head">
-          <h2>Box Score</h2>
-          <button class="modal-close" data-close="true">Close</button>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Place Wagers</h2>
         </div>
-        <div id="boxscore-details" class="boxscore-details"></div>
-      </div>
-    </div>
-    <div id="games-modal" class="modal" hidden>
-      <div class="modal-backdrop" data-close="true"></div>
-      <div class="modal-card" role="dialog" aria-modal="true">
-        <div class="modal-head">
-          <h2 id="games-modal-title">Games</h2>
-          <button class="modal-close" data-close="true">Close</button>
+        <div id="wager-games" class="wagers-grid"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>My Wagers</h2>
         </div>
-        <div id="games-modal-details" class="calendar-games"></div>
-      </div>
-    </div>
+        <div id="wager-history" class="wagers-history"></div>
+      </section>
+    </main>
 
     <footer class="footer">
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="schedule.js?v=20260225d"></script>
-      <script src="header-nav.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="wagers.js?v=20260225a"></script>
+    <script src="header-nav.js"></script>
   </body>
 </html>
