@@ -267,8 +267,11 @@ function formatMoney(value) {
 }
 
 function parseAmericanOdds(text) {
-  const match = String(text || "").match(/([+-]\d{3,4})/);
-  return match ? Number(match[1]) : null;
+  const source = String(text || "");
+  const tailInParens = source.match(/\(([-+]\d{3,4})\)\s*$/);
+  if (tailInParens) return Number(tailInParens[1]);
+  const all = source.match(/[-+]\d{3,4}/g);
+  return all && all.length ? Number(all[all.length - 1]) : null;
 }
 
 function projectedProfit(stake, oddsText) {
@@ -578,9 +581,7 @@ async function renderHistory() {
       session.user.id
     )}&order=created_at.desc&limit=50`
   );
-  const visibleRows = Array.isArray(rows)
-    ? rows.filter((w) => String(w.status || "").toLowerCase() !== "cashed_out")
-    : [];
+  const visibleRows = Array.isArray(rows) ? rows : [];
   if (!visibleRows.length) {
     els.history.innerHTML = `<div class="gm-empty">No wagers yet.</div>`;
     return;
@@ -589,12 +590,13 @@ async function renderHistory() {
     .map(
       (w) => {
         const projected = projectedProfit(w.stake, w.team_pick);
-        const settled = String(w.status || "").toLowerCase() !== "open";
-        const payoutLabel = settled ? "Payout" : "Potential";
-        const payoutValue = settled ? Number(w.payout || 0) : projected;
-        const cashoutButton = settled
-          ? ""
-          : `<button class="btn" data-cashout="${escapeHtml(String(w.id || ""))}" data-stake="${escapeHtml(String(w.stake || 0))}">Cashout 1:1</button>`;
+        const isOpen = String(w.status || "").toLowerCase() === "open";
+        const isClosed = String(w.status || "").toLowerCase() === "closed";
+        const payoutLabel = "Potential";
+        const payoutValue = isOpen ? projected : Number(w.payout || 0);
+        const cashoutButton = isOpen
+          ? `<button class="btn" data-cashout="${escapeHtml(String(w.id || ""))}" data-stake="${escapeHtml(String(w.stake || 0))}">Cashout 1:1</button>`
+          : "";
         return `
       <div class="leader-row">
         <div class="leader-rank">•</div>
@@ -602,7 +604,7 @@ async function renderHistory() {
           <div class="leader-name">${escapeHtml(w.game_date)} • ${escapeHtml(w.team_pick)}</div>
           <div class="leader-meta">
             <div class="leader-chip">Stake <span>${formatMoney(w.stake)}</span></div>
-            <div class="leader-chip">Status <span>${escapeHtml(String(w.status || "").toUpperCase())}</span></div>
+            <div class="leader-chip">Status <span>${isClosed ? "CLOSED" : escapeHtml(String(w.status || "").toUpperCase())}</span></div>
             <div class="leader-chip">${payoutLabel} <span>${formatMoney(payoutValue)}</span></div>
             ${cashoutButton}
           </div>
@@ -720,7 +722,7 @@ function wireCashoutButtons() {
     try {
       btn.disabled = true;
       const updated = await patchOpenWager(wagerId, {
-        status: "cashed_out",
+        status: "closed",
         payout: bankrollCredit,
       });
       if (!Array.isArray(updated) || !updated.length) {
