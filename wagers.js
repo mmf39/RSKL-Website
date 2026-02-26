@@ -3,7 +3,7 @@ const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const CONFIG_URL = "/api/supabase-config";
 const SEASON_KEY = "season";
-const C2S2_SCHEDULE_RANGE = "A2:I77";
+const C2S2_SCHEDULE_RANGE = "A2:K77";
 const ACCESS_TOKEN_KEY = "wagers_access_token";
 const REFRESH_TOKEN_KEY = "wagers_refresh_token";
 
@@ -229,7 +229,7 @@ function buildFinalMap(rows) {
 
 function parseScheduleGames(rows) {
   const table = [
-    ["Date", "Team 1", "Team 2", "Info", "Game Type", "Team1 Odds", "Team2 Odds", "Team1 Spread", "Team2 Spread"],
+    ["Date", "Team 1", "Team 2", "Info", "Game Type", "Team1 Odds", "Team2 Odds", "Team1 Spread", "Team2 Spread", "Team1 Spread Odds", "Team2 Spread Odds"],
     ...sliceRange(rows, C2S2_SCHEDULE_RANGE),
   ];
   return table
@@ -243,6 +243,8 @@ function parseScheduleGames(rows) {
       const team2Odds = String(row[6] || "").trim();
       const team1Spread = String(row[7] || "").trim();
       const team2Spread = String(row[8] || "").trim();
+      const team1SpreadOdds = String(row[9] || "").trim();
+      const team2SpreadOdds = String(row[10] || "").trim();
       if (!dateToken || !team1 || !team2) return null;
       return {
         dateToken,
@@ -253,6 +255,8 @@ function parseScheduleGames(rows) {
         team2Odds,
         team1Spread,
         team2Spread,
+        team1SpreadOdds,
+        team2SpreadOdds,
       };
     })
     .filter(Boolean);
@@ -469,8 +473,10 @@ function renderGames() {
       const team2OddsLabel = (game.team2Odds || "-110").trim();
       const spread1 = (game.team1Spread || "PK").trim();
       const spread2 = (game.team2Spread || "PK").trim();
-      const spreadPick1 = `${game.team1} ${spread1} SPREAD (-110)`.trim();
-      const spreadPick2 = `${game.team2} ${spread2} SPREAD (-110)`.trim();
+      const spreadOdds1 = (game.team1SpreadOdds || "-110").trim();
+      const spreadOdds2 = (game.team2SpreadOdds || "-110").trim();
+      const spreadPick1 = `${game.team1} ${spread1} SPREAD (${spreadOdds1})`.trim();
+      const spreadPick2 = `${game.team2} ${spread2} SPREAD (${spreadOdds2})`.trim();
       const mlLine = `
         <div class="wager-market">
           <div class="wager-line">Odds</div>
@@ -489,10 +495,10 @@ function renderGames() {
           <div class="wager-line">Spread</div>
           <div class="wager-market-buttons">
             <button class="btn ${locked ? "ghost" : ""}" data-wager="${idx}" data-pick="${escapeHtml(spreadPick1)}" ${locked ? "disabled" : ""}>
-              ${escapeHtml(game.team1)} ${escapeHtml(spread1)}
+              ${escapeHtml(game.team1)} ${escapeHtml(spread1)} (${escapeHtml(spreadOdds1)})
             </button>
             <button class="btn ${locked ? "ghost" : ""}" data-wager="${idx}" data-pick="${escapeHtml(spreadPick2)}" ${locked ? "disabled" : ""}>
-              ${escapeHtml(game.team2)} ${escapeHtml(spread2)}
+              ${escapeHtml(game.team2)} ${escapeHtml(spread2)} (${escapeHtml(spreadOdds2)})
             </button>
           </div>
         </div>
