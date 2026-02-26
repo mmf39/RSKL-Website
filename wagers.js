@@ -264,6 +264,20 @@ function formatMoney(value) {
   return `$${Number(value || 0).toFixed(2)}`;
 }
 
+function parseAmericanOdds(text) {
+  const match = String(text || "").match(/([+-]\d{3,4})/);
+  return match ? Number(match[1]) : null;
+}
+
+function projectedProfit(stake, oddsText) {
+  const amount = Number(stake || 0);
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  const odds = parseAmericanOdds(oddsText);
+  const useOdds = Number.isFinite(odds) ? odds : -110;
+  if (useOdds > 0) return (amount * useOdds) / 100;
+  return (amount * 100) / Math.abs(useOdds);
+}
+
 function authHeaders(withAuth = false, tokenOverride = "") {
   const headers = {
     apikey: supabaseAnon,
@@ -434,8 +448,6 @@ function renderGames() {
 
   const openGames = games.filter((game) => gameStatus(game) !== "final");
   const filteredGames = openGames.filter((game) => {
-    const hasSpread = Boolean((game.team1Spread || "").trim() || (game.team2Spread || "").trim());
-    if (typeFilter === "spread" && !hasSpread) return false;
     if (teamSearch) {
       const t1 = String(game.team1 || "").toLowerCase();
       const t2 = String(game.team2 || "").toLowerCase();
@@ -453,37 +465,40 @@ function renderGames() {
     .map((game, idx) => {
       const status = gameStatus(game);
       const locked = status !== "upcoming";
-      const spreadPick1 = `${game.team1} ${game.team1Spread || ""}`.trim();
-      const spreadPick2 = `${game.team2} ${game.team2Spread || ""}`.trim();
+      const showMoneyline = typeFilter !== "spread";
+      const showSpread = typeFilter !== "moneyline";
+      const team1OddsLabel = (game.team1Odds || "-110").trim();
+      const team2OddsLabel = (game.team2Odds || "-110").trim();
+      const spread1 = (game.team1Spread || "PK").trim();
+      const spread2 = (game.team2Spread || "PK").trim();
+      const spreadPick1 = `${game.team1} ${spread1} SPREAD (-110)`.trim();
+      const spreadPick2 = `${game.team2} ${spread2} SPREAD (-110)`.trim();
       const mlLine = `
         <div class="wager-market">
           <div class="wager-line">Moneyline</div>
           <div class="wager-market-buttons">
-            <button class="btn ${locked ? "ghost" : ""}" data-wager="${idx}" data-pick="${escapeHtml(game.team1)} ML${game.team1Odds ? ` (${escapeHtml(game.team1Odds)})` : ""}" ${locked ? "disabled" : ""}>
-              ${escapeHtml(game.team1)}${game.team1Odds ? ` (${escapeHtml(game.team1Odds)})` : ""}
+            <button class="btn ${locked ? "ghost" : ""}" data-wager="${idx}" data-pick="${escapeHtml(game.team1)} ML (${escapeHtml(team1OddsLabel)})" ${locked ? "disabled" : ""}>
+              ${escapeHtml(game.team1)} (${escapeHtml(team1OddsLabel)})
             </button>
-            <button class="btn ${locked ? "ghost" : ""}" data-wager="${idx}" data-pick="${escapeHtml(game.team2)} ML${game.team2Odds ? ` (${escapeHtml(game.team2Odds)})` : ""}" ${locked ? "disabled" : ""}>
-              ${escapeHtml(game.team2)}${game.team2Odds ? ` (${escapeHtml(game.team2Odds)})` : ""}
+            <button class="btn ${locked ? "ghost" : ""}" data-wager="${idx}" data-pick="${escapeHtml(game.team2)} ML (${escapeHtml(team2OddsLabel)})" ${locked ? "disabled" : ""}>
+              ${escapeHtml(game.team2)} (${escapeHtml(team2OddsLabel)})
             </button>
           </div>
         </div>
       `;
-      const spreadLine =
-        game.team1Spread || game.team2Spread
-          ? `
+      const spreadLine = `
         <div class="wager-market">
           <div class="wager-line">Spread</div>
           <div class="wager-market-buttons">
             <button class="btn ${locked ? "ghost" : ""}" data-wager="${idx}" data-pick="${escapeHtml(spreadPick1)}" ${locked ? "disabled" : ""}>
-              ${escapeHtml(game.team1)} ${escapeHtml(game.team1Spread || "")}
+              ${escapeHtml(game.team1)} ${escapeHtml(spread1)}
             </button>
             <button class="btn ${locked ? "ghost" : ""}" data-wager="${idx}" data-pick="${escapeHtml(spreadPick2)}" ${locked ? "disabled" : ""}>
-              ${escapeHtml(game.team2)} ${escapeHtml(game.team2Spread || "")}
+              ${escapeHtml(game.team2)} ${escapeHtml(spread2)}
             </button>
           </div>
         </div>
-      `
-          : "";
+      `;
       return `
       <div class="wager-card">
         <div class="wager-title">${escapeHtml(game.dateToken)} • ${escapeHtml(game.team1)} vs ${escapeHtml(game.team2)}</div>
@@ -491,8 +506,8 @@ function renderGames() {
         <div class="wager-actions">
           <input id="stake-${idx}" class="input wager-stake" type="number" min="1" step="1" placeholder="Stake" ${locked ? "disabled" : ""} />
           <div class="wager-markets">
-            ${mlLine}
-            ${spreadLine}
+            ${showMoneyline ? mlLine : ""}
+            ${showSpread ? spreadLine : ""}
           </div>
         </div>
       </div>`;
@@ -551,7 +566,12 @@ async function renderHistory() {
   }
   els.history.innerHTML = rows
     .map(
-      (w) => `
+      (w) => {
+        const projected = projectedProfit(w.stake, w.team_pick);
+        const settled = String(w.status || "").toLowerCase() !== "open";
+        const payoutLabel = settled ? "Payout" : "Potential";
+        const payoutValue = settled ? Number(w.payout || 0) : projected;
+        return `
       <div class="leader-row">
         <div class="leader-rank">•</div>
         <div>
@@ -559,10 +579,11 @@ async function renderHistory() {
           <div class="leader-meta">
             <div class="leader-chip">Stake <span>${formatMoney(w.stake)}</span></div>
             <div class="leader-chip">Status <span>${escapeHtml(String(w.status || "").toUpperCase())}</span></div>
-            <div class="leader-chip">Payout <span>${formatMoney(w.payout || 0)}</span></div>
+            <div class="leader-chip">${payoutLabel} <span>${formatMoney(payoutValue)}</span></div>
           </div>
         </div>
-      </div>`
+      </div>`;
+      }
     )
     .join("");
 }
