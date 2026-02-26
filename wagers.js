@@ -564,11 +564,14 @@ async function renderHistory() {
       session.user.id
     )}&order=created_at.desc&limit=50`
   );
-  if (!Array.isArray(rows) || !rows.length) {
+  const visibleRows = Array.isArray(rows)
+    ? rows.filter((w) => String(w.status || "").toLowerCase() !== "cashed_out")
+    : [];
+  if (!visibleRows.length) {
     els.history.innerHTML = `<div class="gm-empty">No wagers yet.</div>`;
     return;
   }
-  els.history.innerHTML = rows
+  els.history.innerHTML = visibleRows
     .map(
       (w) => {
         const projected = projectedProfit(w.stake, w.team_pick);
@@ -693,16 +696,16 @@ function wireCashoutButtons() {
       setStatus("Sign in first", true);
       return;
     }
-    const profit = stake; // 1:1 payout
-    const bankrollCredit = stake + profit;
+    const profit = 0;
+    const bankrollCredit = stake;
     const approved = window.confirm(
-      `Cashout this wager?\n\nStake: ${formatMoney(stake)}\nProfit (1:1): ${formatMoney(profit)}\nBankroll Credit: ${formatMoney(bankrollCredit)}`
+      `Cashout this wager?\n\nStake: ${formatMoney(stake)}\nCashout Amount: ${formatMoney(bankrollCredit)}`
     );
     if (!approved) return;
     try {
       await patchWager(wagerId, {
         status: "cashed_out",
-        payout: profit,
+        payout: bankrollCredit,
       });
       bankroll += bankrollCredit;
       await patchProfile(session.user.id, {
