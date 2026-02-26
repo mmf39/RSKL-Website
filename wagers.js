@@ -6,6 +6,7 @@ const SEASON_KEY = "season";
 const C2S2_SCHEDULE_RANGE = "A2:K77";
 const ACCESS_TOKEN_KEY = "wagers_access_token";
 const REFRESH_TOKEN_KEY = "wagers_refresh_token";
+const WAGERS_VERSION = "20260226m";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -577,14 +578,9 @@ async function renderHistory() {
       (w) => {
         const projected = projectedProfit(w.stake, w.team_pick);
         const isOpen = String(w.status || "").toLowerCase() === "open";
-        const isStatusClosed =
+        const isCashedOut =
           String(w.status || "").toLowerCase() === "closed" ||
           String(w.status || "").toLowerCase() === "cashed_out";
-        const isCashedOutByPayout =
-          isOpen &&
-          Number(w.stake || 0) > 0 &&
-          Number(w.payout || 0) === Number(w.stake || 0);
-        const isCashedOut = isStatusClosed || isCashedOutByPayout;
         const payoutLabel = "Potential";
         const payoutValue = isCashedOut ? Number(w.payout || 0) : isOpen ? projected : Number(w.payout || 0);
         const cashoutButton = isOpen && !isCashedOut
@@ -714,21 +710,12 @@ function wireCashoutButtons() {
     if (!approved) return;
     try {
       btn.disabled = true;
-      let updated = await patchWager(wagerId, {
+      const updated = await patchWager(wagerId, {
         payout: bankrollCredit,
         status: "closed",
       });
       if (!Array.isArray(updated) || !updated.length) {
-        updated = await patchWager(wagerId, {
-          payout: bankrollCredit,
-          status: "cashed_out",
-        });
-      }
-      if (!Array.isArray(updated) || !updated.length) {
-        updated = await patchWager(wagerId, { payout: bankrollCredit });
-      }
-      if (!Array.isArray(updated) || !updated.length) {
-        throw new Error("Wager already cashed out, locked, or settled.");
+        throw new Error("Cashout update did not apply (check DB policy).");
       }
       bankroll += bankrollCredit;
       await patchProfile(session.user.id, {
@@ -782,7 +769,7 @@ async function refreshAll() {
 
 async function boot() {
   initSeasonSelect();
-  setStatus("Loading wagers...");
+  setStatus(`Loading wagers v${WAGERS_VERSION}...`);
   await getConfig();
   wireAuth();
   wireWagerButtons();
