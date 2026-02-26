@@ -158,17 +158,6 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const adminCode = process.env.WAGERS_ADMIN_CODE || "";
-  if (adminCode) {
-    const provided = String(req.headers["x-admin-code"] || "");
-    if (provided !== adminCode) {
-      res.statusCode = 401;
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      res.end(JSON.stringify({ ok: false, message: "Unauthorized" }));
-      return;
-    }
-  }
-
   const url = process.env.SUPABASE_URL || "";
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
   if (!url || !serviceKey) {
