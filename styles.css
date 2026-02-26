@@ -616,17 +616,27 @@ input[type="text"] {
   gap: 12px;
 }
 
+.wager-filters {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+
 .wager-card {
   border: 1px solid rgba(255, 140, 0, 0.35);
   border-radius: 12px;
-  background: rgba(8, 22, 54, 0.88);
-  padding: 12px;
+  background: linear-gradient(180deg, rgba(10, 26, 63, 0.94), rgba(8, 20, 49, 0.94));
+  padding: 14px;
   display: grid;
-  gap: 8px;
+  gap: 10px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
 }
 
 .wager-title {
   font-weight: 700;
+  font-size: 1.15rem;
+  color: #f8fafc;
 }
 
 .wager-sub {
@@ -636,14 +646,43 @@ input[type="text"] {
 
 .wager-actions {
   display: grid;
-  grid-template-columns: 160px 1fr 1fr;
+  grid-template-columns: 150px 1fr;
   gap: 8px;
+  align-items: start;
 }
 
 .wager-line {
   align-self: center;
   color: var(--muted);
   font-weight: 700;
+  min-width: 86px;
+}
+
+.wager-markets {
+  display: grid;
+  gap: 8px;
+}
+
+.wager-market {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 140, 0, 0.22);
+  border-radius: 10px;
+  background: rgba(6, 15, 40, 0.55);
+}
+
+.wager-market-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.wager-market .btn {
+  width: 100%;
+  text-align: left;
 }
 
 .wagers-history {
@@ -652,10 +691,19 @@ input[type="text"] {
 }
 
 @media (max-width: 900px) {
+  .wager-filters {
+    grid-template-columns: 1fr;
+  }
   .wagers-auth-row {
     grid-template-columns: 1fr 1fr;
   }
   .wager-actions {
+    grid-template-columns: 1fr;
+  }
+  .wager-market {
+    grid-template-columns: 1fr;
+  }
+  .wager-market-buttons {
     grid-template-columns: 1fr;
   }
 }

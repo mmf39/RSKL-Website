@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css?v=20260225d" />
+    <link rel="stylesheet" href="styles.css?v=20260226c" />
   </head>
   <body>
     <div class="bg"></div>
@@ -73,6 +73,14 @@
         <div class="panel-head">
           <h2>Place Wagers</h2>
         </div>
+        <div class="wager-filters">
+          <select id="wager-type-filter" class="input">
+            <option value="all">All Wager Types</option>
+            <option value="moneyline">Moneyline</option>
+            <option value="spread">Spread</option>
+          </select>
+          <input id="wager-search" class="input" type="text" placeholder="Search team..." />
+        </div>
         <div id="wager-games" class="wagers-grid"></div>
       </section>
     </main>
@@ -82,7 +90,7 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="wagers.js?v=20260226b"></script>
+    <script src="wagers.js?v=20260226c"></script>
     <script src="header-nav.js"></script>
   </body>
 </html>
