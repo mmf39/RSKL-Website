@@ -3,7 +3,7 @@ const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const CONFIG_URL = "/api/supabase-config";
 const SEASON_KEY = "season";
-const C2S2_SCHEDULE_RANGE = "A2:E77";
+const C2S2_SCHEDULE_RANGE = "A2:I77";
 const ACCESS_TOKEN_KEY = "wagers_access_token";
 const REFRESH_TOKEN_KEY = "wagers_refresh_token";
 
@@ -25,6 +25,7 @@ let supabaseAnon = "";
 let session = null;
 let bankroll = 0;
 let games = [];
+let openGamesDisplayed = [];
 let liveMap = new Map();
 let finalMap = new Map();
 
@@ -228,7 +229,7 @@ function buildFinalMap(rows) {
 
 function parseScheduleGames(rows) {
   const table = [
-    ["Date", "Team 1", "Team 2", "Info", "Game Type"],
+    ["Date", "Team 1", "Team 2", "Info", "Game Type", "Team1 Odds", "Team2 Odds", "Team1 Spread", "Team2 Spread"],
     ...sliceRange(rows, C2S2_SCHEDULE_RANGE),
   ];
   return table
@@ -238,8 +239,21 @@ function parseScheduleGames(rows) {
       const team1 = displayTeamName(row[1]);
       const team2 = displayTeamName(row[2]);
       const gameType = String(row[4] || "");
+      const team1Odds = String(row[5] || "").trim();
+      const team2Odds = String(row[6] || "").trim();
+      const team1Spread = String(row[7] || "").trim();
+      const team2Spread = String(row[8] || "").trim();
       if (!dateToken || !team1 || !team2) return null;
-      return { dateToken, team1, team2, gameType };
+      return {
+        dateToken,
+        team1,
+        team2,
+        gameType,
+        team1Odds,
+        team2Odds,
+        team1Spread,
+        team2Spread,
+      };
     })
     .filter(Boolean);
 }
@@ -413,25 +427,54 @@ function renderGames() {
     els.games.innerHTML = `<div class="gm-empty">Wagers are available for C2S2 only.</div>`;
     return;
   }
-  els.games.innerHTML = games
+  const openGames = games.filter((game) => gameStatus(game) !== "final");
+  openGamesDisplayed = openGames;
+  if (!openGames.length) {
+    els.games.innerHTML = `<div class="gm-empty">No open games to wager on.</div>`;
+    return;
+  }
+  els.games.innerHTML = openGames
     .map((game, idx) => {
       const status = gameStatus(game);
       const locked = status !== "upcoming";
+      const spreadPick1 = `${game.team1} ${game.team1Spread || ""}`.trim();
+      const spreadPick2 = `${game.team2} ${game.team2Spread || ""}`.trim();
+      const mlLine = `
+        <div class="wager-line">Moneyline</div>
+        <button class="btn ${locked ? "ghost" : ""}" data-wager="${idx}" data-pick="${escapeHtml(game.team1)} ML${game.team1Odds ? ` (${escapeHtml(game.team1Odds)})` : ""}" ${locked ? "disabled" : ""}>
+          ${escapeHtml(game.team1)}${game.team1Odds ? ` (${escapeHtml(game.team1Odds)})` : ""}
+        </button>
+        <button class="btn ${locked ? "ghost" : ""}" data-wager="${idx}" data-pick="${escapeHtml(game.team2)} ML${game.team2Odds ? ` (${escapeHtml(game.team2Odds)})` : ""}" ${locked ? "disabled" : ""}>
+          ${escapeHtml(game.team2)}${game.team2Odds ? ` (${escapeHtml(game.team2Odds)})` : ""}
+        </button>
+      `;
+      const spreadLine =
+        game.team1Spread || game.team2Spread
+          ? `
+        <div class="wager-line">Spread</div>
+        <button class="btn ${locked ? "ghost" : ""}" data-wager="${idx}" data-pick="${escapeHtml(spreadPick1)}" ${locked ? "disabled" : ""}>
+          ${escapeHtml(game.team1)} ${escapeHtml(game.team1Spread || "")}
+        </button>
+        <button class="btn ${locked ? "ghost" : ""}" data-wager="${idx}" data-pick="${escapeHtml(spreadPick2)}" ${locked ? "disabled" : ""}>
+          ${escapeHtml(game.team2)} ${escapeHtml(game.team2Spread || "")}
+        </button>
+      `
+          : "";
       return `
       <div class="wager-card">
         <div class="wager-title">${escapeHtml(game.dateToken)} • ${escapeHtml(game.team1)} vs ${escapeHtml(game.team2)}</div>
         <div class="wager-sub">${escapeHtml(game.gameType || "Regular Season")} • ${status.toUpperCase()}</div>
         <div class="wager-actions">
           <input id="stake-${idx}" class="input wager-stake" type="number" min="1" step="1" placeholder="Stake" ${locked ? "disabled" : ""} />
-          <button class="btn ${locked ? "ghost" : ""}" data-wager="${idx}" data-team="${escapeHtml(game.team1)}" ${locked ? "disabled" : ""}>Pick ${escapeHtml(game.team1)}</button>
-          <button class="btn ${locked ? "ghost" : ""}" data-wager="${idx}" data-team="${escapeHtml(game.team2)}" ${locked ? "disabled" : ""}>Pick ${escapeHtml(game.team2)}</button>
+          ${mlLine}
+          ${spreadLine}
         </div>
       </div>`;
     })
     .join("");
 }
 
-async function placeWager(game, teamPick, stake) {
+async function placeWager(game, pickLabel, stake) {
   if (!session?.user?.id) throw new Error("Sign in first");
   const amount = Number(stake);
   if (!Number.isFinite(amount) || amount <= 0) throw new Error("Enter a valid stake");
@@ -451,7 +494,7 @@ async function placeWager(game, teamPick, stake) {
     user_id: session.user.id,
     game_key,
     game_date: game.dateToken,
-    team_pick: displayTeamName(teamPick),
+    team_pick: String(pickLabel || "").trim(),
     stake: amount,
     status: "open",
     payout: 0,
@@ -553,11 +596,11 @@ function wireWagerButtons() {
     const btn = event.target.closest("[data-wager]");
     if (!btn) return;
     const idx = Number(btn.dataset.wager);
-    const game = games[idx];
+    const game = openGamesDisplayed[idx];
     if (!game) return;
     const stakeInput = document.getElementById(`stake-${idx}`);
     try {
-      await placeWager(game, btn.dataset.team, stakeInput.value);
+      await placeWager(game, btn.dataset.pick || "", stakeInput.value);
       setStatus("Wager placed.");
       await renderHistory();
     } catch (e) {

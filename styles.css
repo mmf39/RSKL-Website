@@ -640,6 +640,12 @@ input[type="text"] {
   gap: 8px;
 }
 
+.wager-line {
+  align-self: center;
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .wagers-history {
   display: grid;
   gap: 8px;
