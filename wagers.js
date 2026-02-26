@@ -426,6 +426,17 @@ async function insertWager(payload) {
   });
 }
 
+async function insertProfile(payload) {
+  return requestJson(`${supabaseUrl}/rest/v1/profiles`, {
+    method: "POST",
+    headers: {
+      ...authHeaders(true),
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify(payload),
+  });
+}
+
 async function patchWager(id, payload) {
   return requestJson(
     `${supabaseUrl}/rest/v1/wagers?id=eq.${encodeURIComponent(id)}`,
@@ -446,11 +457,22 @@ async function loadWallet() {
     els.balance.textContent = "$0.00";
     return;
   }
-  const rows = await fetchProfiles(
+  let rows = await fetchProfiles(
     `?select=bankroll&user_id=eq.${encodeURIComponent(session.user.id)}&limit=1`
   );
-  const row = Array.isArray(rows) ? rows[0] : null;
-  bankroll = Number(row?.bankroll || 0);
+  let row = Array.isArray(rows) ? rows[0] : null;
+  if (!row) {
+    await insertProfile({
+      user_id: session.user.id,
+      bankroll: 10000,
+      updated_at: new Date().toISOString(),
+    });
+    rows = await fetchProfiles(
+      `?select=bankroll&user_id=eq.${encodeURIComponent(session.user.id)}&limit=1`
+    );
+    row = Array.isArray(rows) ? rows[0] : null;
+  }
+  bankroll = Number(row?.bankroll || 10000);
   els.balance.textContent = formatMoney(bankroll);
 }
 
