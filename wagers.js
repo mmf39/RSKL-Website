@@ -232,6 +232,14 @@ function setStatus(msg, isError = false) {
   els.status.style.color = isError ? "#ff9ca3" : "";
 }
 
+function notify(msg) {
+  try {
+    window.alert(msg);
+  } catch (_) {
+    // no-op
+  }
+}
+
 async function getConfig() {
   const res = await fetch(CONFIG_URL, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to load Supabase config");
@@ -384,11 +392,16 @@ function wireAuth() {
     try {
       const email = String(els.email.value || "").trim();
       const password = String(els.password.value || "");
+      if (!email || !password) {
+        throw new Error("Enter email and password.");
+      }
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
       setStatus("Sign up successful. Check your email if confirmation is required.");
+      notify("Sign up request sent.");
     } catch (e) {
       setStatus(e.message, true);
+      notify(`Sign up failed: ${e.message}`);
     }
   });
 
@@ -396,12 +409,17 @@ function wireAuth() {
     try {
       const email = String(els.email.value || "").trim();
       const password = String(els.password.value || "");
+      if (!email || !password) {
+        throw new Error("Enter email and password.");
+      }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       await refreshAll();
       setStatus("Signed in.");
+      notify("Signed in.");
     } catch (e) {
       setStatus(e.message, true);
+      notify(`Sign in failed: ${e.message}`);
     }
   });
 
@@ -409,6 +427,7 @@ function wireAuth() {
     await supabase.auth.signOut();
     await refreshAll();
     setStatus("Signed out.");
+    notify("Signed out.");
   });
 }
 
@@ -483,4 +502,5 @@ async function boot() {
 
 boot().catch((error) => {
   setStatus(error.message || "Failed to load wagers page.", true);
+  notify(error.message || "Failed to load wagers page.");
 });
