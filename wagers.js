@@ -3,7 +3,7 @@ const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const CONFIG_URL = "/api/supabase-config";
 const SEASON_KEY = "season";
-const C2S2_SCHEDULE_RANGE = "A2:K77";
+const C2S2_SCHEDULE_RANGE = "A2:L77";
 const ACCESS_TOKEN_KEY = "wagers_access_token";
 const REFRESH_TOKEN_KEY = "wagers_refresh_token";
 const WAGERS_VERSION = "20260226m";
@@ -230,7 +230,7 @@ function buildFinalMap(rows) {
 
 function parseScheduleGames(rows) {
   const table = [
-    ["Date", "Team 1", "Team 2", "Info", "Game Type", "Team1 Odds", "Team2 Odds", "Team1 Spread", "Team2 Spread", "Team1 Spread Odds", "Team2 Spread Odds"],
+    ["Date", "Team 1", "Team 2", "Info", "Game Type", "Team1 Odds", "Team2 Odds", "Team1 Spread", "Team2 Spread", "Team1 Spread Odds", "Team2 Spread Odds", "Lock Time"],
     ...sliceRange(rows, C2S2_SCHEDULE_RANGE),
   ];
   return table
@@ -246,6 +246,8 @@ function parseScheduleGames(rows) {
       const team2Spread = String(row[8] || "").trim();
       const team1SpreadOdds = String(row[9] || "").trim();
       const team2SpreadOdds = String(row[10] || "").trim();
+      const lockTimeRaw = String(row[11] || "").trim();
+      const lockMs = Date.parse(lockTimeRaw);
       if (!dateToken || !team1 || !team2) return null;
       return {
         dateToken,
@@ -258,6 +260,8 @@ function parseScheduleGames(rows) {
         team2Spread,
         team1SpreadOdds,
         team2SpreadOdds,
+        lockTimeRaw,
+        lockTimeMs: Number.isFinite(lockMs) ? lockMs : null,
       };
     })
     .filter(Boolean);
@@ -454,6 +458,7 @@ function gameStatus(game) {
   const key = buildGameKey(game.dateToken, game.team1, game.team2);
   if (finalMap.has(key)) return "final";
   if (liveMap.has(key)) return "live";
+  if (Number.isFinite(game.lockTimeMs) && Date.now() >= game.lockTimeMs) return "locked";
   return "upcoming";
 }
 
@@ -510,7 +515,7 @@ function renderGames() {
       return `
       <div class="wager-card">
         <div class="wager-title">${escapeHtml(game.dateToken)} • ${escapeHtml(game.team1)} vs ${escapeHtml(game.team2)}</div>
-        <div class="wager-sub">${escapeHtml(game.gameType || "Regular Season")} • ${status.toUpperCase()}</div>
+        <div class="wager-sub">${escapeHtml(game.gameType || "Regular Season")} • ${status.toUpperCase()}${game.lockTimeRaw ? ` • Locks ${escapeHtml(game.lockTimeRaw)}` : ""}</div>
         <div class="wager-actions">
           <input id="stake-${idx}" class="input wager-stake" type="number" min="1" step="1" placeholder="Stake" ${locked ? "disabled" : ""} />
           <div class="wager-markets">
@@ -525,6 +530,7 @@ function renderGames() {
 
 async function placeWager(game, pickLabel, stake) {
   if (!session?.user?.id) throw new Error("Sign in first");
+  if (gameStatus(game) !== "upcoming") throw new Error("This game is locked.");
   const amount = Number(stake);
   if (!Number.isFinite(amount) || amount <= 0) throw new Error("Enter a valid stake");
   if (amount > bankroll) throw new Error("Insufficient bankroll");
