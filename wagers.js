@@ -4,6 +4,8 @@ const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const CONFIG_URL = "/api/supabase-config";
 const SEASON_KEY = "season";
 const C2S2_SCHEDULE_RANGE = "A2:E77";
+const ACCESS_TOKEN_KEY = "wagers_access_token";
+const REFRESH_TOKEN_KEY = "wagers_refresh_token";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -18,7 +20,8 @@ const els = {
   history: document.getElementById("wager-history"),
 };
 
-let supabase = null;
+let supabaseUrl = "";
+let supabaseAnon = "";
 let session = null;
 let bankroll = 0;
 let games = [];
@@ -111,6 +114,26 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+function setStatus(msg, isError = false) {
+  if (!els.status) return;
+  els.status.textContent = msg;
+  els.status.style.color = isError ? "#ff9ca3" : "";
+}
+
+function notify(msg) {
+  try {
+    window.alert(msg);
+  } catch (_) {}
+}
+
+function cleanEmail(value) {
+  return String(value || "")
+    .trim()
+    .replace(/^"+|"+$/g, "")
+    .replace(/^'+|'+$/g, "")
+    .toLowerCase();
+}
+
 function displayTeamName(value) {
   const name = String(value || "").trim();
   return name === "Bullets" ? "Storm" : name;
@@ -160,7 +183,6 @@ function buildLiveMap(rows) {
   const map = new Map();
   const day = extractLeagueDay(rows);
   if (!day) return map;
-  let current = null;
   rows.forEach((row) => {
     const left = String(row[0] || "").trim();
     const right = String(row[4] || "").trim();
@@ -170,15 +192,12 @@ function buildLiveMap(rows) {
       !left.startsWith("@") &&
       !right.startsWith("@") &&
       (/\(\s*-?\d+\s*\)/.test(left) || /\(\s*-?\d+\s*\)/.test(right));
-    if (isHeader) {
-      current = { left, right };
-      const t1 = parseTeamHeader(left);
-      const t2 = parseTeamHeader(right);
-      if (t1.name && t2.name) {
-        map.set(buildGameKey(day, t1.name, t2.name), true);
-        map.set(buildGameKey(day, t2.name, t1.name), true);
-      }
-    }
+    if (!isHeader) return;
+    const t1 = parseTeamHeader(left);
+    const t2 = parseTeamHeader(right);
+    if (!t1.name || !t2.name) return;
+    map.set(buildGameKey(day, t1.name, t2.name), true);
+    map.set(buildGameKey(day, t2.name, t1.name), true);
   });
   return map;
 }
@@ -208,7 +227,10 @@ function buildFinalMap(rows) {
 }
 
 function parseScheduleGames(rows) {
-  const table = [["Date", "Team 1", "Team 2", "Info", "Game Type"], ...sliceRange(rows, C2S2_SCHEDULE_RANGE)];
+  const table = [
+    ["Date", "Team 1", "Team 2", "Info", "Game Type"],
+    ...sliceRange(rows, C2S2_SCHEDULE_RANGE),
+  ];
   return table
     .slice(1)
     .map((row) => {
@@ -226,65 +248,155 @@ function formatMoney(value) {
   return `$${Number(value || 0).toFixed(2)}`;
 }
 
-function setStatus(msg, isError = false) {
-  if (!els.status) return;
-  els.status.textContent = msg;
-  els.status.style.color = isError ? "#ff9ca3" : "";
+function authHeaders(withAuth = false, tokenOverride = "") {
+  const headers = {
+    apikey: supabaseAnon,
+    "Content-Type": "application/json",
+  };
+  const token = tokenOverride || session?.access_token || "";
+  if (withAuth && token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
 }
 
-function notify(msg) {
+async function requestJson(url, options = {}) {
+  const res = await fetch(url, options);
+  const text = await res.text();
+  let data = null;
   try {
-    window.alert(msg);
+    data = text ? JSON.parse(text) : null;
   } catch (_) {
-    // no-op
+    data = text;
   }
-}
-
-function cleanEmail(value) {
-  return String(value || "")
-    .trim()
-    .replace(/^"+|"+$/g, "")
-    .replace(/^'+|'+$/g, "")
-    .toLowerCase();
-}
-
-async function buildSupabaseClient(url, anonKey) {
-  if (window.supabase && typeof window.supabase.createClient === "function") {
-    return window.supabase.createClient(url, anonKey);
+  if (!res.ok) {
+    const msg =
+      (data && (data.msg || data.message || data.error_description || data.error)) ||
+      `Request failed (${res.status})`;
+    throw new Error(msg);
   }
-  const mod = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm");
-  if (!mod || typeof mod.createClient !== "function") {
-    throw new Error("Supabase client failed to load.");
-  }
-  return mod.createClient(url, anonKey);
+  return data;
 }
 
 async function getConfig() {
-  const res = await fetch(CONFIG_URL, { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to load Supabase config");
-  const json = await res.json();
-  if (!json.ok) throw new Error(json.message || "Invalid Supabase config");
-  return json;
+  const json = await requestJson(CONFIG_URL, { cache: "no-store" });
+  if (!json.ok) throw new Error(json.message || "Invalid config");
+  supabaseUrl = json.url;
+  supabaseAnon = json.anonKey;
+}
+
+function saveSession(accessToken, refreshToken) {
+  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken || "");
+  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken || "");
+}
+
+function clearSession() {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  session = null;
 }
 
 async function loadSession() {
-  const { data } = await supabase.auth.getSession();
-  session = data.session || null;
+  const access = localStorage.getItem(ACCESS_TOKEN_KEY) || "";
+  if (!access) {
+    session = null;
+    return;
+  }
+  try {
+    const user = await requestJson(`${supabaseUrl}/auth/v1/user`, {
+      headers: authHeaders(true, access),
+    });
+    session = { access_token: access, user };
+  } catch (_) {
+    clearSession();
+  }
+}
+
+async function signUp(email, password) {
+  const data = await requestJson(`${supabaseUrl}/auth/v1/signup`, {
+    method: "POST",
+    headers: authHeaders(false),
+    body: JSON.stringify({ email, password }),
+  });
+  if (!data?.access_token) return { requiresEmailConfirm: true };
+  saveSession(data.access_token, data.refresh_token);
+  await loadSession();
+  return { requiresEmailConfirm: false };
+}
+
+async function signIn(email, password) {
+  const data = await requestJson(
+    `${supabaseUrl}/auth/v1/token?grant_type=password`,
+    {
+      method: "POST",
+      headers: authHeaders(false),
+      body: JSON.stringify({ email, password }),
+    }
+  );
+  saveSession(data.access_token, data.refresh_token);
+  await loadSession();
+}
+
+async function signOut() {
+  try {
+    await requestJson(`${supabaseUrl}/auth/v1/logout`, {
+      method: "POST",
+      headers: authHeaders(true),
+    });
+  } catch (_) {}
+  clearSession();
+}
+
+async function fetchProfiles(params) {
+  return requestJson(
+    `${supabaseUrl}/rest/v1/profiles${params}`,
+    { headers: authHeaders(true) }
+  );
+}
+
+async function fetchWagers(params) {
+  return requestJson(
+    `${supabaseUrl}/rest/v1/wagers${params}`,
+    { headers: authHeaders(true) }
+  );
+}
+
+async function patchProfile(userId, payload) {
+  return requestJson(
+    `${supabaseUrl}/rest/v1/profiles?user_id=eq.${encodeURIComponent(userId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        ...authHeaders(true),
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+async function insertWager(payload) {
+  return requestJson(`${supabaseUrl}/rest/v1/wagers`, {
+    method: "POST",
+    headers: {
+      ...authHeaders(true),
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify(payload),
+  });
 }
 
 async function loadWallet() {
-  if (!session) {
+  if (!session?.user?.id) {
     bankroll = 0;
     els.balance.textContent = "$0.00";
     return;
   }
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("bankroll")
-    .eq("user_id", session.user.id)
-    .single();
-  if (error) throw error;
-  bankroll = Number(data.bankroll || 0);
+  const rows = await fetchProfiles(
+    `?select=bankroll&user_id=eq.${encodeURIComponent(session.user.id)}&limit=1`
+  );
+  const row = Array.isArray(rows) ? rows[0] : null;
+  bankroll = Number(row?.bankroll || 0);
   els.balance.textContent = formatMoney(bankroll);
 }
 
@@ -320,74 +432,55 @@ function renderGames() {
 }
 
 async function placeWager(game, teamPick, stake) {
-  if (!session) throw new Error("Sign in first");
+  if (!session?.user?.id) throw new Error("Sign in first");
   const amount = Number(stake);
   if (!Number.isFinite(amount) || amount <= 0) throw new Error("Enter a valid stake");
   if (amount > bankroll) throw new Error("Insufficient bankroll");
 
   const game_key = buildGameKey(game.dateToken, game.team1, game.team2);
-  const team_pick = displayTeamName(teamPick);
-
-  const existing = await supabase
-    .from("wagers")
-    .select("id")
-    .eq("user_id", session.user.id)
-    .eq("game_key", game_key)
-    .maybeSingle();
-  if (existing.data) throw new Error("You already wagered this game");
-
-  const newBankroll = bankroll - amount;
-  const update = await supabase
-    .from("profiles")
-    .update({ bankroll: newBankroll, updated_at: new Date().toISOString() })
-    .eq("user_id", session.user.id)
-    .eq("bankroll", bankroll)
-    .select("user_id");
-  if (update.error || !update.data || !update.data.length) {
-    throw new Error("Bankroll update failed. Try again.");
+  const existing = await fetchWagers(
+    `?select=id&user_id=eq.${encodeURIComponent(
+      session.user.id
+    )}&game_key=eq.${encodeURIComponent(game_key)}&limit=1`
+  );
+  if (Array.isArray(existing) && existing.length) {
+    throw new Error("You already wagered this game");
   }
 
-  const inserted = await supabase.from("wagers").insert({
+  await insertWager({
     user_id: session.user.id,
     game_key,
     game_date: game.dateToken,
-    team_pick,
+    team_pick: displayTeamName(teamPick),
     stake: amount,
     status: "open",
     payout: 0,
   });
-  if (inserted.error) {
-    await supabase
-      .from("profiles")
-      .update({ bankroll, updated_at: new Date().toISOString() })
-      .eq("user_id", session.user.id);
-    throw inserted.error;
-  }
 
-  bankroll = newBankroll;
+  const updated = bankroll - amount;
+  await patchProfile(session.user.id, {
+    bankroll: updated,
+    updated_at: new Date().toISOString(),
+  });
+  bankroll = updated;
   els.balance.textContent = formatMoney(bankroll);
 }
 
 async function renderHistory() {
-  if (!session) {
+  if (!session?.user?.id) {
     els.history.innerHTML = `<div class="gm-empty">Sign in to view wager history.</div>`;
     return;
   }
-  const { data, error } = await supabase
-    .from("wagers")
-    .select("game_date,team_pick,stake,status,payout,created_at")
-    .eq("user_id", session.user.id)
-    .order("created_at", { ascending: false })
-    .limit(50);
-  if (error) {
-    els.history.innerHTML = `<div class="gm-empty">${escapeHtml(error.message)}</div>`;
-    return;
-  }
-  if (!data || !data.length) {
+  const rows = await fetchWagers(
+    `?select=game_date,team_pick,stake,status,payout,created_at&user_id=eq.${encodeURIComponent(
+      session.user.id
+    )}&order=created_at.desc&limit=50`
+  );
+  if (!Array.isArray(rows) || !rows.length) {
     els.history.innerHTML = `<div class="gm-empty">No wagers yet.</div>`;
     return;
   }
-  els.history.innerHTML = data
+  els.history.innerHTML = rows
     .map(
       (w) => `
       <div class="leader-row">
@@ -400,8 +493,7 @@ async function renderHistory() {
             <div class="leader-chip">Payout <span>${formatMoney(w.payout || 0)}</span></div>
           </div>
         </div>
-      </div>
-    `
+      </div>`
     )
     .join("");
 }
@@ -411,16 +503,19 @@ function wireAuth() {
     try {
       const email = cleanEmail(els.email.value);
       const password = String(els.password.value || "");
-      if (!email || !password) {
-        throw new Error("Enter email and password.");
-      }
+      if (!email || !password) throw new Error("Enter email and password.");
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         throw new Error("Enter a valid email address.");
       }
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) throw error;
-      setStatus("Sign up successful. Check your email if confirmation is required.");
-      notify("Sign up request sent.");
+      const signUpResult = await signUp(email, password);
+      await refreshAll();
+      if (signUpResult.requiresEmailConfirm) {
+        setStatus("Account created. Check your email to confirm, then sign in.");
+        notify("Account created. Check your email to confirm.");
+      } else {
+        setStatus("Sign up successful.");
+        notify("Sign up successful.");
+      }
     } catch (e) {
       setStatus(e.message, true);
       notify(`Sign up failed: ${e.message}`);
@@ -431,14 +526,11 @@ function wireAuth() {
     try {
       const email = cleanEmail(els.email.value);
       const password = String(els.password.value || "");
-      if (!email || !password) {
-        throw new Error("Enter email and password.");
-      }
+      if (!email || !password) throw new Error("Enter email and password.");
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         throw new Error("Enter a valid email address.");
       }
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      await signIn(email, password);
       await refreshAll();
       setStatus("Signed in.");
       notify("Signed in.");
@@ -449,7 +541,7 @@ function wireAuth() {
   });
 
   els.signOut.addEventListener("click", async () => {
-    await supabase.auth.signOut();
+    await signOut();
     await refreshAll();
     setStatus("Signed out.");
     notify("Signed out.");
@@ -470,6 +562,7 @@ function wireWagerButtons() {
       await renderHistory();
     } catch (e) {
       setStatus(e.message, true);
+      notify(`Wager failed: ${e.message}`);
     }
   });
 }
@@ -512,8 +605,7 @@ async function refreshAll() {
 async function boot() {
   initSeasonSelect();
   setStatus("Loading wagers...");
-  const cfg = await getConfig();
-  supabase = await buildSupabaseClient(cfg.url, cfg.anonKey);
+  await getConfig();
   wireAuth();
   wireWagerButtons();
   await loadGames();
