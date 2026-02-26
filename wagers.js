@@ -1,7 +1,6 @@
 const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
 const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
-const BOXSCORE_CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=321367914&single=true&output=csv";
+const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const CONFIG_URL = "/api/supabase-config";
 const SEASON_KEY = "season";
 const C2S2_SCHEDULE_RANGE = "A2:L77";

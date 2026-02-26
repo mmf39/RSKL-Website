@@ -1771,8 +1771,14 @@ function normalizeTeamLabel(value) {
   return normalized === "bullets" ? "storm" : normalized;
 }
 
+function normalizeDateToken(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/(\d{1,2}\/\d{1,2})(?:\/\d{2,4})?/);
+  return match ? match[1] : "";
+}
+
 function buildGameKey(dateToken, team1, team2) {
-  return `${String(dateToken || "").trim()}|${normalizeTeamLabel(team1)}|${normalizeTeamLabel(team2)}`;
+  return `${normalizeDateToken(dateToken)}|${normalizeTeamLabel(team1)}|${normalizeTeamLabel(team2)}`;
 }
 
 function parseTeamHeader(value) {
@@ -1797,7 +1803,7 @@ function extractLeagueDay(rows) {
   }
   const raw = String(row[0] || row[1] || "");
   const parts = raw.split(":");
-  return parts.length > 1 ? parts[1].trim() : raw.trim();
+  return normalizeDateToken(parts.length > 1 ? parts[1].trim() : raw.trim());
 }
 
 function buildLiveScoreMap(rows) {
@@ -1885,7 +1891,7 @@ function buildFinalScoreMap(rows) {
     if (left.startsWith("@") || right.startsWith("@")) continue;
     const t1 = parseTeamHeader(left);
     const t2 = parseTeamHeader(right);
-    if (!t1.name || !t2.name || !t1.score || !t2.score) continue;
+    if (!t1.name || !t2.name || t1.score === "" || t2.score === "") continue;
     map.set(buildGameKey(day, t1.name, t2.name), {
       team1Score: t1.score,
       team2Score: t2.score,
@@ -1964,7 +1970,7 @@ function computeTeamLeaders(playerRows) {
 }
 
 function getScheduleScoreState(scheduleRow) {
-  const dateToken = String(scheduleRow[scheduleIndexes.date] || "").trim();
+  const dateToken = normalizeDateToken(scheduleRow[scheduleIndexes.date]);
   const team1 = String(scheduleRow[scheduleIndexes.team1] || "").trim();
   const team2 = String(scheduleRow[scheduleIndexes.team2] || "").trim();
   const live = liveScoreMap.get(buildGameKey(dateToken, team1, team2));
@@ -1984,6 +1990,18 @@ function getScheduleScoreState(scheduleRow) {
       team1Score: final.team1Score || "",
       team2Score: final.team2Score || "",
     };
+  }
+  const payload = buildBoxScore(getTeamName(), scheduleRow, getSeason());
+  if (payload) {
+    const p1 = parseTeamHeader(payload.team1Name);
+    const p2 = parseTeamHeader(payload.team2Name);
+    if (p1.score !== "" && p2.score !== "") {
+      return {
+        status: "final",
+        team1Score: p1.score,
+        team2Score: p2.score,
+      };
+    }
   }
   return { status: "upcoming", team1Score: "", team2Score: "" };
 }
@@ -2102,7 +2120,7 @@ function updateTeamSchedule(teamName, scheduleRows, boxScoreData, season) {
   const dataRows = scheduleRows.slice(1);
   leagueScheduleGames = dataRows
     .map((row) => {
-      const dateToken = String(row[scheduleIndexes.date] || "").trim();
+      const dateToken = normalizeDateToken(row[scheduleIndexes.date]);
       return {
         row,
         dateToken,
