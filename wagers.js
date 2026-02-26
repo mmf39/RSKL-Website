@@ -29,6 +29,7 @@ let games = [];
 let openGamesDisplayed = [];
 let liveMap = new Map();
 let finalMap = new Map();
+let boxScoreRowsRaw = [];
 
 function getSeason() {
   const raw = localStorage.getItem(SEASON_KEY) || "c2s2";
@@ -248,6 +249,47 @@ function buildFinalMap(rows) {
     }
   });
   return map;
+}
+
+function isFinalByBoxRows(game) {
+  if (!game || !game.dateToken || !boxScoreRowsRaw.length) return false;
+  const tokenMatches = (cell, token) => normalizeDateToken(cell) === token;
+  const isDateRow = (row) => {
+    const a = String(row[0] || "");
+    const b = String(row[1] || "");
+    return tokenMatches(a, game.dateToken) || tokenMatches(b, game.dateToken);
+  };
+  const start = boxScoreRowsRaw.findIndex(isDateRow);
+  if (start === -1) return false;
+  let end = boxScoreRowsRaw.length;
+  for (let i = start + 1; i < boxScoreRowsRaw.length; i += 1) {
+    if (isDateRow(boxScoreRowsRaw[i])) {
+      end = i;
+      break;
+    }
+  }
+  const dayRows = boxScoreRowsRaw.slice(start + 1, end);
+  const target1 = normalizeTeamName(game.team1);
+  const target2 = normalizeTeamName(game.team2);
+  for (const row of dayRows) {
+    const left = String(row[0] || "").trim();
+    const right = String(row[4] || "").trim();
+    if (!left || !right || left.startsWith("@") || right.startsWith("@")) continue;
+    const t1 = parseTeamHeader(left);
+    const t2 = parseTeamHeader(right);
+    const h1 = normalizeTeamName(t1.name);
+    const h2 = normalizeTeamName(t2.name);
+    const match =
+      (h1 === target1 && h2 === target2) ||
+      (h1 === target2 && h2 === target1) ||
+      ((h1.includes(target1) || target1.includes(h1)) &&
+        (h2.includes(target2) || target2.includes(h2))) ||
+      ((h1.includes(target2) || target2.includes(h1)) &&
+        (h2.includes(target1) || target1.includes(h1)));
+    if (!match) continue;
+    if (t1.score !== null && t2.score !== null) return true;
+  }
+  return false;
 }
 
 function parseScheduleGames(rows) {
@@ -508,7 +550,7 @@ function gameStatus(game) {
   const key = buildGameKey(game.dateToken, game.team1, game.team2);
   const info = String(game.info || "").toLowerCase();
   const infoLooksFinal = info.includes("final");
-  if (finalMap.has(key) || infoLooksFinal) return "final";
+  if (finalMap.has(key) || infoLooksFinal || isFinalByBoxRows(game)) return "final";
   if (Number.isFinite(game.lockTimeMs) && Date.now() >= game.lockTimeMs) return "locked";
   if (liveMap.has(key)) return "live";
   return "upcoming";
@@ -816,7 +858,8 @@ async function loadGames() {
   const scheduleRows = parseCSV(await scheduleRes.text());
   games = parseScheduleGames(scheduleRows);
   liveMap = liveRes.ok ? buildLiveMap(parseCSV(await liveRes.text())) : new Map();
-  finalMap = boxRes.ok ? buildFinalMap(parseCSV(await boxRes.text())) : new Map();
+  boxScoreRowsRaw = boxRes.ok ? parseCSV(await boxRes.text()) : [];
+  finalMap = boxScoreRowsRaw.length ? buildFinalMap(boxScoreRowsRaw) : new Map();
   renderGames();
 }
 
