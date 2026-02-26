@@ -414,6 +414,20 @@ async function insertWager(payload) {
   });
 }
 
+async function patchWager(id, payload) {
+  return requestJson(
+    `${supabaseUrl}/rest/v1/wagers?id=eq.${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: {
+        ...authHeaders(true),
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
 async function loadWallet() {
   if (!session?.user?.id) {
     bankroll = 0;
@@ -540,7 +554,7 @@ async function renderHistory() {
     return;
   }
   const rows = await fetchWagers(
-    `?select=game_date,team_pick,stake,status,payout,created_at&user_id=eq.${encodeURIComponent(
+    `?select=id,game_date,team_pick,stake,status,payout,created_at&user_id=eq.${encodeURIComponent(
       session.user.id
     )}&order=created_at.desc&limit=50`
   );
@@ -555,6 +569,9 @@ async function renderHistory() {
         const settled = String(w.status || "").toLowerCase() !== "open";
         const payoutLabel = settled ? "Payout" : "Potential";
         const payoutValue = settled ? Number(w.payout || 0) : projected;
+        const cashoutButton = settled
+          ? ""
+          : `<button class="btn" data-cashout="${escapeHtml(String(w.id || ""))}" data-stake="${escapeHtml(String(w.stake || 0))}">Cashout 1:1</button>`;
         return `
       <div class="leader-row">
         <div class="leader-rank">•</div>
@@ -564,6 +581,7 @@ async function renderHistory() {
             <div class="leader-chip">Stake <span>${formatMoney(w.stake)}</span></div>
             <div class="leader-chip">Status <span>${escapeHtml(String(w.status || "").toUpperCase())}</span></div>
             <div class="leader-chip">${payoutLabel} <span>${formatMoney(payoutValue)}</span></div>
+            ${cashoutButton}
           </div>
         </div>
       </div>`;
@@ -658,6 +676,42 @@ function wireWagerButtons() {
   });
 }
 
+function wireCashoutButtons() {
+  els.history.addEventListener("click", async (event) => {
+    const btn = event.target.closest("[data-cashout]");
+    if (!btn) return;
+    const wagerId = String(btn.dataset.cashout || "").trim();
+    const stake = Number(btn.dataset.stake || 0);
+    if (!wagerId || !Number.isFinite(stake) || stake <= 0) return;
+    if (!session?.user?.id) {
+      setStatus("Sign in first", true);
+      return;
+    }
+    const profit = stake; // 1:1 payout
+    const bankrollCredit = stake + profit;
+    const approved = window.confirm(
+      `Cashout this wager?\n\nStake: ${formatMoney(stake)}\nProfit (1:1): ${formatMoney(profit)}\nBankroll Credit: ${formatMoney(bankrollCredit)}`
+    );
+    if (!approved) return;
+    try {
+      await patchWager(wagerId, {
+        status: "cashed_out",
+        payout: profit,
+      });
+      bankroll += bankrollCredit;
+      await patchProfile(session.user.id, {
+        bankroll,
+        updated_at: new Date().toISOString(),
+      });
+      els.balance.textContent = formatMoney(bankroll);
+      await renderHistory();
+      setStatus("Wager cashed out.");
+    } catch (e) {
+      setStatus(e.message || "Cashout failed.", true);
+    }
+  });
+}
+
 async function loadGames() {
   const [scheduleRes, liveRes, boxRes] = await Promise.all([
     fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
@@ -699,6 +753,7 @@ async function boot() {
   await getConfig();
   wireAuth();
   wireWagerButtons();
+  wireCashoutButtons();
   await loadGames();
   await refreshAll();
   updateLastUpdated();
