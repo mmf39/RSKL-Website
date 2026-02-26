@@ -1,6 +1,40 @@
 const BOXSCORE_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=321367914&single=true&output=csv";
 
+function parseAmericanOdds(text) {
+  const source = String(text || "");
+  const tailInParens = source.match(/\(([-+]\d{3,4})\)\s*$/);
+  if (tailInParens) return Number(tailInParens[1]);
+  const all = source.match(/[-+]\d{3,4}/g);
+  return all && all.length ? Number(all[all.length - 1]) : -110;
+}
+
+function profitFromOdds(stake, odds) {
+  const amount = Number(stake || 0);
+  const o = Number(odds || -110);
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  if (!Number.isFinite(o) || o === 0) return 0;
+  if (o > 0) return (amount * o) / 100;
+  return (amount * 100) / Math.abs(o);
+}
+
+function parseWagerPick(raw) {
+  const pick = String(raw || "").trim();
+  const odds = parseAmericanOdds(pick);
+  const isSpread = /\bSPREAD\b/i.test(pick);
+  if (!isSpread) {
+    const team = pick.replace(/\s+ML\b.*$/i, "").trim();
+    return { type: "moneyline", team: normalizeTeamName(team), spread: 0, odds };
+  }
+  const beforeSpread = pick.replace(/\s+SPREAD\b.*$/i, "").trim();
+  const spreadMatch = beforeSpread.match(/([+-]?\d+(?:\.\d+)?)\s*$/);
+  const spread = spreadMatch ? Number(spreadMatch[1]) : 0;
+  const team = beforeSpread
+    .replace(/([+-]?\d+(?:\.\d+)?)\s*$/, "")
+    .trim();
+  return { type: "spread", team: normalizeTeamName(team), spread, odds };
+}
+
 function parseCSV(text) {
   const rows = [];
   let row = [];
@@ -175,7 +209,7 @@ module.exports = async (req, res) => {
       const final = finalMap.get(lookupKey);
       if (!final) continue;
 
-      const pick = normalizeTeamName(wager.team_pick);
+      const parsedPick = parseWagerPick(wager.team_pick);
       const winner =
         final.t1.score > final.t2.score
           ? normalizeTeamName(final.t1.name)
@@ -187,14 +221,39 @@ module.exports = async (req, res) => {
       let status = "lost";
       let credit = 0;
       let payout = 0;
-      if (!winner) {
-        status = "push";
-        credit = stake;
-        payout = stake;
-      } else if (pick === winner) {
-        status = "won";
-        credit = stake * 2;
-        payout = stake;
+      if (parsedPick.type === "moneyline") {
+        if (!winner) {
+          status = "push";
+          credit = stake;
+          payout = stake;
+        } else if (parsedPick.team === winner) {
+          const profit = profitFromOdds(stake, parsedPick.odds);
+          status = "won";
+          credit = stake + profit;
+          payout = profit;
+        }
+      } else {
+        const pickedIsT1 = parsedPick.team === normalizeTeamName(final.t1.name);
+        const pickedIsT2 = parsedPick.team === normalizeTeamName(final.t2.name);
+        if (!pickedIsT1 && !pickedIsT2) {
+          status = "lost";
+        } else {
+          const pickedScore = pickedIsT1 ? final.t1.score : final.t2.score;
+          const oppScore = pickedIsT1 ? final.t2.score : final.t1.score;
+          const marginWithSpread = pickedScore + Number(parsedPick.spread || 0) - oppScore;
+          if (marginWithSpread > 0) {
+            const profit = profitFromOdds(stake, parsedPick.odds);
+            status = "won";
+            credit = stake + profit;
+            payout = profit;
+          } else if (marginWithSpread === 0) {
+            status = "push";
+            credit = stake;
+            payout = stake;
+          } else {
+            status = "lost";
+          }
+        }
       }
 
       const updateRes = await sbFetch(

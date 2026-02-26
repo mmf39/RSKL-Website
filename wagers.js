@@ -781,6 +781,9 @@ function wireCashoutButtons() {
 }
 
 async function loadGames() {
+  try {
+    await fetch("/api/wagers-settle", { method: "POST" });
+  } catch (_) {}
   const [scheduleRes, liveRes, boxRes] = await Promise.all([
     fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
     fetch(LIVE_CSV_URL, { cache: "no-store" }),
