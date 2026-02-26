@@ -529,7 +529,8 @@ async function placeWager(game, pickLabel, stake) {
   if (!Number.isFinite(amount) || amount <= 0) throw new Error("Enter a valid stake");
   if (amount > bankroll) throw new Error("Insufficient bankroll");
 
-  const game_key = buildGameKey(game.dateToken, game.team1, game.team2);
+  const baseGameKey = buildGameKey(game.dateToken, game.team1, game.team2);
+  const game_key = `${baseGameKey}#${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
   await insertWager({
     user_id: session.user.id,

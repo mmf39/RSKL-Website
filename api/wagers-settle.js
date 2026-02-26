@@ -170,7 +170,9 @@ module.exports = async (req, res) => {
     let settled = 0;
 
     for (const wager of openWagers) {
-      const final = finalMap.get(String(wager.game_key || ""));
+      const gameKey = String(wager.game_key || "");
+      const lookupKey = gameKey.includes("#") ? gameKey.split("#")[0] : gameKey;
+      const final = finalMap.get(lookupKey);
       if (!final) continue;
 
       const pick = normalizeTeamName(wager.team_pick);
