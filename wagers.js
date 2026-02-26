@@ -501,9 +501,14 @@ async function loadWallet() {
 function gameStatus(game) {
   const key = buildGameKey(game.dateToken, game.team1, game.team2);
   if (finalMap.has(key)) return "final";
-  if (liveMap.has(key)) return "live";
   if (Number.isFinite(game.lockTimeMs) && Date.now() >= game.lockTimeMs) return "locked";
+  if (liveMap.has(key)) return "live";
   return "upcoming";
+}
+
+function canWager(game) {
+  const status = gameStatus(game);
+  return status !== "final" && status !== "locked";
 }
 
 function renderGames() {
@@ -521,7 +526,7 @@ function renderGames() {
   els.games.innerHTML = openGames
     .map((game, idx) => {
       const status = gameStatus(game);
-      const locked = status !== "upcoming";
+      const locked = !canWager(game);
       const team1OddsLabel = (game.team1Odds || "-110").trim();
       const team2OddsLabel = (game.team2Odds || "-110").trim();
       const spread1 = (game.team1Spread || "PK").trim();
@@ -574,7 +579,7 @@ function renderGames() {
 
 async function placeWager(game, pickLabel, stake) {
   if (!session?.user?.id) throw new Error("Sign in first");
-  if (gameStatus(game) !== "upcoming") throw new Error("This game is locked.");
+  if (!canWager(game)) throw new Error("This game is locked.");
   const amount = Number(stake);
   if (!Number.isFinite(amount) || amount <= 0) throw new Error("Enter a valid stake");
   if (amount > bankroll) throw new Error("Insufficient bankroll");
