@@ -437,7 +437,7 @@ async function patchWager(id, payload) {
 
 async function patchOpenWager(id, payload) {
   return requestJson(
-    `${supabaseUrl}/rest/v1/wagers?id=eq.${encodeURIComponent(id)}&status=eq.open`,
+    `${supabaseUrl}/rest/v1/wagers?id=eq.${encodeURIComponent(id)}&status=eq.open&payout=eq.0`,
     {
       method: "PATCH",
       headers: {
@@ -591,10 +591,10 @@ async function renderHistory() {
       (w) => {
         const projected = projectedProfit(w.stake, w.team_pick);
         const isOpen = String(w.status || "").toLowerCase() === "open";
-        const isClosed = String(w.status || "").toLowerCase() === "closed";
+        const isCashedOut = isOpen && Number(w.payout || 0) > 0;
         const payoutLabel = "Potential";
-        const payoutValue = isOpen ? projected : Number(w.payout || 0);
-        const cashoutButton = isOpen
+        const payoutValue = isCashedOut ? Number(w.payout || 0) : isOpen ? projected : Number(w.payout || 0);
+        const cashoutButton = isOpen && !isCashedOut
           ? `<button class="btn" data-cashout="${escapeHtml(String(w.id || ""))}" data-stake="${escapeHtml(String(w.stake || 0))}">Cashout 1:1</button>`
           : "";
         return `
@@ -604,7 +604,7 @@ async function renderHistory() {
           <div class="leader-name">${escapeHtml(w.game_date)} • ${escapeHtml(w.team_pick)}</div>
           <div class="leader-meta">
             <div class="leader-chip">Stake <span>${formatMoney(w.stake)}</span></div>
-            <div class="leader-chip">Status <span>${isClosed ? "CLOSED" : escapeHtml(String(w.status || "").toUpperCase())}</span></div>
+            <div class="leader-chip">Status <span>${isCashedOut ? "CLOSED" : escapeHtml(String(w.status || "").toUpperCase())}</span></div>
             <div class="leader-chip">${payoutLabel} <span>${formatMoney(payoutValue)}</span></div>
             ${cashoutButton}
           </div>
@@ -722,11 +722,10 @@ function wireCashoutButtons() {
     try {
       btn.disabled = true;
       const updated = await patchOpenWager(wagerId, {
-        status: "closed",
         payout: bankrollCredit,
       });
       if (!Array.isArray(updated) || !updated.length) {
-        throw new Error("Wager already cashed out or locked.");
+        throw new Error("Wager already cashed out, locked, or settled.");
       }
       bankroll += bankrollCredit;
       await patchProfile(session.user.id, {
