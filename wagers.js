@@ -631,7 +631,24 @@ function wireWagerButtons() {
     if (!game) return;
     const stakeInput = document.getElementById(`stake-${idx}`);
     try {
-      await placeWager(game, btn.dataset.pick || "", stakeInput.value);
+      const pick = String(btn.dataset.pick || "").trim();
+      const stake = Number(stakeInput?.value || 0);
+      const oddsNumber = parseAmericanOdds(pick);
+      const oddsLabel = Number.isFinite(oddsNumber) ? String(oddsNumber) : "-110";
+      const payout = projectedProfit(stake, pick);
+      const totalReturn = stake + payout;
+      const confirmText =
+        `Confirm wager?\n\n` +
+        `Game: ${game.dateToken} • ${game.team1} vs ${game.team2}\n` +
+        `Wager: ${pick}\n` +
+        `Stake: ${formatMoney(stake)}\n` +
+        `Odds Locked: ${oddsLabel}\n` +
+        `Potential Payout: ${formatMoney(payout)}\n` +
+        `Potential Total Return: ${formatMoney(totalReturn)}`;
+      const approved = window.confirm(confirmText);
+      if (!approved) return;
+
+      await placeWager(game, pick, stakeInput.value);
       setStatus("Wager placed.");
       await renderHistory();
     } catch (e) {
