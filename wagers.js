@@ -432,6 +432,20 @@ async function patchWager(id, payload) {
   );
 }
 
+async function patchOpenWager(id, payload) {
+  return requestJson(
+    `${supabaseUrl}/rest/v1/wagers?id=eq.${encodeURIComponent(id)}&status=eq.open`,
+    {
+      method: "PATCH",
+      headers: {
+        ...authHeaders(true),
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
 async function loadWallet() {
   if (!session?.user?.id) {
     bankroll = 0;
@@ -689,6 +703,7 @@ function wireCashoutButtons() {
   els.history.addEventListener("click", async (event) => {
     const btn = event.target.closest("[data-cashout]");
     if (!btn) return;
+    if (btn.disabled) return;
     const wagerId = String(btn.dataset.cashout || "").trim();
     const stake = Number(btn.dataset.stake || 0);
     if (!wagerId || !Number.isFinite(stake) || stake <= 0) return;
@@ -703,10 +718,14 @@ function wireCashoutButtons() {
     );
     if (!approved) return;
     try {
-      await patchWager(wagerId, {
+      btn.disabled = true;
+      const updated = await patchOpenWager(wagerId, {
         status: "cashed_out",
         payout: bankrollCredit,
       });
+      if (!Array.isArray(updated) || !updated.length) {
+        throw new Error("Wager already cashed out or locked.");
+      }
       bankroll += bankrollCredit;
       await patchProfile(session.user.id, {
         bankroll,
@@ -716,6 +735,7 @@ function wireCashoutButtons() {
       await renderHistory();
       setStatus("Wager cashed out.");
     } catch (e) {
+      btn.disabled = false;
       setStatus(e.message || "Cashout failed.", true);
     }
   });
