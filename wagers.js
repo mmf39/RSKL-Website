@@ -18,8 +18,6 @@ const els = {
   balance: document.getElementById("wallet-balance"),
   games: document.getElementById("wager-games"),
   history: document.getElementById("wager-history"),
-  wagerTypeFilter: document.getElementById("wager-type-filter"),
-  wagerSearch: document.getElementById("wager-search"),
 };
 
 let supabaseUrl = "";
@@ -443,30 +441,16 @@ function renderGames() {
     els.games.innerHTML = `<div class="gm-empty">Wagers are available for C2S2 only.</div>`;
     return;
   }
-  const typeFilter = String(els.wagerTypeFilter?.value || "all");
-  const teamSearch = String(els.wagerSearch?.value || "").trim().toLowerCase();
-
   const openGames = games.filter((game) => gameStatus(game) !== "final");
-  const filteredGames = openGames.filter((game) => {
-    if (teamSearch) {
-      const t1 = String(game.team1 || "").toLowerCase();
-      const t2 = String(game.team2 || "").toLowerCase();
-      if (!t1.includes(teamSearch) && !t2.includes(teamSearch)) return false;
-    }
-    return true;
-  });
-
-  openGamesDisplayed = filteredGames;
-  if (!filteredGames.length) {
+  openGamesDisplayed = openGames;
+  if (!openGames.length) {
     els.games.innerHTML = `<div class="gm-empty">No open games to wager on.</div>`;
     return;
   }
-  els.games.innerHTML = filteredGames
+  els.games.innerHTML = openGames
     .map((game, idx) => {
       const status = gameStatus(game);
       const locked = status !== "upcoming";
-      const showMoneyline = typeFilter !== "spread";
-      const showSpread = typeFilter !== "moneyline";
       const team1OddsLabel = (game.team1Odds || "-110").trim();
       const team2OddsLabel = (game.team2Odds || "-110").trim();
       const spread1 = (game.team1Spread || "PK").trim();
@@ -475,7 +459,7 @@ function renderGames() {
       const spreadPick2 = `${game.team2} ${spread2} SPREAD (-110)`.trim();
       const mlLine = `
         <div class="wager-market">
-          <div class="wager-line">Moneyline</div>
+          <div class="wager-line">Odds</div>
           <div class="wager-market-buttons">
             <button class="btn ${locked ? "ghost" : ""}" data-wager="${idx}" data-pick="${escapeHtml(game.team1)} ML (${escapeHtml(team1OddsLabel)})" ${locked ? "disabled" : ""}>
               ${escapeHtml(game.team1)} (${escapeHtml(team1OddsLabel)})
@@ -506,8 +490,8 @@ function renderGames() {
         <div class="wager-actions">
           <input id="stake-${idx}" class="input wager-stake" type="number" min="1" step="1" placeholder="Stake" ${locked ? "disabled" : ""} />
           <div class="wager-markets">
-            ${showMoneyline ? mlLine : ""}
-            ${showSpread ? spreadLine : ""}
+            ${mlLine}
+            ${spreadLine}
           </div>
         </div>
       </div>`;
@@ -657,12 +641,6 @@ function wireWagerButtons() {
   });
 }
 
-function wireFilters() {
-  const rerender = () => renderGames();
-  els.wagerTypeFilter?.addEventListener("change", rerender);
-  els.wagerSearch?.addEventListener("input", rerender);
-}
-
 async function loadGames() {
   const [scheduleRes, liveRes, boxRes] = await Promise.all([
     fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
@@ -704,7 +682,6 @@ async function boot() {
   await getConfig();
   wireAuth();
   wireWagerButtons();
-  wireFilters();
   await loadGames();
   await refreshAll();
   updateLastUpdated();
