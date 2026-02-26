@@ -259,8 +259,11 @@ function parseScheduleGames(rows) {
     .slice(1)
     .map((row) => {
       const dateToken = normalizeDateToken(row[0]);
-      const team1 = displayTeamName(row[1]);
-      const team2 = displayTeamName(row[2]);
+      const parsedTeam1 = parseTeamHeader(String(row[1] || "").trim());
+      const parsedTeam2 = parseTeamHeader(String(row[2] || "").trim());
+      const team1 = displayTeamName(parsedTeam1.name || row[1]);
+      const team2 = displayTeamName(parsedTeam2.name || row[2]);
+      const info = String(row[3] || "").trim();
       const gameType = String(row[4] || "");
       const team1Odds = String(row[5] || "").trim();
       const team2Odds = String(row[6] || "").trim();
@@ -275,6 +278,9 @@ function parseScheduleGames(rows) {
         dateToken,
         team1,
         team2,
+        scheduleTeam1Score: parsedTeam1.score,
+        scheduleTeam2Score: parsedTeam2.score,
+        info,
         gameType,
         team1Odds,
         team2Odds,
@@ -500,7 +506,15 @@ async function loadWallet() {
 
 function gameStatus(game) {
   const key = buildGameKey(game.dateToken, game.team1, game.team2);
-  if (finalMap.has(key)) return "final";
+  const info = String(game.info || "").toLowerCase();
+  const infoLooksFinal =
+    info.includes("final") ||
+    /\b\d+\s*[-:]\s*\d+\b/.test(info) ||
+    /\(\s*\d+\s*\).+\(\s*\d+\s*\)/.test(info);
+  const scheduleHasScore =
+    Number.isFinite(Number(game.scheduleTeam1Score)) &&
+    Number.isFinite(Number(game.scheduleTeam2Score));
+  if (finalMap.has(key) || infoLooksFinal || scheduleHasScore) return "final";
   if (Number.isFinite(game.lockTimeMs) && Date.now() >= game.lockTimeMs) return "locked";
   if (liveMap.has(key)) return "live";
   return "upcoming";
