@@ -530,14 +530,6 @@ async function placeWager(game, pickLabel, stake) {
   if (amount > bankroll) throw new Error("Insufficient bankroll");
 
   const game_key = buildGameKey(game.dateToken, game.team1, game.team2);
-  const existing = await fetchWagers(
-    `?select=id&user_id=eq.${encodeURIComponent(
-      session.user.id
-    )}&game_key=eq.${encodeURIComponent(game_key)}&limit=1`
-  );
-  if (Array.isArray(existing) && existing.length) {
-    throw new Error("You already wagered this game");
-  }
 
   await insertWager({
     user_id: session.user.id,
