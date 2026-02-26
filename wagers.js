@@ -629,7 +629,7 @@ async function renderHistory() {
         const isCashedOut =
           String(w.status || "").toLowerCase() === "closed" ||
           String(w.status || "").toLowerCase() === "cashed_out";
-        const payoutLabel = "Potential";
+        const payoutLabel = "Payout";
         const payoutValue = isCashedOut ? Number(w.payout || 0) : isOpen ? projected : Number(w.payout || 0);
         const cashoutButton = isOpen && !isCashedOut
           ? `<button class="btn" data-cashout="${escapeHtml(String(w.id || ""))}" data-stake="${escapeHtml(String(w.stake || 0))}">Cashout 1:1</button>`
