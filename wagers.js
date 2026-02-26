@@ -712,7 +712,7 @@ function wireCashoutButtons() {
       btn.disabled = true;
       const updated = await patchWager(wagerId, {
         payout: bankrollCredit,
-        status: "closed",
+        status: "cashed_out",
       });
       if (!Array.isArray(updated) || !updated.length) {
         throw new Error("Cashout update did not apply (check DB policy).");
