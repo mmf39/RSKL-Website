@@ -625,12 +625,27 @@ async function renderHistory() {
     .map(
       (w) => {
         const projected = projectedProfit(w.stake, w.team_pick);
+        const statusRaw = String(w.status || "").toLowerCase();
         const isOpen = String(w.status || "").toLowerCase() === "open";
         const isCashedOut =
-          String(w.status || "").toLowerCase() === "closed" ||
-          String(w.status || "").toLowerCase() === "cashed_out";
+          statusRaw === "closed" || statusRaw === "cashed_out";
         const payoutLabel = "Payout";
-        const payoutValue = isCashedOut ? Number(w.payout || 0) : isOpen ? projected : Number(w.payout || 0);
+        const stake = Number(w.stake || 0);
+        const rawPayout = Number(w.payout || 0);
+        let payoutValue = 0;
+        if (isOpen) {
+          payoutValue = stake + projected;
+        } else if (isCashedOut) {
+          payoutValue = rawPayout;
+        } else if (statusRaw === "won") {
+          payoutValue = stake + rawPayout;
+        } else if (statusRaw === "push") {
+          payoutValue = rawPayout;
+        } else if (statusRaw === "lost") {
+          payoutValue = 0;
+        } else {
+          payoutValue = rawPayout;
+        }
         const cashoutButton = isOpen && !isCashedOut
           ? `<button class="btn" data-cashout="${escapeHtml(String(w.id || ""))}" data-stake="${escapeHtml(String(w.stake || 0))}">Cashout 1:1</button>`
           : "";
