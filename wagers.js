@@ -84,6 +84,28 @@ function parseCSV(text) {
   return rows;
 }
 
+function parseLockTimeLocal(value) {
+  const text = String(value || "").trim();
+  if (!text) return null;
+  const isoWithZone = Date.parse(text);
+  if (/z$|[+-]\d{2}:\d{2}$/i.test(text) && Number.isFinite(isoWithZone)) {
+    return isoWithZone;
+  }
+  const m = text.match(
+    /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2})(?::(\d{1,2}))?(?::(\d{1,2}))?)?$/
+  );
+  if (m) {
+    const year = Number(m[1]);
+    const month = Number(m[2]) - 1;
+    const day = Number(m[3]);
+    const hour = Number(m[4] || 0);
+    const minute = Number(m[5] || 0);
+    const second = Number(m[6] || 0);
+    return new Date(year, month, day, hour, minute, second, 0).getTime();
+  }
+  return Number.isFinite(isoWithZone) ? isoWithZone : null;
+}
+
 function colToIndex(letter) {
   return letter.toUpperCase().charCodeAt(0) - 65;
 }
@@ -247,7 +269,7 @@ function parseScheduleGames(rows) {
       const team1SpreadOdds = String(row[9] || "").trim();
       const team2SpreadOdds = String(row[10] || "").trim();
       const lockTimeRaw = String(row[11] || "").trim();
-      const lockMs = Date.parse(lockTimeRaw);
+      const lockMs = parseLockTimeLocal(lockTimeRaw);
       if (!dateToken || !team1 || !team2) return null;
       return {
         dateToken,
