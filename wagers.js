@@ -240,6 +240,17 @@ function notify(msg) {
   }
 }
 
+async function buildSupabaseClient(url, anonKey) {
+  if (window.supabase && typeof window.supabase.createClient === "function") {
+    return window.supabase.createClient(url, anonKey);
+  }
+  const mod = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm");
+  if (!mod || typeof mod.createClient !== "function") {
+    throw new Error("Supabase client failed to load.");
+  }
+  return mod.createClient(url, anonKey);
+}
+
 async function getConfig() {
   const res = await fetch(CONFIG_URL, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to load Supabase config");
@@ -486,8 +497,9 @@ async function refreshAll() {
 
 async function boot() {
   initSeasonSelect();
+  setStatus("Loading wagers...");
   const cfg = await getConfig();
-  supabase = window.supabase.createClient(cfg.url, cfg.anonKey);
+  supabase = await buildSupabaseClient(cfg.url, cfg.anonKey);
   wireAuth();
   wireWagerButtons();
   await loadGames();
