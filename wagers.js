@@ -435,20 +435,6 @@ async function patchWager(id, payload) {
   );
 }
 
-async function patchOpenWager(id, payload) {
-  return requestJson(
-    `${supabaseUrl}/rest/v1/wagers?id=eq.${encodeURIComponent(id)}&status=eq.open&payout=eq.0`,
-    {
-      method: "PATCH",
-      headers: {
-        ...authHeaders(true),
-        Prefer: "return=representation",
-      },
-      body: JSON.stringify(payload),
-    }
-  );
-}
-
 async function loadWallet() {
   if (!session?.user?.id) {
     bankroll = 0;
@@ -591,7 +577,14 @@ async function renderHistory() {
       (w) => {
         const projected = projectedProfit(w.stake, w.team_pick);
         const isOpen = String(w.status || "").toLowerCase() === "open";
-        const isCashedOut = isOpen && Number(w.payout || 0) > 0;
+        const isStatusClosed =
+          String(w.status || "").toLowerCase() === "closed" ||
+          String(w.status || "").toLowerCase() === "cashed_out";
+        const isCashedOutByPayout =
+          isOpen &&
+          Number(w.stake || 0) > 0 &&
+          Number(w.payout || 0) === Number(w.stake || 0);
+        const isCashedOut = isStatusClosed || isCashedOutByPayout;
         const payoutLabel = "Potential";
         const payoutValue = isCashedOut ? Number(w.payout || 0) : isOpen ? projected : Number(w.payout || 0);
         const cashoutButton = isOpen && !isCashedOut
@@ -721,9 +714,19 @@ function wireCashoutButtons() {
     if (!approved) return;
     try {
       btn.disabled = true;
-      const updated = await patchOpenWager(wagerId, {
+      let updated = await patchWager(wagerId, {
         payout: bankrollCredit,
+        status: "closed",
       });
+      if (!Array.isArray(updated) || !updated.length) {
+        updated = await patchWager(wagerId, {
+          payout: bankrollCredit,
+          status: "cashed_out",
+        });
+      }
+      if (!Array.isArray(updated) || !updated.length) {
+        updated = await patchWager(wagerId, { payout: bankrollCredit });
+      }
       if (!Array.isArray(updated) || !updated.length) {
         throw new Error("Wager already cashed out, locked, or settled.");
       }
