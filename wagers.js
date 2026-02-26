@@ -507,14 +507,8 @@ async function loadWallet() {
 function gameStatus(game) {
   const key = buildGameKey(game.dateToken, game.team1, game.team2);
   const info = String(game.info || "").toLowerCase();
-  const infoLooksFinal =
-    info.includes("final") ||
-    /\b\d+\s*[-:]\s*\d+\b/.test(info) ||
-    /\(\s*\d+\s*\).+\(\s*\d+\s*\)/.test(info);
-  const scheduleHasScore =
-    Number.isFinite(Number(game.scheduleTeam1Score)) &&
-    Number.isFinite(Number(game.scheduleTeam2Score));
-  if (finalMap.has(key) || infoLooksFinal || scheduleHasScore) return "final";
+  const infoLooksFinal = info.includes("final");
+  if (finalMap.has(key) || infoLooksFinal) return "final";
   if (Number.isFinite(game.lockTimeMs) && Date.now() >= game.lockTimeMs) return "locked";
   if (liveMap.has(key)) return "live";
   return "upcoming";
