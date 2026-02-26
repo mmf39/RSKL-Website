@@ -388,6 +388,12 @@ async function requestJson(url, options = {}) {
   return data;
 }
 
+function extractSettleCount(payload) {
+  if (!payload || typeof payload !== "object") return 0;
+  const n = Number(payload.settled || 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
 async function getConfig() {
   const json = await requestJson(CONFIG_URL, { cache: "no-store" });
   if (!json.ok) throw new Error(json.message || "Invalid config");
@@ -846,8 +852,13 @@ function wireCashoutButtons() {
 }
 
 async function loadGames() {
+  let settledCount = 0;
   try {
-    await fetch("/api/wagers-settle", { method: "POST" });
+    const settleRes = await fetch("/api/wagers-settle", { method: "POST" });
+    if (settleRes.ok) {
+      const settleJson = await settleRes.json().catch(() => null);
+      settledCount = extractSettleCount(settleJson);
+    }
   } catch (_) {}
   const [scheduleRes, liveRes, boxRes] = await Promise.all([
     fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
@@ -861,6 +872,7 @@ async function loadGames() {
   boxScoreRowsRaw = boxRes.ok ? parseCSV(await boxRes.text()) : [];
   finalMap = boxScoreRowsRaw.length ? buildFinalMap(boxScoreRowsRaw) : new Map();
   renderGames();
+  return settledCount;
 }
 
 function updateLastUpdated() {
@@ -874,11 +886,16 @@ function updateLastUpdated() {
 }
 
 async function refreshAll() {
+  const settled = await loadGames();
   await loadSession();
   if (session?.user?.email) {
-    setStatus(`Signed in as ${session.user.email}`);
+    setStatus(
+      settled > 0
+        ? `Signed in as ${session.user.email} • Settled ${settled} wager${settled === 1 ? "" : "s"}`
+        : `Signed in as ${session.user.email}`
+    );
   } else {
-    setStatus("Not signed in.");
+    setStatus(settled > 0 ? `Not signed in. • Settled ${settled}` : "Not signed in.");
   }
   await loadWallet();
   await renderHistory();
@@ -891,11 +908,9 @@ async function boot() {
   wireAuth();
   wireWagerButtons();
   wireCashoutButtons();
-  await loadGames();
   await refreshAll();
   updateLastUpdated();
   setInterval(async () => {
-    await loadGames();
     await refreshAll();
     updateLastUpdated();
   }, 60 * 1000);
