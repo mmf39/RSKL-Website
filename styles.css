@@ -770,6 +770,38 @@ input[type="text"] {
   padding: 16px 22px;
 }
 
+#player-games,
+#player-weekly {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+#player-weekly {
+  min-width: 100%;
+  table-layout: fixed;
+}
+
+#player-weekly th,
+#player-weekly td {
+  padding: 14px 18px;
+  text-align: center;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  word-break: break-word;
+}
+
+#player-weekly .weekly-row {
+  cursor: pointer;
+}
+
+#player-weekly .weekly-row:hover {
+  background: rgba(255, 140, 0, 0.08);
+}
+
+#player-weekly .weekly-row.active {
+  background: rgba(255, 140, 0, 0.16);
+}
+
 #schedule-table th {
   text-align: center;
 }

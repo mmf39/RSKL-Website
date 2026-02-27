@@ -94,6 +94,8 @@ let playerColumns = {
   opponent: 5,
 };
 let playerNameOverrides = new Map();
+let weeklyRowMap = new Map();
+let activeWeekKey = "";
 
 function parseCSV(text) {
   const rows = [];
@@ -762,6 +764,7 @@ function renderPlayerTeam(teamNameOrList) {
 }
 
 function renderTable(rows) {
+  window.__playerRows = rows;
   const includeSeason = rows.some((row) => row && row.__seasonLabel);
   const headers = includeSeason
     ? ["Season", "Date", "Team", "Score", "Rank", "Opponent"]
@@ -832,10 +835,13 @@ function getWeekBucket(dateObj, anchorYear) {
 
 function renderWeeklyKarma(rows) {
   if (!els.weeklyHead || !els.weeklyBody) return;
+  weeklyRowMap = new Map();
+  activeWeekKey = "";
   const includeSeason = rows.some((row) => row && row.__seasonLabel);
+  const baselines = buildDailyBaselines(rows);
   const headers = includeSeason
-    ? ["Season", "Week", "Range", "GP", "Weekly Karma"]
-    : ["Week", "Range", "GP", "Weekly Karma"];
+    ? ["Season", "Week", "Range", "GP", "Weekly Karma", "Avg Karma", "REL", "WAR"]
+    : ["Week", "Range", "GP", "Weekly Karma", "Avg Karma", "REL", "WAR"];
   els.weeklyHead.innerHTML = `
     <tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}</tr>
   `;
@@ -866,6 +872,7 @@ function renderWeeklyKarma(rows) {
     const current =
       byBucket.get(key) || {
         seasonLabel,
+        bucketId: bucket.key,
         weekLabel: bucket.label,
         range: bucket.range,
         gp: 0,
@@ -899,13 +906,30 @@ function renderWeeklyKarma(rows) {
       const nextWeek = (seasonWeekCounter.get(seasonKey) || 0) + 1;
       seasonWeekCounter.set(seasonKey, nextWeek);
       const label = item.weekLabel || `Week ${nextWeek}`;
+      const bucketKey = `${seasonKey}|${label}|${item.range}`;
+      const bucketRows = datedRows
+        .map((x) => x.row)
+        .filter((row) => {
+          const d = dateFromRowValue(row[playerColumns.date]);
+          if (!d) return false;
+          const b = getWeekBucket(d, firstYear);
+          return (
+            String(row.__seasonLabel || "") === seasonKey &&
+            b.key === item.bucketId
+          );
+        });
+      weeklyRowMap.set(bucketKey, bucketRows);
+      const summary = summarizeRows(bucketRows, baselines);
       return `
-        <tr>
+        <tr class="weekly-row" data-week-key="${escapeHtml(bucketKey)}">
           ${includeSeason ? `<td>${escapeHtml(item.seasonLabel)}</td>` : ""}
           <td>${escapeHtml(label)}</td>
           <td>${escapeHtml(item.range)}</td>
           <td>${escapeHtml(String(item.gp))}</td>
           <td>${escapeHtml(String(Math.round(item.total)))}</td>
+          <td>${summary.avgScore === null ? "—" : escapeHtml(summary.avgScore.toFixed(2))}</td>
+          <td>${summary.relMedian === null ? "—" : escapeHtml(summary.relMedian.toFixed(3))}</td>
+          <td>${summary.war === null ? "—" : escapeHtml(summary.war.toFixed(3))}</td>
         </tr>
       `;
     })
@@ -1760,6 +1784,7 @@ async function loadPlayer() {
           (row) => matchesAnyAlias(row[playerColumns.player], aliases)
         )
       : [];
+    window.__allPlayerRows = filtered;
 
     const baselines = buildDailyBaselines(dataRows);
     renderLeagueRanks(dataRows, playerName);
@@ -1809,7 +1834,6 @@ async function loadPlayer() {
         renderPlayerTeam(teamName);
       }
     }
-    window.__playerRows = filtered;
     window.__boxScoreRows = boxRows;
     await loadPlayerTransactions(playerName, season);
     updateLastUpdated();
@@ -1965,6 +1989,34 @@ els.body.addEventListener("click", (event) => {
   }
   renderBoxScore(boxScore);
 });
+
+if (els.weeklyBody) {
+  els.weeklyBody.addEventListener("click", (event) => {
+    const row = event.target.closest(".weekly-row");
+    if (!row) return;
+    const key = String(row.dataset.weekKey || "");
+    if (!key) return;
+    if (activeWeekKey === key) {
+      activeWeekKey = "";
+      const allRows = window.__allPlayerRows || [];
+      renderTable(allRows);
+      els.weeklyBody
+        .querySelectorAll(".weekly-row")
+        .forEach((r) => r.classList.remove("active"));
+      return;
+    }
+    const weekRows = weeklyRowMap.get(key) || [];
+    activeWeekKey = key;
+    renderTable(weekRows);
+    els.weeklyBody
+      .querySelectorAll(".weekly-row")
+      .forEach((r) => r.classList.toggle("active", r === row));
+    const gameLogPanel = document.querySelector("#player-games")?.closest(".panel");
+    if (gameLogPanel) {
+      gameLogPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+}
 
 document.addEventListener("click", (event) => {
   if (event.target.matches("[data-close=\"true\"]")) {
