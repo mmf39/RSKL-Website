@@ -908,7 +908,7 @@ function renderWeeklyKarma(rows) {
   const seasonWeekCounter = new Map();
   els.weeklyBody.innerHTML = grouped
     .map((item) => {
-      const seasonKey = item.seasonLabel || "_";
+      const seasonKey = String(item.seasonLabel || "");
       const nextWeek = (seasonWeekCounter.get(seasonKey) || 0) + 1;
       seasonWeekCounter.set(seasonKey, nextWeek);
       const label = item.weekLabel || `Week ${nextWeek}`;
