@@ -1040,11 +1040,18 @@ function renderWeeklyModal(key) {
   els.weeklyGamesBody.innerHTML = weekRows
     .map((row) => {
       const score = parseAdjustedScore(row);
+      const teamName = displayTeamName(String(row[playerColumns.team] || "").trim());
+      const opponentName = displayTeamName(String(row[playerColumns.opponent] || "").trim());
+      const dateValue = String(row[playerColumns.date] || "");
+      const dateToken = dateValue.includes("•")
+        ? dateValue.split("•").pop().trim()
+        : dateValue.trim();
       return `
-        <tr>
+        <tr class="weekly-game-row" data-date="${escapeHtml(dateToken)}" data-opponent="${escapeHtml(opponentName)}">
           ${includeSeason ? `<td>${escapeHtml(row.__seasonLabel || "")}</td>` : ""}
           <td>${escapeHtml(row[playerColumns.date] || "")}</td>
-          <td>${escapeHtml(row[playerColumns.opponent] || "")}</td>
+          <td><a data-team-link="true" href="team.html?team=${encodeURIComponent(teamName)}">${escapeHtml(teamName)}</a></td>
+          <td><a data-team-link="true" href="team.html?team=${encodeURIComponent(opponentName)}">${escapeHtml(opponentName)}</a></td>
           <td>${score === null ? "—" : escapeHtml(score.toFixed(1).replace(/\\.0$/, ""))}</td>
           <td>${escapeHtml(row[playerColumns.rank] || "")}</td>
         </tr>
@@ -1058,6 +1065,7 @@ function renderWeeklyModal(key) {
       <tr>
         ${includeSeason ? "<th>Season</th>" : ""}
         <th>Date</th>
+        <th>Team</th>
         <th>Opponent</th>
         <th>Score</th>
         <th>Rank</th>
@@ -2073,6 +2081,27 @@ if (els.weeklyBody) {
       .forEach((r) => r.classList.toggle("active", r === row));
     activeWeekKey = key;
     renderWeeklyModal(key);
+  });
+}
+
+if (els.weeklyGamesBody) {
+  els.weeklyGamesBody.addEventListener("click", (event) => {
+    if (event.target.closest("[data-team-link=\"true\"]")) {
+      return;
+    }
+    const row = event.target.closest(".weekly-game-row");
+    if (!row) return;
+    const dateToken = String(row.dataset.date || "").trim();
+    const opponent = String(row.dataset.opponent || "").trim();
+    if (!dateToken) return;
+    const boxScore = buildBoxScore(dateToken, opponent);
+    els.weeklyModal.hidden = true;
+    if (!boxScore) {
+      els.boxDetails.innerHTML = `<div class=\"boxscore-empty\">No stats available.</div>`;
+      els.modal.hidden = false;
+      return;
+    }
+    renderBoxScore(boxScore);
   });
 }
 
