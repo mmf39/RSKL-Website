@@ -1,5 +1,7 @@
 const DRAFT_CSV_URL = "/api/sheet?name=draft";
 const ARCHIVE_CSV_URL = "/api/sheet?name=archive";
+const STANDINGS_CSV_URL = "/api/sheet?name=standings";
+const DRAFT_CAPITAL_CSV_URL = "/api/sheet?name=draft-capital";
 const DRAFT_YEAR_KEY = "draftYear";
 
 const els = {
@@ -8,9 +10,20 @@ const els = {
   roundSelect: document.getElementById("round-select"),
   yearSelect: document.getElementById("draft-year-select"),
   viewSelect: document.getElementById("draft-view-select"),
+  lotteryPanel: document.getElementById("c2s3-lottery-panel"),
+  rulesPanel: document.getElementById("draft-rules-panel"),
+  runLottery: document.getElementById("run-lottery"),
+  lotteryInfo: document.getElementById("lottery-info"),
+  lotteryResult: document.getElementById("lottery-result"),
 };
 
 const ROUND_RANGES_BY_YEAR = {
+  c2s3: [
+    { id: "round-1", title: "Round 1", range: "" },
+    { id: "round-2", title: "Round 2", range: "" },
+    { id: "round-3", title: "Round 3", range: "" },
+    { id: "round-4", title: "Round 4", range: "" },
+  ],
   c2s2: [
     { id: "round-1", title: "Round 1", range: "A1:C11" },
     { id: "round-2", title: "Round 2", range: "A12:C22" },
@@ -52,6 +65,7 @@ const TEAM_NAMES = new Set([
 ]);
 
 let draftRowsCache = [];
+let c2s3Context = null;
 
 function parseCSV(text) {
   const rows = [];
@@ -326,6 +340,159 @@ function updateLastUpdated() {
   els.lastUpdated.textContent = `Last updated: ${formatted}`;
 }
 
+async function fetchRows(url) {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Fetch failed: ${response.status}`);
+  }
+  return parseCSV(await response.text());
+}
+
+function parseStandingsRows(rows) {
+  const headerRowIndex = rows.findIndex((row) => {
+    const cells = row.map((c) => String(c || "").trim().toLowerCase());
+    return cells.includes("team") && cells.some((c) => c === "wins" || c === "win");
+  });
+  if (headerRowIndex === -1) return [];
+  const headers = rows[headerRowIndex].map((h) => String(h || "").trim().toLowerCase());
+  const teamIdx = headers.indexOf("team");
+  const winsIdx = headers.findIndex((h) => h === "wins" || h === "win");
+  const winPctIdx = headers.findIndex((h) => h === "win %" || h === "win%" || h === "pct");
+  const gpIdx = headers.findIndex((h) => h === "gp");
+  if (teamIdx === -1) return [];
+
+  const parsed = [];
+  for (let i = headerRowIndex + 1; i < rows.length; i += 1) {
+    const row = rows[i] || [];
+    const rawTeam = String(row[teamIdx] || "").trim();
+    if (!rawTeam) continue;
+    const team = canonicalTeamName(rawTeam);
+    const wins = Number(String(row[winsIdx] || "0").replace(/[^0-9.-]/g, "")) || 0;
+    const gp = Number(String(row[gpIdx] || "0").replace(/[^0-9.-]/g, "")) || 0;
+    let winPct = Number(String(row[winPctIdx] || "").replace(/[^0-9.-]/g, ""));
+    if (!Number.isFinite(winPct)) {
+      winPct = gp > 0 ? wins / gp : 0;
+    } else if (winPct > 1.5) {
+      winPct = winPct / 100;
+    }
+    parsed.push({ team, wins, gp, winPct });
+  }
+  return parsed;
+}
+
+function getReverseStandingsOrder(standingsRows) {
+  return [...standingsRows]
+    .sort((a, b) => {
+      if (a.winPct !== b.winPct) return a.winPct - b.winPct;
+      if (a.wins !== b.wins) return a.wins - b.wins;
+      return a.team.localeCompare(b.team);
+    })
+    .map((r) => r.team);
+}
+
+function parseDraftCapitalRows(rows) {
+  const ownersByCol = [
+    "Turkeys",
+    "Gus N Em",
+    "Storm",
+    "Cheerios",
+    "Yetis",
+    "The Lions",
+    "The Phantoms",
+    "The Future",
+    "The Snipers",
+    "Illegals",
+  ];
+  const byRound = new Map();
+
+  rows.forEach((row) => {
+    ownersByCol.forEach((ownerName, colIndex) => {
+      const value = String((row && row[colIndex]) || "").trim();
+      if (!/c2s3/i.test(value)) return;
+      const roundMatch = value.match(/c2s3\s*(\d+)(?:st|nd|rd|th)/i);
+      if (!roundMatch) return;
+      const round = Number(roundMatch[1]);
+      if (!Number.isFinite(round)) return;
+      const viaMatch = value.match(/via\s+(.+)$/i);
+      const original = canonicalTeamName(viaMatch ? viaMatch[1] : ownerName);
+      const owner = canonicalTeamName(ownerName);
+      if (!byRound.has(round)) byRound.set(round, new Map());
+      byRound.get(round).set(original, { owner, text: value });
+    });
+  });
+  return byRound;
+}
+
+function buildC2S3DraftRows(order, draftCapitalByRound, roundNumber) {
+  return order.map((originalTeam, idx) => {
+    const roundMap = draftCapitalByRound.get(roundNumber) || new Map();
+    const pickInfo = roundMap.get(originalTeam);
+    const owner = pickInfo ? pickInfo.owner : originalTeam;
+    const selection = owner === originalTeam ? owner : `${owner} (via ${originalTeam})`;
+    return [String(idx + 1), originalTeam, selection];
+  });
+}
+
+function renderC2S3LotteryPanel(order) {
+  if (!els.lotteryPanel || !els.rulesPanel || !els.lotteryInfo || !els.lotteryResult) return;
+  const nonPlayoff = order.slice(0, 4);
+  const weighted = [
+    { team: nonPlayoff[0], odds: 40 },
+    { team: nonPlayoff[1], odds: 30 },
+    { team: nonPlayoff[2], odds: 20 },
+    { team: nonPlayoff[3], odds: 10 },
+  ].filter((x) => x.team);
+
+  els.lotteryInfo.innerHTML = `
+    <div class="leader-meta">
+      ${weighted
+        .map(
+          (row) =>
+            `<span class="leader-chip">${getTeamLogo(row.team)} <span>${escapeHtml(
+              row.team
+            )} ${row.odds}%</span></span>`
+        )
+        .join("")}
+    </div>
+  `;
+  els.lotteryResult.innerHTML = "<p>Run simulation to draw 1st overall.</p>";
+  els.lotteryPanel.hidden = false;
+  els.rulesPanel.hidden = false;
+}
+
+function runLotterySimulation() {
+  if (!c2s3Context || !els.lotteryResult) return;
+  const weighted = c2s3Context.weighted;
+  if (!weighted || !weighted.length) return;
+  const total = weighted.reduce((sum, x) => sum + x.odds, 0);
+  let r = Math.random() * total;
+  let winner = weighted[0].team;
+  for (const row of weighted) {
+    r -= row.odds;
+    if (r <= 0) {
+      winner = row.team;
+      break;
+    }
+  }
+  const updatedRoundOne = [
+    winner,
+    ...c2s3Context.order.filter((t) => t !== winner),
+  ];
+  const roundOneRows = buildC2S3DraftRows(
+    updatedRoundOne,
+    c2s3Context.draftCapitalByRound,
+    1
+  );
+  const roundOneHtml = renderRound("round-1", "Round 1 (Lottery Sim)", [
+    ["Pick", "Original Pick", "Selection Team"],
+    ...roundOneRows,
+  ]);
+  els.lotteryResult.innerHTML = `
+    <div class="panel-head"><h2>Winner: ${escapeHtml(winner)} (1st Overall)</h2></div>
+    ${roundOneHtml}
+  `;
+}
+
 function renderRound(roundId, title, rows) {
   if (!rows.length) {
     return `
@@ -529,16 +696,53 @@ function renderExpansion(rows) {
 
 function getSelectedDraftYear() {
   const saved = localStorage.getItem(DRAFT_YEAR_KEY);
-  if (saved === "c2s1" || saved === "c2s2") {
+  if (saved === "c2s1" || saved === "c2s2" || saved === "c2s3") {
     return saved;
   }
-  return "c2s2";
+  return "c2s3";
 }
 
 async function loadDraft() {
   try {
     const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
     const selectedView = els.viewSelect ? els.viewSelect.value : "teams";
+    if (els.lotteryPanel) els.lotteryPanel.hidden = true;
+    if (els.rulesPanel) els.rulesPanel.hidden = true;
+    c2s3Context = null;
+
+    if (selectedYear === "c2s3" && selectedView === "teams") {
+      const [standingsRowsRaw, draftCapitalRows] = await Promise.all([
+        fetchRows(STANDINGS_CSV_URL),
+        fetchRows(DRAFT_CAPITAL_CSV_URL),
+      ]);
+      const standingsRows = parseStandingsRows(standingsRowsRaw);
+      const order = getReverseStandingsOrder(standingsRows);
+      const draftCapitalByRound = parseDraftCapitalRows(draftCapitalRows);
+      const roundRanges = ROUND_RANGES_BY_YEAR.c2s3;
+      els.sections.innerHTML = roundRanges
+        .map(({ id, title }, idx) => {
+          const roundNo = idx + 1;
+          const rows = buildC2S3DraftRows(order, draftCapitalByRound, roundNo);
+          return renderRound(id, title, [["Pick", "Original Pick", "Selection Team"], ...rows]);
+        })
+        .join("");
+      applyRoundFilter();
+      const nonPlayoff = order.slice(0, 4);
+      c2s3Context = {
+        order,
+        draftCapitalByRound,
+        weighted: [
+          { team: nonPlayoff[0], odds: 40 },
+          { team: nonPlayoff[1], odds: 30 },
+          { team: nonPlayoff[2], odds: 20 },
+          { team: nonPlayoff[3], odds: 10 },
+        ].filter((x) => x.team),
+      };
+      renderC2S3LotteryPanel(order);
+      updateLastUpdated();
+      return;
+    }
+
     const sourceUrl =
       selectedView === "expansion"
         ? DRAFT_CSV_URL
@@ -597,6 +801,10 @@ if (els.viewSelect) {
       await loadDraft();
     }
   });
+}
+
+if (els.runLottery) {
+  els.runLottery.addEventListener("click", runLotterySimulation);
 }
 
 loadDraft();
