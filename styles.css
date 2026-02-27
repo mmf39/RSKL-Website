@@ -1529,6 +1529,28 @@ input[type="text"] {
   overflow: auto;
 }
 
+#weekly-modal .modal-card {
+  max-width: min(980px, calc(100vw - 24px));
+  width: calc(100vw - 24px);
+}
+
+#weekly-modal-metrics {
+  margin-bottom: 12px;
+}
+
+#weekly-modal-games {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 100%;
+}
+
+#weekly-modal-games th,
+#weekly-modal-games td {
+  text-align: center;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
 .modal-head {
   display: flex;
   justify-content: space-between;

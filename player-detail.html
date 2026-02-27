@@ -157,7 +157,24 @@
       </div>
     </div>
 
-    <script src="player-detail.js?v=20260227a"></script>
+    <div id="weekly-modal" class="modal" hidden>
+      <div class="modal-backdrop" data-close="true"></div>
+      <div class="modal-card" role="dialog" aria-modal="true">
+        <div class="modal-head">
+          <h2 id="weekly-modal-title">Weekly Breakdown</h2>
+          <button class="modal-close" data-close="true">Close</button>
+        </div>
+        <div id="weekly-modal-metrics" class="leader-meta"></div>
+        <div class="table-wrap">
+          <table id="weekly-modal-games">
+            <thead></thead>
+            <tbody id="weekly-modal-games-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script src="player-detail.js?v=20260227b"></script>
       <script src="header-nav.js"></script>
   </body>
 </html>

@@ -63,6 +63,10 @@ const els = {
   weeklyBody: document.querySelector("#player-weekly tbody"),
   modal: document.getElementById("boxscore-modal"),
   boxDetails: document.getElementById("boxscore-details"),
+  weeklyModal: document.getElementById("weekly-modal"),
+  weeklyTitle: document.getElementById("weekly-modal-title"),
+  weeklyMetrics: document.getElementById("weekly-modal-metrics"),
+  weeklyGamesBody: document.getElementById("weekly-modal-games-body"),
   sumTotal: document.getElementById("sum-total"),
   sumAvgScore: document.getElementById("sum-avg-score"),
   sumAvgRank: document.getElementById("sum-avg-rank"),
@@ -95,6 +99,7 @@ let playerColumns = {
 };
 let playerNameOverrides = new Map();
 let weeklyRowMap = new Map();
+let weeklyMetaMap = new Map();
 let activeWeekKey = "";
 
 function parseCSV(text) {
@@ -836,6 +841,7 @@ function getWeekBucket(dateObj, anchorYear) {
 function renderWeeklyKarma(rows) {
   if (!els.weeklyHead || !els.weeklyBody) return;
   weeklyRowMap = new Map();
+  weeklyMetaMap = new Map();
   activeWeekKey = "";
   const includeSeason = rows.some((row) => row && row.__seasonLabel);
   const baselines = buildDailyBaselines(rows);
@@ -919,6 +925,11 @@ function renderWeeklyKarma(rows) {
           );
         });
       weeklyRowMap.set(bucketKey, bucketRows);
+      weeklyMetaMap.set(bucketKey, {
+        seasonLabel: item.seasonLabel,
+        label,
+        range: item.range,
+      });
       const summary = summarizeRows(bucketRows, baselines);
       return `
         <tr class="weekly-row" data-week-key="${escapeHtml(bucketKey)}">
@@ -994,6 +1005,67 @@ function summarizeRows(rows, baselines) {
     relMedian: relMedianGames ? relMedianSum / relMedianGames : null,
     war: warTotal,
   };
+}
+
+function renderWeeklyModal(key) {
+  if (!els.weeklyModal || !els.weeklyTitle || !els.weeklyMetrics || !els.weeklyGamesBody) {
+    return;
+  }
+  const weekRows = weeklyRowMap.get(key) || [];
+  const meta = weeklyMetaMap.get(key) || {};
+  const allRows = window.__allPlayerRows || weekRows;
+  const baselines = buildDailyBaselines(allRows);
+  const summary = summarizeRows(weekRows, baselines);
+
+  const titleParts = [];
+  if (meta.seasonLabel) titleParts.push(meta.seasonLabel);
+  if (meta.label) titleParts.push(meta.label);
+  if (meta.range) titleParts.push(meta.range);
+  els.weeklyTitle.textContent = titleParts.join(" • ") || "Weekly Breakdown";
+
+  els.weeklyMetrics.innerHTML = `
+    <div class="leader-chip">GP <span>${escapeHtml(String(summary.gp || 0))}</span></div>
+    <div class="leader-chip">Avg Karma <span>${summary.avgScore === null ? "—" : escapeHtml(summary.avgScore.toFixed(2))}</span></div>
+    <div class="leader-chip">REL <span>${summary.relMedian === null ? "—" : escapeHtml(summary.relMedian.toFixed(3))}</span></div>
+    <div class="leader-chip">WAR <span>${summary.war === null ? "—" : escapeHtml(summary.war.toFixed(3))}</span></div>
+  `;
+
+  if (!weekRows.length) {
+    els.weeklyGamesBody.innerHTML = `<tr><td colspan="5">No games for this week.</td></tr>`;
+    els.weeklyModal.hidden = false;
+    return;
+  }
+
+  const includeSeason = weekRows.some((row) => row && row.__seasonLabel);
+  els.weeklyGamesBody.innerHTML = weekRows
+    .map((row) => {
+      const score = parseAdjustedScore(row);
+      return `
+        <tr>
+          ${includeSeason ? `<td>${escapeHtml(row.__seasonLabel || "")}</td>` : ""}
+          <td>${escapeHtml(row[playerColumns.date] || "")}</td>
+          <td>${escapeHtml(row[playerColumns.opponent] || "")}</td>
+          <td>${score === null ? "—" : escapeHtml(score.toFixed(1).replace(/\\.0$/, ""))}</td>
+          <td>${escapeHtml(row[playerColumns.rank] || "")}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  const head = document.querySelector("#weekly-modal-games thead");
+  if (head) {
+    head.innerHTML = `
+      <tr>
+        ${includeSeason ? "<th>Season</th>" : ""}
+        <th>Date</th>
+        <th>Opponent</th>
+        <th>Score</th>
+        <th>Rank</th>
+      </tr>
+    `;
+  }
+
+  els.weeklyModal.hidden = false;
 }
 
 function updateSummary(rows, baselines) {
@@ -1996,31 +2068,20 @@ if (els.weeklyBody) {
     if (!row) return;
     const key = String(row.dataset.weekKey || "");
     if (!key) return;
-    if (activeWeekKey === key) {
-      activeWeekKey = "";
-      const allRows = window.__allPlayerRows || [];
-      renderTable(allRows);
-      els.weeklyBody
-        .querySelectorAll(".weekly-row")
-        .forEach((r) => r.classList.remove("active"));
-      return;
-    }
-    const weekRows = weeklyRowMap.get(key) || [];
-    activeWeekKey = key;
-    renderTable(weekRows);
     els.weeklyBody
       .querySelectorAll(".weekly-row")
       .forEach((r) => r.classList.toggle("active", r === row));
-    const gameLogPanel = document.querySelector("#player-games")?.closest(".panel");
-    if (gameLogPanel) {
-      gameLogPanel.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    activeWeekKey = key;
+    renderWeeklyModal(key);
   });
 }
 
 document.addEventListener("click", (event) => {
   if (event.target.matches("[data-close=\"true\"]")) {
     els.modal.hidden = true;
+    if (els.weeklyModal) {
+      els.weeklyModal.hidden = true;
+    }
   }
 });
 
