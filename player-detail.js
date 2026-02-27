@@ -59,6 +59,8 @@ const els = {
   lastUpdated: document.getElementById("last-updated"),
   head: document.querySelector("#player-games thead"),
   body: document.querySelector("#player-games tbody"),
+  weeklyHead: document.querySelector("#player-weekly thead"),
+  weeklyBody: document.querySelector("#player-weekly tbody"),
   modal: document.getElementById("boxscore-modal"),
   boxDetails: document.getElementById("boxscore-details"),
   sumTotal: document.getElementById("sum-total"),
@@ -787,6 +789,126 @@ function renderTable(rows) {
         </tr>
       `
     )
+    .join("");
+}
+
+function dateFromRowValue(value) {
+  const parsed = parseDateValue(value);
+  if (parsed === Number.NEGATIVE_INFINITY) return null;
+  const d = new Date(parsed);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function formatMonthDay(dateObj) {
+  return `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+}
+
+function getWeekBucket(dateObj, anchorYear) {
+  const weekOneStart = new Date(anchorYear, 1, 23); // 2/23
+  const weekOneEnd = new Date(anchorYear, 2, 2); // 3/2
+
+  if (dateObj >= weekOneStart && dateObj <= weekOneEnd) {
+    return {
+      key: `W1-${anchorYear}`,
+      label: "Week 1",
+      range: `${formatMonthDay(weekOneStart)}-${formatMonthDay(weekOneEnd)}`,
+      sortTime: weekOneStart.getTime(),
+    };
+  }
+
+  const sundayStart = new Date(dateObj);
+  sundayStart.setHours(0, 0, 0, 0);
+  sundayStart.setDate(sundayStart.getDate() - sundayStart.getDay());
+  const sundayEnd = new Date(sundayStart);
+  sundayEnd.setDate(sundayEnd.getDate() + 7);
+
+  return {
+    key: `W-${sundayStart.getTime()}`,
+    label: "",
+    range: `${formatMonthDay(sundayStart)}-${formatMonthDay(sundayEnd)}`,
+    sortTime: sundayStart.getTime(),
+  };
+}
+
+function renderWeeklyKarma(rows) {
+  if (!els.weeklyHead || !els.weeklyBody) return;
+  const includeSeason = rows.some((row) => row && row.__seasonLabel);
+  const headers = includeSeason
+    ? ["Season", "Week", "Range", "GP", "Weekly Karma"]
+    : ["Week", "Range", "GP", "Weekly Karma"];
+  els.weeklyHead.innerHTML = `
+    <tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}</tr>
+  `;
+
+  if (!rows.length) {
+    els.weeklyBody.innerHTML = `<tr><td colspan="${headers.length}">No weekly data available.</td></tr>`;
+    return;
+  }
+
+  const datedRows = rows
+    .map((row) => ({ row, dateObj: dateFromRowValue(row[playerColumns.date]) }))
+    .filter((item) => item.dateObj);
+
+  if (!datedRows.length) {
+    els.weeklyBody.innerHTML = `<tr><td colspan="${headers.length}">No weekly data available.</td></tr>`;
+    return;
+  }
+
+  const firstYear = datedRows[0].dateObj.getFullYear();
+  const byBucket = new Map();
+
+  datedRows.forEach(({ row, dateObj }) => {
+    const score = parseAdjustedScore(row);
+    if (score === null) return;
+    const seasonLabel = String(row.__seasonLabel || "");
+    const bucket = getWeekBucket(dateObj, firstYear);
+    const key = `${seasonLabel}|${bucket.key}`;
+    const current =
+      byBucket.get(key) || {
+        seasonLabel,
+        weekLabel: bucket.label,
+        range: bucket.range,
+        gp: 0,
+        total: 0,
+        sortTime: bucket.sortTime,
+      };
+    current.gp += 1;
+    current.total += score;
+    byBucket.set(key, current);
+  });
+
+  const grouped = Array.from(byBucket.values()).sort((a, b) => {
+    if (a.seasonLabel !== b.seasonLabel) {
+      const order = ["C2S2 Regular Season", "C2S1 Playoffs", "C2S1 Regular Season"];
+      const ai = order.indexOf(a.seasonLabel);
+      const bi = order.indexOf(b.seasonLabel);
+      if (ai !== -1 || bi !== -1) {
+        if (ai === -1) return 1;
+        if (bi === -1) return -1;
+        return ai - bi;
+      }
+      return a.seasonLabel.localeCompare(b.seasonLabel);
+    }
+    return a.sortTime - b.sortTime;
+  });
+
+  const seasonWeekCounter = new Map();
+  els.weeklyBody.innerHTML = grouped
+    .map((item) => {
+      const seasonKey = item.seasonLabel || "_";
+      const nextWeek = (seasonWeekCounter.get(seasonKey) || 0) + 1;
+      seasonWeekCounter.set(seasonKey, nextWeek);
+      const label = item.weekLabel || `Week ${nextWeek}`;
+      return `
+        <tr>
+          ${includeSeason ? `<td>${escapeHtml(item.seasonLabel)}</td>` : ""}
+          <td>${escapeHtml(label)}</td>
+          <td>${escapeHtml(item.range)}</td>
+          <td>${escapeHtml(String(item.gp))}</td>
+          <td>${escapeHtml(String(Math.round(item.total)))}</td>
+        </tr>
+      `;
+    })
     .join("");
 }
 
@@ -1550,6 +1672,7 @@ async function loadPlayer() {
 
   if (playerName.toUpperCase().startsWith("GM")) {
     renderTable([]);
+    renderWeeklyKarma([]);
     updateSummary([]);
     els.body.innerHTML = `<tr><td>No stats for GM entries.</td></tr>`;
     renderAwards([]);
@@ -1642,12 +1765,14 @@ async function loadPlayer() {
     renderLeagueRanks(dataRows, playerName);
     if (season === "c2s1-regular") {
       els.body.innerHTML = `<tr><td>No stats available for C2S1 Regular Season.</td></tr>`;
+      renderWeeklyKarma([]);
       updateSummary([], baselines);
       renderCareerTeamBreakdown([], baselines, season);
       const teamName = await findTeamForPlayer(season, playerName);
       renderPlayerTeam(teamName);
     } else {
       renderTable(filtered);
+      renderWeeklyKarma(filtered);
       updateSummary(filtered, baselines);
       renderCareerTeamBreakdown(filtered, baselines, season);
       const teamsFromStats = getTeamsFromRows(filtered);
@@ -1691,6 +1816,7 @@ async function loadPlayer() {
     loadAwards(playerName);
   } catch (error) {
     els.body.innerHTML = `<tr><td>${escapeHtml(error.message)}</td></tr>`;
+    renderWeeklyKarma([]);
     renderLeagueRanks([], playerName);
   }
 }
