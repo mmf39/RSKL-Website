@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260318a" />
   </head>
   <body>
     <div class="bg"></div>
@@ -52,6 +52,7 @@
             <button class="gm-tab active" type="button" data-gm-tab="trade">Trade Block</button>
             <button class="gm-tab" type="button" data-gm-tab="rename">Player Name Changes</button>
             <button class="gm-tab" type="button" data-gm-tab="lineup">Lineup Submit</button>
+            <button class="gm-tab" type="button" data-gm-tab="power">Power Rankings Vote</button>
           </div>
         </div>
         <div id="gm-tab-trade" class="gm-tab-panel">
@@ -162,6 +163,40 @@
             <div id="lineup-status" class="gm-status"></div>
           </div>
         </div>
+
+        <div id="gm-tab-power" class="gm-tab-panel" hidden>
+          <div class="gm-card">
+            <div class="label">Submit Power Rankings Ballot</div>
+            <label class="label" for="power-team-select">Team</label>
+            <select id="power-team-select" class="text-input">
+              <option value="">Select team</option>
+              <option value="Gus N Em">Gus N Em</option>
+              <option value="Bullets">Storm</option>
+              <option value="Turkeys">Turkeys</option>
+              <option value="Cheerios">Cheerios</option>
+              <option value="Yetis">Yetis</option>
+              <option value="Illegals">Illegals</option>
+              <option value="The Lions">The Lions</option>
+              <option value="The Future">The Future</option>
+              <option value="The Snipers">The Snipers</option>
+              <option value="The Phantoms">The Phantoms</option>
+            </select>
+
+            <div class="label">Rank teams #1 to #10</div>
+            <div id="power-rankings-list" class="gm-rankings-list"></div>
+
+            <label class="label" for="power-code">Access Code</label>
+            <input id="power-code" class="text-input" type="password" placeholder="Enter code to submit vote" />
+
+            <button id="power-save" class="btn">Submit Power Rankings Vote</button>
+            <div id="power-status" class="gm-status"></div>
+          </div>
+
+          <div class="gm-card">
+            <div class="label">Submitted Votes (Read Only)</div>
+            <div id="power-votes-view" class="gm-readonly-list"></div>
+          </div>
+        </div>
       </section>
     </main>
 
@@ -169,7 +204,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="gm.js"></script>
+    <script src="gm.js?v=20260318a"></script>
       <script src="header-nav.js"></script>
   </body>
 </html>

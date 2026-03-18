@@ -54,12 +54,14 @@ const TEAM_ORDER = [
 ];
 
 const TRADE_BLOCKS_API = "/api/sheet-update";
+const POWER_VOTES_STORAGE_KEY = "powerRankingsVotes";
 
 const els = {
   tabButtons: Array.from(document.querySelectorAll("[data-gm-tab]")),
   tabTradePanel: document.getElementById("gm-tab-trade"),
   tabRenamePanel: document.getElementById("gm-tab-rename"),
   tabLineupPanel: document.getElementById("gm-tab-lineup"),
+  tabPowerPanel: document.getElementById("gm-tab-power"),
   lastUpdated: document.getElementById("last-updated"),
   teamSelect: document.getElementById("gm-team-select"),
   teamLabel: document.getElementById("gm-team-label"),
@@ -81,14 +83,28 @@ const els = {
   lineupCode: document.getElementById("lineup-code"),
   lineupSave: document.getElementById("lineup-save"),
   lineupStatus: document.getElementById("lineup-status"),
+  powerTeamSelect: document.getElementById("power-team-select"),
+  powerRankingsList: document.getElementById("power-rankings-list"),
+  powerCode: document.getElementById("power-code"),
+  powerSave: document.getElementById("power-save"),
+  powerStatus: document.getElementById("power-status"),
+  powerVotesView: document.getElementById("power-votes-view"),
 };
 
 let rosterByTeam = new Map();
 let picksByTeam = new Map();
 let tradeBlocksCache = {};
+let powerVotesCache = {};
 
 function setActiveTab(tab) {
-  const active = tab === "rename" ? "rename" : tab === "lineup" ? "lineup" : "trade";
+  const active =
+    tab === "rename"
+      ? "rename"
+      : tab === "lineup"
+      ? "lineup"
+      : tab === "power"
+      ? "power"
+      : "trade";
   if (els.tabTradePanel) {
     els.tabTradePanel.hidden = active !== "trade";
   }
@@ -97,6 +113,9 @@ function setActiveTab(tab) {
   }
   if (els.tabLineupPanel) {
     els.tabLineupPanel.hidden = active !== "lineup";
+  }
+  if (els.tabPowerPanel) {
+    els.tabPowerPanel.hidden = active !== "power";
   }
   if (els.tabButtons && els.tabButtons.length) {
     els.tabButtons.forEach((button) => {
@@ -174,6 +193,12 @@ function setLineupStatus(message, isError = false) {
   if (!els.lineupStatus) return;
   els.lineupStatus.textContent = message;
   els.lineupStatus.className = `gm-status ${isError ? "error" : ""}`;
+}
+
+function setPowerStatus(message, isError = false) {
+  if (!els.powerStatus) return;
+  els.powerStatus.textContent = message;
+  els.powerStatus.className = `gm-status ${isError ? "error" : ""}`;
 }
 
 function parseCSV(text) {
@@ -388,6 +413,90 @@ async function submitLineupToSheet(team, lineup, captain) {
   return payload;
 }
 
+function normalizePowerVoteMap(value) {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+  const out = {};
+  Object.entries(value).forEach(([team, vote]) => {
+    if (!team || !vote || typeof vote !== "object") return;
+    const rankings = Array.isArray(vote.rankings)
+      ? vote.rankings.map((v) => String(v || "").trim()).filter(Boolean)
+      : [];
+    out[team] = {
+      rankings,
+      updatedAt: vote.updatedAt || "",
+    };
+  });
+  return out;
+}
+
+function getLocalPowerVotes() {
+  try {
+    const raw = localStorage.getItem(POWER_VOTES_STORAGE_KEY);
+    if (!raw) return {};
+    return normalizePowerVoteMap(JSON.parse(raw));
+  } catch (_) {
+    return {};
+  }
+}
+
+function setLocalPowerVotes(votes) {
+  try {
+    localStorage.setItem(
+      POWER_VOTES_STORAGE_KEY,
+      JSON.stringify(normalizePowerVoteMap(votes))
+    );
+  } catch (_) {
+    // ignore local storage failures
+  }
+}
+
+async function fetchPowerVotesFromSheet() {
+  const response = await fetch(TRADE_BLOCKS_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "getPowerRankings" }),
+  });
+  if (!response.ok) {
+    throw new Error(`Power rankings fetch failed: ${response.status}`);
+  }
+  const payload = await response.json();
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Invalid power rankings response.");
+  }
+  if (payload.ok === false) {
+    throw new Error(payload.message || "Power rankings fetch failed.");
+  }
+  return normalizePowerVoteMap(
+    payload.powerRankings || payload.votes || payload.data || {}
+  );
+}
+
+async function savePowerVoteToSheet(team, vote) {
+  const response = await fetch(TRADE_BLOCKS_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "savePowerRankings",
+      team,
+      rankings: Array.isArray(vote.rankings) ? vote.rankings : [],
+      updatedAt: vote.updatedAt || new Date().toISOString(),
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Power rankings save failed: ${response.status}`);
+  }
+  const payload = await response.json();
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Invalid power rankings save response.");
+  }
+  if (payload.ok === false) {
+    throw new Error(payload.message || "Power rankings save failed.");
+  }
+  return true;
+}
+
 function getTeamPlayers(team) {
   return rosterByTeam.get(team) || [];
 }
@@ -580,6 +689,82 @@ function renderLineupTeam(team) {
   setLineupStatus("");
 }
 
+function renderPowerRankingsTeam(team) {
+  if (!els.powerRankingsList) return;
+  if (!team) {
+    els.powerRankingsList.innerHTML = '<div class="gm-empty">Select a team.</div>';
+    return;
+  }
+  const saved = powerVotesCache[team];
+  const used = new Set();
+  const pick = (index) => {
+    const value =
+      saved && Array.isArray(saved.rankings) && saved.rankings[index]
+        ? saved.rankings[index]
+        : "";
+    if (value) used.add(value);
+    return value;
+  };
+
+  const options = TEAM_ORDER.map((teamKey) => ({
+    key: teamKey,
+    label: displayTeamName(teamKey),
+  }));
+
+  els.powerRankingsList.innerHTML = Array.from({ length: TEAM_ORDER.length }, (_, idx) => {
+    const rank = idx + 1;
+    const selected = pick(idx);
+    const opts = [
+      '<option value="">Select team</option>',
+      ...options.map(
+        (opt) =>
+          `<option value="${escapeHtml(opt.key)}" ${
+            opt.key === selected ? "selected" : ""
+          }>${escapeHtml(opt.label)}</option>`
+      ),
+    ].join("");
+    return `
+      <div class="gm-rank-row">
+        <div class="gm-rank-label">#${rank}</div>
+        <select class="text-input" data-power-rank="${rank}">${opts}</select>
+      </div>
+    `;
+  }).join("");
+  if (els.powerCode) {
+    els.powerCode.value = "";
+  }
+  setPowerStatus("");
+}
+
+function renderPowerVotesView() {
+  if (!els.powerVotesView) return;
+  const teams = TEAM_ORDER.filter((team) => powerVotesCache[team]);
+  if (!teams.length) {
+    els.powerVotesView.innerHTML = '<div class="gm-empty">No votes submitted.</div>';
+    return;
+  }
+  els.powerVotesView.innerHTML = teams
+    .map((team) => {
+      const vote = powerVotesCache[team] || {};
+      const rankings = Array.isArray(vote.rankings) ? vote.rankings : [];
+      const updatedAt = vote.updatedAt ? new Date(vote.updatedAt).toLocaleString() : "—";
+      return `
+        <div class="gm-readonly-card">
+          <div class="gm-readonly-title">${escapeHtml(displayTeamName(team))}</div>
+          <div class="gm-readonly-group">
+            <div class="label">Ballot</div>
+            <div>${rankings.length ? rankings.map((t, i) => `#${i + 1} ${escapeHtml(displayTeamName(t))}`).join(" • ") : "No rankings submitted."}</div>
+          </div>
+          <div class="gm-readonly-group">
+            <div class="label">Updated</div>
+            <div>${escapeHtml(updatedAt)}</div>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
 async function loadRoster() {
   const response = await fetch(ROSTER_URL, { cache: "no-store" });
   if (!response.ok) {
@@ -683,6 +868,11 @@ function bindEvents() {
   if (els.lineupTeamSelect) {
     els.lineupTeamSelect.addEventListener("change", () => {
       renderLineupTeam(els.lineupTeamSelect.value);
+    });
+  }
+  if (els.powerTeamSelect) {
+    els.powerTeamSelect.addEventListener("change", () => {
+      renderPowerRankingsTeam(els.powerTeamSelect.value);
     });
   }
 
@@ -822,6 +1012,61 @@ function bindEvents() {
       }
     });
   }
+
+  if (els.powerSave) {
+    els.powerSave.addEventListener("click", async () => {
+      const team = els.powerTeamSelect ? els.powerTeamSelect.value : "";
+      if (!team) {
+        setPowerStatus("Select a team first.", true);
+        return;
+      }
+      const expectedCode = getTeamUpdateCode(team);
+      if (!expectedCode) {
+        setPowerStatus("No update code configured for this team.", true);
+        return;
+      }
+      if (!isValidUpdateCode(els.powerCode ? els.powerCode.value : "", expectedCode)) {
+        setPowerStatus("Invalid access code.", true);
+        return;
+      }
+      const rankings = Array.from(
+        els.powerRankingsList.querySelectorAll("select[data-power-rank]")
+      ).map((node) => String(node.value || "").trim());
+      if (rankings.some((value) => !value)) {
+        setPowerStatus("Rank all 10 slots before submitting.", true);
+        return;
+      }
+      const unique = new Set(rankings);
+      if (unique.size !== TEAM_ORDER.length) {
+        setPowerStatus("Each team can only appear once.", true);
+        return;
+      }
+
+      const vote = {
+        rankings,
+        updatedAt: new Date().toISOString(),
+      };
+
+      let savedRemote = false;
+      try {
+        await savePowerVoteToSheet(team, vote);
+        savedRemote = true;
+      } catch (_) {
+        savedRemote = false;
+      }
+
+      powerVotesCache[team] = vote;
+      setLocalPowerVotes(powerVotesCache);
+      renderPowerVotesView();
+      setPowerStatus(
+        savedRemote
+          ? "Power rankings vote submitted."
+          : "Vote saved locally (sheet sync unavailable).",
+        !savedRemote
+      );
+      updateLastUpdated();
+    });
+  }
 }
 
 async function init() {
@@ -838,9 +1083,19 @@ async function init() {
         true
       );
     }
+    try {
+      powerVotesCache = await fetchPowerVotesFromSheet();
+      setLocalPowerVotes(powerVotesCache);
+    } catch (_) {
+      powerVotesCache = getLocalPowerVotes();
+    }
     renderSelectedTeam(els.teamSelect.value || "");
     renderRenameTeam(els.renameTeamSelect ? els.renameTeamSelect.value : "");
     renderLineupTeam(els.lineupTeamSelect ? els.lineupTeamSelect.value : "");
+    renderPowerRankingsTeam(
+      els.powerTeamSelect ? els.powerTeamSelect.value : ""
+    );
+    renderPowerVotesView();
     updateLastUpdated();
   } catch (error) {
     setTradeStatus(error.message, true);

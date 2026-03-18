@@ -2208,6 +2208,24 @@ input[type="text"] {
   color: var(--muted);
 }
 
+.gm-rankings-list {
+  display: grid;
+  gap: 8px;
+}
+
+.gm-rank-row {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.gm-rank-label {
+  font-weight: 700;
+  color: var(--accent);
+  text-align: center;
+}
+
 
 
 .champion-box {
