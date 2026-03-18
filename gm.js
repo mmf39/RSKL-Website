@@ -502,11 +502,11 @@ async function savePowerVoteToSheet(team, vote) {
   if (!response.ok) {
     throw new Error(`Power rankings save failed: ${response.status}`);
   }
-  let result;
+  const raw = await response.text();
+  let result = null;
   try {
-    result = await response.json();
+    result = raw ? JSON.parse(raw) : {};
   } catch (_) {
-    const raw = await response.text();
     throw new Error(raw || "Invalid power rankings save response.");
   }
   if (!result || typeof result !== "object") {
