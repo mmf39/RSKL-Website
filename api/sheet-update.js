@@ -5,6 +5,8 @@ const TRADEBLOCK_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbylZD-O7LCsznZpnRpYsAdbp7bCbknV-qta8PO0uv_k4Tnevf8Klkbfcg6Hh5DXC9GFvg/exec";
 const PLAYER_UPDATE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbybgKT1WjHN7G13XiymsMNM6eO_sOtfchPsWGJfPZwLvEFJ6_QsYJ9pBt7jNWTkM9msXA/exec";
+const POWER_RANKINGS_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbyo327S71m8D-eGfZr1CPTZfLQ19_ZVlJEgc0LLfZPTgG44llKy_zpLMJ5EB0uWpVJ4/exec";
 
 function parseQueryFromReq(req) {
   if (req && req.query && typeof req.query === "object") {
@@ -25,6 +27,9 @@ function withAction(url, action) {
 }
 
 function getScriptUrlByAction(action) {
+  if (action === "savePowerRankings" || action === "getPowerRankings") {
+    return POWER_RANKINGS_SCRIPT_URL;
+  }
   return action === "updatePlayer" || action === "submitLineup"
     ? PLAYER_UPDATE_SCRIPT_URL
     : TRADEBLOCK_SCRIPT_URL;
