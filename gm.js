@@ -1,4 +1,5 @@
 const ROSTER_URL = "/api/sheet?name=roster";
+const GM_LINEUP_CSV_URL = ROSTER_URL;
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
 const POWER_RANKINGS_URL = "/api/sheet?name=power-rankings";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
@@ -96,7 +97,7 @@ let powerVotesCache = {};
 let supabaseUrl = "";
 let supabaseAnon = "";
 let gmSession = null;
-let gmProfile = null;
+let gmAssignment = null;
 
 function setActiveTab(tab) {
   const active =
@@ -232,7 +233,42 @@ async function fetchAuthUser(accessToken) {
   });
 }
 
-async function fetchGmProfile(userId) {
+async function fetchGmAssignment(userId) {
+  const query = `?select=user_id,team,team_name,role,is_gm,is_commish&user_id=eq.${encodeURIComponent(
+    userId
+  )}&limit=1`;
+  const rows = await requestJson(
+    `${supabaseUrl}/rest/v1/gm_assignments${query}`,
+    {
+      headers: authHeaders(true),
+    }
+  );
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (!row) {
+    return null;
+  }
+  const role = String(row.role || "").trim().toLowerCase();
+  const team = String(row.team || row.team_name || "").trim();
+  const commishByRole =
+    role === "commish" || role === "commissioner" || role === "admin";
+  const allowed =
+    row.is_gm === true ||
+    row.is_commish === true ||
+    commishByRole ||
+    !!team;
+  if (!allowed) {
+    return null;
+  }
+  return {
+    user_id: row.user_id,
+    team,
+    role,
+    is_gm: row.is_gm === true || !!team,
+    is_commish: row.is_commish === true || commishByRole,
+  };
+}
+
+async function fetchLegacyGmProfile(userId) {
   const query = `?select=user_id,team_name,is_gm,is_commish&user_id=eq.${encodeURIComponent(
     userId
   )}&limit=1`;
@@ -243,7 +279,13 @@ async function fetchGmProfile(userId) {
   if (!row || row.is_gm === false) {
     return null;
   }
-  return row;
+  return {
+    user_id: row.user_id,
+    team: String(row.team_name || "").trim(),
+    role: row.is_commish ? "commish" : "gm",
+    is_gm: row.is_gm !== false,
+    is_commish: row.is_commish === true,
+  };
 }
 
 async function signUpAuth(email, password) {
@@ -283,15 +325,15 @@ async function signOutAuth() {
 }
 
 function getAuthorizedTeam() {
-  return String(gmProfile?.team_name || "").trim();
+  return String(gmAssignment?.team || "").trim();
 }
 
 function isCommish() {
-  return !!gmProfile?.is_commish;
+  return !!gmAssignment?.is_commish;
 }
 
 function isSignedInGm() {
-  return !!gmSession?.user?.id && !!gmProfile;
+  return !!gmSession?.user?.id && !!gmAssignment;
 }
 
 function sameTeam(a, b) {
@@ -995,7 +1037,7 @@ function randomizePowerRankings() {
 }
 
 async function loadRoster() {
-  const response = await fetch(ROSTER_URL, { cache: "no-store" });
+  const response = await fetch(GM_LINEUP_CSV_URL, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Fetch failed: ${response.status}`);
   }
@@ -1148,8 +1190,11 @@ function bindEvents() {
         const user = await fetchAuthUser(tokenData.access_token);
         gmSession = { access_token: tokenData.access_token, user };
         localStorage.setItem(GM_ACCESS_TOKEN_KEY, tokenData.access_token);
-        gmProfile = await fetchGmProfile(user.id);
-        if (!gmProfile) {
+        gmAssignment = await fetchGmAssignment(user.id);
+        if (!gmAssignment) {
+          gmAssignment = await fetchLegacyGmProfile(user.id);
+        }
+        if (!gmAssignment) {
           setAuthStatus("No GM access found for this account.", true);
         } else {
           setAuthStatus("Signed in.");
@@ -1157,7 +1202,7 @@ function bindEvents() {
         applyAuthUi();
       } catch (error) {
         gmSession = null;
-        gmProfile = null;
+        gmAssignment = null;
         localStorage.removeItem(GM_ACCESS_TOKEN_KEY);
         applyAuthUi();
         setAuthStatus(error.message || "Sign in failed.", true);
@@ -1168,7 +1213,7 @@ function bindEvents() {
     els.authSignOut.addEventListener("click", async () => {
       await signOutAuth();
       gmSession = null;
-      gmProfile = null;
+      gmAssignment = null;
       localStorage.removeItem(GM_ACCESS_TOKEN_KEY);
       applyAuthUi();
       setAuthStatus("Signed out.");
@@ -1347,10 +1392,13 @@ async function init() {
       try {
         const user = await fetchAuthUser(savedToken);
         gmSession = { access_token: savedToken, user };
-        gmProfile = await fetchGmProfile(user.id);
+        gmAssignment = await fetchGmAssignment(user.id);
+        if (!gmAssignment) {
+          gmAssignment = await fetchLegacyGmProfile(user.id);
+        }
       } catch (_) {
         gmSession = null;
-        gmProfile = null;
+        gmAssignment = null;
         localStorage.removeItem(GM_ACCESS_TOKEN_KEY);
       }
     }
