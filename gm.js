@@ -1,5 +1,6 @@
 const ROSTER_URL = "/api/sheet?name=roster";
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
+const POWER_RANKINGS_URL = "/api/sheet?name=power-rankings";
 const TEAM_UPDATE_CODES = {
   "Gus N Em": "Harbor9!Maple",
   Bullets: "Orbit#17Cinder",
@@ -54,7 +55,6 @@ const TEAM_ORDER = [
 ];
 
 const TRADE_BLOCKS_API = "/api/sheet-update";
-const POWER_VOTES_STORAGE_KEY = "powerRankingsVotes";
 
 const els = {
   tabButtons: Array.from(document.querySelectorAll("[data-gm-tab]")),
@@ -414,63 +414,70 @@ async function submitLineupToSheet(team, lineup, captain) {
 }
 
 function normalizePowerVoteMap(value) {
-  if (!value || typeof value !== "object") {
-    return {};
-  }
+  if (!value || typeof value !== "object") return {};
   const out = {};
   Object.entries(value).forEach(([team, vote]) => {
     if (!team || !vote || typeof vote !== "object") return;
     const rankings = Array.isArray(vote.rankings)
       ? vote.rankings.map((v) => String(v || "").trim()).filter(Boolean)
       : [];
-    out[team] = {
-      rankings,
-      updatedAt: vote.updatedAt || "",
-    };
+    out[team] = { rankings, updatedAt: vote.updatedAt || "" };
   });
   return out;
 }
 
-function getLocalPowerVotes() {
-  try {
-    const raw = localStorage.getItem(POWER_VOTES_STORAGE_KEY);
-    if (!raw) return {};
-    return normalizePowerVoteMap(JSON.parse(raw));
-  } catch (_) {
-    return {};
-  }
-}
+function parsePowerVotesCsv(rows) {
+  const nonEmpty = rows.filter((row) =>
+    row.some((cell) => String(cell || "").trim() !== "")
+  );
+  if (!nonEmpty.length) return {};
 
-function setLocalPowerVotes(votes) {
-  try {
-    localStorage.setItem(
-      POWER_VOTES_STORAGE_KEY,
-      JSON.stringify(normalizePowerVoteMap(votes))
+  const header = (nonEmpty[0] || []).map((h) =>
+    String(h || "").trim().toLowerCase()
+  );
+  const teamIdx = header.findIndex((h) => h === "team" || h.includes("team"));
+  const updatedIdx = header.findIndex(
+    (h) => h.includes("updated") || h.includes("submitted") || h.includes("time")
+  );
+  const rankIdxs = header
+    .map((h, i) => ({ h, i }))
+    .filter(({ h }) => h.startsWith("rank") || h.includes("#"))
+    .map(({ i }) => i)
+    .slice(0, TEAM_ORDER.length);
+  const hasHeader = teamIdx !== -1 || rankIdxs.length > 0;
+  const body = hasHeader ? nonEmpty.slice(1) : nonEmpty;
+
+  const out = {};
+  body.forEach((row) => {
+    const teamCell =
+      teamIdx >= 0 ? String(row[teamIdx] || "").trim() : String(row[0] || "").trim();
+    const team = TEAM_ORDER.find(
+      (t) => normalizeName(displayTeamName(t)) === normalizeName(displayTeamName(teamCell))
     );
-  } catch (_) {
-    // ignore local storage failures
-  }
+    if (!team) return;
+    let rankings = [];
+    if (rankIdxs.length) {
+      rankings = rankIdxs.map((i) => String(row[i] || "").trim()).filter(Boolean);
+    } else {
+      rankings = row
+        .slice(teamIdx >= 0 ? teamIdx + 1 : 1, (teamIdx >= 0 ? teamIdx + 1 : 1) + TEAM_ORDER.length)
+        .map((v) => String(v || "").trim())
+        .filter(Boolean);
+    }
+    const updatedAt =
+      updatedIdx >= 0 ? String(row[updatedIdx] || "").trim() : String(row[row.length - 1] || "").trim();
+    out[team] = { rankings, updatedAt };
+  });
+  return out;
 }
 
 async function fetchPowerVotesFromSheet() {
-  const response = await fetch(TRADE_BLOCKS_API, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "getPowerRankings" }),
-  });
+  const response = await fetch(POWER_RANKINGS_URL, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Power rankings fetch failed: ${response.status}`);
   }
-  const payload = await response.json();
-  if (!payload || typeof payload !== "object") {
-    throw new Error("Invalid power rankings response.");
-  }
-  if (payload.ok === false) {
-    throw new Error(payload.message || "Power rankings fetch failed.");
-  }
-  return normalizePowerVoteMap(
-    payload.powerRankings || payload.votes || payload.data || {}
-  );
+  const rows = parseCSV(await response.text());
+  return normalizePowerVoteMap(parsePowerVotesCsv(rows));
 }
 
 async function savePowerVoteToSheet(team, vote) {
@@ -738,31 +745,27 @@ function renderPowerRankingsTeam(team) {
 
 function renderPowerVotesView() {
   if (!els.powerVotesView) return;
-  const teams = TEAM_ORDER.filter((team) => powerVotesCache[team]);
-  if (!teams.length) {
-    els.powerVotesView.innerHTML = '<div class="gm-empty">No votes submitted.</div>';
+  const selectedTeam = els.powerTeamSelect ? els.powerTeamSelect.value : "";
+  if (!selectedTeam) {
+    els.powerVotesView.innerHTML = '<div class="gm-empty">Select a team to view your ballot.</div>';
     return;
   }
-  els.powerVotesView.innerHTML = teams
-    .map((team) => {
-      const vote = powerVotesCache[team] || {};
-      const rankings = Array.isArray(vote.rankings) ? vote.rankings : [];
-      const updatedAt = vote.updatedAt ? new Date(vote.updatedAt).toLocaleString() : "—";
-      return `
-        <div class="gm-readonly-card">
-          <div class="gm-readonly-title">${escapeHtml(displayTeamName(team))}</div>
-          <div class="gm-readonly-group">
-            <div class="label">Ballot</div>
-            <div>${rankings.length ? rankings.map((t, i) => `#${i + 1} ${escapeHtml(displayTeamName(t))}`).join(" • ") : "No rankings submitted."}</div>
-          </div>
-          <div class="gm-readonly-group">
-            <div class="label">Updated</div>
-            <div>${escapeHtml(updatedAt)}</div>
-          </div>
-        </div>
-      `;
-    })
-    .join("");
+  const vote = powerVotesCache[selectedTeam] || {};
+  const rankings = Array.isArray(vote.rankings) ? vote.rankings : [];
+  const updatedAt = vote.updatedAt ? new Date(vote.updatedAt).toLocaleString() : "—";
+  els.powerVotesView.innerHTML = `
+    <div class="gm-readonly-card">
+      <div class="gm-readonly-title">${escapeHtml(displayTeamName(selectedTeam))}</div>
+      <div class="gm-readonly-group">
+        <div class="label">Ballot</div>
+        <div>${rankings.length ? rankings.map((t, i) => `#${i + 1} ${escapeHtml(displayTeamName(t))}`).join(" • ") : "No rankings submitted."}</div>
+      </div>
+      <div class="gm-readonly-group">
+        <div class="label">Updated</div>
+        <div>${escapeHtml(updatedAt)}</div>
+      </div>
+    </div>
+  `;
 }
 
 async function loadRoster() {
@@ -873,6 +876,7 @@ function bindEvents() {
   if (els.powerTeamSelect) {
     els.powerTeamSelect.addEventListener("change", () => {
       renderPowerRankingsTeam(els.powerTeamSelect.value);
+      renderPowerVotesView();
     });
   }
 
@@ -1047,23 +1051,16 @@ function bindEvents() {
         updatedAt: new Date().toISOString(),
       };
 
-      let savedRemote = false;
       try {
         await savePowerVoteToSheet(team, vote);
-        savedRemote = true;
-      } catch (_) {
-        savedRemote = false;
+      } catch (error) {
+        setPowerStatus(error.message || "Unable to save power rankings vote.", true);
+        return;
       }
 
       powerVotesCache[team] = vote;
-      setLocalPowerVotes(powerVotesCache);
       renderPowerVotesView();
-      setPowerStatus(
-        savedRemote
-          ? "Power rankings vote submitted."
-          : "Vote saved locally (sheet sync unavailable).",
-        !savedRemote
-      );
+      setPowerStatus("Power rankings vote submitted.");
       updateLastUpdated();
     });
   }
@@ -1085,9 +1082,8 @@ async function init() {
     }
     try {
       powerVotesCache = await fetchPowerVotesFromSheet();
-      setLocalPowerVotes(powerVotesCache);
     } catch (_) {
-      powerVotesCache = getLocalPowerVotes();
+      powerVotesCache = {};
     }
     renderSelectedTeam(els.teamSelect.value || "");
     renderRenameTeam(els.renameTeamSelect ? els.renameTeamSelect.value : "");
