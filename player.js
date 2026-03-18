@@ -8,6 +8,7 @@ const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 const els = {
   lastUpdated: document.getElementById("last-updated"),
   search: document.getElementById("player-search"),
+  minGp: document.getElementById("player-min-gp"),
   results: document.getElementById("player-results"),
   filter: document.getElementById("player-filter"),
 };
@@ -493,14 +494,16 @@ function buildLeaderboard(rows) {
     }));
 }
 
-function renderLeaderboard(list, query, metric) {
+function renderLeaderboard(list, query, metric, minGp = 0) {
+  const gpFloor = Number.isFinite(Number(minGp)) ? Math.max(0, Number(minGp)) : 0;
+  const filteredByGp = list.filter((item) => Number(item.games || 0) >= gpFloor);
   const filtered = query
-    ? list.filter((item) => {
+    ? filteredByGp.filter((item) => {
         const name = String(item.displayName || "").toLowerCase();
         const tag = String(item.tag || "").toLowerCase();
         return name.includes(query) || tag.includes(query);
       })
-    : list;
+    : filteredByGp;
 
   if (!filtered.length) {
     els.results.innerHTML = "<p>No players found.</p>";
@@ -647,7 +650,12 @@ async function loadPlayerStats() {
       els.results.innerHTML = "<p>No stats available for C2S1 Regular Season.</p>";
     } else {
       const query = els.search.value.trim().toLowerCase();
-      renderLeaderboard(leaderboardRows, query, els.filter.value);
+      renderLeaderboard(
+        leaderboardRows,
+        query,
+        els.filter.value,
+        els.minGp ? els.minGp.value : 0
+      );
     }
   } catch (error) {
     els.results.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
@@ -656,13 +664,30 @@ async function loadPlayerStats() {
 
 els.search.addEventListener("input", () => {
   const query = els.search.value.trim().toLowerCase();
-  renderLeaderboard(leaderboardRows, query, els.filter.value);
+  renderLeaderboard(
+    leaderboardRows,
+    query,
+    els.filter.value,
+    els.minGp ? els.minGp.value : 0
+  );
 });
 
 els.filter.addEventListener("change", () => {
   const query = els.search.value.trim().toLowerCase();
-  renderLeaderboard(leaderboardRows, query, els.filter.value);
+  renderLeaderboard(
+    leaderboardRows,
+    query,
+    els.filter.value,
+    els.minGp ? els.minGp.value : 0
+  );
 });
+
+if (els.minGp) {
+  els.minGp.addEventListener("input", () => {
+    const query = els.search.value.trim().toLowerCase();
+    renderLeaderboard(leaderboardRows, query, els.filter.value, els.minGp.value);
+  });
+}
 
 applyLeaderboardParams();
 initPlayerSeasonSelect();
