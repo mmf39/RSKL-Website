@@ -1,19 +1,8 @@
 const ROSTER_URL = "/api/sheet?name=roster";
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
 const POWER_RANKINGS_URL = "/api/sheet?name=power-rankings";
-const TEAM_UPDATE_CODES = {
-  "Gus N Em": "Harbor9!Maple",
-  Bullets: "Orbit#17Cinder",
-  Turkeys: "Raven$42North",
-  Cheerios: "Mint!88Drift",
-  Yetis: "Fjord@3Echo",
-  Illegals: "Copper%71Trail",
-  "The Lions": "Quartz&5Summit",
-  "The Future": "Nova*24Anchor",
-  "The Snipers": "Atlas=63Bloom",
-  "The Phantoms": "Velvet+90Stone",
-};
-const UNIVERSAL_UPDATE_CODE = "1739";
+const SUPABASE_CONFIG_URL = "/api/supabase-config";
+const GM_ACCESS_TOKEN_KEY = "rskl_gm_access_token";
 
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
@@ -62,6 +51,14 @@ const els = {
   tabRenamePanel: document.getElementById("gm-tab-rename"),
   tabLineupPanel: document.getElementById("gm-tab-lineup"),
   tabPowerPanel: document.getElementById("gm-tab-power"),
+  authEmail: document.getElementById("gm-auth-email"),
+  authPassword: document.getElementById("gm-auth-password"),
+  authSignUp: document.getElementById("gm-btn-signup"),
+  authSignIn: document.getElementById("gm-btn-signin"),
+  authSignOut: document.getElementById("gm-btn-signout"),
+  authStatus: document.getElementById("gm-auth-status"),
+  codeLabels: Array.from(document.querySelectorAll("[data-code-label]")),
+  codeInputs: Array.from(document.querySelectorAll("[data-code-input]")),
   lastUpdated: document.getElementById("last-updated"),
   teamSelect: document.getElementById("gm-team-select"),
   teamLabel: document.getElementById("gm-team-label"),
@@ -96,6 +93,10 @@ let rosterByTeam = new Map();
 let picksByTeam = new Map();
 let tradeBlocksCache = {};
 let powerVotesCache = {};
+let supabaseUrl = "";
+let supabaseAnon = "";
+let gmSession = null;
+let gmProfile = null;
 
 function setActiveTab(tab) {
   const active =
@@ -129,27 +130,6 @@ function setActiveTab(tab) {
 function displayTeamName(value) {
   const team = String(value || "").trim();
   return team === "Bullets" ? "Storm" : team;
-}
-
-function getTeamUpdateCode(team) {
-  if (!team) {
-    return "";
-  }
-  if (team === "Storm") {
-    return TEAM_UPDATE_CODES.Bullets || "";
-  }
-  return TEAM_UPDATE_CODES[team] || "";
-}
-
-function isValidUpdateCode(inputCode, expectedTeamCode) {
-  const code = String(inputCode || "").trim();
-  if (!code) {
-    return false;
-  }
-  if (code === UNIVERSAL_UPDATE_CODE) {
-    return true;
-  }
-  return !!expectedTeamCode && code === expectedTeamCode;
 }
 
 function normalizeName(value) {
@@ -200,6 +180,198 @@ function setPowerStatus(message, isError = false) {
   if (!els.powerStatus) return;
   els.powerStatus.textContent = message;
   els.powerStatus.className = `gm-status ${isError ? "error" : ""}`;
+}
+
+function setAuthStatus(message, isError = false) {
+  if (!els.authStatus) return;
+  els.authStatus.textContent = message;
+  els.authStatus.className = `gm-status ${isError ? "error" : ""}`;
+}
+
+async function requestJson(url, options = {}) {
+  const response = await fetch(url, options);
+  const text = await response.text();
+  let payload = {};
+  try {
+    payload = text ? JSON.parse(text) : {};
+  } catch (_) {
+    throw new Error(text || `Request failed (${response.status})`);
+  }
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(
+      payload?.message ||
+        payload?.error_description ||
+        payload?.error?.message ||
+        `Request failed (${response.status})`
+    );
+  }
+  return payload;
+}
+
+function authHeaders(withAuth = false, token = "") {
+  const headers = {
+    "Content-Type": "application/json",
+    apikey: supabaseAnon,
+  };
+  const access = token || gmSession?.access_token || "";
+  if (withAuth && access) {
+    headers.Authorization = `Bearer ${access}`;
+  }
+  return headers;
+}
+
+async function loadSupabaseConfig() {
+  const cfg = await requestJson(SUPABASE_CONFIG_URL, { cache: "no-store" });
+  supabaseUrl = cfg.url;
+  supabaseAnon = cfg.anonKey;
+}
+
+async function fetchAuthUser(accessToken) {
+  return requestJson(`${supabaseUrl}/auth/v1/user`, {
+    headers: authHeaders(true, accessToken),
+  });
+}
+
+async function fetchGmProfile(userId) {
+  const query = `?select=user_id,team_name,is_gm,is_commish&user_id=eq.${encodeURIComponent(
+    userId
+  )}&limit=1`;
+  const rows = await requestJson(`${supabaseUrl}/rest/v1/gm_users${query}`, {
+    headers: authHeaders(true),
+  });
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if (!row || row.is_gm === false) {
+    return null;
+  }
+  return row;
+}
+
+async function signUpAuth(email, password) {
+  return requestJson(`${supabaseUrl}/auth/v1/signup`, {
+    method: "POST",
+    headers: authHeaders(false),
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+async function signInAuth(email, password) {
+  const data = await requestJson(
+    `${supabaseUrl}/auth/v1/token?grant_type=password`,
+    {
+      method: "POST",
+      headers: authHeaders(false),
+      body: JSON.stringify({ email, password }),
+    }
+  );
+  if (!data?.access_token) {
+    throw new Error("Sign in failed.");
+  }
+  return data;
+}
+
+async function signOutAuth() {
+  if (!gmSession?.access_token) return;
+  try {
+    await requestJson(`${supabaseUrl}/auth/v1/logout`, {
+      method: "POST",
+      headers: authHeaders(true),
+      body: JSON.stringify({}),
+    });
+  } catch (_) {
+    // ignore logout transport failures
+  }
+}
+
+function getAuthorizedTeam() {
+  return String(gmProfile?.team_name || "").trim();
+}
+
+function isCommish() {
+  return !!gmProfile?.is_commish;
+}
+
+function isSignedInGm() {
+  return !!gmSession?.user?.id && !!gmProfile;
+}
+
+function sameTeam(a, b) {
+  return normalizeName(displayTeamName(a)) === normalizeName(displayTeamName(b));
+}
+
+function canEditTeam(team) {
+  if (!isSignedInGm()) return false;
+  if (isCommish()) return true;
+  const mine = getAuthorizedTeam();
+  return !!mine && sameTeam(mine, team);
+}
+
+function ensureCanEditTeam(team, setStatusFn) {
+  if (!isSignedInGm()) {
+    setStatusFn("Sign in with a GM account first.", true);
+    return false;
+  }
+  if (!canEditTeam(team)) {
+    setStatusFn("You can only edit your assigned team.", true);
+    return false;
+  }
+  return true;
+}
+
+function syncTeamSelectorsToAuth() {
+  const selects = [
+    els.teamSelect,
+    els.renameTeamSelect,
+    els.lineupTeamSelect,
+    els.powerTeamSelect,
+  ].filter(Boolean);
+
+  const assignedTeam = getAuthorizedTeam();
+  const allowAnyTeam = isCommish();
+
+  selects.forEach((select) => {
+    Array.from(select.options).forEach((opt) => {
+      if (!opt.value) return;
+      opt.disabled =
+        !allowAnyTeam && assignedTeam ? !sameTeam(opt.value, assignedTeam) : false;
+    });
+    if (!allowAnyTeam && assignedTeam) {
+      const match = Array.from(select.options).find((opt) =>
+        sameTeam(opt.value, assignedTeam)
+      );
+      select.value = match ? match.value : "";
+      select.disabled = true;
+    } else {
+      select.disabled = !isSignedInGm();
+      if (!isSignedInGm()) {
+        select.value = "";
+      }
+    }
+  });
+}
+
+function applyAuthUi() {
+  els.codeLabels.forEach((node) => {
+    node.hidden = true;
+  });
+  els.codeInputs.forEach((node) => {
+    node.hidden = true;
+    node.value = "";
+  });
+
+  syncTeamSelectorsToAuth();
+  renderSelectedTeam(els.teamSelect ? els.teamSelect.value : "");
+  renderRenameTeam(els.renameTeamSelect ? els.renameTeamSelect.value : "");
+  renderLineupTeam(els.lineupTeamSelect ? els.lineupTeamSelect.value : "");
+  renderPowerRankingsTeam(els.powerTeamSelect ? els.powerTeamSelect.value : "");
+  renderPowerVotesView();
+
+  if (isSignedInGm()) {
+    const email = gmSession?.user?.email || "GM";
+    const team = displayTeamName(getAuthorizedTeam()) || "No team assigned";
+    setAuthStatus(`Signed in as ${email} • Team: ${team}`);
+  } else {
+    setAuthStatus("Not signed in.");
+  }
 }
 
 function parseCSV(text) {
@@ -947,6 +1119,61 @@ function bindEvents() {
       setPowerStatus("Ballot randomized.");
     });
   }
+  if (els.authSignUp) {
+    els.authSignUp.addEventListener("click", async () => {
+      const email = String(els.authEmail?.value || "").trim();
+      const password = String(els.authPassword?.value || "");
+      if (!email || !password) {
+        setAuthStatus("Enter email and password.", true);
+        return;
+      }
+      try {
+        await signUpAuth(email, password);
+        setAuthStatus("Account created. Confirm email, then sign in.");
+      } catch (error) {
+        setAuthStatus(error.message || "Sign up failed.", true);
+      }
+    });
+  }
+  if (els.authSignIn) {
+    els.authSignIn.addEventListener("click", async () => {
+      const email = String(els.authEmail?.value || "").trim();
+      const password = String(els.authPassword?.value || "");
+      if (!email || !password) {
+        setAuthStatus("Enter email and password.", true);
+        return;
+      }
+      try {
+        const tokenData = await signInAuth(email, password);
+        const user = await fetchAuthUser(tokenData.access_token);
+        gmSession = { access_token: tokenData.access_token, user };
+        localStorage.setItem(GM_ACCESS_TOKEN_KEY, tokenData.access_token);
+        gmProfile = await fetchGmProfile(user.id);
+        if (!gmProfile) {
+          setAuthStatus("No GM access found for this account.", true);
+        } else {
+          setAuthStatus("Signed in.");
+        }
+        applyAuthUi();
+      } catch (error) {
+        gmSession = null;
+        gmProfile = null;
+        localStorage.removeItem(GM_ACCESS_TOKEN_KEY);
+        applyAuthUi();
+        setAuthStatus(error.message || "Sign in failed.", true);
+      }
+    });
+  }
+  if (els.authSignOut) {
+    els.authSignOut.addEventListener("click", async () => {
+      await signOutAuth();
+      gmSession = null;
+      gmProfile = null;
+      localStorage.removeItem(GM_ACCESS_TOKEN_KEY);
+      applyAuthUi();
+      setAuthStatus("Signed out.");
+    });
+  }
 
   if (els.tradeSave) {
     els.tradeSave.addEventListener("click", async () => {
@@ -955,13 +1182,7 @@ function bindEvents() {
         setTradeStatus("Select a team first.", true);
         return;
       }
-      const expectedCode = getTeamUpdateCode(team);
-      if (!expectedCode) {
-        setTradeStatus("No update code configured for this team.", true);
-        return;
-      }
-      if (!isValidUpdateCode(els.tradeCode ? els.tradeCode.value : "", expectedCode)) {
-        setTradeStatus("Invalid access code.", true);
+      if (!ensureCanEditTeam(team, setTradeStatus)) {
         return;
       }
 
@@ -1010,13 +1231,7 @@ function bindEvents() {
       if (String(oldTag).startsWith("@") && !newName.startsWith("@")) {
         newName = `@${newName}`;
       }
-      const expectedCode = getTeamUpdateCode(team);
-      if (!expectedCode) {
-        setRenameStatus("No update code configured for this team.", true);
-        return;
-      }
-      if (!isValidUpdateCode(els.renameCode ? els.renameCode.value : "", expectedCode)) {
-        setRenameStatus("Invalid access code.", true);
+      if (!ensureCanEditTeam(team, setRenameStatus)) {
         return;
       }
       try {
@@ -1060,13 +1275,7 @@ function bindEvents() {
         setLineupStatus("Select a team first.", true);
         return;
       }
-      const expectedCode = getTeamUpdateCode(team);
-      if (!expectedCode) {
-        setLineupStatus("No update code configured for this team.", true);
-        return;
-      }
-      if (!isValidUpdateCode(els.lineupCode ? els.lineupCode.value : "", expectedCode)) {
-        setLineupStatus("Invalid access code.", true);
+      if (!ensureCanEditTeam(team, setLineupStatus)) {
         return;
       }
       const checkedPlayers = Array.from(
@@ -1092,13 +1301,7 @@ function bindEvents() {
         setPowerStatus("Select a team first.", true);
         return;
       }
-      const expectedCode = getTeamUpdateCode(team);
-      if (!expectedCode) {
-        setPowerStatus("No update code configured for this team.", true);
-        return;
-      }
-      if (!isValidUpdateCode(els.powerCode ? els.powerCode.value : "", expectedCode)) {
-        setPowerStatus("Invalid access code.", true);
+      if (!ensureCanEditTeam(team, setPowerStatus)) {
         return;
       }
       const rankings = Array.from(
@@ -1138,6 +1341,20 @@ async function init() {
   bindEvents();
   setActiveTab("trade");
   try {
+    await loadSupabaseConfig();
+    const savedToken = localStorage.getItem(GM_ACCESS_TOKEN_KEY) || "";
+    if (savedToken) {
+      try {
+        const user = await fetchAuthUser(savedToken);
+        gmSession = { access_token: savedToken, user };
+        gmProfile = await fetchGmProfile(user.id);
+      } catch (_) {
+        gmSession = null;
+        gmProfile = null;
+        localStorage.removeItem(GM_ACCESS_TOKEN_KEY);
+      }
+    }
+
     await Promise.all([loadRoster(), loadDraftCapital()]);
     try {
       tradeBlocksCache = await fetchTradeBlocksFromSheet();
@@ -1153,6 +1370,7 @@ async function init() {
     } catch (_) {
       powerVotesCache = {};
     }
+    applyAuthUi();
     renderSelectedTeam(els.teamSelect.value || "");
     renderRenameTeam(els.renameTeamSelect ? els.renameTeamSelect.value : "");
     renderLineupTeam(els.lineupTeamSelect ? els.lineupTeamSelect.value : "");

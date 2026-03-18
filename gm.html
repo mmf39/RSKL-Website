@@ -55,6 +55,17 @@
             <button class="gm-tab" type="button" data-gm-tab="power">Power Rankings Vote</button>
           </div>
         </div>
+        <div class="gm-card">
+          <div class="label">GM Account Sign In</div>
+          <div class="wagers-auth-row">
+            <input id="gm-auth-email" class="text-input" type="email" placeholder="Email" />
+            <input id="gm-auth-password" class="text-input" type="password" placeholder="Password" />
+            <button id="gm-btn-signup" class="btn ghost" type="button">Sign Up</button>
+            <button id="gm-btn-signin" class="btn" type="button">Sign In</button>
+            <button id="gm-btn-signout" class="btn ghost" type="button">Sign Out</button>
+          </div>
+          <div id="gm-auth-status" class="gm-status">Not signed in.</div>
+        </div>
         <div id="gm-tab-trade" class="gm-tab-panel">
           <div class="gm-card">
           <label class="label" for="gm-team-select">Team</label>
@@ -88,8 +99,8 @@
           <label class="label" for="trade-notes">Notes</label>
           <textarea id="trade-notes" class="text-input" rows="4" placeholder="Notes..."></textarea>
 
-          <label class="label" for="trade-code">Access Code</label>
-          <input id="trade-code" class="text-input" type="password" placeholder="Enter code to update" />
+          <label class="label" for="trade-code" data-code-label>Access Code</label>
+          <input id="trade-code" class="text-input" type="password" placeholder="Enter code to update" data-code-input />
 
           <button id="trade-save" class="btn">Save Trade Block</button>
           <div id="trade-status" class="gm-status"></div>
@@ -127,8 +138,8 @@
             <label class="label" for="rename-new-name">New Player Name</label>
             <input id="rename-new-name" class="text-input" type="text" placeholder="@newname" />
 
-            <label class="label" for="rename-code">Access Code</label>
-            <input id="rename-code" class="text-input" type="password" placeholder="Enter code to update" />
+            <label class="label" for="rename-code" data-code-label>Access Code</label>
+            <input id="rename-code" class="text-input" type="password" placeholder="Enter code to update" data-code-input />
 
             <button id="rename-save" class="btn">Update Player Name</button>
             <div id="rename-status" class="gm-status"></div>
@@ -156,8 +167,8 @@
             <div class="label">Select 6 Starters and 1 Captain</div>
             <div id="lineup-player-list" class="gm-checklist"></div>
 
-            <label class="label" for="lineup-code">Access Code</label>
-            <input id="lineup-code" class="text-input" type="password" placeholder="Enter code to submit" />
+            <label class="label" for="lineup-code" data-code-label>Access Code</label>
+            <input id="lineup-code" class="text-input" type="password" placeholder="Enter code to submit" data-code-input />
 
             <button id="lineup-save" class="btn">Submit Lineup</button>
             <div id="lineup-status" class="gm-status"></div>
@@ -186,8 +197,8 @@
             <button id="power-randomize" class="btn ghost" type="button">Randomize Ballot</button>
             <div id="power-rankings-list" class="gm-rankings-list"></div>
 
-            <label class="label" for="power-code">Access Code</label>
-            <input id="power-code" class="text-input" type="password" placeholder="Enter code to submit vote" />
+            <label class="label" for="power-code" data-code-label>Access Code</label>
+            <input id="power-code" class="text-input" type="password" placeholder="Enter code to submit vote" data-code-input />
 
             <button id="power-save" class="btn">Submit Power Rankings Vote</button>
             <div id="power-status" class="gm-status"></div>
@@ -205,7 +216,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="gm.js?v=20260318e"></script>
+    <script src="gm.js?v=20260318f"></script>
       <script src="header-nav.js"></script>
   </body>
 </html>
