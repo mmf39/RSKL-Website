@@ -481,25 +481,39 @@ async function fetchPowerVotesFromSheet() {
 }
 
 async function savePowerVoteToSheet(team, vote) {
+  const rankings = Array.isArray(vote.rankings) ? vote.rankings : [];
+  const payload = {
+    action: "savePowerRankings",
+    team,
+    teamName: team,
+    rankings,
+    rankingsCsv: rankings.join(", "),
+    updatedAt: vote.updatedAt || new Date().toISOString(),
+  };
+  rankings.forEach((value, idx) => {
+    payload[`rank${idx + 1}`] = value;
+  });
+
   const response = await fetch(TRADE_BLOCKS_API, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "savePowerRankings",
-      team,
-      rankings: Array.isArray(vote.rankings) ? vote.rankings : [],
-      updatedAt: vote.updatedAt || new Date().toISOString(),
-    }),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
     throw new Error(`Power rankings save failed: ${response.status}`);
   }
-  const payload = await response.json();
-  if (!payload || typeof payload !== "object") {
+  let result;
+  try {
+    result = await response.json();
+  } catch (_) {
+    const raw = await response.text();
+    throw new Error(raw || "Invalid power rankings save response.");
+  }
+  if (!result || typeof result !== "object") {
     throw new Error("Invalid power rankings save response.");
   }
-  if (payload.ok === false) {
-    throw new Error(payload.message || "Power rankings save failed.");
+  if (result.ok === false) {
+    throw new Error(result.message || "Power rankings save failed.");
   }
   return true;
 }
