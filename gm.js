@@ -85,6 +85,7 @@ const els = {
   lineupStatus: document.getElementById("lineup-status"),
   powerTeamSelect: document.getElementById("power-team-select"),
   powerRankingsList: document.getElementById("power-rankings-list"),
+  powerRandomize: document.getElementById("power-randomize"),
   powerCode: document.getElementById("power-code"),
   powerSave: document.getElementById("power-save"),
   powerStatus: document.getElementById("power-status"),
@@ -803,6 +804,24 @@ function syncPowerRankingOptions() {
   });
 }
 
+function randomizePowerRankings() {
+  if (!els.powerRankingsList) return;
+  const selects = Array.from(
+    els.powerRankingsList.querySelectorAll("select[data-power-rank]")
+  );
+  if (!selects.length) return;
+
+  const pool = [...TEAM_ORDER];
+  for (let i = pool.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  selects.forEach((select, idx) => {
+    select.value = pool[idx] || "";
+  });
+  syncPowerRankingOptions();
+}
+
 async function loadRoster() {
   const response = await fetch(ROSTER_URL, { cache: "no-store" });
   if (!response.ok) {
@@ -920,6 +939,12 @@ function bindEvents() {
         return;
       }
       syncPowerRankingOptions();
+    });
+  }
+  if (els.powerRandomize) {
+    els.powerRandomize.addEventListener("click", () => {
+      randomizePowerRankings();
+      setPowerStatus("Ballot randomized.");
     });
   }
 
