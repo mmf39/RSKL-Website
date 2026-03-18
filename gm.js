@@ -703,15 +703,10 @@ function renderPowerRankingsTeam(team) {
     return;
   }
   const saved = powerVotesCache[team];
-  const used = new Set();
-  const pick = (index) => {
-    const value =
-      saved && Array.isArray(saved.rankings) && saved.rankings[index]
-        ? saved.rankings[index]
-        : "";
-    if (value) used.add(value);
-    return value;
-  };
+  const pick = (index) =>
+    saved && Array.isArray(saved.rankings) && saved.rankings[index]
+      ? saved.rankings[index]
+      : "";
 
   const options = TEAM_ORDER.map((teamKey) => ({
     key: teamKey,
@@ -741,6 +736,7 @@ function renderPowerRankingsTeam(team) {
     els.powerCode.value = "";
   }
   setPowerStatus("");
+  syncPowerRankingOptions();
 }
 
 function renderPowerVotesView() {
@@ -766,6 +762,31 @@ function renderPowerVotesView() {
       </div>
     </div>
   `;
+}
+
+function syncPowerRankingOptions() {
+  if (!els.powerRankingsList) return;
+  const selects = Array.from(
+    els.powerRankingsList.querySelectorAll("select[data-power-rank]")
+  );
+  if (!selects.length) return;
+
+  const chosen = new Set(
+    selects.map((s) => String(s.value || "").trim()).filter(Boolean)
+  );
+
+  selects.forEach((select) => {
+    const current = String(select.value || "").trim();
+    Array.from(select.options).forEach((opt) => {
+      const value = String(opt.value || "").trim();
+      if (!value) {
+        opt.disabled = false;
+        return;
+      }
+      // Keep current selection enabled, disable teams already chosen elsewhere.
+      opt.disabled = value !== current && chosen.has(value);
+    });
+  });
 }
 
 async function loadRoster() {
@@ -877,6 +898,14 @@ function bindEvents() {
     els.powerTeamSelect.addEventListener("change", () => {
       renderPowerRankingsTeam(els.powerTeamSelect.value);
       renderPowerVotesView();
+    });
+  }
+  if (els.powerRankingsList) {
+    els.powerRankingsList.addEventListener("change", (event) => {
+      if (!event.target || !event.target.matches("select[data-power-rank]")) {
+        return;
+      }
+      syncPowerRankingOptions();
     });
   }
 
