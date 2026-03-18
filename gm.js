@@ -234,7 +234,7 @@ async function fetchAuthUser(accessToken) {
 }
 
 async function fetchGmAssignment(userId) {
-  const query = `?select=user_id,team,team_name,role,is_gm,is_commish&user_id=eq.${encodeURIComponent(
+  const query = `?select=user_id,team,role,is_gm,is_commish&user_id=eq.${encodeURIComponent(
     userId
   )}&limit=1`;
   const rows = await requestJson(
@@ -248,7 +248,7 @@ async function fetchGmAssignment(userId) {
     return null;
   }
   const role = String(row.role || "").trim().toLowerCase();
-  const team = String(row.team || row.team_name || "").trim();
+  const team = String(row.team || "").trim();
   const commishByRole =
     role === "commish" || role === "commissioner" || role === "admin";
   const allowed =
