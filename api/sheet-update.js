@@ -6,7 +6,7 @@ const TRADEBLOCK_SCRIPT_URL =
 const PLAYER_UPDATE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbybgKT1WjHN7G13XiymsMNM6eO_sOtfchPsWGJfPZwLvEFJ6_QsYJ9pBt7jNWTkM9msXA/exec";
 const POWER_RANKINGS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbyo327S71m8D-eGfZr1CPTZfLQ19_ZVlJEgc0LLfZPTgG44llKy_zpLMJ5EB0uWpVJ4/exec";
+  "https://script.google.com/macros/s/AKfycbybxaExeUCMjSrkMVdTkFKxwIXcyQ6TEyO3Yi_LQPZs1CTD-EFN80OcgE7ipm0kUM1u/exec";
 
 function parseQueryFromReq(req) {
   if (req && req.query && typeof req.query === "object") {
