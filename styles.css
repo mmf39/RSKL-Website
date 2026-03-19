@@ -16,6 +16,84 @@
   --font-body: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
 }
 
+.madness-bracket {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.madness-side {
+  background: rgba(9, 20, 48, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.madness-side h3 {
+  margin: 0 0 12px;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.madness-list {
+  display: grid;
+  gap: 8px;
+}
+
+.madness-seed-row {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  align-items: center;
+  gap: 10px;
+  background: rgba(5, 12, 33, 0.86);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+
+.madness-seed {
+  font-weight: 900;
+  color: var(--text);
+  text-align: center;
+}
+
+.madness-player {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.madness-playins {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.madness-playin-card {
+  background: rgba(9, 20, 48, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.madness-playin-title {
+  color: var(--accent);
+  font-weight: 900;
+  margin-bottom: 8px;
+}
+
+.madness-playin-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.madness-vs {
+  color: var(--muted);
+  font-weight: 600;
+}
+
 * {
   box-sizing: border-box;
 }

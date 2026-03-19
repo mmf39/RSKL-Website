@@ -1,4 +1,20 @@
 (() => {
+  const ensureLink = (container, href, label) => {
+    if (!container) return;
+    const exists = Array.from(container.querySelectorAll("a")).some(
+      (a) => a.getAttribute("href") === href
+    );
+    if (exists) return;
+    const link = document.createElement("a");
+    link.className = "btn ghost";
+    link.href = href;
+    link.textContent = label;
+    container.appendChild(link);
+  };
+
+  ensureLink(document.querySelector(".site-nav-main"), "/madness.html", "RSKL Madness");
+  ensureLink(document.querySelector("[data-menu-panel]"), "/madness.html", "RSKL Madness");
+
   const toggle = document.querySelector("[data-menu-toggle]");
   const panel = document.querySelector("[data-menu-panel]");
 
