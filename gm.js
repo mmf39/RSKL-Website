@@ -2,6 +2,7 @@ const ROSTER_URL = "/api/sheet?name=roster";
 const GM_LINEUP_CSV_URL = ROSTER_URL;
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
 const POWER_RANKINGS_URL = "/api/sheet?name=power-rankings";
+const SCHEDULE_URL = "/api/schedule";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const GM_ACCESS_TOKEN_KEY = "rskl_gm_access_token";
 
@@ -51,6 +52,10 @@ const els = {
   panelHead: document.getElementById("gm-panel-head"),
   authCard: document.getElementById("gm-auth-card"),
   authedShell: document.getElementById("gm-authed-shell"),
+  commishCard: document.getElementById("gm-commish-card"),
+  lockGamesList: document.getElementById("gm-lock-games-list"),
+  lockSave: document.getElementById("gm-lock-save"),
+  lockStatus: document.getElementById("gm-lock-status"),
   tabTradePanel: document.getElementById("gm-tab-trade"),
   tabRenamePanel: document.getElementById("gm-tab-rename"),
   tabLineupPanel: document.getElementById("gm-tab-lineup"),
@@ -101,6 +106,7 @@ let supabaseUrl = "";
 let supabaseAnon = "";
 let gmSession = null;
 let gmAssignment = null;
+let commishUpcomingGames = [];
 
 function setActiveTab(tab) {
   const active =
@@ -184,6 +190,12 @@ function setPowerStatus(message, isError = false) {
   if (!els.powerStatus) return;
   els.powerStatus.textContent = message;
   els.powerStatus.className = `gm-status ${isError ? "error" : ""}`;
+}
+
+function setLockStatus(message, isError = false) {
+  if (!els.lockStatus) return;
+  els.lockStatus.textContent = message;
+  els.lockStatus.className = `gm-status ${isError ? "error" : ""}`;
 }
 
 function setAuthStatus(message, isError = false) {
@@ -411,6 +423,9 @@ function applyAuthUi() {
   if (els.authedShell) {
     els.authedShell.hidden = !signedIn;
   }
+  if (els.commishCard) {
+    els.commishCard.hidden = !(signedIn && isCommish());
+  }
   if (els.authEmail) {
     els.authEmail.hidden = signedIn;
   }
@@ -433,6 +448,7 @@ function applyAuthUi() {
   renderLineupTeam(els.lineupTeamSelect ? els.lineupTeamSelect.value : "");
   renderPowerRankingsTeam(els.powerTeamSelect ? els.powerTeamSelect.value : "");
   renderPowerVotesView();
+  renderCommishLockGames();
 
   if (signedIn) {
     const email = gmSession?.user?.email || "GM";
@@ -600,6 +616,29 @@ async function saveTradeBlockToSheet(team, block) {
     throw new Error(payload.message || "Trade block save failed.");
   }
   return true;
+}
+
+async function saveGameLocksToSheet(locks) {
+  const response = await fetch(TRADE_BLOCKS_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "setGameLocks",
+      locks,
+      updatedAt: new Date().toISOString(),
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Game lock save failed: ${response.status}`);
+  }
+  const payload = await response.json();
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Invalid game lock response.");
+  }
+  if (payload.ok === false) {
+    throw new Error(payload.message || "Unable to save game locks.");
+  }
+  return payload;
 }
 
 async function updatePlayerNameInSheet(team, oldTag, newName) {
@@ -952,6 +991,79 @@ function renderLineupTeam(team) {
   setLineupStatus("");
 }
 
+function parseScheduleDateValue(value) {
+  const str = String(value || "").trim();
+  if (!str) return null;
+  const md = str.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (md) {
+    const now = new Date();
+    return new Date(now.getFullYear(), Number(md[1]) - 1, Number(md[2]), 0, 0, 0, 0);
+  }
+  const dt = new Date(str);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+async function loadUpcomingScheduleGames() {
+  const response = await fetch(SCHEDULE_URL, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Schedule fetch failed: ${response.status}`);
+  }
+  const rows = parseCSV(await response.text()).filter((row) =>
+    row.some((cell) => String(cell || "").trim() !== "")
+  );
+  if (!rows.length) return [];
+
+  const header = rows[0].map((h) => String(h || "").trim().toLowerCase());
+  const body = rows.slice(1);
+  const dateIdx = header.findIndex((h) => h === "date");
+  const t1Idx = header.findIndex((h) => h === "team 1" || h === "away");
+  const t2Idx = header.findIndex((h) => h === "team 2" || h === "home");
+  const statusIdx = header.findIndex((h) => h === "status");
+  const typeIdx = header.findIndex((h) => h === "type" || h === "game type");
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return body
+    .map((row) => {
+      const dateText = String(row[dateIdx >= 0 ? dateIdx : 0] || "").trim();
+      const team1 = String(row[t1Idx >= 0 ? t1Idx : 1] || "").trim();
+      const team2 = String(row[t2Idx >= 0 ? t2Idx : 2] || "").trim();
+      const status = String(row[statusIdx] || "").trim();
+      const gameType = String(row[typeIdx] || "").trim();
+      const when = parseScheduleDateValue(dateText);
+      if (!team1 || !team2 || !when) return null;
+      const done = /(final|complete|completed)/i.test(status);
+      if (done) return null;
+      return { dateText, team1, team2, status, gameType, when, lockAt: "" };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.when - b.when)
+    .filter((g) => g.when >= today)
+    .slice(0, 3);
+}
+
+function renderCommishLockGames() {
+  if (!els.lockGamesList) return;
+  if (!commishUpcomingGames.length) {
+    els.lockGamesList.innerHTML = '<div class="gm-empty">No upcoming games found.</div>';
+    return;
+  }
+  els.lockGamesList.innerHTML = commishUpcomingGames
+    .map(
+      (game, idx) => `
+        <div class="gm-readonly-card">
+          <div class="gm-readonly-title">Game ${idx + 1}: ${escapeHtml(game.dateText)} • ${escapeHtml(displayTeamName(game.team1))} vs ${escapeHtml(displayTeamName(game.team2))}</div>
+          <div class="gm-readonly-group">
+            <div class="label">Lock Date/Time (local)</div>
+            <input class="text-input" type="datetime-local" data-lock-index="${idx}" value="${escapeHtml(game.lockAt || "")}" />
+          </div>
+        </div>
+      `
+    )
+    .join("");
+}
+
 function renderPowerRankingsTeam(team) {
   if (!els.powerRankingsList) return;
   if (!team) {
@@ -1186,6 +1298,41 @@ function bindEvents() {
     els.powerRandomize.addEventListener("click", () => {
       randomizePowerRankings();
       setPowerStatus("Ballot randomized.");
+    });
+  }
+  if (els.lockSave) {
+    els.lockSave.addEventListener("click", async () => {
+      if (!isSignedInGm() || !isCommish()) {
+        setLockStatus("Commissioner access required.", true);
+        return;
+      }
+      const inputs = Array.from(document.querySelectorAll("input[data-lock-index]"));
+      const locks = inputs
+        .map((input) => {
+          const idx = Number(input.dataset.lockIndex);
+          const game = commishUpcomingGames[idx];
+          const lockAt = String(input.value || "").trim();
+          if (!game || !lockAt) return null;
+          return {
+            date: game.dateText,
+            team1: game.team1,
+            team2: game.team2,
+            gameType: game.gameType || "",
+            lockAt,
+          };
+        })
+        .filter(Boolean);
+      if (!locks.length) {
+        setLockStatus("Set at least one lock time.", true);
+        return;
+      }
+      try {
+        await saveGameLocksToSheet(locks);
+        setLockStatus("Lock times saved.");
+        updateLastUpdated();
+      } catch (error) {
+        setLockStatus(error.message || "Unable to save lock times.", true);
+      }
     });
   }
   if (els.authSignUp) {
@@ -1431,6 +1578,11 @@ async function init() {
     }
 
     await Promise.all([loadRoster(), loadDraftCapital()]);
+    try {
+      commishUpcomingGames = await loadUpcomingScheduleGames();
+    } catch (_) {
+      commishUpcomingGames = [];
+    }
     try {
       tradeBlocksCache = await fetchTradeBlocksFromSheet();
     } catch (error) {

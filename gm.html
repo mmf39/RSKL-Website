@@ -67,6 +67,15 @@
           <div id="gm-auth-status" class="gm-status">Not signed in.</div>
         </div>
         <div id="gm-authed-shell">
+        <div class="gm-card" id="gm-commish-card" hidden>
+          <div class="label">Commissioner: Set Game Lock Times</div>
+          <div class="gm-readonly-group">
+            <div class="label">Next 3 Upcoming Games</div>
+            <div id="gm-lock-games-list" class="gm-readonly-list"></div>
+          </div>
+          <button id="gm-lock-save" class="btn" type="button">Save Lock Times</button>
+          <div id="gm-lock-status" class="gm-status"></div>
+        </div>
         <div id="gm-tab-trade" class="gm-tab-panel">
           <div class="gm-card">
           <label class="label" for="gm-team-select">Team</label>
@@ -218,7 +227,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="gm.js?v=20260318i"></script>
+    <script src="gm.js?v=20260318j"></script>
       <script src="header-nav.js"></script>
   </body>
 </html>
