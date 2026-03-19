@@ -45,6 +45,7 @@ const PLAY_INS = [
   { id: "P6", players: ["@rzk", "@jakemccarthy31"] },
   { id: "P7", players: ["@jakobe.walter", "@mmf"] },
 ];
+const PLAY_IN_MAP = Object.fromEntries(PLAY_INS.map((p) => [p.id, p.players]));
 
 const ROUND_HEADERS = [
   { name: "First Round", dates: "3/19-3/20" },
@@ -60,6 +61,23 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function resolvePlayerLabel(player) {
+  const raw = String(player || "").trim();
+  const match = raw.match(/^W\s*P(\d+)$/i);
+  if (!match) {
+    return { main: raw, sub: "" };
+  }
+  const playInId = `P${match[1]}`;
+  const players = PLAY_IN_MAP[playInId];
+  if (!players || players.length < 2) {
+    return { main: raw, sub: "" };
+  }
+  return {
+    main: `W ${playInId}`,
+    sub: `${players[0]} vs ${players[1]}`,
+  };
 }
 
 const BRACKET_PAIRS = [
@@ -86,17 +104,23 @@ function buildSeedMap(entries) {
 }
 
 function renderMatch(seedMap, topSeed, bottomSeed, roundClass, row) {
-  const topPlayer = seedMap.get(topSeed) || "";
-  const bottomPlayer = seedMap.get(bottomSeed) || "";
+  const topPlayer = resolvePlayerLabel(seedMap.get(topSeed) || "");
+  const bottomPlayer = resolvePlayerLabel(seedMap.get(bottomSeed) || "");
   return `
     <article class="madness-game ${roundClass}" style="--row:${row};">
       <div class="madness-game-slot">
         <span class="madness-seed">${topSeed}</span>
-        <span class="madness-player">${escapeHtml(topPlayer)}</span>
+        <span class="madness-player">
+          <span class="madness-player-main">${escapeHtml(topPlayer.main)}</span>
+          ${topPlayer.sub ? `<small class="madness-player-sub">${escapeHtml(topPlayer.sub)}</small>` : ""}
+        </span>
       </div>
       <div class="madness-game-slot">
         <span class="madness-seed">${bottomSeed}</span>
-        <span class="madness-player">${escapeHtml(bottomPlayer)}</span>
+        <span class="madness-player">
+          <span class="madness-player-main">${escapeHtml(bottomPlayer.main)}</span>
+          ${bottomPlayer.sub ? `<small class="madness-player-sub">${escapeHtml(bottomPlayer.sub)}</small>` : ""}
+        </span>
       </div>
     </article>
   `;

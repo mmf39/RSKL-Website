@@ -22,7 +22,10 @@
 
 .madness-board-list {
   display: grid;
+  grid-template-columns: repeat(2, minmax(980px, 1fr));
   gap: 18px;
+  overflow-x: auto;
+  align-items: start;
 }
 
 .madness-region-board {
@@ -79,7 +82,7 @@
 .madness-grid {
   position: relative;
   width: 1174px;
-  height: 820px;
+  height: 920px;
   --slot-h: 38px;
   --slot-gap: 0px;
   --game-h: calc((var(--slot-h) * 2) + var(--slot-gap));
@@ -107,7 +110,7 @@
 .madness-game.elite-eight { left: var(--x4); top: var(--game-y); }
 
 .madness-game-slot {
-  height: var(--slot-h);
+  min-height: var(--slot-h);
   display: grid;
   grid-template-columns: 38px 1fr;
   align-items: center;
@@ -125,10 +128,25 @@
 }
 
 .madness-player {
+  display: grid;
+  gap: 2px;
   color: #ffffff;
   font-weight: 800;
-  line-height: 1;
+  line-height: 1.1;
   font-size: 0.96rem;
+}
+
+.madness-player-main {
+  display: block;
+}
+
+.madness-player-sub {
+  display: block;
+  color: rgba(228, 232, 245, 0.78);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.15;
 }
 
 .madness-game.placeholder .madness-player {
@@ -180,12 +198,39 @@
 }
 
 @media (max-width: 900px) {
+  .madness-board-list {
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
   .madness-region-board {
     padding: 12px 8px 14px;
   }
 
   .madness-region-title {
     font-size: 1rem;
+  }
+
+  .madness-round-headers {
+    min-width: 920px;
+    grid-template-columns: repeat(4, 220px);
+    gap: 12px;
+  }
+
+  .madness-grid-wrap {
+    min-width: 920px;
+  }
+
+  .madness-grid {
+    width: 920px;
+    --x1: 0px;
+    --x2: 236px;
+    --x3: 472px;
+    --x4: 708px;
+  }
+
+  .madness-game {
+    width: 220px;
   }
 }
 
