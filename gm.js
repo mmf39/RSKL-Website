@@ -2,9 +2,10 @@ const ROSTER_URL = "/api/sheet?name=roster";
 const GM_LINEUP_CSV_URL = ROSTER_URL;
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
 const POWER_RANKINGS_URL = "/api/sheet?name=power-rankings";
-const SCHEDULE_URL = "/api/schedule";
+const SCHEDULE_URL = "/api/sheet?name=schedule";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const GM_ACCESS_TOKEN_KEY = "rskl_gm_access_token";
+const GM_REFRESH_TOKEN_KEY = "rskl_gm_refresh_token";
 
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
@@ -322,6 +323,21 @@ async function signInAuth(email, password) {
   );
   if (!data?.access_token) {
     throw new Error("Sign in failed.");
+  }
+  return data;
+}
+
+async function refreshAuthSession(refreshToken) {
+  const data = await requestJson(
+    `${supabaseUrl}/auth/v1/token?grant_type=refresh_token`,
+    {
+      method: "POST",
+      headers: authHeaders(false),
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    }
+  );
+  if (!data?.access_token) {
+    throw new Error("Session refresh failed.");
   }
   return data;
 }
@@ -1362,8 +1378,15 @@ function bindEvents() {
       try {
         const tokenData = await signInAuth(email, password);
         const user = await fetchAuthUser(tokenData.access_token);
-        gmSession = { access_token: tokenData.access_token, user };
+        gmSession = {
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token || "",
+          user,
+        };
         localStorage.setItem(GM_ACCESS_TOKEN_KEY, tokenData.access_token);
+        if (tokenData.refresh_token) {
+          localStorage.setItem(GM_REFRESH_TOKEN_KEY, tokenData.refresh_token);
+        }
         gmAssignment = await fetchGmAssignment(user.id);
         if (!gmAssignment) {
           gmAssignment = await fetchLegacyGmProfile(user.id);
@@ -1378,6 +1401,7 @@ function bindEvents() {
         gmSession = null;
         gmAssignment = null;
         localStorage.removeItem(GM_ACCESS_TOKEN_KEY);
+        localStorage.removeItem(GM_REFRESH_TOKEN_KEY);
         applyAuthUi();
         setAuthStatus(error.message || "Sign in failed.", true);
       }
@@ -1389,6 +1413,7 @@ function bindEvents() {
       gmSession = null;
       gmAssignment = null;
       localStorage.removeItem(GM_ACCESS_TOKEN_KEY);
+      localStorage.removeItem(GM_REFRESH_TOKEN_KEY);
       applyAuthUi();
       setAuthStatus("Signed out.");
     });
@@ -1562,10 +1587,27 @@ async function init() {
   try {
     await loadSupabaseConfig();
     const savedToken = localStorage.getItem(GM_ACCESS_TOKEN_KEY) || "";
+    const savedRefresh = localStorage.getItem(GM_REFRESH_TOKEN_KEY) || "";
     if (savedToken) {
       try {
-        const user = await fetchAuthUser(savedToken);
-        gmSession = { access_token: savedToken, user };
+        let tokenData = { access_token: savedToken, refresh_token: savedRefresh };
+        let user = null;
+        try {
+          user = await fetchAuthUser(tokenData.access_token);
+        } catch (_) {
+          if (!savedRefresh) throw _;
+          tokenData = await refreshAuthSession(savedRefresh);
+          localStorage.setItem(GM_ACCESS_TOKEN_KEY, tokenData.access_token);
+          if (tokenData.refresh_token) {
+            localStorage.setItem(GM_REFRESH_TOKEN_KEY, tokenData.refresh_token);
+          }
+          user = await fetchAuthUser(tokenData.access_token);
+        }
+        gmSession = {
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token || savedRefresh || "",
+          user,
+        };
         gmAssignment = await fetchGmAssignment(user.id);
         if (!gmAssignment) {
           gmAssignment = await fetchLegacyGmProfile(user.id);
@@ -1574,6 +1616,7 @@ async function init() {
         gmSession = null;
         gmAssignment = null;
         localStorage.removeItem(GM_ACCESS_TOKEN_KEY);
+        localStorage.removeItem(GM_REFRESH_TOKEN_KEY);
       }
     }
 
