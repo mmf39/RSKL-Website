@@ -46,7 +46,7 @@
 
     <main class="container">
       <section class="panel" id="gm-panel">
-        <div class="panel-head">
+        <div class="panel-head" id="gm-panel-head">
           <h2>GM Tools</h2>
           <div class="gm-tabs">
             <button class="gm-tab active" type="button" data-gm-tab="trade">Trade Block</button>
@@ -55,7 +55,7 @@
             <button class="gm-tab" type="button" data-gm-tab="power">Power Rankings Vote</button>
           </div>
         </div>
-        <div class="gm-card">
+        <div class="gm-card" id="gm-auth-card">
           <div class="label">GM Account Sign In</div>
           <div class="wagers-auth-row">
             <input id="gm-auth-email" class="text-input" type="email" placeholder="Email" />
@@ -66,6 +66,7 @@
           </div>
           <div id="gm-auth-status" class="gm-status">Not signed in.</div>
         </div>
+        <div id="gm-authed-shell">
         <div id="gm-tab-trade" class="gm-tab-panel">
           <div class="gm-card">
           <label class="label" for="gm-team-select">Team</label>
@@ -209,6 +210,7 @@
             <div id="power-votes-view" class="gm-readonly-list"></div>
           </div>
         </div>
+        </div>
       </section>
     </main>
 
@@ -216,7 +218,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="gm.js?v=20260318h"></script>
+    <script src="gm.js?v=20260318i"></script>
       <script src="header-nav.js"></script>
   </body>
 </html>

@@ -48,6 +48,9 @@ const TRADE_BLOCKS_API = "/api/sheet-update";
 
 const els = {
   tabButtons: Array.from(document.querySelectorAll("[data-gm-tab]")),
+  panelHead: document.getElementById("gm-panel-head"),
+  authCard: document.getElementById("gm-auth-card"),
+  authedShell: document.getElementById("gm-authed-shell"),
   tabTradePanel: document.getElementById("gm-tab-trade"),
   tabRenamePanel: document.getElementById("gm-tab-rename"),
   tabLineupPanel: document.getElementById("gm-tab-lineup"),
@@ -392,6 +395,8 @@ function syncTeamSelectorsToAuth() {
 }
 
 function applyAuthUi() {
+  const signedIn = isSignedInGm();
+
   els.codeLabels.forEach((node) => {
     node.hidden = true;
   });
@@ -400,6 +405,28 @@ function applyAuthUi() {
     node.value = "";
   });
 
+  if (els.panelHead) {
+    els.panelHead.hidden = !signedIn;
+  }
+  if (els.authedShell) {
+    els.authedShell.hidden = !signedIn;
+  }
+  if (els.authEmail) {
+    els.authEmail.hidden = signedIn;
+  }
+  if (els.authPassword) {
+    els.authPassword.hidden = signedIn;
+  }
+  if (els.authSignUp) {
+    els.authSignUp.hidden = signedIn;
+  }
+  if (els.authSignIn) {
+    els.authSignIn.hidden = signedIn;
+  }
+  if (els.authSignOut) {
+    els.authSignOut.hidden = !signedIn;
+  }
+
   syncTeamSelectorsToAuth();
   renderSelectedTeam(els.teamSelect ? els.teamSelect.value : "");
   renderRenameTeam(els.renameTeamSelect ? els.renameTeamSelect.value : "");
@@ -407,7 +434,7 @@ function applyAuthUi() {
   renderPowerRankingsTeam(els.powerTeamSelect ? els.powerTeamSelect.value : "");
   renderPowerVotesView();
 
-  if (isSignedInGm()) {
+  if (signedIn) {
     const email = gmSession?.user?.email || "GM";
     const team = displayTeamName(getAuthorizedTeam()) || "No team assigned";
     setAuthStatus(`Signed in as ${email} • Team: ${team}`);
