@@ -55,21 +55,52 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-function renderSide(title, entries) {
+const BRACKET_PAIRS = [
+  [1, 16],
+  [8, 9],
+  [5, 12],
+  [4, 13],
+  [6, 11],
+  [3, 14],
+  [7, 10],
+  [2, 15],
+];
+
+function buildSeedMap(entries) {
+  const map = new Map();
+  entries.forEach((entry) => {
+    map.set(entry.seed, entry.player);
+  });
+  return map;
+}
+
+function renderMatch(seedMap, topSeed, bottomSeed) {
+  const topPlayer = seedMap.get(topSeed) || "";
+  const bottomPlayer = seedMap.get(bottomSeed) || "";
   return `
-    <div class="madness-side">
-      <h3>${escapeHtml(title)}</h3>
-      <div class="madness-list">
-        ${entries
-          .map(
-            (entry) => `
-          <div class="madness-seed-row">
-            <span class="madness-seed">${entry.seed}</span>
-            <span class="madness-player">${escapeHtml(entry.player)}</span>
-          </div>
-        `
-          )
-          .join("")}
+    <div class="madness-match">
+      <div class="madness-slot">
+        <span class="madness-seed">${topSeed}</span>
+        <span class="madness-player">${escapeHtml(topPlayer)}</span>
+      </div>
+      <div class="madness-slot">
+        <span class="madness-seed">${bottomSeed}</span>
+        <span class="madness-player">${escapeHtml(bottomPlayer)}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderRegion(title, entries) {
+  const seedMap = buildSeedMap(entries);
+  return `
+    <div class="madness-region">
+      <h3 class="madness-region-title">${escapeHtml(title)}</h3>
+      <div class="madness-round">
+        <div class="madness-round-title">Round Of 16</div>
+        <div class="madness-round-list">
+          ${BRACKET_PAIRS.map((pair) => renderMatch(seedMap, pair[0], pair[1])).join("")}
+        </div>
       </div>
     </div>
   `;
@@ -92,8 +123,16 @@ function render() {
 
   if (bracket) {
     bracket.innerHTML = `
-      ${renderSide("East", EAST_BRACKET)}
-      ${renderSide("West", WEST_BRACKET)}
+      <div class="madness-tree">
+        ${renderRegion("East", EAST_BRACKET)}
+        <div class="madness-center">
+          <div class="madness-center-card">
+            <div class="madness-center-title">RSKL Madness</div>
+            <div class="madness-center-sub">Play-In Winners Fill P1-P7</div>
+          </div>
+        </div>
+        ${renderRegion("West", WEST_BRACKET)}
+      </div>
     `;
   }
 

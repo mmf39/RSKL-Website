@@ -94,6 +94,93 @@
   font-weight: 600;
 }
 
+.madness-tree {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.madness-region {
+  background: rgba(9, 20, 48, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.madness-region-title {
+  margin: 0 0 10px;
+  color: var(--accent);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.madness-round-title {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.madness-round-list {
+  display: grid;
+  gap: 10px;
+}
+
+.madness-match {
+  background: rgba(5, 12, 33, 0.86);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.madness-slot {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.madness-slot + .madness-slot {
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+.madness-center {
+  display: flex;
+  justify-content: center;
+}
+
+.madness-center-card {
+  width: 100%;
+  background: rgba(9, 20, 48, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 14px;
+  text-align: center;
+}
+
+.madness-center-title {
+  color: var(--accent);
+  font-weight: 900;
+  font-size: 1.15rem;
+}
+
+.madness-center-sub {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 960px) {
+  .madness-tree {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 * {
   box-sizing: border-box;
 }
