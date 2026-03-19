@@ -84,8 +84,8 @@ function resolvePlayerLabel(player) {
     return { main: raw, sub: "" };
   }
   return {
-    main: `W ${playInId}`,
-    sub: `${players[0]} vs ${players[1]}`,
+    main: `${players[0]} vs ${players[1]}`,
+    sub: "",
   };
 }
 
@@ -132,15 +132,15 @@ function renderSide(entries, sideClass) {
   }).join("");
 
   const secondRound = R2_ROWS.map((row, idx) =>
-    renderPlaceholder(`Winner ${idx * 2 + 1}`, `Winner ${idx * 2 + 2}`, `round-two ${sideClass}`, row)
+    renderPlaceholder("", "", `round-two ${sideClass}`, row)
   ).join("");
 
   const sweet16 = S16_ROWS.map((row, idx) =>
-    renderPlaceholder(`Winner ${idx * 2 + 1}`, `Winner ${idx * 2 + 2}`, `sweet-sixteen ${sideClass}`, row)
+    renderPlaceholder("", "", `sweet-sixteen ${sideClass}`, row)
   ).join("");
 
   const elite8 = E8_ROWS.map((row) =>
-    renderPlaceholder("Regional Finalist", "Regional Finalist", `elite-eight ${sideClass}`, row)
+    renderPlaceholder("", "", `elite-eight ${sideClass}`, row)
   ).join("");
 
   return `${firstRound}${secondRound}${sweet16}${elite8}`;
@@ -149,7 +149,7 @@ function renderSide(entries, sideClass) {
 function renderFinals() {
   return `
     ${renderPlaceholder("East Finalist", "West Finalist", "final-four top", 6)}
-    ${renderPlaceholder("Champion", "Runner-Up", "championship", 8)}
+    ${renderPlaceholder("East Champ", "West Champ", "championship", 8)}
     ${renderPlaceholder("East Finalist", "West Finalist", "final-four bottom", 10)}
   `;
 }
@@ -191,7 +191,6 @@ function render() {
     playins.innerHTML = PLAY_INS.map(
       (series) => `
         <div class="madness-playin-card">
-          <div class="madness-playin-title">${escapeHtml(series.id)}</div>
           <div class="madness-playin-body">
             <span>${escapeHtml(series.players[0])}</span>
             <span class="madness-vs">vs</span>
