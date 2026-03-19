@@ -45,6 +45,7 @@ const PLAY_INS = [
   { id: "P6", players: ["@rzk", "@jakemccarthy31"] },
   { id: "P7", players: ["@jakobe.walter", "@mmf"] },
 ];
+
 const PLAY_IN_MAP = Object.fromEntries(PLAY_INS.map((p) => [p.id, p.players]));
 
 const ROUND_HEADERS = [
@@ -52,14 +53,30 @@ const ROUND_HEADERS = [
   { name: "Second Round", dates: "3/21-3/22" },
   { name: "Sweet 16", dates: "3/26-3/27" },
   { name: "Elite Eight", dates: "3/28-3/29" },
+  { name: "Final Four / Final", dates: "TBD" },
 ];
+
+const BRACKET_PAIRS = [
+  [1, 16],
+  [8, 9],
+  [5, 12],
+  [4, 13],
+  [6, 11],
+  [3, 14],
+  [7, 10],
+  [2, 15],
+];
+
+const R2_ROWS = [2, 6, 10, 14];
+const S16_ROWS = [4, 12];
+const E8_ROWS = [8];
 
 function escapeHtml(value) {
   return String(value)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+    .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
 
@@ -80,21 +97,6 @@ function resolvePlayerLabel(player) {
   };
 }
 
-const BRACKET_PAIRS = [
-  [1, 16],
-  [8, 9],
-  [5, 12],
-  [4, 13],
-  [6, 11],
-  [3, 14],
-  [7, 10],
-  [2, 15],
-];
-
-const R2_ROWS = [2, 6, 10, 14];
-const S16_ROWS = [4, 12];
-const E8_ROWS = [8];
-
 function buildSeedMap(entries) {
   const map = new Map();
   entries.forEach((entry) => {
@@ -103,84 +105,60 @@ function buildSeedMap(entries) {
   return map;
 }
 
-function renderMatch(seedMap, topSeed, bottomSeed, roundClass, row) {
-  const topPlayer = resolvePlayerLabel(seedMap.get(topSeed) || "");
-  const bottomPlayer = resolvePlayerLabel(seedMap.get(bottomSeed) || "");
+function renderTeamSlot(seed, playerLabel) {
   return `
-    <article class="madness-game ${roundClass}" style="--row:${row};">
-      <div class="madness-game-slot">
-        <span class="madness-seed">${topSeed}</span>
-        <span class="madness-player">
-          <span class="madness-player-main">${escapeHtml(topPlayer.main)}</span>
-          ${topPlayer.sub ? `<small class="madness-player-sub">${escapeHtml(topPlayer.sub)}</small>` : ""}
-        </span>
-      </div>
-      <div class="madness-game-slot">
-        <span class="madness-seed">${bottomSeed}</span>
-        <span class="madness-player">
-          <span class="madness-player-main">${escapeHtml(bottomPlayer.main)}</span>
-          ${bottomPlayer.sub ? `<small class="madness-player-sub">${escapeHtml(bottomPlayer.sub)}</small>` : ""}
-        </span>
-      </div>
+    <div class="madness-game-slot">
+      <span class="madness-seed">${seed || ""}</span>
+      <span class="madness-player">
+        <span class="madness-player-main">${escapeHtml(playerLabel.main || "")}</span>
+        ${playerLabel.sub ? `<small class="madness-player-sub">${escapeHtml(playerLabel.sub)}</small>` : ""}
+      </span>
+    </div>
+  `;
+}
+
+function renderGame(topSeed, topPlayer, bottomSeed, bottomPlayer, cls, row) {
+  return `
+    <article class="madness-game ${cls}" style="--row:${row};">
+      ${renderTeamSlot(topSeed, topPlayer)}
+      ${renderTeamSlot(bottomSeed, bottomPlayer)}
     </article>
   `;
 }
 
-function renderRegion(title, entries) {
+function renderPlaceholder(top, bottom, cls, row) {
+  return renderGame("", { main: top, sub: "" }, "", { main: bottom, sub: "" }, `${cls} placeholder`, row);
+}
+
+function renderSide(entries, sideClass) {
   const seedMap = buildSeedMap(entries);
-  const firstRound = BRACKET_PAIRS.map((pair, index) =>
-    renderMatch(seedMap, pair[0], pair[1], "round-one", 1 + index * 2)
+
+  const firstRound = BRACKET_PAIRS.map((pair, index) => {
+    const topPlayer = resolvePlayerLabel(seedMap.get(pair[0]) || "");
+    const bottomPlayer = resolvePlayerLabel(seedMap.get(pair[1]) || "");
+    return renderGame(pair[0], topPlayer, pair[1], bottomPlayer, `round-one ${sideClass}`, 1 + index * 2);
+  }).join("");
+
+  const secondRound = R2_ROWS.map((row, idx) =>
+    renderPlaceholder(`Winner ${idx * 2 + 1}`, `Winner ${idx * 2 + 2}`, `round-two ${sideClass}`, row)
   ).join("");
 
-  const secondRound = R2_ROWS.map(
-    (row, idx) => `
-      <article class="madness-game round-two placeholder" style="--row:${row};">
-        <div class="madness-game-slot"><span class="madness-player">Winner ${idx * 2 + 1}</span></div>
-        <div class="madness-game-slot"><span class="madness-player">Winner ${idx * 2 + 2}</span></div>
-      </article>
-    `
+  const sweet16 = S16_ROWS.map((row, idx) =>
+    renderPlaceholder(`Winner ${idx * 2 + 1}`, `Winner ${idx * 2 + 2}`, `sweet-sixteen ${sideClass}`, row)
   ).join("");
 
-  const sweet16 = S16_ROWS.map(
-    (row, idx) => `
-      <article class="madness-game sweet-sixteen placeholder" style="--row:${row};">
-        <div class="madness-game-slot"><span class="madness-player">Winner ${idx * 2 + 1}</span></div>
-        <div class="madness-game-slot"><span class="madness-player">Winner ${idx * 2 + 2}</span></div>
-      </article>
-    `
+  const elite8 = E8_ROWS.map((row) =>
+    renderPlaceholder("Regional Finalist", "Regional Finalist", `elite-eight ${sideClass}`, row)
   ).join("");
 
-  const elite8 = E8_ROWS.map(
-    (row) => `
-      <article class="madness-game elite-eight placeholder" style="--row:${row};">
-        <div class="madness-game-slot"><span class="madness-player">Regional Finalist A</span></div>
-        <div class="madness-game-slot"><span class="madness-player">Regional Finalist B</span></div>
-      </article>
-    `
-  ).join("");
+  return `${firstRound}${secondRound}${sweet16}${elite8}`;
+}
 
+function renderFinals() {
   return `
-    <section class="madness-region-board">
-      <h3 class="madness-region-title">${escapeHtml(title)}</h3>
-      <div class="madness-round-headers">
-        ${ROUND_HEADERS.map(
-          (round) => `
-            <div class="madness-round-header">
-              <span>${escapeHtml(round.name)}</span>
-              <small>${escapeHtml(round.dates)}</small>
-            </div>
-          `
-        ).join("")}
-      </div>
-      <div class="madness-grid-wrap">
-        <div class="madness-grid">
-          ${firstRound}
-          ${secondRound}
-          ${sweet16}
-          ${elite8}
-        </div>
-      </div>
-    </section>
+    ${renderPlaceholder("East Finalist", "West Finalist", "final-four left", 4)}
+    ${renderPlaceholder("RSKL Champion", "Runner-Up", "championship", 8)}
+    ${renderPlaceholder("East Finalist", "West Finalist", "final-four right", 12)}
   `;
 }
 
@@ -202,8 +180,25 @@ function render() {
   if (bracket) {
     bracket.innerHTML = `
       <div class="madness-board-list">
-        ${renderRegion("East", EAST_BRACKET)}
-        ${renderRegion("West", WEST_BRACKET)}
+        <section class="madness-region-board">
+          <div class="madness-round-headers full">
+            ${ROUND_HEADERS.map((round) => `
+              <div class="madness-round-header">
+                <span>${escapeHtml(round.name)}</span>
+                <small>${escapeHtml(round.dates)}</small>
+              </div>
+            `).join("")}
+          </div>
+          <div class="madness-grid-wrap">
+            <div class="madness-combined-board">
+              <div class="madness-side-label left">East</div>
+              <div class="madness-side-label right">West</div>
+              ${renderSide(EAST_BRACKET, "left")}
+              ${renderSide(WEST_BRACKET, "right")}
+              ${renderFinals()}
+            </div>
+          </div>
+        </section>
       </div>
     `;
   }
