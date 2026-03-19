@@ -1040,7 +1040,7 @@ async function loadUpcomingScheduleGames() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  return body
+  const games = body
     .map((row) => {
       const dateText = String(row[dateIdx >= 0 ? dateIdx : 0] || "").trim();
       const team1 = String(row[t1Idx >= 0 ? t1Idx : 1] || "").trim();
@@ -1055,28 +1055,62 @@ async function loadUpcomingScheduleGames() {
     })
     .filter(Boolean)
     .sort((a, b) => a.when - b.when)
-    .filter((g) => g.when >= today)
+    .filter((g) => g.when >= today);
+
+  const byDate = new Map();
+  games.forEach((game) => {
+    const key = game.dateText;
+    if (!byDate.has(key)) {
+      byDate.set(key, {
+        dateText: game.dateText,
+        when: game.when,
+        gameCount: 0,
+        gameType: game.gameType || "",
+        games: [],
+        lockAt: "",
+      });
+    }
+    const day = byDate.get(key);
+    day.gameCount += 1;
+    if (!day.gameType && game.gameType) {
+      day.gameType = game.gameType;
+    }
+    day.games.push({
+      team1: game.team1,
+      team2: game.team2,
+      gameType: game.gameType || "",
+    });
+  });
+
+  return Array.from(byDate.values())
+    .sort((a, b) => a.when - b.when)
     .slice(0, 3);
 }
 
 function renderCommishLockGames() {
   if (!els.lockGamesList) return;
   if (!commishUpcomingGames.length) {
-    els.lockGamesList.innerHTML = '<div class="gm-empty">No upcoming games found.</div>';
+    els.lockGamesList.innerHTML = '<div class="gm-empty">No upcoming game days found.</div>';
     return;
   }
   els.lockGamesList.innerHTML = commishUpcomingGames
-    .map(
-      (game, idx) => `
+    .map((day, idx) => {
+      const preview = day.games
+        .slice(0, 2)
+        .map((g) => `${displayTeamName(g.team1)} vs ${displayTeamName(g.team2)}`)
+        .join(" • ");
+      const extra = day.gameCount > 2 ? ` (+${day.gameCount - 2} more)` : "";
+      return `
         <div class="gm-readonly-card">
-          <div class="gm-readonly-title">Game ${idx + 1}: ${escapeHtml(game.dateText)} • ${escapeHtml(displayTeamName(game.team1))} vs ${escapeHtml(displayTeamName(game.team2))}</div>
+          <div class="gm-readonly-title">Game Day ${idx + 1}: ${escapeHtml(day.dateText)} • ${day.gameCount} game${day.gameCount === 1 ? "" : "s"}</div>
+          <div>${escapeHtml(preview + extra)}</div>
           <div class="gm-readonly-group">
             <div class="label">Lock Date/Time (local)</div>
-            <input class="text-input" type="datetime-local" data-lock-index="${idx}" value="${escapeHtml(game.lockAt || "")}" />
+            <input class="text-input" type="datetime-local" data-lock-index="${idx}" value="${escapeHtml(day.lockAt || "")}" />
           </div>
         </div>
       `
-    )
+    })
     .join("");
 }
 
@@ -1326,14 +1360,15 @@ function bindEvents() {
       const locks = inputs
         .map((input) => {
           const idx = Number(input.dataset.lockIndex);
-          const game = commishUpcomingGames[idx];
+          const day = commishUpcomingGames[idx];
           const lockAt = String(input.value || "").trim();
-          if (!game || !lockAt) return null;
+          if (!day || !lockAt) return null;
           return {
-            date: game.dateText,
-            team1: game.team1,
-            team2: game.team2,
-            gameType: game.gameType || "",
+            date: day.dateText,
+            team1: "__ALL__",
+            team2: "__ALL__",
+            gameType: day.gameType || "",
+            gameCount: day.gameCount || 0,
             lockAt,
           };
         })
