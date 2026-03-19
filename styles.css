@@ -25,9 +25,9 @@
 }
 
 .madness-region-board {
-  border: 1px solid rgba(187, 193, 212, 0.38);
+  border: 1px solid rgba(255, 140, 26, 0.35);
   border-radius: 16px;
-  background: rgba(220, 224, 234, 0.08);
+  background: linear-gradient(180deg, rgba(10, 25, 58, 0.95), rgba(7, 15, 36, 0.95));
   padding: 12px;
 }
 
@@ -74,7 +74,7 @@
 .madness-grid-wrap {
   min-width: 1680px;
   overflow-x: auto;
-  padding-top: 16px;
+  padding-top: 6px;
 }
 
 .madness-combined-board {
@@ -85,17 +85,16 @@
   --slot-gap: 0px;
   --game-h: calc((var(--slot-h) * 2) + var(--slot-gap));
   --row-h: 42px;
-  --lw: 190px;
-  --rw: 190px;
-  --l1: 0px;
-  --l2: 240px;
-  --l3: 480px;
-  --l4: 720px;
-  --r1: 0px;
-  --r2: 240px;
-  --r3: 480px;
-  --r4: 720px;
-  --center-left: 660px;
+  --gw: 180px;
+  --l1: 20px;
+  --l2: 220px;
+  --l3: 420px;
+  --l4: 620px;
+  --r1: 20px;
+  --r2: 220px;
+  --r3: 420px;
+  --r4: 620px;
+  --center-left: 760px;
 }
 
 .madness-side-label {
@@ -118,13 +117,14 @@
 
 .madness-game {
   position: absolute;
-  width: var(--lw);
+  width: var(--gw);
   height: var(--game-h);
-  border: 1px solid rgba(174, 181, 203, 0.9);
+  border: 1px solid rgba(255, 140, 26, 0.45);
   border-radius: 4px;
   overflow: hidden;
-  background: rgba(223, 227, 238, 0.08);
+  background: rgba(8, 18, 45, 0.92);
   --game-y: calc((var(--row) - 1) * var(--row-h));
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
 }
 
 .madness-game.round-one.left {
@@ -167,21 +167,21 @@
   top: var(--game-y);
 }
 
-.madness-game.final-four.left {
+.madness-game.final-four.top {
   left: var(--center-left);
-  top: calc((4 - 1) * var(--row-h));
-  width: 160px;
-}
-
-.madness-game.final-four.right {
-  left: var(--center-left);
-  top: calc((12 - 1) * var(--row-h));
+  top: calc((6 - 1) * var(--row-h));
   width: 160px;
 }
 
 .madness-game.championship {
   left: 760px;
   top: calc((8 - 1) * var(--row-h));
+  width: 160px;
+}
+
+.madness-game.final-four.bottom {
+  left: var(--center-left);
+  top: calc((10 - 1) * var(--row-h));
   width: 160px;
 }
 
@@ -192,7 +192,7 @@
   align-items: center;
   gap: 6px;
   padding: 0 8px;
-  border-bottom: 1px solid rgba(174, 181, 203, 0.9);
+  border-bottom: 1px solid rgba(255, 140, 26, 0.32);
 }
 
 .madness-game-slot:last-child {
@@ -203,13 +203,13 @@
   text-align: center;
   font-weight: 700;
   font-size: 0.74rem;
-  color: #e6e9f4;
+  color: #ffb347;
 }
 
 .madness-player {
   display: grid;
   gap: 1px;
-  color: #ffffff;
+  color: #f6f7fb;
   font-weight: 700;
   line-height: 1.05;
   font-size: 0.72rem;
@@ -221,7 +221,7 @@
 
 .madness-player-sub {
   display: block;
-  color: rgba(214, 220, 238, 0.82);
+  color: rgba(196, 206, 231, 0.95);
   font-size: 0.6rem;
   font-weight: 500;
   letter-spacing: 0;
@@ -229,7 +229,7 @@
 }
 
 .madness-game.placeholder .madness-player {
-  color: rgba(230, 233, 245, 0.5);
+  color: rgba(180, 188, 214, 0.86);
   font-weight: 700;
   font-size: 0.68rem;
 }
@@ -243,7 +243,7 @@
   right: -22px;
   top: calc(50% - 1px);
   width: 22px;
-  border-top: 1px solid rgba(197, 202, 219, 0.92);
+  border-top: 1px solid rgba(255, 180, 71, 0.8);
 }
 
 .madness-game.round-one.right::after,
@@ -255,20 +255,20 @@
   left: -22px;
   top: calc(50% - 1px);
   width: 22px;
-  border-top: 1px solid rgba(197, 202, 219, 0.92);
+  border-top: 1px solid rgba(255, 180, 71, 0.8);
 }
 
-.madness-game.final-four.left::before,
-.madness-game.final-four.right::before {
+.madness-game.final-four.top::before,
+.madness-game.final-four.bottom::before {
   content: "";
   position: absolute;
   left: 100%;
   top: calc(50% - 1px);
   width: 24px;
-  border-top: 1px solid rgba(197, 202, 219, 0.92);
+  border-top: 1px solid rgba(255, 180, 71, 0.8);
 }
 
-.madness-game.final-four.right::before {
+.madness-game.final-four.bottom::before {
   left: auto;
   right: 100%;
 }
@@ -317,8 +317,7 @@
 
   .madness-combined-board {
     width: 1200px;
-    --lw: 130px;
-    --rw: 130px;
+    --gw: 130px;
     --l1: 0px;
     --l2: 170px;
     --l3: 340px;
@@ -335,8 +334,8 @@
     width: 100px;
   }
 
-  .madness-game.final-four.left,
-  .madness-game.final-four.right {
+  .madness-game.final-four.top,
+  .madness-game.final-four.bottom {
     width: 100px;
   }
 }

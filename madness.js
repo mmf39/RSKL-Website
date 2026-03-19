@@ -48,14 +48,6 @@ const PLAY_INS = [
 
 const PLAY_IN_MAP = Object.fromEntries(PLAY_INS.map((p) => [p.id, p.players]));
 
-const ROUND_HEADERS = [
-  { name: "First Round", dates: "3/19-3/20" },
-  { name: "Second Round", dates: "3/21-3/22" },
-  { name: "Sweet 16", dates: "3/26-3/27" },
-  { name: "Elite Eight", dates: "3/28-3/29" },
-  { name: "Final Four / Final", dates: "TBD" },
-];
-
 const BRACKET_PAIRS = [
   [1, 16],
   [8, 9],
@@ -156,9 +148,9 @@ function renderSide(entries, sideClass) {
 
 function renderFinals() {
   return `
-    ${renderPlaceholder("East Finalist", "West Finalist", "final-four left", 4)}
-    ${renderPlaceholder("RSKL Champion", "Runner-Up", "championship", 8)}
-    ${renderPlaceholder("East Finalist", "West Finalist", "final-four right", 12)}
+    ${renderPlaceholder("East Finalist", "West Finalist", "final-four top", 6)}
+    ${renderPlaceholder("Champion", "Runner-Up", "championship", 8)}
+    ${renderPlaceholder("East Finalist", "West Finalist", "final-four bottom", 10)}
   `;
 }
 
@@ -181,14 +173,6 @@ function render() {
     bracket.innerHTML = `
       <div class="madness-board-list">
         <section class="madness-region-board">
-          <div class="madness-round-headers full">
-            ${ROUND_HEADERS.map((round) => `
-              <div class="madness-round-header">
-                <span>${escapeHtml(round.name)}</span>
-                <small>${escapeHtml(round.dates)}</small>
-              </div>
-            `).join("")}
-          </div>
           <div class="madness-grid-wrap">
             <div class="madness-combined-board">
               <div class="madness-side-label left">East</div>
