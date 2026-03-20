@@ -341,8 +341,7 @@ function renderSide(entries, sideClass, scoreMap) {
 
 function renderFinals(scoreMap, eastChamp, westChamp) {
   return `
-    ${renderPlaceholder({ main: "", sub: "", handles: [] }, { main: "", sub: "", handles: [] }, "final-four top", 6, scoreMap)}
-    ${renderPlaceholder(eastChamp, westChamp, "championship", 8, scoreMap)}
+    ${renderPlaceholder(eastChamp, westChamp, "final-four top", 6, scoreMap)}
     ${renderPlaceholder({ main: "", sub: "", handles: [] }, { main: "", sub: "", handles: [] }, "final-four bottom", 10, scoreMap)}
   `;
 }
