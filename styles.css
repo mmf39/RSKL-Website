@@ -81,20 +81,20 @@
   position: relative;
   width: 1680px;
   height: 860px;
-  --slot-h: 32px;
+  --slot-h: 40px;
   --slot-gap: 0px;
   --game-h: calc((var(--slot-h) * 2) + var(--slot-gap));
   --row-h: 42px;
-  --gw: 180px;
+  --gw: 250px;
   --l1: 20px;
-  --l2: 220px;
-  --l3: 420px;
-  --l4: 560px;
+  --l2: 300px;
+  --l3: 600px;
+  --l4: 760px;
   --r1: 20px;
-  --r2: 220px;
-  --r3: 420px;
-  --r4: 560px;
-  --center-left: 760px;
+  --r2: 300px;
+  --r3: 600px;
+  --r4: 760px;
+  --center-left: 720px;
 }
 
 .madness-side-label {
@@ -174,9 +174,9 @@
 }
 
 .madness-game.championship {
-  left: 760px;
+  left: 720px;
   top: calc((8 - 1) * var(--row-h));
-  width: 160px;
+  width: 250px;
 }
 
 .madness-game.final-four.bottom {
@@ -188,7 +188,7 @@
 .madness-game-slot {
   min-height: var(--slot-h);
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
+  grid-template-columns: 34px minmax(0, 1fr) 64px;
   align-items: center;
   gap: 6px;
   padding: 0 8px;
@@ -212,18 +212,23 @@
   color: #f6f7fb;
   font-weight: 700;
   line-height: 1.05;
-  font-size: 0.72rem;
+  font-size: 0.86rem;
+  min-width: 0;
 }
 
 .madness-player-main {
   display: block;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .madness-player-score {
-  min-width: 26px;
+  min-width: 56px;
   text-align: right;
   color: #ffb347;
-  font-size: 0.7rem;
+  font-size: 0.9rem;
   font-weight: 700;
 }
 
@@ -314,37 +319,37 @@
 
 @media (max-width: 900px) {
   .madness-grid-wrap {
-    min-width: 1200px;
+    min-width: 1480px;
     overflow-x: auto;
     overflow-y: hidden;
   }
 
   .madness-round-headers {
-    min-width: 1200px;
+    min-width: 1480px;
   }
 
   .madness-combined-board {
-    width: 1200px;
-    --gw: 130px;
+    width: 1480px;
+    --gw: 210px;
     --l1: 0px;
-    --l2: 170px;
-    --l3: 340px;
-    --l4: 470px;
+    --l2: 250px;
+    --l3: 500px;
+    --l4: 680px;
     --r1: 0px;
-    --r2: 170px;
-    --r3: 340px;
-    --r4: 470px;
-    --center-left: 490px;
+    --r2: 250px;
+    --r3: 500px;
+    --r4: 680px;
+    --center-left: 620px;
   }
 
   .madness-game.championship {
-    left: 550px;
-    width: 100px;
+    left: 620px;
+    width: 210px;
   }
 
   .madness-game.final-four.top,
   .madness-game.final-four.bottom {
-    width: 100px;
+    width: 210px;
   }
 }
 
