@@ -62,7 +62,7 @@ const BRACKET_PAIRS = [
 ];
 const R2_ROWS = [2, 6, 10, 14];
 const S16_ROWS = [4, 12];
-const E8_ROWS = [8];
+const E8_ROWS = [];
 
 let liveState = {
   scoreMap: new Map(),
@@ -201,17 +201,12 @@ function resolvePlayerLabel(player) {
 function scoreTextForLabel(label, scoreMap) {
   if (!label || !label.handles || !label.handles.length) return "";
 
-  if (label.handles.length === 1) {
-    const score = scoreMap.get(label.handles[0]);
-    return score === undefined ? "" : String(score);
-  }
+  // Only show inline score in bracket for single-player slots.
+  // Play-in matchup labels stay score-free in the bracket view.
+  if (label.handles.length !== 1) return "";
 
-  const left = scoreMap.get(label.handles[0]);
-  const right = scoreMap.get(label.handles[1]);
-  if (left !== undefined && right !== undefined) return `${left}-${right}`;
-  if (left !== undefined) return String(left);
-  if (right !== undefined) return String(right);
-  return "";
+  const score = scoreMap.get(label.handles[0]);
+  return score === undefined ? "" : String(score);
 }
 
 function scoreForHandle(player, scoreMap) {
@@ -327,29 +322,17 @@ function renderSide(entries, sideClass, scoreMap) {
     return renderPlaceholder(top, bottom, `sweet-sixteen ${sideClass}`, row, scoreMap);
   }).join("");
 
-  const e8Winners = [
-    labelForWinner(s16Winners[0], s16Winners[1], scoreMap),
-    labelForWinner(s16Winners[2], s16Winners[3], scoreMap),
-  ];
-
-  const elite8 = E8_ROWS.map((row) => {
-    const top = e8Winners[0] || { main: "", sub: "", handles: [] };
-    const bottom = e8Winners[1] || { main: "", sub: "", handles: [] };
-    return renderPlaceholder(top, bottom, `elite-eight ${sideClass}`, row, scoreMap);
-  }).join("");
-
-  const sideChamp = labelForWinner(e8Winners[0], e8Winners[1], scoreMap);
+  const sideChamp = labelForWinner(s16Winners[0], s16Winners[1], scoreMap);
 
   return {
-    html: `${firstRound}${secondRound}${sweet16}${elite8}`,
+    html: `${firstRound}${secondRound}${sweet16}`,
     champion: sideChamp && sideChamp.main ? sideChamp : { main: "", sub: "", handles: [] },
   };
 }
 
 function renderFinals(scoreMap, eastChamp, westChamp) {
   return `
-    ${renderPlaceholder(eastChamp, westChamp, "final-four top", 6, scoreMap)}
-    ${renderPlaceholder({ main: "", sub: "", handles: [] }, { main: "", sub: "", handles: [] }, "final-four bottom", 10, scoreMap)}
+    ${renderPlaceholder(eastChamp, westChamp, "championship", 8, scoreMap)}
   `;
 }
 
