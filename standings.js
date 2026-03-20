@@ -9,6 +9,7 @@ const TRANSACTIONS_RANGE = "A3:E81";
 const RETIREMENT_RANGE = "G3:J70";
 const CUT_RANGE = "L3:O81";
 const SIGNING_RANGE = "Q3:T81";
+const REGULAR_SEASON_GAMES = 15;
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -362,7 +363,13 @@ function computeTeamGameCountsFromSchedule(scheduleRows) {
   return counts;
 }
 
-function computePlayoffStatusMap(standingsHeader, standingsDataRows, scheduleRows, playoffSpots = 6) {
+function computePlayoffStatusMap(
+  standingsHeader,
+  standingsDataRows,
+  scheduleRows,
+  playoffSpots = 6,
+  seasonGames = REGULAR_SEASON_GAMES
+) {
   const map = new Map();
   if (!standingsDataRows.length) {
     return map;
@@ -386,7 +393,10 @@ function computePlayoffStatusMap(standingsHeader, standingsDataRows, scheduleRow
       if (!team || wins === null || gp === null) {
         return null;
       }
-      const totalGames = totalGamesByTeam.get(team) || gp;
+      const scheduleTotal = totalGamesByTeam.get(team);
+      const totalGames = Number.isFinite(seasonGames) && seasonGames > 0
+        ? seasonGames
+        : (scheduleTotal || gp);
       const remaining = Math.max(0, totalGames - gp);
       return { team, wins, gp, maxWins: wins + remaining };
     })
