@@ -188,7 +188,7 @@
 .madness-game-slot {
   min-height: var(--slot-h);
   display: grid;
-  grid-template-columns: 28px 1fr;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
   align-items: center;
   gap: 6px;
   padding: 0 8px;
@@ -219,6 +219,14 @@
   display: block;
 }
 
+.madness-player-score {
+  min-width: 26px;
+  text-align: right;
+  color: #ffb347;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
 .madness-player-sub {
   display: block;
   color: rgba(196, 206, 231, 0.95);
@@ -232,6 +240,18 @@
   color: rgba(180, 188, 214, 0.86);
   font-weight: 700;
   font-size: 0.68rem;
+}
+
+.madness-game.placeholder .madness-player-score {
+  color: rgba(180, 188, 214, 0.72);
+}
+
+.madness-game-slot.is-win .madness-player-main {
+  color: #42e28f;
+}
+
+.madness-game-slot.is-loss .madness-player-main {
+  color: #ff8c8c;
 }
 
 .madness-game.round-one.left::after,
