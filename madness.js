@@ -158,7 +158,9 @@ function extractScoreMap(rows) {
       if (handles.length !== 1) continue;
 
       const handle = handles[0];
-      let score = toNumber(cell);
+      // Do not parse numbers from the same handle cell (e.g. @ok124 -> 124).
+      // Scores should come from nearby score columns.
+      let score = null;
 
       if (score === null) {
         for (let step = 1; step <= 3; step += 1) {
@@ -196,7 +198,8 @@ function extractCompletedMatchups(rows) {
       const handles = extractHandles(cell);
       if (handles.length !== 1) continue;
 
-      let score = toNumber(cell);
+      // Do not treat trailing digits in handle text as score.
+      let score = null;
       if (score === null) {
         for (let step = 1; step <= 3; step += 1) {
           score = toNumber(row[c + step]);
