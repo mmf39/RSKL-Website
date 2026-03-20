@@ -148,9 +148,9 @@ function renderSide(entries, sideClass) {
 
 function renderFinals() {
   return `
-    ${renderPlaceholder("East Finalist", "West Finalist", "final-four top", 6)}
-    ${renderPlaceholder("East Champ", "West Champ", "championship", 8)}
-    ${renderPlaceholder("East Finalist", "West Finalist", "final-four bottom", 10)}
+    ${renderPlaceholder("", "", "final-four top", 6)}
+    ${renderPlaceholder("", "", "championship", 8)}
+    ${renderPlaceholder("", "", "final-four bottom", 10)}
   `;
 }
 
