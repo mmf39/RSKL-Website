@@ -19,6 +19,8 @@ const SOURCES = {
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=1486072019&single=true&output=csv",
   "madness-live":
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTCAyH_FaIk97bDq5_U4-foybMKDrXMrYVWE-cDeCgHmTFtjSAQrURZBgEA8g4Bhj-TL4U-OcITkC6/pub?gid=1463615611&single=true&output=csv",
+  "madness-completed":
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTCAyH_FaIk97bDq5_U4-foybMKDrXMrYVWE-cDeCgHmTFtjSAQrURZBgEA8g4Bhj-TL4U-OcITkC6/pub?gid=443160286&single=true&output=csv",
   "player-stats":
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=2091759853&single=true&output=csv",
   roster:
