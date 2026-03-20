@@ -214,6 +214,13 @@ function scoreTextForLabel(label, scoreMap) {
   return "";
 }
 
+function scoreForHandle(player, scoreMap) {
+  const handle = normalizeHandle(player);
+  if (!handle) return "";
+  const score = scoreMap.get(handle);
+  return score === undefined ? "" : String(score);
+}
+
 function labelForWinner(a, b, scoreMap) {
   if (!a || !b || a.handles.length !== 1 || b.handles.length !== 1) return { main: "", sub: "", handles: [] };
   const aScore = scoreMap.get(a.handles[0]);
@@ -388,9 +395,17 @@ function render() {
       (series) => `
         <div class="madness-playin-card">
           <div class="madness-playin-body">
-            <span>${escapeHtml(series.players[0])}</span>
+            <span>${escapeHtml(series.players[0])}${
+              scoreForHandle(series.players[0], liveState.scoreMap)
+                ? ` <strong>${escapeHtml(scoreForHandle(series.players[0], liveState.scoreMap))}</strong>`
+                : ""
+            }</span>
             <span class="madness-vs">vs</span>
-            <span>${escapeHtml(series.players[1])}</span>
+            <span>${escapeHtml(series.players[1])}${
+              scoreForHandle(series.players[1], liveState.scoreMap)
+                ? ` <strong>${escapeHtml(scoreForHandle(series.players[1], liveState.scoreMap))}</strong>`
+                : ""
+            }</span>
           </div>
         </div>
       `

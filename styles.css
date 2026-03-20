@@ -302,6 +302,11 @@
   font-weight: 700;
 }
 
+.madness-playin-body strong {
+  color: var(--accent-2);
+  font-weight: 800;
+}
+
 .madness-vs {
   color: var(--muted);
   font-weight: 600;
