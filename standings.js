@@ -244,6 +244,13 @@ function renderStandings() {
           <div class="leader-rank">#${index + 1}</div>
           <div>
             <div class="leader-name">${logo}${escapeHtml(teamName)}</div>
+            <div class="leader-status ${statusClassName(
+              playoffStatusByTeam.get(normalizeTeamLabel(rawTeamName)) || "In Contention"
+            )}">
+              ${escapeHtml(
+                playoffStatusByTeam.get(normalizeTeamLabel(rawTeamName)) || "In Contention"
+              )}
+            </div>
           </div>
           <div class="leader-meta">
             ${statIndices
@@ -310,6 +317,13 @@ function parsePct(value) {
 function parseNumber(value) {
   const num = Number(String(value || "").replace(/[^0-9.\-]/g, ""));
   return Number.isNaN(num) ? null : num;
+}
+
+function statusClassName(status) {
+  const key = String(status || "").toLowerCase();
+  if (key.includes("clinched")) return "clinched";
+  if (key.includes("eliminated")) return "eliminated";
+  return "contention";
 }
 
 function computeTeamGameCountsFromSchedule(scheduleRows) {
