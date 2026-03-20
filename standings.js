@@ -18,6 +18,7 @@ const els = {
 let standingsRows = [];
 let standingsHeaders = [];
 let sosByTeam = new Map();
+let playoffStatusByTeam = new Map();
 let requestedMetric = "wins";
 let advancedByTeam = new Map();
 let transactionsByTeam = new Map();
@@ -285,6 +286,12 @@ function renderStandings() {
                 String(transactionsByTeam.get(normalizeTeamLabel(rawTeamName)) || 0)
               )}</span>
             </div>
+            <div class="leader-chip">
+              Status
+              <span>${escapeHtml(
+                playoffStatusByTeam.get(normalizeTeamLabel(rawTeamName)) || "In Contention"
+              )}</span>
+            </div>
           </div>
         </a>
       `;
@@ -303,6 +310,94 @@ function parsePct(value) {
 function parseNumber(value) {
   const num = Number(String(value || "").replace(/[^0-9.\-]/g, ""));
   return Number.isNaN(num) ? null : num;
+}
+
+function computeTeamGameCountsFromSchedule(scheduleRows) {
+  const counts = new Map();
+  if (!scheduleRows || scheduleRows.length < 2) {
+    return counts;
+  }
+
+  const scheduleHeader = (scheduleRows[0] || []).map((h) =>
+    String(h || "").trim().toLowerCase()
+  );
+  const findScheduleIdx = (checks) =>
+    scheduleHeader.findIndex((h) => checks.some((check) => h.includes(check)));
+
+  const team1Idx = (() => {
+    const idx = findScheduleIdx(["team 1", "team1", "away"]);
+    return idx !== -1 ? idx : 2;
+  })();
+  const team2Idx = (() => {
+    const idx = findScheduleIdx(["team 2", "team2", "home"]);
+    return idx !== -1 ? idx : 3;
+  })();
+  const typeIdx = findScheduleIdx(["type", "game type"]);
+
+  scheduleRows.slice(1).forEach((row) => {
+    const team1 = normalizeTeamLabel(row[team1Idx]);
+    const team2 = normalizeTeamLabel(row[team2Idx]);
+    const gameType = typeIdx >= 0 ? String(row[typeIdx] || "").toLowerCase() : "";
+    if (!team1 || !team2 || gameType.includes("pre")) {
+      return;
+    }
+    counts.set(team1, (counts.get(team1) || 0) + 1);
+    counts.set(team2, (counts.get(team2) || 0) + 1);
+  });
+
+  return counts;
+}
+
+function computePlayoffStatusMap(standingsHeader, standingsDataRows, scheduleRows, playoffSpots = 6) {
+  const map = new Map();
+  if (!standingsDataRows.length) {
+    return map;
+  }
+
+  const lower = standingsHeader.map((h) => String(h || "").toLowerCase());
+  const teamIdx = lower.findIndex((h) => h === "team");
+  const winsIdx = lower.findIndex((h) => h === "wins");
+  const gpIdx = lower.findIndex((h) => h === "gp");
+  if (teamIdx === -1 || winsIdx === -1 || gpIdx === -1) {
+    return map;
+  }
+
+  const totalGamesByTeam = computeTeamGameCountsFromSchedule(scheduleRows);
+
+  const teams = standingsDataRows
+    .map((row) => {
+      const team = normalizeTeamLabel(row[teamIdx]);
+      const wins = parseNumber(row[winsIdx]);
+      const gp = parseNumber(row[gpIdx]);
+      if (!team || wins === null || gp === null) {
+        return null;
+      }
+      const totalGames = totalGamesByTeam.get(team) || gp;
+      const remaining = Math.max(0, totalGames - gp);
+      return { team, wins, gp, maxWins: wins + remaining };
+    })
+    .filter(Boolean);
+
+  teams.forEach((team) => {
+    const teamsAboveMax = teams.filter(
+      (other) => other.team !== team.team && other.wins > team.maxWins
+    ).length;
+    const teamsThatCanPass = teams.filter(
+      (other) => other.team !== team.team && other.maxWins >= team.wins
+    ).length;
+
+    if (teamsAboveMax >= playoffSpots) {
+      map.set(team.team, "Eliminated");
+      return;
+    }
+    if (teamsThatCanPass <= playoffSpots - 1) {
+      map.set(team.team, "Clinched");
+      return;
+    }
+    map.set(team.team, "In Contention");
+  });
+
+  return map;
 }
 
 function median(numbers) {
@@ -827,6 +922,12 @@ async function loadStandings() {
         1,
         2
       );
+      playoffStatusByTeam = computePlayoffStatusMap(
+        standingsHeaders,
+        standingsRows,
+        scheduleRows,
+        6
+      );
       advancedByTeam = computeAdvancedByTeam(playerRows);
       transactionsByTeam = transactionsRes.ok
         ? computeTransactionCounts(parseCSV(await transactionsRes.text()))
@@ -852,10 +953,17 @@ async function loadStandings() {
           1,
           2
         );
+        playoffStatusByTeam = computePlayoffStatusMap(
+          standingsHeaders,
+          standingsRows,
+          scheduleTable,
+          6
+        );
         renderStandings();
       } else {
         const sliced = sliceRange(rows, ARCHIVE_RANGES.bracket);
         sosByTeam = new Map();
+        playoffStatusByTeam = new Map();
         advancedByTeam = new Map();
         transactionsByTeam = new Map();
         renderTable(sliced);
