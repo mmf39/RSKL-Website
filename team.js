@@ -34,7 +34,7 @@ const ARCHIVE_RANGES = {
   schedule_post: "A31:D43",
   boxscore: "L31:R149",
 };
-const C2S2_SCHEDULE_RANGE = "A2:E77";
+const C2S2_SCHEDULE_RANGE = "A1:E82";
 const LIVE_GAME_RANGES = [
   "A5:G11",
   "A13:G19",
