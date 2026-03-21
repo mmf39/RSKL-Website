@@ -34,7 +34,7 @@ const ARCHIVE_RANGES = {
   schedule_post: "A31:D43",
   boxscore: "L31:R149",
 };
-const C2S2_SCHEDULE_RANGE = "A2:E77";
+const C2S2_SCHEDULE_RANGE = "A1:E82";
 
 function getSeason() {
   return localStorage.getItem(SEASON_KEY) || "c2s2";
@@ -998,11 +998,16 @@ async function loadSchedule() {
 
     if (!scheduleGames.length) throw new Error("No games found.");
 
-    const firstGameDate = scheduleGames.find((g) => g.dateObj)?.dateObj || new Date();
-    currentMonth = new Date(firstGameDate.getFullYear(), firstGameDate.getMonth(), 1);
+    const now = new Date();
+    currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const todayToken = getTodayToken();
+    const firstInCurrentMonth = scheduleGames.find(
+      (g) => g.dateObj && g.dateObj.getMonth() === currentMonth.getMonth()
+    );
     selectedDateKey = gamesByDate.has(todayToken)
       ? todayToken
+      : firstInCurrentMonth
+      ? firstInCurrentMonth.dateToken
       : scheduleGames[0].dateToken;
 
     renderCalendar();
