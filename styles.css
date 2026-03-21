@@ -122,9 +122,9 @@
   border: 1px solid rgba(255, 140, 26, 0.45);
   border-radius: 4px;
   overflow: hidden;
-  background: rgba(8, 18, 45, 0.92);
+  background: rgba(8, 18, 45, 0.35);
   --game-y: calc((var(--row) - 1) * var(--row-h));
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: none;
 }
 
 .madness-game.round-one.left {
@@ -242,13 +242,13 @@
 }
 
 .madness-game.placeholder .madness-player {
-  color: rgba(180, 188, 214, 0.86);
+  color: #f6f7fb;
   font-weight: 700;
-  font-size: 0.68rem;
+  font-size: 0.86rem;
 }
 
 .madness-game.placeholder .madness-player-score {
-  color: rgba(180, 188, 214, 0.72);
+  color: #ffb347;
 }
 
 .madness-game-slot.is-win .madness-player-main {
