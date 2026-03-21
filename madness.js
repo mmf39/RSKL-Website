@@ -433,6 +433,7 @@ function renderPlaceholder(top, bottom, cls, row, scoreMap) {
 function renderSide(entries, sideClass, displayScoreMap, resultScoreMap, matchupResults) {
   const seedMap = buildSeedMap(entries);
   const emptyLabel = { main: "", sub: "", handles: [] };
+  const roundOneScoreMap = resultScoreMap && resultScoreMap.size ? resultScoreMap : new Map();
 
   const r1Matches = BRACKET_PAIRS.map((pair) => {
     const rawTop = resolvePlayerLabel(seedMap.get(pair[0]) || "");
@@ -453,7 +454,7 @@ function renderSide(entries, sideClass, displayScoreMap, resultScoreMap, matchup
         m.bottom,
         `round-one ${sideClass}`,
         1 + index * 2,
-        displayScoreMap,
+        roundOneScoreMap,
         topStatus,
         bottomStatus
       );
