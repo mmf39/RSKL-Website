@@ -432,6 +432,7 @@ function renderPlaceholder(top, bottom, cls, row, scoreMap) {
 
 function renderSide(entries, sideClass, displayScoreMap, resultScoreMap, matchupResults) {
   const seedMap = buildSeedMap(entries);
+  const emptyLabel = { main: "", sub: "", handles: [] };
 
   const r1Matches = BRACKET_PAIRS.map((pair) => {
     const rawTop = resolvePlayerLabel(seedMap.get(pair[0]) || "");
@@ -459,7 +460,6 @@ function renderSide(entries, sideClass, displayScoreMap, resultScoreMap, matchup
     })
     .join("");
 
-  const emptyLabel = { main: "", sub: "", handles: [] };
   const r2Winners = [
     labelForWinner(r1Matches[0].top, r1Matches[0].bottom, resultScoreMap, matchupResults),
     labelForWinner(r1Matches[1].top, r1Matches[1].bottom, resultScoreMap, matchupResults),
@@ -485,12 +485,12 @@ function renderSide(entries, sideClass, displayScoreMap, resultScoreMap, matchup
   ];
 
   const sweet16 = S16_ROWS.map((row, idx) => {
-    const top = s16Winners[idx * 2] || emptyLabel;
-    const bottom = s16Winners[idx * 2 + 1] || emptyLabel;
+    const top = emptyLabel;
+    const bottom = emptyLabel;
     return renderPlaceholder(top, bottom, `sweet-sixteen ${sideClass}`, row, displayScoreMap);
   }).join("");
 
-  const sideChamp = labelForWinner(s16Winners[0], s16Winners[1], resultScoreMap, matchupResults);
+  const sideChamp = emptyLabel;
 
   return {
     html: `${firstRound}${secondRound}${sweet16}`,
