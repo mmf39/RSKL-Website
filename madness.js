@@ -485,7 +485,7 @@ function renderSide(entries, sideClass, displayScoreMap, resultScoreMap, matchup
       bottom,
       `round-two ${sideClass}`,
       row,
-      displayScoreMap,
+      advanceScoreMap,
       topStatus,
       bottomStatus
     );
@@ -510,7 +510,7 @@ function renderSide(entries, sideClass, displayScoreMap, resultScoreMap, matchup
       bottom,
       `sweet-sixteen ${sideClass}`,
       row,
-      displayScoreMap,
+      advanceScoreMap,
       topStatus,
       bottomStatus
     );
