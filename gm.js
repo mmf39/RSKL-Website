@@ -223,14 +223,50 @@ async function requestJson(url, options = {}) {
     throw new Error(text || `Request failed (${response.status})`);
   }
   if (!response.ok || payload?.ok === false) {
-    throw new Error(
+    const err = new Error(
       payload?.message ||
         payload?.error_description ||
         payload?.error?.message ||
         `Request failed (${response.status})`
     );
+    err.status = response.status;
+    err.payload = payload;
+    throw err;
   }
   return payload;
+}
+
+function getReadableAuthError(error, action) {
+  const status = Number(error?.status || 0);
+  const message = String(error?.message || "").trim();
+  const lower = message.toLowerCase();
+
+  if (status === 422) {
+    if (
+      lower.includes("already") ||
+      lower.includes("exists") ||
+      lower.includes("registered")
+    ) {
+      return "Email already registered. Use Sign In.";
+    }
+    if (lower.includes("password")) {
+      return "Password is invalid. Use at least 8 characters.";
+    }
+    if (lower.includes("email")) {
+      return "Email format is invalid.";
+    }
+    return action === "signup"
+      ? "Sign up failed (422). Email may already exist or password is invalid."
+      : "Sign in failed (422).";
+  }
+
+  if (status === 400 && lower.includes("invalid login credentials")) {
+    return "Invalid login credentials.";
+  }
+  if (status === 429) {
+    return "Too many attempts. Wait a minute and try again.";
+  }
+  return message || `Request failed (${status || "unknown"})`;
 }
 
 function authHeaders(withAuth = false, token = "") {
@@ -1415,7 +1451,31 @@ function bindEvents() {
         await signUpAuth(email, password);
         setAuthStatus("Account created. Confirm email, then sign in.");
       } catch (error) {
-        setAuthStatus(error.message || "Sign up failed.", true);
+        const msg = getReadableAuthError(error, "signup");
+        if (msg === "Email already registered. Use Sign In.") {
+          try {
+            const tokenData = await signInAuth(email, password);
+            const user = await fetchAuthUser(tokenData.access_token);
+            gmSession = {
+              access_token: tokenData.access_token,
+              refresh_token: tokenData.refresh_token || "",
+              user,
+            };
+            localStorage.setItem(GM_ACCESS_TOKEN_KEY, tokenData.access_token);
+            if (tokenData.refresh_token) {
+              localStorage.setItem(GM_REFRESH_TOKEN_KEY, tokenData.refresh_token);
+            }
+            gmAssignment = await fetchGmAssignment(user.id);
+            if (!gmAssignment) gmAssignment = await fetchLegacyGmProfile(user.id);
+            applyAuthUi();
+            setAuthStatus("Account exists. Signed in.");
+            return;
+          } catch (signInError) {
+            setAuthStatus(getReadableAuthError(signInError, "signin"), true);
+            return;
+          }
+        }
+        setAuthStatus(msg, true);
       }
     });
   }
@@ -1455,7 +1515,7 @@ function bindEvents() {
         localStorage.removeItem(GM_ACCESS_TOKEN_KEY);
         localStorage.removeItem(GM_REFRESH_TOKEN_KEY);
         applyAuthUi();
-        setAuthStatus(error.message || "Sign in failed.", true);
+        setAuthStatus(getReadableAuthError(error, "signin"), true);
       }
     });
   }
