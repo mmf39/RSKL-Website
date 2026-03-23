@@ -225,6 +225,8 @@ async function requestJson(url, options = {}) {
   if (!response.ok || payload?.ok === false) {
     const err = new Error(
       payload?.message ||
+        payload?.msg ||
+        payload?.error ||
         payload?.error_description ||
         payload?.error?.message ||
         `Request failed (${response.status})`
@@ -239,6 +241,7 @@ async function requestJson(url, options = {}) {
 function getReadableAuthError(error, action) {
   const status = Number(error?.status || 0);
   const message = String(error?.message || "").trim();
+  const errorCode = String(error?.payload?.error_code || "").trim().toLowerCase();
   const lower = message.toLowerCase();
 
   if (status === 422) {
@@ -260,8 +263,18 @@ function getReadableAuthError(error, action) {
       : "Sign in failed (422).";
   }
 
-  if (status === 400 && lower.includes("invalid login credentials")) {
+  if (
+    status === 400 &&
+    (lower.includes("invalid login credentials") ||
+      errorCode === "invalid_credentials")
+  ) {
     return "Invalid login credentials.";
+  }
+  if (
+    lower.includes("email not confirmed") ||
+    errorCode === "email_not_confirmed"
+  ) {
+    return "Email not confirmed. Confirm from your inbox, then sign in.";
   }
   if (status === 429) {
     return "Too many attempts. Wait a minute and try again.";
@@ -282,6 +295,12 @@ function authHeaders(withAuth = false, token = "") {
   return headers;
 }
 
+function supabaseUrlWithApiKey(path) {
+  requireSupabaseConfig();
+  const sep = path.includes("?") ? "&" : "?";
+  return `${supabaseUrl}${path}${sep}apikey=${encodeURIComponent(supabaseAnon)}`;
+}
+
 async function loadSupabaseConfig() {
   const cfg = await requestJson(SUPABASE_CONFIG_URL, { cache: "no-store" });
   supabaseUrl = String(cfg.url || cfg.supabaseUrl || "").trim();
@@ -294,7 +313,7 @@ async function loadSupabaseConfig() {
 }
 
 async function fetchAuthUser(accessToken) {
-  return requestJson(`${supabaseUrl}/auth/v1/user`, {
+  return requestJson(supabaseUrlWithApiKey("/auth/v1/user"), {
     headers: authHeaders(true, accessToken),
   });
 }
@@ -356,7 +375,7 @@ async function fetchLegacyGmProfile(userId) {
 
 async function signUpAuth(email, password) {
   requireSupabaseConfig();
-  return requestJson(`${supabaseUrl}/auth/v1/signup`, {
+  return requestJson(supabaseUrlWithApiKey("/auth/v1/signup"), {
     method: "POST",
     headers: authHeaders(false),
     body: JSON.stringify({ email, password }),
@@ -366,7 +385,7 @@ async function signUpAuth(email, password) {
 async function signInAuth(email, password) {
   requireSupabaseConfig();
   const data = await requestJson(
-    `${supabaseUrl}/auth/v1/token?grant_type=password`,
+    supabaseUrlWithApiKey("/auth/v1/token?grant_type=password"),
     {
       method: "POST",
       headers: authHeaders(false),
@@ -382,7 +401,7 @@ async function signInAuth(email, password) {
 async function refreshAuthSession(refreshToken) {
   requireSupabaseConfig();
   const data = await requestJson(
-    `${supabaseUrl}/auth/v1/token?grant_type=refresh_token`,
+    supabaseUrlWithApiKey("/auth/v1/token?grant_type=refresh_token"),
     {
       method: "POST",
       headers: authHeaders(false),
