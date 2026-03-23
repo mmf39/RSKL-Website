@@ -6,6 +6,9 @@ const SCHEDULE_URL = "/api/sheet?name=schedule";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const GM_ACCESS_TOKEN_KEY = "rskl_gm_access_token";
 const GM_REFRESH_TOKEN_KEY = "rskl_gm_refresh_token";
+const FALLBACK_SUPABASE_URL = "https://ivkteaydngvuillyfsjd.supabase.co";
+const FALLBACK_SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2a3RlYXlkbmd2dWlsbHlmc2pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNjE2MzMsImV4cCI6MjA4NzYzNzYzM30.Kh_KEKaZLBrRwUADoXsaRxxsQp9z6mOiNMxOjX4TQ3A";
 
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
@@ -238,9 +241,28 @@ function authHeaders(withAuth = false, token = "") {
 }
 
 async function loadSupabaseConfig() {
-  const cfg = await requestJson(SUPABASE_CONFIG_URL, { cache: "no-store" });
-  supabaseUrl = cfg.url;
-  supabaseAnon = cfg.anonKey;
+  try {
+    const cfg = await requestJson(SUPABASE_CONFIG_URL, { cache: "no-store" });
+    supabaseUrl = String(cfg.url || cfg.supabaseUrl || "").trim();
+    supabaseAnon = String(
+      cfg.anonKey || cfg.supabaseAnon || cfg.publicAnonKey || ""
+    ).trim();
+  } catch (_) {
+    // fallback to hardcoded public project values when env-based endpoint fails
+    supabaseUrl = "";
+    supabaseAnon = "";
+  }
+
+  if (!supabaseUrl) {
+    supabaseUrl = FALLBACK_SUPABASE_URL;
+  }
+  if (!supabaseAnon) {
+    supabaseAnon = FALLBACK_SUPABASE_ANON_KEY;
+  }
+
+  if (!supabaseUrl || !supabaseAnon) {
+    throw new Error("Missing Supabase config.");
+  }
 }
 
 async function fetchAuthUser(accessToken) {
