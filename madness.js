@@ -435,6 +435,7 @@ function renderSide(entries, sideClass, displayScoreMap, resultScoreMap, matchup
   const emptyLabel = { main: "", sub: "", handles: [] };
   const roundOneScoreMap = resultScoreMap && resultScoreMap.size ? resultScoreMap : new Map();
   const advanceScoreMap = displayScoreMap && displayScoreMap.size ? displayScoreMap : roundOneScoreMap;
+  const roundThreeScoreMap = displayScoreMap && displayScoreMap.size ? displayScoreMap : new Map();
 
   const r1Matches = BRACKET_PAIRS.map((pair) => {
     const rawTop = resolvePlayerLabel(seedMap.get(pair[0]) || "");
@@ -501,8 +502,8 @@ function renderSide(entries, sideClass, displayScoreMap, resultScoreMap, matchup
   const sweet16 = S16_ROWS.map((row, idx) => {
     const top = s16Winners[idx * 2] || emptyLabel;
     const bottom = s16Winners[idx * 2 + 1] || emptyLabel;
-    const topStatus = slotResultStatus(top, bottom, advanceScoreMap, matchupResults, true);
-    const bottomStatus = slotResultStatus(top, bottom, advanceScoreMap, matchupResults, false);
+    const topStatus = slotResultStatus(top, bottom, roundThreeScoreMap, matchupResults, true);
+    const bottomStatus = slotResultStatus(top, bottom, roundThreeScoreMap, matchupResults, false);
     return renderGame(
       "",
       top,
@@ -510,7 +511,7 @@ function renderSide(entries, sideClass, displayScoreMap, resultScoreMap, matchup
       bottom,
       `sweet-sixteen ${sideClass}`,
       row,
-      advanceScoreMap,
+      roundThreeScoreMap,
       topStatus,
       bottomStatus
     );
