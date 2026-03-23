@@ -109,6 +109,14 @@ let gmSession = null;
 let gmAssignment = null;
 let commishUpcomingGames = [];
 
+function requireSupabaseConfig() {
+  if (!supabaseUrl || !supabaseAnon) {
+    throw new Error(
+      "Supabase config missing. Set SUPABASE_URL and SUPABASE_ANON_KEY in Vercel env, then redeploy."
+    );
+  }
+}
+
 function setActiveTab(tab) {
   const active =
     tab === "rename"
@@ -226,6 +234,7 @@ async function requestJson(url, options = {}) {
 }
 
 function authHeaders(withAuth = false, token = "") {
+  requireSupabaseConfig();
   const headers = {
     "Content-Type": "application/json",
     apikey: supabaseAnon,
@@ -310,6 +319,7 @@ async function fetchLegacyGmProfile(userId) {
 }
 
 async function signUpAuth(email, password) {
+  requireSupabaseConfig();
   return requestJson(`${supabaseUrl}/auth/v1/signup`, {
     method: "POST",
     headers: authHeaders(false),
@@ -318,6 +328,7 @@ async function signUpAuth(email, password) {
 }
 
 async function signInAuth(email, password) {
+  requireSupabaseConfig();
   const data = await requestJson(
     `${supabaseUrl}/auth/v1/token?grant_type=password`,
     {
@@ -333,6 +344,7 @@ async function signInAuth(email, password) {
 }
 
 async function refreshAuthSession(refreshToken) {
+  requireSupabaseConfig();
   const data = await requestJson(
     `${supabaseUrl}/auth/v1/token?grant_type=refresh_token`,
     {
@@ -1691,6 +1703,7 @@ async function init() {
     updateLastUpdated();
   } catch (error) {
     setTradeStatus(error.message, true);
+    setAuthStatus(error.message, true);
   }
 }
 
