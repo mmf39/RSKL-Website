@@ -1,6 +1,7 @@
 const LIVE_BRACKET_CSV_URL = "/api/sheet?name=madness-live";
 const COMPLETED_BRACKET_CSV_URL = "/api/sheet?name=madness-completed";
 const LIVE_REFRESH_MS = 60000;
+const ROUND2_LEAGUE_DAY = "3/22";
 
 const EAST_BRACKET = [
   { seed: 1, player: "@jordancarter" },
@@ -67,6 +68,7 @@ const S16_ROWS = [4, 12];
 let liveState = {
   scoreMap: new Map(),
   completedScoreMap: new Map(),
+  round2ScoreMap: new Map(),
   completedMatchups: new Map(),
   frozenMap: null,
   loaded: false,
@@ -179,6 +181,31 @@ function extractScoreMap(rows) {
   }
 
   return scoreMap;
+}
+
+function extractLeagueDayLabelFromRow(row) {
+  const a = String((row && row[0]) || "");
+  const b = String((row && row[1]) || "");
+  const merged = `${a} ${b}`;
+  const match = merged.match(/League Day:\s*([0-9]{1,2}\/[0-9]{1,2})/i);
+  return match ? match[1] : "";
+}
+
+function extractScoreMapForLeagueDay(rows, targetDay) {
+  if (!targetDay) return new Map();
+  const bucket = [];
+  let currentDay = "";
+  for (const row of rows) {
+    const foundDay = extractLeagueDayLabelFromRow(row);
+    if (foundDay) {
+      currentDay = foundDay;
+      continue;
+    }
+    if (currentDay === targetDay) {
+      bucket.push(row);
+    }
+  }
+  return extractScoreMap(bucket);
 }
 
 function matchupKey(aHandle, bHandle) {
@@ -434,7 +461,9 @@ function renderSide(entries, sideClass, displayScoreMap, resultScoreMap, matchup
   const seedMap = buildSeedMap(entries);
   const emptyLabel = { main: "", sub: "", handles: [] };
   const roundOneScoreMap = resultScoreMap && resultScoreMap.size ? resultScoreMap : new Map();
-  const advanceScoreMap = displayScoreMap && displayScoreMap.size ? displayScoreMap : roundOneScoreMap;
+  const roundTwoScoreMap = liveState.round2ScoreMap && liveState.round2ScoreMap.size
+    ? liveState.round2ScoreMap
+    : roundOneScoreMap;
   const roundThreeScoreMap = displayScoreMap && displayScoreMap.size ? displayScoreMap : new Map();
 
   const r1Matches = BRACKET_PAIRS.map((pair) => {
@@ -477,8 +506,8 @@ function renderSide(entries, sideClass, displayScoreMap, resultScoreMap, matchup
   const secondRound = R2_ROWS.map((row, idx) => {
     const top = r2Winners[idx * 2] || emptyLabel;
     const bottom = r2Winners[idx * 2 + 1] || emptyLabel;
-    const topStatus = slotResultStatus(top, bottom, advanceScoreMap, matchupResults, true);
-    const bottomStatus = slotResultStatus(top, bottom, advanceScoreMap, matchupResults, false);
+    const topStatus = slotResultStatus(top, bottom, roundTwoScoreMap, matchupResults, true);
+    const bottomStatus = slotResultStatus(top, bottom, roundTwoScoreMap, matchupResults, false);
     return renderGame(
       "",
       top,
@@ -486,17 +515,17 @@ function renderSide(entries, sideClass, displayScoreMap, resultScoreMap, matchup
       bottom,
       `round-two ${sideClass}`,
       row,
-      advanceScoreMap,
+      roundTwoScoreMap,
       topStatus,
       bottomStatus
     );
   }).join("");
 
   const s16Winners = [
-    labelForWinner(r2Winners[0], r2Winners[1], advanceScoreMap, matchupResults),
-    labelForWinner(r2Winners[2], r2Winners[3], advanceScoreMap, matchupResults),
-    labelForWinner(r2Winners[4], r2Winners[5], advanceScoreMap, matchupResults),
-    labelForWinner(r2Winners[6], r2Winners[7], advanceScoreMap, matchupResults),
+    labelForWinner(r2Winners[0], r2Winners[1], roundTwoScoreMap, matchupResults),
+    labelForWinner(r2Winners[2], r2Winners[3], roundTwoScoreMap, matchupResults),
+    labelForWinner(r2Winners[4], r2Winners[5], roundTwoScoreMap, matchupResults),
+    labelForWinner(r2Winners[6], r2Winners[7], roundTwoScoreMap, matchupResults),
   ];
 
   const sweet16 = S16_ROWS.map((row, idx) => {
@@ -628,9 +657,14 @@ async function loadLiveScores() {
       const completedText = await completedResponse.text();
       const completedRows = parseCSV(completedText);
       liveState.completedScoreMap = extractScoreMap(completedRows);
+      liveState.round2ScoreMap = extractScoreMapForLeagueDay(
+        completedRows,
+        ROUND2_LEAGUE_DAY
+      );
       liveState.completedMatchups = extractCompletedMatchups(completedRows);
     } else {
       liveState.completedScoreMap = new Map();
+      liveState.round2ScoreMap = new Map();
       liveState.completedMatchups = new Map();
     }
 
@@ -643,6 +677,7 @@ async function loadLiveScores() {
   } catch (_error) {
     liveState.scoreMap = new Map();
     liveState.completedScoreMap = new Map();
+    liveState.round2ScoreMap = new Map();
     liveState.completedMatchups = new Map();
     liveState.loaded = false;
   }
