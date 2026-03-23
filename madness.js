@@ -434,6 +434,7 @@ function renderSide(entries, sideClass, displayScoreMap, resultScoreMap, matchup
   const seedMap = buildSeedMap(entries);
   const emptyLabel = { main: "", sub: "", handles: [] };
   const roundOneScoreMap = resultScoreMap && resultScoreMap.size ? resultScoreMap : new Map();
+  const advanceScoreMap = displayScoreMap && displayScoreMap.size ? displayScoreMap : roundOneScoreMap;
 
   const r1Matches = BRACKET_PAIRS.map((pair) => {
     const rawTop = resolvePlayerLabel(seedMap.get(pair[0]) || "");
@@ -475,20 +476,44 @@ function renderSide(entries, sideClass, displayScoreMap, resultScoreMap, matchup
   const secondRound = R2_ROWS.map((row, idx) => {
     const top = r2Winners[idx * 2] || emptyLabel;
     const bottom = r2Winners[idx * 2 + 1] || emptyLabel;
-    return renderPlaceholder(top, bottom, `round-two ${sideClass}`, row, displayScoreMap);
+    const topStatus = slotResultStatus(top, bottom, advanceScoreMap, matchupResults, true);
+    const bottomStatus = slotResultStatus(top, bottom, advanceScoreMap, matchupResults, false);
+    return renderGame(
+      "",
+      top,
+      "",
+      bottom,
+      `round-two ${sideClass}`,
+      row,
+      displayScoreMap,
+      topStatus,
+      bottomStatus
+    );
   }).join("");
 
   const s16Winners = [
-    labelForWinner(r2Winners[0], r2Winners[1], resultScoreMap, matchupResults),
-    labelForWinner(r2Winners[2], r2Winners[3], resultScoreMap, matchupResults),
-    labelForWinner(r2Winners[4], r2Winners[5], resultScoreMap, matchupResults),
-    labelForWinner(r2Winners[6], r2Winners[7], resultScoreMap, matchupResults),
+    labelForWinner(r2Winners[0], r2Winners[1], advanceScoreMap, matchupResults),
+    labelForWinner(r2Winners[2], r2Winners[3], advanceScoreMap, matchupResults),
+    labelForWinner(r2Winners[4], r2Winners[5], advanceScoreMap, matchupResults),
+    labelForWinner(r2Winners[6], r2Winners[7], advanceScoreMap, matchupResults),
   ];
 
   const sweet16 = S16_ROWS.map((row, idx) => {
-    const top = emptyLabel;
-    const bottom = emptyLabel;
-    return renderPlaceholder(top, bottom, `sweet-sixteen ${sideClass}`, row, displayScoreMap);
+    const top = s16Winners[idx * 2] || emptyLabel;
+    const bottom = s16Winners[idx * 2 + 1] || emptyLabel;
+    const topStatus = slotResultStatus(top, bottom, advanceScoreMap, matchupResults, true);
+    const bottomStatus = slotResultStatus(top, bottom, advanceScoreMap, matchupResults, false);
+    return renderGame(
+      "",
+      top,
+      "",
+      bottom,
+      `sweet-sixteen ${sideClass}`,
+      row,
+      displayScoreMap,
+      topStatus,
+      bottomStatus
+    );
   }).join("");
 
   const sideChamp = emptyLabel;
