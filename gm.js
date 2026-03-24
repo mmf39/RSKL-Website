@@ -1148,6 +1148,17 @@ function isLineupLockedForTeam(team) {
   return Date.now() >= lockAt.getTime();
 }
 
+function formatDeadlineText(dateText) {
+  const lockAt = getLockDateTimeForDay(dateText);
+  if (!lockAt) return "Deadline: —";
+  return `Deadline: ${lockAt.toLocaleString([], {
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })}`;
+}
+
 function getTeamUpcomingMatchups(team) {
   const selectedTeam = String(team || "").trim();
   if (!selectedTeam || !commishUpcomingGames.length) return [];
@@ -1193,9 +1204,11 @@ function renderLineupGameCards(team) {
       const statusText = isSubmitted ? "Lineup Submitted" : "Awaiting Deadline";
       const buttonText = canEdit ? "Edit Lineup" : "Awaiting Deadline";
       const dateText = item.dateText || "—";
+      const deadlineText = formatDeadlineText(dateText);
       return `
         <article class="gm-lineup-game-card${canEdit ? " active" : ""}">
           <div class="gm-lineup-game-title">vs ${escapeHtml(displayTeamName(item.opponent))} Date: ${escapeHtml(dateText)}</div>
+          <div class="gm-lineup-game-deadline">${escapeHtml(deadlineText)}</div>
           <div class="gm-lineup-game-status${statusClass}">${escapeHtml(statusText)}</div>
           <button
             class="gm-lineup-game-btn${canEdit ? "" : " disabled"}"

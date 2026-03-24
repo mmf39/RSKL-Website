@@ -2626,6 +2626,11 @@ input[type="text"] {
   color: #c8d0dc;
 }
 
+.gm-lineup-game-deadline {
+  font-size: 1rem;
+  color: #9fb0c9;
+}
+
 .gm-lineup-game-status.submitted {
   color: #22c55e;
 }
