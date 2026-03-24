@@ -33,6 +33,7 @@ function getScriptUrlByAction(action) {
   if (
     action === "updatePlayer" ||
     action === "submitLineup" ||
+    action === "setGameLocks" ||
     action === "saveGameLocks" ||
     action === "getGameLocks"
   ) {
