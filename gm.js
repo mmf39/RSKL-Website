@@ -751,26 +751,38 @@ async function saveTradeBlockToSheet(team, block) {
 }
 
 async function saveGameLocksToSheet(locks) {
-  const response = await fetch(TRADE_BLOCKS_API, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "setGameLocks",
-      locks,
-      updatedAt: new Date().toISOString(),
-    }),
-  });
-  if (!response.ok) {
-    throw new Error(`Game lock save failed: ${response.status}`);
+  const actions = ["setGameLocks", "saveGameLocks"];
+  let lastError = null;
+  for (const action of actions) {
+    const response = await fetch(TRADE_BLOCKS_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action,
+        locks,
+        updatedAt: new Date().toISOString(),
+      }),
+    });
+    if (!response.ok) {
+      lastError = new Error(`Game lock save failed: ${response.status}`);
+      continue;
+    }
+    const payload = await response.json();
+    if (!payload || typeof payload !== "object") {
+      lastError = new Error("Invalid game lock response.");
+      continue;
+    }
+    if (payload.ok === false) {
+      const msg = String(payload.message || "").toLowerCase();
+      if (msg.includes("no valid action")) {
+        lastError = new Error(payload.message || "Unable to save game locks.");
+        continue;
+      }
+      throw new Error(payload.message || "Unable to save game locks.");
+    }
+    return payload;
   }
-  const payload = await response.json();
-  if (!payload || typeof payload !== "object") {
-    throw new Error("Invalid game lock response.");
-  }
-  if (payload.ok === false) {
-    throw new Error(payload.message || "Unable to save game locks.");
-  }
-  return payload;
+  throw lastError || new Error("Unable to save game locks.");
 }
 
 async function updatePlayerNameInSheet(team, oldTag, newName) {
