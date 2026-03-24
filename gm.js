@@ -6,6 +6,8 @@ const SCHEDULE_URL = "/api/sheet?name=schedule";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const GM_ACCESS_TOKEN_KEY = "rskl_gm_access_token";
 const GM_REFRESH_TOKEN_KEY = "rskl_gm_refresh_token";
+const GM_SESSION_USER_KEY = "rskl_gm_user";
+const GM_ASSIGNMENT_KEY = "rskl_gm_assignment";
 
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
@@ -86,6 +88,7 @@ const els = {
   renameSave: document.getElementById("rename-save"),
   renameStatus: document.getElementById("rename-status"),
   lineupTeamSelect: document.getElementById("lineup-team-select"),
+  lineupGameCards: document.getElementById("lineup-game-cards"),
   lineupPlayerList: document.getElementById("lineup-player-list"),
   lineupCode: document.getElementById("lineup-code"),
   lineupSave: document.getElementById("lineup-save"),
@@ -108,6 +111,7 @@ let supabaseAnon = "";
 let gmSession = null;
 let gmAssignment = null;
 let commishUpcomingGames = [];
+let lineupSubmittedByTeam = new Map();
 
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
@@ -115,6 +119,46 @@ function requireSupabaseConfig() {
       "Supabase config missing. Set SUPABASE_URL and SUPABASE_ANON_KEY in Vercel env, then redeploy."
     );
   }
+}
+
+function safeJsonParse(value, fallback = null) {
+  try {
+    return value ? JSON.parse(value) : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function persistAuthState() {
+  const access = String(gmSession?.access_token || "").trim();
+  const refresh = String(gmSession?.refresh_token || "").trim();
+  if (access) {
+    localStorage.setItem(GM_ACCESS_TOKEN_KEY, access);
+  } else {
+    localStorage.removeItem(GM_ACCESS_TOKEN_KEY);
+  }
+  if (refresh) {
+    localStorage.setItem(GM_REFRESH_TOKEN_KEY, refresh);
+  } else {
+    localStorage.removeItem(GM_REFRESH_TOKEN_KEY);
+  }
+  if (gmSession?.user) {
+    localStorage.setItem(GM_SESSION_USER_KEY, JSON.stringify(gmSession.user));
+  } else {
+    localStorage.removeItem(GM_SESSION_USER_KEY);
+  }
+  if (gmAssignment) {
+    localStorage.setItem(GM_ASSIGNMENT_KEY, JSON.stringify(gmAssignment));
+  } else {
+    localStorage.removeItem(GM_ASSIGNMENT_KEY);
+  }
+}
+
+function clearAuthState() {
+  localStorage.removeItem(GM_ACCESS_TOKEN_KEY);
+  localStorage.removeItem(GM_REFRESH_TOKEN_KEY);
+  localStorage.removeItem(GM_SESSION_USER_KEY);
+  localStorage.removeItem(GM_ASSIGNMENT_KEY);
 }
 
 function setActiveTab(tab) {
@@ -1072,11 +1116,72 @@ function renderRenameTeam(team) {
 }
 
 function renderLineupTeam(team) {
+  renderLineupGameCards(team);
   renderLineupPlayers(team);
   if (els.lineupCode) {
     els.lineupCode.value = "";
   }
   setLineupStatus("");
+}
+
+function getTeamUpcomingMatchups(team) {
+  const selectedTeam = String(team || "").trim();
+  if (!selectedTeam || !commishUpcomingGames.length) return [];
+  const matchups = [];
+  commishUpcomingGames.forEach((day) => {
+    (day.games || []).forEach((game) => {
+      const t1 = String(game.team1 || "").trim();
+      const t2 = String(game.team2 || "").trim();
+      if (!t1 || !t2) return;
+      if (!sameTeam(t1, selectedTeam) && !sameTeam(t2, selectedTeam)) return;
+      const opponent = sameTeam(t1, selectedTeam) ? t2 : t1;
+      matchups.push({
+        dateText: day.dateText || "",
+        gameType: game.gameType || day.gameType || "",
+        opponent,
+      });
+    });
+  });
+  return matchups;
+}
+
+function renderLineupGameCards(team) {
+  if (!els.lineupGameCards) return;
+  const selectedTeam = String(team || "").trim();
+  if (!selectedTeam) {
+    els.lineupGameCards.innerHTML =
+      '<div class="gm-empty">Select a team to view upcoming lineup cards.</div>';
+    return;
+  }
+  const matchups = getTeamUpcomingMatchups(selectedTeam);
+  if (!matchups.length) {
+    els.lineupGameCards.innerHTML =
+      '<div class="gm-empty">No upcoming games found for this team.</div>';
+    return;
+  }
+  const submitted = lineupSubmittedByTeam.get(selectedTeam) === true;
+  els.lineupGameCards.innerHTML = matchups
+    .slice(0, 4)
+    .map((item, idx) => {
+      const canEdit = idx === 0;
+      const isSubmitted = canEdit && submitted;
+      const statusClass = isSubmitted ? " submitted" : "";
+      const statusText = isSubmitted ? "Lineup Submitted" : "Awaiting Deadline";
+      const buttonText = canEdit ? "Edit Lineup" : "Awaiting Deadline";
+      const dateText = item.dateText || "—";
+      return `
+        <article class="gm-lineup-game-card${canEdit ? " active" : ""}">
+          <div class="gm-lineup-game-title">vs ${escapeHtml(displayTeamName(item.opponent))} Date: ${escapeHtml(dateText)}</div>
+          <div class="gm-lineup-game-status${statusClass}">${escapeHtml(statusText)}</div>
+          <button
+            class="gm-lineup-game-btn${canEdit ? "" : " disabled"}"
+            type="button"
+            ${canEdit ? 'data-lineup-edit="true"' : "disabled"}
+          >${escapeHtml(buttonText)}</button>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function parseScheduleDateValue(value) {
@@ -1480,12 +1585,9 @@ function bindEvents() {
               refresh_token: tokenData.refresh_token || "",
               user,
             };
-            localStorage.setItem(GM_ACCESS_TOKEN_KEY, tokenData.access_token);
-            if (tokenData.refresh_token) {
-              localStorage.setItem(GM_REFRESH_TOKEN_KEY, tokenData.refresh_token);
-            }
             gmAssignment = await fetchGmAssignment(user.id);
             if (!gmAssignment) gmAssignment = await fetchLegacyGmProfile(user.id);
+            persistAuthState();
             applyAuthUi();
             setAuthStatus("Account exists. Signed in.");
             return;
@@ -1514,14 +1616,11 @@ function bindEvents() {
           refresh_token: tokenData.refresh_token || "",
           user,
         };
-        localStorage.setItem(GM_ACCESS_TOKEN_KEY, tokenData.access_token);
-        if (tokenData.refresh_token) {
-          localStorage.setItem(GM_REFRESH_TOKEN_KEY, tokenData.refresh_token);
-        }
         gmAssignment = await fetchGmAssignment(user.id);
         if (!gmAssignment) {
           gmAssignment = await fetchLegacyGmProfile(user.id);
         }
+        persistAuthState();
         if (!gmAssignment) {
           setAuthStatus("No GM access found for this account.", true);
         } else {
@@ -1531,8 +1630,7 @@ function bindEvents() {
       } catch (error) {
         gmSession = null;
         gmAssignment = null;
-        localStorage.removeItem(GM_ACCESS_TOKEN_KEY);
-        localStorage.removeItem(GM_REFRESH_TOKEN_KEY);
+        clearAuthState();
         applyAuthUi();
         setAuthStatus(getReadableAuthError(error, "signin"), true);
       }
@@ -1543,8 +1641,7 @@ function bindEvents() {
       await signOutAuth();
       gmSession = null;
       gmAssignment = null;
-      localStorage.removeItem(GM_ACCESS_TOKEN_KEY);
-      localStorage.removeItem(GM_REFRESH_TOKEN_KEY);
+      clearAuthState();
       applyAuthUi();
       setAuthStatus("Signed out.");
     });
@@ -1661,10 +1758,21 @@ function bindEvents() {
       try {
         // Server-side Apps Script is source of truth for lineup validation/lock rules.
         await submitLineupToSheet(team, checkedPlayers, captain);
+        lineupSubmittedByTeam.set(team, true);
+        renderLineupGameCards(team);
         setLineupStatus("Lineup submitted.");
         updateLastUpdated();
       } catch (error) {
         setLineupStatus(error.message || "Unable to submit lineup.", true);
+      }
+    });
+  }
+  if (els.lineupGameCards) {
+    els.lineupGameCards.addEventListener("click", (event) => {
+      const editButton = event.target.closest("[data-lineup-edit]");
+      if (!editButton) return;
+      if (els.lineupPlayerList) {
+        els.lineupPlayerList.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     });
   }
@@ -1719,19 +1827,22 @@ async function init() {
     await loadSupabaseConfig();
     const savedToken = localStorage.getItem(GM_ACCESS_TOKEN_KEY) || "";
     const savedRefresh = localStorage.getItem(GM_REFRESH_TOKEN_KEY) || "";
-    if (savedToken) {
+    const cachedUser = safeJsonParse(
+      localStorage.getItem(GM_SESSION_USER_KEY),
+      null
+    );
+    const cachedAssignment = safeJsonParse(
+      localStorage.getItem(GM_ASSIGNMENT_KEY),
+      null
+    );
+    if (savedToken || savedRefresh) {
       try {
         let tokenData = { access_token: savedToken, refresh_token: savedRefresh };
         let user = null;
-        try {
+        if (!tokenData.access_token && tokenData.refresh_token) {
+          tokenData = await refreshAuthSession(tokenData.refresh_token);
           user = await fetchAuthUser(tokenData.access_token);
-        } catch (_) {
-          if (!savedRefresh) throw _;
-          tokenData = await refreshAuthSession(savedRefresh);
-          localStorage.setItem(GM_ACCESS_TOKEN_KEY, tokenData.access_token);
-          if (tokenData.refresh_token) {
-            localStorage.setItem(GM_REFRESH_TOKEN_KEY, tokenData.refresh_token);
-          }
+        } else {
           user = await fetchAuthUser(tokenData.access_token);
         }
         gmSession = {
@@ -1743,11 +1854,53 @@ async function init() {
         if (!gmAssignment) {
           gmAssignment = await fetchLegacyGmProfile(user.id);
         }
+        persistAuthState();
       } catch (_) {
-        gmSession = null;
-        gmAssignment = null;
-        localStorage.removeItem(GM_ACCESS_TOKEN_KEY);
-        localStorage.removeItem(GM_REFRESH_TOKEN_KEY);
+        if (cachedUser && cachedAssignment) {
+          gmSession = {
+            access_token: savedToken || "",
+            refresh_token: savedRefresh || "",
+            user: cachedUser,
+          };
+          gmAssignment = cachedAssignment;
+        } else {
+          gmSession = null;
+          gmAssignment = null;
+          clearAuthState();
+        }
+      }
+    } else if (cachedUser && cachedAssignment) {
+      gmSession = {
+        access_token: "",
+        refresh_token: "",
+        user: cachedUser,
+      };
+      gmAssignment = cachedAssignment;
+      persistAuthState();
+    }
+
+    if (
+      gmSession?.access_token &&
+      gmSession?.refresh_token &&
+      !gmSession?.user?.id
+    ) {
+      try {
+        const tokenData = await refreshAuthSession(gmSession.refresh_token);
+        const user = await fetchAuthUser(tokenData.access_token);
+        gmSession = {
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token || gmSession.refresh_token,
+          user,
+        };
+        if (!gmAssignment) {
+          gmAssignment = await fetchGmAssignment(user.id);
+          if (!gmAssignment) {
+            gmAssignment = await fetchLegacyGmProfile(user.id);
+          }
+        }
+        persistAuthState();
+      } catch (_) {
+        // keep cached signed-in state if refresh fails
       }
     }
 

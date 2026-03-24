@@ -2595,6 +2595,73 @@ input[type="text"] {
   text-align: center;
 }
 
+.gm-lineup-cards {
+  display: grid;
+  gap: 14px;
+}
+
+.gm-lineup-game-card {
+  border: 1px solid rgba(255, 140, 0, 0.35);
+  border-radius: 12px;
+  background: rgba(231, 231, 231, 0.1);
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+}
+
+.gm-lineup-game-card.active {
+  border-color: #2f80ff;
+  box-shadow: 0 0 0 1px rgba(47, 128, 255, 0.45) inset;
+}
+
+.gm-lineup-game-title {
+  text-align: center;
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #e7edf8;
+}
+
+.gm-lineup-game-status {
+  font-size: 1.6rem;
+  color: #c8d0dc;
+}
+
+.gm-lineup-game-status.submitted {
+  color: #22c55e;
+}
+
+.gm-lineup-game-btn {
+  width: min(280px, 100%);
+  justify-self: center;
+  border: 0;
+  border-radius: 20px;
+  padding: 16px 18px;
+  font-size: 2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #0a8fda, #1f9eed);
+  color: #eaf4ff;
+  cursor: pointer;
+}
+
+.gm-lineup-game-btn.disabled {
+  background: rgba(148, 163, 184, 0.4);
+  color: rgba(227, 232, 240, 0.75);
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .gm-lineup-game-title {
+    font-size: 1.25rem;
+  }
+  .gm-lineup-game-status {
+    font-size: 1.05rem;
+  }
+  .gm-lineup-game-btn {
+    font-size: 1.1rem;
+    padding: 12px 14px;
+  }
+}
+
 
 
 .champion-box {
