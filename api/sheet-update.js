@@ -30,9 +30,15 @@ function getScriptUrlByAction(action) {
   if (action === "savePowerRankings" || action === "getPowerRankings") {
     return POWER_RANKINGS_SCRIPT_URL;
   }
-  return action === "updatePlayer" || action === "submitLineup"
-    ? PLAYER_UPDATE_SCRIPT_URL
-    : TRADEBLOCK_SCRIPT_URL;
+  if (
+    action === "updatePlayer" ||
+    action === "submitLineup" ||
+    action === "saveGameLocks" ||
+    action === "getGameLocks"
+  ) {
+    return PLAYER_UPDATE_SCRIPT_URL;
+  }
+  return TRADEBLOCK_SCRIPT_URL;
 }
 
 function forward(url, payload, redirects, res, method = "POST") {
