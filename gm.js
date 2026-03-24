@@ -8,6 +8,7 @@ const GM_ACCESS_TOKEN_KEY = "rskl_gm_access_token";
 const GM_REFRESH_TOKEN_KEY = "rskl_gm_refresh_token";
 const GM_SESSION_USER_KEY = "rskl_gm_user";
 const GM_ASSIGNMENT_KEY = "rskl_gm_assignment";
+const GM_LOCAL_LOCKS_KEY = "rskl_local_game_locks";
 
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
@@ -112,6 +113,7 @@ let gmSession = null;
 let gmAssignment = null;
 let commishUpcomingGames = [];
 let lineupSubmittedByTeam = new Map();
+let localGameLocksByDate = {};
 
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
@@ -159,6 +161,18 @@ function clearAuthState() {
   localStorage.removeItem(GM_REFRESH_TOKEN_KEY);
   localStorage.removeItem(GM_SESSION_USER_KEY);
   localStorage.removeItem(GM_ASSIGNMENT_KEY);
+}
+
+function loadLocalGameLocks() {
+  localGameLocksByDate = safeJsonParse(
+    localStorage.getItem(GM_LOCAL_LOCKS_KEY),
+    {}
+  ) || {};
+}
+
+function saveLocalGameLocks(nextMap) {
+  localGameLocksByDate = nextMap || {};
+  localStorage.setItem(GM_LOCAL_LOCKS_KEY, JSON.stringify(localGameLocksByDate));
 }
 
 function setActiveTab(tab) {
@@ -751,38 +765,15 @@ async function saveTradeBlockToSheet(team, block) {
 }
 
 async function saveGameLocksToSheet(locks) {
-  const actions = ["setGameLocks", "saveGameLocks"];
-  let lastError = null;
-  for (const action of actions) {
-    const response = await fetch(TRADE_BLOCKS_API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action,
-        locks,
-        updatedAt: new Date().toISOString(),
-      }),
-    });
-    if (!response.ok) {
-      lastError = new Error(`Game lock save failed: ${response.status}`);
-      continue;
-    }
-    const payload = await response.json();
-    if (!payload || typeof payload !== "object") {
-      lastError = new Error("Invalid game lock response.");
-      continue;
-    }
-    if (payload.ok === false) {
-      const msg = String(payload.message || "").toLowerCase();
-      if (msg.includes("no valid action")) {
-        lastError = new Error(payload.message || "Unable to save game locks.");
-        continue;
-      }
-      throw new Error(payload.message || "Unable to save game locks.");
-    }
-    return payload;
-  }
-  throw lastError || new Error("Unable to save game locks.");
+  const nextMap = { ...localGameLocksByDate };
+  (locks || []).forEach((lock) => {
+    const date = String(lock?.date || "").trim();
+    const lockAt = String(lock?.lockAt || "").trim();
+    if (!date || !lockAt) return;
+    nextMap[date] = lockAt;
+  });
+  saveLocalGameLocks(nextMap);
+  return { ok: true, local: true };
 }
 
 async function updatePlayerNameInSheet(team, oldTag, newName) {
@@ -1136,6 +1127,27 @@ function renderLineupTeam(team) {
   setLineupStatus("");
 }
 
+function getLockDateTimeForDay(dateText) {
+  const custom = String(localGameLocksByDate?.[dateText] || "").trim();
+  if (custom) {
+    const customDt = new Date(custom);
+    if (!Number.isNaN(customDt.getTime())) return customDt;
+  }
+  const day = parseScheduleDateValue(dateText);
+  if (!day) return null;
+  day.setHours(18, 55, 0, 0); // default lock: 6:55 PM local
+  return day;
+}
+
+function isLineupLockedForTeam(team) {
+  const matchups = getTeamUpcomingMatchups(team);
+  if (!matchups.length) return false;
+  const first = matchups[0];
+  const lockAt = getLockDateTimeForDay(first.dateText);
+  if (!lockAt) return false;
+  return Date.now() >= lockAt.getTime();
+}
+
 function getTeamUpcomingMatchups(team) {
   const selectedTeam = String(team || "").trim();
   if (!selectedTeam || !commishUpcomingGames.length) return [];
@@ -1273,7 +1285,11 @@ async function loadUpcomingScheduleGames() {
 
   return Array.from(byDate.values())
     .sort((a, b) => a.when - b.when)
-    .slice(0, 3);
+    .slice(0, 3)
+    .map((day) => ({
+      ...day,
+      lockAt: String(localGameLocksByDate?.[day.dateText] || "").trim(),
+    }));
 }
 
 function renderCommishLockGames() {
@@ -1762,6 +1778,10 @@ function bindEvents() {
       if (!ensureCanEditTeam(team, setLineupStatus)) {
         return;
       }
+      if (isLineupLockedForTeam(team)) {
+        setLineupStatus("Lineup is locked for this game day.", true);
+        return;
+      }
       const checkedPlayers = Array.from(
         els.lineupPlayerList.querySelectorAll('input[data-lineup-player]:checked')
       ).map((node) => String(node.value || "").trim());
@@ -1836,6 +1856,7 @@ async function init() {
   bindEvents();
   setActiveTab("trade");
   try {
+    loadLocalGameLocks();
     await loadSupabaseConfig();
     const savedToken = localStorage.getItem(GM_ACCESS_TOKEN_KEY) || "";
     const savedRefresh = localStorage.getItem(GM_REFRESH_TOKEN_KEY) || "";
