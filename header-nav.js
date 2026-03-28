@@ -12,9 +12,6 @@
     container.appendChild(link);
   };
 
-  ensureLink(document.querySelector(".site-nav-main"), "/madness.html", "RSKL Madness");
-  ensureLink(document.querySelector("[data-menu-panel]"), "/madness.html", "RSKL Madness");
-
   const toggle = document.querySelector("[data-menu-toggle]");
   const panel = document.querySelector("[data-menu-panel]");
 
