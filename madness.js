@@ -1,7 +1,13 @@
-const LIVE_BRACKET_CSV_URL = "/api/sheet?name=madness-live";
-const COMPLETED_BRACKET_CSV_URL = "/api/sheet?name=madness-completed";
+const PLAYOFFS_CSV_URL = "/api/sheet?name=playoffs";
 const LIVE_REFRESH_MS = 60000;
 const ROUND2_LEAGUE_DAY = "3/22";
+const PLAYOFF_GAME_SLOTS = [
+  { cols: ["A", "B"], rows: [5, 7] },
+  { cols: ["A", "B"], rows: [10, 12] },
+  { cols: ["C", "D"], rows: [4, 6] },
+  { cols: ["C", "D"], rows: [9, 12] },
+  { cols: ["E", "F"], rows: [5, 10] },
+];
 
 const EAST_BRACKET = [
   { seed: 1, player: "@jordancarter" },
@@ -148,6 +154,76 @@ function toNumber(value) {
   if (!cleaned) return null;
   const parsed = Number(cleaned);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function colToIndex(col) {
+  const s = String(col || "").trim().toUpperCase();
+  if (!s) return -1;
+  let n = 0;
+  for (let i = 0; i < s.length; i += 1) {
+    const ch = s.charCodeAt(i);
+    if (ch < 65 || ch > 90) return -1;
+    n = n * 26 + (ch - 64);
+  }
+  return n - 1;
+}
+
+function getCell(rows, col, rowNum) {
+  const r = Number(rowNum) - 1;
+  const c = colToIndex(col);
+  if (r < 0 || c < 0) return "";
+  return String((rows[r] && rows[r][c]) || "").trim();
+}
+
+function handleFromNameCell(value) {
+  const handles = extractHandles(value);
+  if (handles.length) return handles[0];
+  return "";
+}
+
+function extractPlayoffGames(rows) {
+  return PLAYOFF_GAME_SLOTS.map((slot) => {
+    const [nameCol, scoreCol] = slot.cols;
+    const [topRow, bottomRow] = slot.rows;
+
+    const topName = getCell(rows, nameCol, topRow);
+    const topScore = toNumber(getCell(rows, scoreCol, topRow));
+    const bottomName = getCell(rows, nameCol, bottomRow);
+    const bottomScore = toNumber(getCell(rows, scoreCol, bottomRow));
+
+    return {
+      top: { handle: handleFromNameCell(topName), score: topScore },
+      bottom: { handle: handleFromNameCell(bottomName), score: bottomScore },
+    };
+  });
+}
+
+function buildScoreMapsFromPlayoffGames(games) {
+  const scoreMap = new Map();
+  const completedMatchups = new Map();
+
+  games.forEach((game) => {
+    const topHandle = normalizeHandle(game.top.handle);
+    const bottomHandle = normalizeHandle(game.bottom.handle);
+    const topScore = Number.isFinite(game.top.score) ? game.top.score : null;
+    const bottomScore = Number.isFinite(game.bottom.score) ? game.bottom.score : null;
+
+    if (topHandle && topScore !== null) scoreMap.set(topHandle, topScore);
+    if (bottomHandle && bottomScore !== null) scoreMap.set(bottomHandle, bottomScore);
+
+    if (!topHandle || !bottomHandle || topScore === null || bottomScore === null) return;
+    if (topScore === bottomScore) return;
+
+    const key = matchupKey(topHandle, bottomHandle);
+    if (!key) return;
+    completedMatchups.set(key, {
+      winner: topScore > bottomScore ? topHandle : bottomHandle,
+      a: { handle: topHandle, score: topScore },
+      b: { handle: bottomHandle, score: bottomScore },
+    });
+  });
+
+  return { scoreMap, completedMatchups };
 }
 
 function extractScoreMap(rows) {
@@ -643,30 +719,18 @@ async function loadLiveScores() {
   }
 
   try {
-    const [liveResponse, completedResponse] = await Promise.all([
-      fetch(LIVE_BRACKET_CSV_URL, { cache: "no-store" }),
-      fetch(COMPLETED_BRACKET_CSV_URL, { cache: "no-store" }),
-    ]);
-    if (!liveResponse.ok) throw new Error(`live ${liveResponse.status}`);
+    const response = await fetch(PLAYOFFS_CSV_URL, { cache: "no-store" });
+    if (!response.ok) throw new Error(`playoffs ${response.status}`);
 
-    const liveText = await liveResponse.text();
-    const liveRows = parseCSV(liveText);
-    liveState.scoreMap = extractScoreMap(liveRows);
+    const text = await response.text();
+    const rows = parseCSV(text);
+    const games = extractPlayoffGames(rows);
+    const maps = buildScoreMapsFromPlayoffGames(games);
 
-    if (completedResponse.ok) {
-      const completedText = await completedResponse.text();
-      const completedRows = parseCSV(completedText);
-      liveState.completedScoreMap = extractScoreMap(completedRows);
-      liveState.round2ScoreMap = extractScoreMapForLeagueDay(
-        completedRows,
-        ROUND2_LEAGUE_DAY
-      );
-      liveState.completedMatchups = extractCompletedMatchups(completedRows);
-    } else {
-      liveState.completedScoreMap = new Map();
-      liveState.round2ScoreMap = new Map();
-      liveState.completedMatchups = new Map();
-    }
+    liveState.scoreMap = maps.scoreMap;
+    liveState.completedScoreMap = new Map(maps.scoreMap);
+    liveState.round2ScoreMap = new Map(maps.scoreMap);
+    liveState.completedMatchups = maps.completedMatchups;
 
     const persisted = maybePersistFrozenScoreMap(liveState.scoreMap);
     if (persisted && persisted.size) {
