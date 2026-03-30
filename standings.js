@@ -10,6 +10,12 @@ const RETIREMENT_RANGE = "G3:J70";
 const CUT_RANGE = "L3:O81";
 const SIGNING_RANGE = "Q3:T81";
 const REGULAR_SEASON_GAMES = 15;
+const PLAYOFF_STATUS_OVERRIDES = {
+  cheerios: "Clinched",
+  illegals: "Clinched",
+  "the snipers": "Eliminated",
+  snipers: "Eliminated",
+};
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -419,6 +425,10 @@ function computePlayoffStatusMap(
       return;
     }
     map.set(team.team, "In Contention");
+  });
+
+  Object.entries(PLAYOFF_STATUS_OVERRIDES).forEach(([teamName, forcedStatus]) => {
+    map.set(normalizeTeamLabel(teamName), forcedStatus);
   });
 
   return map;

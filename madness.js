@@ -400,7 +400,7 @@ function maybePersistFrozenScoreMap(scoreMap) {
 }
 
 function getActiveScoreMap() {
-  return liveState.frozenMap && liveState.frozenMap.size ? liveState.frozenMap : liveState.scoreMap;
+  return liveState.scoreMap;
 }
 
 function getResultScoreMap() {
@@ -653,11 +653,7 @@ function render() {
       minute: "2-digit",
     });
 
-    const suffix = liveState.frozenMap && liveState.frozenMap.size
-      ? " • Frozen 6:55 PM ET"
-      : liveState.loaded
-        ? " • Live Synced"
-        : "";
+    const suffix = liveState.loaded ? " • Live Synced" : "";
 
     lastUpdated.textContent = `Last updated: ${formatted}${suffix}`;
   }
@@ -710,14 +706,6 @@ function render() {
 }
 
 async function loadLiveScores() {
-  const frozen = readFrozenScoreMap();
-  if (frozen && frozen.size) {
-    liveState.frozenMap = frozen;
-    liveState.loaded = true;
-    render();
-    return;
-  }
-
   try {
     const response = await fetch(PLAYOFFS_CSV_URL, { cache: "no-store" });
     if (!response.ok) throw new Error(`playoffs ${response.status}`);
@@ -732,17 +720,14 @@ async function loadLiveScores() {
     liveState.round2ScoreMap = new Map(maps.scoreMap);
     liveState.completedMatchups = maps.completedMatchups;
 
-    const persisted = maybePersistFrozenScoreMap(liveState.scoreMap);
-    if (persisted && persisted.size) {
-      liveState.frozenMap = new Map(persisted);
-    }
-
+    liveState.frozenMap = null;
     liveState.loaded = true;
   } catch (_error) {
     liveState.scoreMap = new Map();
     liveState.completedScoreMap = new Map();
     liveState.round2ScoreMap = new Map();
     liveState.completedMatchups = new Map();
+    liveState.frozenMap = null;
     liveState.loaded = false;
   }
 
