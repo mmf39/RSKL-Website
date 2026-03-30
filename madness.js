@@ -1,6 +1,8 @@
 const PLAYOFFS_CSV_URL = "/api/sheet?name=playoffs";
 const LIVE_REFRESH_MS = 60000;
-const ROUND2_LEAGUE_DAY = "3/22";
+
+// Game cell mappings from the playoffs sheet:
+// Game 1: AB5:7, Game 2: AB10:12, Game 3: CD4:6, Game 4: CD9:11, Game 5: EF5:10
 const PLAYOFF_GAME_SLOTS = [
   { cols: ["A", "B"], rows: [5, 7] },
   { cols: ["A", "B"], rows: [10, 12] },
@@ -24,7 +26,7 @@ const EAST_BRACKET = [
   { seed: 11, player: "@arachnid" },
   { seed: 7, player: "@jamesthebot888" },
   { seed: 10, player: "@bello" },
-  { seed: 8, player: "@Fplostpro" },
+  { seed: 8, player: "@fplostpro" },
   { seed: 9, player: "@alec" },
 ];
 
@@ -47,17 +49,16 @@ const WEST_BRACKET = [
   { seed: 9, player: "@ok124" },
 ];
 
-const PLAY_INS = [
-  { id: "P1", players: ["@power", "@aliyu_"] },
-  { id: "P2", players: ["@duren", "@tuff0"] },
-  { id: "P3", players: ["@mensahszn", "@andrej"] },
-  { id: "P4", players: ["@josh_hart", "@cjstroud777"] },
-  { id: "P5", players: ["@morant", "@patsontop7"] },
-  { id: "P6", players: ["@rzk", "@jakemccarthy31"] },
-  { id: "P7", players: ["@jakobe.walter", "@mmf"] },
-];
+const PLAY_INS = {
+  P1: ["@power", "@aliyu_"],
+  P2: ["@duren", "@tuff0"],
+  P3: ["@mensahszn", "@andrej"],
+  P4: ["@josh_hart", "@cjstroud777"],
+  P5: ["@morant", "@patsontop7"],
+  P6: ["@rzk", "@jakemccarthy31"],
+  P7: ["@jakobe.walter", "@mmf"],
+};
 
-const PLAY_IN_MAP = Object.fromEntries(PLAY_INS.map((p) => [p.id, p.players]));
 const BRACKET_PAIRS = [
   [1, 16],
   [8, 9],
@@ -68,15 +69,13 @@ const BRACKET_PAIRS = [
   [7, 10],
   [2, 15],
 ];
+
 const R2_ROWS = [2, 6, 10, 14];
 const S16_ROWS = [4, 12];
 
 let liveState = {
   scoreMap: new Map(),
-  completedScoreMap: new Map(),
-  round2ScoreMap: new Map(),
-  completedMatchups: new Map(),
-  frozenMap: null,
+  resultMap: new Map(),
   loaded: false,
 };
 
@@ -175,38 +174,30 @@ function getCell(rows, col, rowNum) {
   return String((rows[r] && rows[r][c]) || "").trim();
 }
 
-function handleFromNameCell(value) {
-  const handles = extractHandles(value);
-  if (handles.length) return handles[0];
-  return "";
+function matchupKey(aHandle, bHandle) {
+  const a = normalizeHandle(aHandle);
+  const b = normalizeHandle(bHandle);
+  if (!a || !b) return "";
+  return [a, b].sort().join("|");
 }
 
-function extractPlayoffGames(rows) {
-  return PLAYOFF_GAME_SLOTS.map((slot) => {
+function extractPlayoffResults(rows) {
+  const scoreMap = new Map();
+  const resultMap = new Map();
+
+  PLAYOFF_GAME_SLOTS.forEach((slot) => {
     const [nameCol, scoreCol] = slot.cols;
     const [topRow, bottomRow] = slot.rows;
 
-    const topName = getCell(rows, nameCol, topRow);
-    const topScore = toNumber(getCell(rows, scoreCol, topRow));
-    const bottomName = getCell(rows, nameCol, bottomRow);
-    const bottomScore = toNumber(getCell(rows, scoreCol, bottomRow));
+    const topNameCell = getCell(rows, nameCol, topRow);
+    const topScoreCell = getCell(rows, scoreCol, topRow);
+    const bottomNameCell = getCell(rows, nameCol, bottomRow);
+    const bottomScoreCell = getCell(rows, scoreCol, bottomRow);
 
-    return {
-      top: { handle: handleFromNameCell(topName), score: topScore },
-      bottom: { handle: handleFromNameCell(bottomName), score: bottomScore },
-    };
-  });
-}
-
-function buildScoreMapsFromPlayoffGames(games) {
-  const scoreMap = new Map();
-  const completedMatchups = new Map();
-
-  games.forEach((game) => {
-    const topHandle = normalizeHandle(game.top.handle);
-    const bottomHandle = normalizeHandle(game.bottom.handle);
-    const topScore = Number.isFinite(game.top.score) ? game.top.score : null;
-    const bottomScore = Number.isFinite(game.bottom.score) ? game.bottom.score : null;
+    const topHandle = extractHandles(topNameCell)[0] || "";
+    const bottomHandle = extractHandles(bottomNameCell)[0] || "";
+    const topScore = toNumber(topScoreCell);
+    const bottomScore = toNumber(bottomScoreCell);
 
     if (topHandle && topScore !== null) scoreMap.set(topHandle, topScore);
     if (bottomHandle && bottomScore !== null) scoreMap.set(bottomHandle, bottomScore);
@@ -216,492 +207,211 @@ function buildScoreMapsFromPlayoffGames(games) {
 
     const key = matchupKey(topHandle, bottomHandle);
     if (!key) return;
-    completedMatchups.set(key, {
+
+    resultMap.set(key, {
       winner: topScore > bottomScore ? topHandle : bottomHandle,
       a: { handle: topHandle, score: topScore },
       b: { handle: bottomHandle, score: bottomScore },
     });
   });
 
-  return { scoreMap, completedMatchups };
+  return { scoreMap, resultMap };
 }
 
-function extractScoreMap(rows) {
-  const scoreMap = new Map();
+function seedMapFor(entries) {
+  const m = new Map();
+  entries.forEach((entry) => m.set(entry.seed, entry.player));
+  return m;
+}
 
-  for (const row of rows) {
-    for (let c = 0; c < row.length; c += 1) {
-      const cell = row[c];
-      const handles = extractHandles(cell);
-      if (handles.length !== 1) continue;
-
-      const handle = handles[0];
-      // Do not parse numbers from the same handle cell (e.g. @ok124 -> 124).
-      // Scores should come from nearby score columns.
-      let score = null;
-
-      if (score === null) {
-        for (let step = 1; step <= 3; step += 1) {
-          score = toNumber(row[c + step]);
-          if (score !== null) break;
-        }
-      }
-
-      if (score === null) continue;
-
-      const prev = scoreMap.get(handle);
-      if (prev === undefined || score > prev) {
-        scoreMap.set(handle, score);
-      }
-    }
+function resolvePlayInPlayer(raw, scoreMap) {
+  const value = String(raw || "").trim();
+  const m = value.match(/^W\s*P(\d+)$/i);
+  if (!m) {
+    const handles = extractHandles(value);
+    return {
+      main: value,
+      handles,
+      sub: "",
+    };
   }
 
-  return scoreMap;
-}
-
-function extractLeagueDayLabelFromRow(row) {
-  const a = String((row && row[0]) || "");
-  const b = String((row && row[1]) || "");
-  const merged = `${a} ${b}`;
-  const match = merged.match(/League Day:\s*([0-9]{1,2}\/[0-9]{1,2})/i);
-  return match ? match[1] : "";
-}
-
-function extractScoreMapForLeagueDay(rows, targetDay) {
-  if (!targetDay) return new Map();
-  const bucket = [];
-  let currentDay = "";
-  for (const row of rows) {
-    const foundDay = extractLeagueDayLabelFromRow(row);
-    if (foundDay) {
-      currentDay = foundDay;
-      continue;
-    }
-    if (currentDay === targetDay) {
-      bucket.push(row);
-    }
-  }
-  return extractScoreMap(bucket);
-}
-
-function matchupKey(aHandle, bHandle) {
-  const a = normalizeHandle(aHandle);
-  const b = normalizeHandle(bHandle);
-  if (!a || !b) return "";
-  return [a, b].sort().join("|");
-}
-
-function extractCompletedMatchups(rows) {
-  const result = new Map();
-
-  for (const row of rows) {
-    const rowPairs = [];
-    for (let c = 0; c < row.length; c += 1) {
-      const cell = row[c];
-      const handles = extractHandles(cell);
-      if (handles.length !== 1) continue;
-
-      // Do not treat trailing digits in handle text as score.
-      let score = null;
-      if (score === null) {
-        for (let step = 1; step <= 3; step += 1) {
-          score = toNumber(row[c + step]);
-          if (score !== null) break;
-        }
-      }
-      if (score === null) continue;
-      rowPairs.push({ handle: handles[0], score });
-    }
-
-    if (rowPairs.length < 2) continue;
-    const a = rowPairs[0];
-    const b = rowPairs[1];
-    if (a.score === b.score) continue;
-
-    const key = matchupKey(a.handle, b.handle);
-    if (!key) continue;
-    result.set(key, { winner: a.score > b.score ? a.handle : b.handle, a, b });
-  }
-
-  return result;
-}
-
-function getEtNow() {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/New_York",
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(new Date());
-
-  const map = {};
-  parts.forEach((p) => {
-    if (p.type !== "literal") map[p.type] = p.value;
-  });
-
-  const month = Number(map.month || 0);
-  const day = Number(map.day || 0);
-  const year = Number(map.year || 0);
-  const hour = Number(map.hour || 0);
-  const minute = Number(map.minute || 0);
-
-  return {
-    month,
-    day,
-    year,
-    hour,
-    minute,
-    dateKey: `${month}/${day}/${year}`,
-  };
-}
-
-function isFreezeTimeET() {
-  const et = getEtNow();
-  return et.hour > 18 || (et.hour === 18 && et.minute >= 55);
-}
-
-function mapToObject(map) {
-  return Object.fromEntries(map.entries());
-}
-
-function objectToMap(obj) {
-  return new Map(Object.entries(obj || {}).map(([k, v]) => [k, Number(v)]));
-}
-
-function freezeKeyForToday() {
-  return `madness-freeze:${getEtNow().dateKey}`;
-}
-
-function readFrozenScoreMap() {
-  try {
-    const raw = localStorage.getItem(freezeKeyForToday());
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return objectToMap(parsed);
-  } catch (_e) {
-    return null;
-  }
-}
-
-function maybePersistFrozenScoreMap(scoreMap) {
-  if (!isFreezeTimeET()) return null;
-  const existing = readFrozenScoreMap();
-  if (existing && existing.size) return existing;
-  if (!scoreMap || !scoreMap.size) return null;
-  try {
-    localStorage.setItem(freezeKeyForToday(), JSON.stringify(mapToObject(scoreMap)));
-    return scoreMap;
-  } catch (_e) {
-    return scoreMap;
-  }
-}
-
-function getActiveScoreMap() {
-  return liveState.scoreMap;
-}
-
-function getResultScoreMap() {
-  if (liveState.completedScoreMap && liveState.completedScoreMap.size) {
-    return liveState.completedScoreMap;
-  }
-  return new Map();
-}
-
-function scoreForHandle(player, scoreMap) {
-  const handle = normalizeHandle(player);
-  if (!handle) return "";
-  const score = scoreMap.get(handle);
-  return score === undefined ? "" : String(score);
-}
-
-function resolvePlayerLabel(player) {
-  const raw = String(player || "").trim();
-  const match = raw.match(/^W\s*P(\d+)$/i);
-  if (!match) {
-    return { main: raw, sub: "", handles: extractHandles(raw), participants: [] };
-  }
-
-  const playInId = `P${match[1]}`;
-  const players = PLAY_IN_MAP[playInId];
-  if (!players || players.length < 2) {
-    return { main: raw, sub: "", handles: extractHandles(raw), participants: [] };
-  }
-
-  return {
-    main: `${players[0]} vs ${players[1]}`,
-    sub: "",
-    handles: [normalizeHandle(players[0]), normalizeHandle(players[1])],
-    participants: [players[0], players[1]],
-  };
-}
-
-function collapseMatchupToWinner(label, scoreMap) {
-  if (!label || !Array.isArray(label.handles) || label.handles.length !== 2) return label;
-  const [a, b] = label.handles;
+  const playInKey = `P${m[1]}`;
+  const pair = PLAY_INS[playInKey] || [];
+  const a = normalizeHandle(pair[0] || "");
+  const b = normalizeHandle(pair[1] || "");
   const aScore = scoreMap.get(a);
   const bScore = scoreMap.get(b);
-  if (aScore === undefined || bScore === undefined || aScore === bScore) return label;
 
-  const winnerIndex = aScore > bScore ? 0 : 1;
-  const winnerHandle = label.handles[winnerIndex];
-  const winnerName = (label.participants && label.participants[winnerIndex]) || `@${winnerHandle}`;
+  if (a && b && Number.isFinite(aScore) && Number.isFinite(bScore) && aScore !== bScore) {
+    const winner = aScore > bScore ? pair[0] : pair[1];
+    return {
+      main: winner,
+      handles: [normalizeHandle(winner)],
+      sub: "",
+    };
+  }
 
   return {
-    main: winnerName,
+    main: pair.length === 2 ? `${pair[0]} vs ${pair[1]}` : value,
+    handles: pair.map((p) => normalizeHandle(p)).filter(Boolean),
     sub: "",
-    handles: [winnerHandle],
-    participants: [winnerName],
   };
 }
 
-function scoreTextForLabel(label, scoreMap) {
-  if (!label || !label.handles || !label.handles.length) return "";
-  if (label.handles.length !== 1) return "";
+function emptyLabel() {
+  return { main: "", handles: [], sub: "" };
+}
+
+function winnerBetween(aLabel, bLabel, scoreMap, resultMap) {
+  if (!aLabel || !bLabel) return emptyLabel();
+  if (aLabel.handles.length !== 1 || bLabel.handles.length !== 1) return emptyLabel();
+
+  const a = aLabel.handles[0];
+  const b = bLabel.handles[0];
+  const key = matchupKey(a, b);
+  const resolved = key ? resultMap.get(key) : null;
+  if (resolved && resolved.winner) {
+    return normalizeHandle(a) === resolved.winner ? aLabel : bLabel;
+  }
+
+  const aScore = scoreMap.get(a);
+  const bScore = scoreMap.get(b);
+  if (!Number.isFinite(aScore) || !Number.isFinite(bScore) || aScore === bScore) return emptyLabel();
+  return aScore > bScore ? aLabel : bLabel;
+}
+
+function statusFor(label, oppLabel, scoreMap, resultMap) {
+  if (!label || !oppLabel || label.handles.length !== 1 || oppLabel.handles.length !== 1) return "";
+  const a = label.handles[0];
+  const b = oppLabel.handles[0];
+  const key = matchupKey(a, b);
+  const resolved = key ? resultMap.get(key) : null;
+
+  if (resolved && resolved.winner) {
+    return normalizeHandle(a) === resolved.winner ? "win" : "loss";
+  }
+
+  const aScore = scoreMap.get(a);
+  const bScore = scoreMap.get(b);
+  if (!Number.isFinite(aScore) || !Number.isFinite(bScore) || aScore === bScore) return "";
+  return aScore > bScore ? "win" : "loss";
+}
+
+function scoreFor(label, scoreMap) {
+  if (!label || label.handles.length !== 1) return "";
   const score = scoreMap.get(label.handles[0]);
-  return score === undefined ? "" : String(score);
+  return Number.isFinite(score) ? String(score) : "";
 }
 
-function labelForWinner(a, b, scoreMap, matchupResults) {
-  if (!a || !b || a.handles.length !== 1 || b.handles.length !== 1) {
-    return { main: "", sub: "", handles: [] };
-  }
-
-  const key = matchupKey(a.handles[0], b.handles[0]);
-  const matchup = key ? matchupResults.get(key) : null;
-  if (matchup && matchup.winner) {
-    return normalizeHandle(a.handles[0]) === matchup.winner ? a : b;
-  }
-
-  const aScore = scoreMap.get(a.handles[0]);
-  const bScore = scoreMap.get(b.handles[0]);
-  if (aScore === undefined || bScore === undefined || aScore === bScore) {
-    return { main: "", sub: "", handles: [] };
-  }
-
-  return aScore > bScore ? a : b;
-}
-
-function slotResultStatus(aLabel, bLabel, scoreMap, matchupResults, forTop) {
-  if (!aLabel || !bLabel || aLabel.handles.length !== 1 || bLabel.handles.length !== 1) return "";
-  const key = matchupKey(aLabel.handles[0], bLabel.handles[0]);
-  const matchup = key ? matchupResults.get(key) : null;
-  if (matchup && matchup.winner) {
-    const topWins = normalizeHandle(aLabel.handles[0]) === matchup.winner;
-    if (forTop) return topWins ? "win" : "loss";
-    return topWins ? "loss" : "win";
-  }
-
-  const aScore = scoreMap.get(aLabel.handles[0]);
-  const bScore = scoreMap.get(bLabel.handles[0]);
-  if (aScore === undefined || bScore === undefined || aScore === bScore) return "";
-  if (forTop) return aScore > bScore ? "win" : "loss";
-  return bScore > aScore ? "win" : "loss";
-}
-
-function buildSeedMap(entries) {
-  const map = new Map();
-  entries.forEach((entry) => map.set(entry.seed, entry.player));
-  return map;
-}
-
-function renderTeamSlot(seed, playerLabel, scoreText, status) {
+function renderTeamSlot(seed, label, scoreText, status) {
   return `
     <div class="madness-game-slot ${status ? `is-${status}` : ""}">
       <span class="madness-seed">${seed || ""}</span>
       <span class="madness-player">
-        <span class="madness-player-main">${escapeHtml(playerLabel.main || "")}</span>
-        ${playerLabel.sub ? `<small class="madness-player-sub">${escapeHtml(playerLabel.sub)}</small>` : ""}
+        <span class="madness-player-main">${escapeHtml(label.main || "")}</span>
+        ${label.sub ? `<small class="madness-player-sub">${escapeHtml(label.sub)}</small>` : ""}
       </span>
       <span class="madness-player-score">${escapeHtml(scoreText || "")}</span>
     </div>
   `;
 }
 
-function renderGame(topSeed, topPlayer, bottomSeed, bottomPlayer, cls, row, scoreMap, statusTop = "", statusBottom = "") {
+function renderGame(topSeed, topLabel, bottomSeed, bottomLabel, cls, row, scoreMap, resultMap) {
+  const topStatus = statusFor(topLabel, bottomLabel, scoreMap, resultMap);
+  const bottomStatus = statusFor(bottomLabel, topLabel, scoreMap, resultMap);
+
   return `
     <article class="madness-game ${cls}" style="--row:${row};">
-      ${renderTeamSlot(topSeed, topPlayer, scoreTextForLabel(topPlayer, scoreMap), statusTop)}
-      ${renderTeamSlot(bottomSeed, bottomPlayer, scoreTextForLabel(bottomPlayer, scoreMap), statusBottom)}
+      ${renderTeamSlot(topSeed, topLabel, scoreFor(topLabel, scoreMap), topStatus)}
+      ${renderTeamSlot(bottomSeed, bottomLabel, scoreFor(bottomLabel, scoreMap), bottomStatus)}
     </article>
   `;
 }
 
-function renderPlaceholder(top, bottom, cls, row, scoreMap) {
-  return renderGame("", top, "", bottom, `${cls} placeholder`, row, scoreMap);
-}
+function renderSide(entries, sideClass, scoreMap, resultMap) {
+  const seeds = seedMapFor(entries);
 
-function renderSide(entries, sideClass, displayScoreMap, resultScoreMap, matchupResults) {
-  const seedMap = buildSeedMap(entries);
-  const emptyLabel = { main: "", sub: "", handles: [] };
-  const roundOneScoreMap = resultScoreMap && resultScoreMap.size ? resultScoreMap : new Map();
-  const roundTwoScoreMap = liveState.round2ScoreMap && liveState.round2ScoreMap.size
-    ? liveState.round2ScoreMap
-    : roundOneScoreMap;
-  const roundThreeScoreMap = displayScoreMap && displayScoreMap.size ? displayScoreMap : new Map();
-
-  const r1Matches = BRACKET_PAIRS.map((pair) => {
-    const rawTop = resolvePlayerLabel(seedMap.get(pair[0]) || "");
-    const rawBottom = resolvePlayerLabel(seedMap.get(pair[1]) || "");
-    const top = collapseMatchupToWinner(rawTop, resultScoreMap);
-    const bottom = collapseMatchupToWinner(rawBottom, resultScoreMap);
+  const round1 = BRACKET_PAIRS.map((pair) => {
+    const top = resolvePlayInPlayer(seeds.get(pair[0]) || "", scoreMap);
+    const bottom = resolvePlayInPlayer(seeds.get(pair[1]) || "", scoreMap);
     return { top, bottom, topSeed: pair[0], bottomSeed: pair[1] };
   });
 
-  const firstRound = r1Matches
-    .map((m, index) => {
-      const topStatus = slotResultStatus(m.top, m.bottom, resultScoreMap, matchupResults, true);
-      const bottomStatus = slotResultStatus(m.top, m.bottom, resultScoreMap, matchupResults, false);
-      return renderGame(
-        m.topSeed,
-        m.top,
-        m.bottomSeed,
-        m.bottom,
-        `round-one ${sideClass}`,
-        1 + index * 2,
-        roundOneScoreMap,
-        topStatus,
-        bottomStatus
-      );
-    })
+  const round1Html = round1
+    .map((m, idx) => renderGame(m.topSeed, m.top, m.bottomSeed, m.bottom, `round-one ${sideClass}`, 1 + idx * 2, scoreMap, resultMap))
     .join("");
 
-  const r2Winners = [
-    labelForWinner(r1Matches[0].top, r1Matches[0].bottom, resultScoreMap, matchupResults),
-    labelForWinner(r1Matches[1].top, r1Matches[1].bottom, resultScoreMap, matchupResults),
-    labelForWinner(r1Matches[2].top, r1Matches[2].bottom, resultScoreMap, matchupResults),
-    labelForWinner(r1Matches[3].top, r1Matches[3].bottom, resultScoreMap, matchupResults),
-    labelForWinner(r1Matches[4].top, r1Matches[4].bottom, resultScoreMap, matchupResults),
-    labelForWinner(r1Matches[5].top, r1Matches[5].bottom, resultScoreMap, matchupResults),
-    labelForWinner(r1Matches[6].top, r1Matches[6].bottom, resultScoreMap, matchupResults),
-    labelForWinner(r1Matches[7].top, r1Matches[7].bottom, resultScoreMap, matchupResults),
-  ];
+  const r2Labels = [];
+  for (let i = 0; i < round1.length; i += 2) {
+    r2Labels.push(winnerBetween(round1[i].top, round1[i].bottom, scoreMap, resultMap));
+    r2Labels.push(winnerBetween(round1[i + 1].top, round1[i + 1].bottom, scoreMap, resultMap));
+  }
 
-  const secondRound = R2_ROWS.map((row, idx) => {
-    const top = r2Winners[idx * 2] || emptyLabel;
-    const bottom = r2Winners[idx * 2 + 1] || emptyLabel;
-    const topStatus = slotResultStatus(top, bottom, roundTwoScoreMap, matchupResults, true);
-    const bottomStatus = slotResultStatus(top, bottom, roundTwoScoreMap, matchupResults, false);
-    return renderGame(
-      "",
-      top,
-      "",
-      bottom,
-      `round-two ${sideClass}`,
-      row,
-      roundTwoScoreMap,
-      topStatus,
-      bottomStatus
-    );
+  const round2Html = R2_ROWS.map((row, idx) => {
+    const top = r2Labels[idx * 2] || emptyLabel();
+    const bottom = r2Labels[idx * 2 + 1] || emptyLabel();
+    return renderGame("", top, "", bottom, `round-two ${sideClass}`, row, scoreMap, resultMap);
   }).join("");
 
-  const s16Winners = [
-    labelForWinner(r2Winners[0], r2Winners[1], roundTwoScoreMap, matchupResults),
-    labelForWinner(r2Winners[2], r2Winners[3], roundTwoScoreMap, matchupResults),
-    labelForWinner(r2Winners[4], r2Winners[5], roundTwoScoreMap, matchupResults),
-    labelForWinner(r2Winners[6], r2Winners[7], roundTwoScoreMap, matchupResults),
-  ];
+  const r3Labels = [];
+  for (let i = 0; i < r2Labels.length; i += 2) {
+    r3Labels.push(winnerBetween(r2Labels[i], r2Labels[i + 1], scoreMap, resultMap));
+  }
 
-  const sweet16 = S16_ROWS.map((row, idx) => {
-    const top = s16Winners[idx * 2] || emptyLabel;
-    const bottom = s16Winners[idx * 2 + 1] || emptyLabel;
-    const topStatus = slotResultStatus(top, bottom, roundThreeScoreMap, matchupResults, true);
-    const bottomStatus = slotResultStatus(top, bottom, roundThreeScoreMap, matchupResults, false);
-    return renderGame(
-      "",
-      top,
-      "",
-      bottom,
-      `sweet-sixteen ${sideClass}`,
-      row,
-      roundThreeScoreMap,
-      topStatus,
-      bottomStatus
-    );
+  const round3Html = S16_ROWS.map((row, idx) => {
+    const top = r3Labels[idx * 2] || emptyLabel();
+    const bottom = r3Labels[idx * 2 + 1] || emptyLabel();
+    return renderGame("", top, "", bottom, `sweet-sixteen ${sideClass}`, row, scoreMap, resultMap);
   }).join("");
 
-  const sideChamp = emptyLabel;
+  const champ = winnerBetween(r3Labels[0] || emptyLabel(), r3Labels[1] || emptyLabel(), scoreMap, resultMap);
 
   return {
-    html: `${firstRound}${secondRound}${sweet16}`,
-    champion: sideChamp && sideChamp.main ? sideChamp : emptyLabel,
+    html: `${round1Html}${round2Html}${round3Html}`,
+    champion: champ,
   };
 }
 
-function renderFinals(scoreMap, eastChamp, westChamp) {
-  return `
-    ${renderPlaceholder(eastChamp, westChamp, "championship", 8, scoreMap)}
-  `;
+function renderChampionship(eastChamp, westChamp, scoreMap, resultMap) {
+  return renderGame("", eastChamp || emptyLabel(), "", westChamp || emptyLabel(), "championship", 8, scoreMap, resultMap);
 }
 
 function render() {
-  const bracket = document.getElementById("madness-bracket");
-  const playins = document.getElementById("madness-playins");
-  const lastUpdated = document.getElementById("last-updated");
+  const bracketEl = document.getElementById("madness-bracket");
+  const lastUpdatedEl = document.getElementById("last-updated");
+  if (!bracketEl) return;
 
-  const displayScoreMap = getActiveScoreMap();
-  const resultScoreMap = getResultScoreMap();
-  const matchupResults = liveState.completedMatchups || new Map();
+  const scoreMap = liveState.scoreMap;
+  const resultMap = liveState.resultMap;
 
-  if (lastUpdated) {
+  const east = renderSide(EAST_BRACKET, "left", scoreMap, resultMap);
+  const west = renderSide(WEST_BRACKET, "right", scoreMap, resultMap);
+
+  bracketEl.innerHTML = `
+    <div class="madness-board-list">
+      <section class="madness-region-board">
+        <div class="madness-grid-wrap">
+          <div class="madness-combined-board">
+            <div class="madness-side-label left">East</div>
+            <div class="madness-side-label right">West</div>
+            ${east.html}
+            ${west.html}
+            ${renderChampionship(east.champion, west.champion, scoreMap, resultMap)}
+          </div>
+        </div>
+      </section>
+    </div>
+  `;
+
+  if (lastUpdatedEl) {
     const formatted = new Date().toLocaleString(undefined, {
       month: "short",
       day: "numeric",
       hour: "numeric",
       minute: "2-digit",
     });
-
-    const suffix = liveState.loaded ? " • Live Synced" : "";
-
-    lastUpdated.textContent = `Last updated: ${formatted}${suffix}`;
-  }
-
-  if (bracket) {
-    const east = renderSide(EAST_BRACKET, "left", displayScoreMap, resultScoreMap, matchupResults);
-    const west = renderSide(WEST_BRACKET, "right", displayScoreMap, resultScoreMap, matchupResults);
-
-    bracket.innerHTML = `
-      <div class="madness-board-list">
-        <section class="madness-region-board">
-          <div class="madness-grid-wrap">
-            <div class="madness-combined-board">
-              <div class="madness-side-label left">East</div>
-              <div class="madness-side-label right">West</div>
-              ${east.html}
-              ${west.html}
-              ${renderFinals(displayScoreMap, east.champion, west.champion)}
-            </div>
-          </div>
-        </section>
-      </div>
-    `;
-  }
-
-  if (playins) {
-    playins.innerHTML = PLAY_INS.map(
-      (series) => {
-        const leftLabel = {
-          main: series.players[0],
-          sub: "",
-          handles: [normalizeHandle(series.players[0])],
-        };
-        const rightLabel = {
-          main: series.players[1],
-          sub: "",
-          handles: [normalizeHandle(series.players[1])],
-        };
-        const winner = labelForWinner(leftLabel, rightLabel, resultScoreMap, matchupResults);
-        return `
-        <div class="madness-playin-card">
-          <div class="madness-playin-body">
-            <span>${winner.main ? escapeHtml(winner.main) : "TBD"}</span>
-          </div>
-        </div>
-      `;
-      }
-    ).join("");
+    lastUpdatedEl.textContent = `Last updated: ${formatted}${liveState.loaded ? " • Live Synced" : ""}`;
   }
 }
 
@@ -712,22 +422,14 @@ async function loadLiveScores() {
 
     const text = await response.text();
     const rows = parseCSV(text);
-    const games = extractPlayoffGames(rows);
-    const maps = buildScoreMapsFromPlayoffGames(games);
+    const extracted = extractPlayoffResults(rows);
 
-    liveState.scoreMap = maps.scoreMap;
-    liveState.completedScoreMap = new Map(maps.scoreMap);
-    liveState.round2ScoreMap = new Map(maps.scoreMap);
-    liveState.completedMatchups = maps.completedMatchups;
-
-    liveState.frozenMap = null;
+    liveState.scoreMap = extracted.scoreMap;
+    liveState.resultMap = extracted.resultMap;
     liveState.loaded = true;
-  } catch (_error) {
+  } catch (_err) {
     liveState.scoreMap = new Map();
-    liveState.completedScoreMap = new Map();
-    liveState.round2ScoreMap = new Map();
-    liveState.completedMatchups = new Map();
-    liveState.frozenMap = null;
+    liveState.resultMap = new Map();
     liveState.loaded = false;
   }
 
