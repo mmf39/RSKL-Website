@@ -146,6 +146,19 @@ function extractHandles(text) {
   return [...new Set(matches.map((m) => normalizeHandle(m)))];
 }
 
+function handleFromNameCell(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/^W\s*P\d+$/i.test(raw)) return "";
+
+  const explicit = extractHandles(raw);
+  if (explicit.length) return explicit[0];
+
+  const fallback = raw.match(/@?[a-z0-9._]+/i);
+  if (!fallback) return "";
+  return normalizeHandle(fallback[0]);
+}
+
 function toNumber(value) {
   const cleaned = String(value || "")
     .replace(/,/g, "")
@@ -194,8 +207,8 @@ function extractPlayoffResults(rows) {
     const bottomNameCell = getCell(rows, nameCol, bottomRow);
     const bottomScoreCell = getCell(rows, scoreCol, bottomRow);
 
-    const topHandle = extractHandles(topNameCell)[0] || "";
-    const bottomHandle = extractHandles(bottomNameCell)[0] || "";
+    const topHandle = handleFromNameCell(topNameCell);
+    const bottomHandle = handleFromNameCell(bottomNameCell);
     const topScore = toNumber(topScoreCell);
     const bottomScore = toNumber(bottomScoreCell);
 
