@@ -5,7 +5,7 @@ const PLAYOFF_GAME_SLOTS = [
   { cols: ["A", "B"], rows: [5, 7] },
   { cols: ["A", "B"], rows: [10, 12] },
   { cols: ["C", "D"], rows: [4, 6] },
-  { cols: ["C", "D"], rows: [9, 12] },
+  { cols: ["C", "D"], rows: [9, 11] },
   { cols: ["E", "F"], rows: [5, 10] },
 ];
 
