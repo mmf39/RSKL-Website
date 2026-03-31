@@ -1,6 +1,7 @@
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const ARCHIVE_URL = "/api/sheet?name=archive";
+const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const AWARDS_URL = "/api/sheet?name=awards";
 const DRAFT_URL = "/api/sheet?name=draft";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
@@ -29,6 +30,10 @@ const ARCHIVE_RANGES = {
   player_stats: "A45:F117",
   boxscore: "L31:R149",
   draft_c2s1: "A120:C175",
+};
+const C2S2_REGULAR_RANGES = {
+  player_stats: "A151:G1150",
+  boxscore: "K60:R1059",
 };
 
 const TEAM_RANGES = {
@@ -1823,8 +1828,8 @@ async function loadPlayer() {
     let boxRows = [];
     if (season === "c2s2-regular") {
       const [playerRes, boxRes] = await Promise.all([
-        fetch(PLAYER_STATS_URL, { cache: "no-store" }),
-        fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
+        fetch(C2S2_REGULAR_URL, { cache: "no-store" }),
+        fetch(C2S2_REGULAR_URL, { cache: "no-store" }),
       ]);
       if (!playerRes.ok) {
         throw new Error(`Fetch failed: ${playerRes.status}`);
@@ -1836,9 +1841,11 @@ async function loadPlayer() {
       if (!rows.length) {
         throw new Error("No data found.");
       }
-      playerColumns = detectPlayerColumns(rows[0] || []);
-      dataRows = rows.slice(1);
-      boxRows = parseCSV(await boxRes.text());
+      const playerSlice = sliceRange(rows, C2S2_REGULAR_RANGES.player_stats);
+      playerColumns = detectPlayerColumns(playerSlice[0] || []);
+      dataRows = playerSlice.slice(1);
+      const boxAllRows = parseCSV(await boxRes.text());
+      boxRows = sliceRange(boxAllRows, C2S2_REGULAR_RANGES.boxscore);
     } else if (season === "career") {
       const [playerRes, boxRes, archiveRes] = await Promise.all([
         fetch(PLAYER_STATS_URL, { cache: "no-store" }),
