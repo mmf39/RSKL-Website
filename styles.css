@@ -98,13 +98,7 @@
 }
 
 .madness-side-label {
-  position: absolute;
-  top: -2px;
-  font-size: 0.86rem;
-  color: #d8dceb;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  font-weight: 700;
+  display: none !important;
 }
 
 .madness-side-label.left {
