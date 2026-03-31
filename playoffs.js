@@ -406,8 +406,6 @@ function render() {
       <section class="madness-region-board">
         <div class="madness-grid-wrap">
           <div class="madness-combined-board">
-            <div class="madness-side-label left">East</div>
-            <div class="madness-side-label right">West</div>
             ${east.html}
             ${west.html}
             ${renderChampionship(east.champion, west.champion, scoreMap, resultMap)}
