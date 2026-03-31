@@ -44,15 +44,21 @@
     return;
   }
 
-  const saved = localStorage.getItem("season");
+  const normalizeSeason = (value) => {
+    if (value === "c2s2") return "c2s2-playoffs";
+    return value || "c2s2-playoffs";
+  };
+
+  const saved = normalizeSeason(localStorage.getItem("season"));
   if (saved) {
     seasonSelect.value = saved;
   }
 
   seasonSelect.addEventListener("change", () => {
-    localStorage.setItem("season", seasonSelect.value);
+    localStorage.setItem("season", normalizeSeason(seasonSelect.value));
     const playerSeasonMap = {
-      "c2s2": "c2s2-regular",
+      "c2s2-playoffs": "c2s2-regular",
+      "c2s2-regular": "c2s2-regular",
       "c2s1-regular": "c2s1-regular",
       "c2s1-post": "c2s1-playoffs",
     };
