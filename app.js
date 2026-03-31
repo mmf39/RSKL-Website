@@ -74,7 +74,17 @@ function parseCSV(text) {
 }
 
 function getSeason() {
-  return localStorage.getItem(SEASON_KEY) || "c2s2";
+  const raw = localStorage.getItem(SEASON_KEY) || "c2s2-playoffs";
+  if (raw === "c2s2-playoffs" || raw === "c2s2-regular" || raw === "c2s2") {
+    return "c2s2";
+  }
+  return raw;
+}
+
+function getSeasonRaw() {
+  const raw = localStorage.getItem(SEASON_KEY) || "c2s2-playoffs";
+  if (raw === "c2s2") return "c2s2-playoffs";
+  return raw;
 }
 
 function initSeasonSelect() {
@@ -82,7 +92,11 @@ function initSeasonSelect() {
   if (!select) {
     return;
   }
-  select.value = getSeason();
+  select.value = getSeasonRaw();
+  if (!select.value) {
+    select.value = "c2s2-playoffs";
+  }
+  localStorage.setItem(SEASON_KEY, select.value);
   select.addEventListener("change", () => {
     localStorage.setItem(SEASON_KEY, select.value);
     location.reload();
