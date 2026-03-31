@@ -3,6 +3,7 @@ const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const ARCHIVE_URL = "/api/sheet?name=archive";
+const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const SEASON_KEY = "season";
 const C2S2_SCHEDULE_RANGE = "A2:E77";
 const TRANSACTIONS_RANGE = "A3:E81";
@@ -33,6 +34,11 @@ let transactionsByTeam = new Map();
 const ARCHIVE_RANGES = {
   standings: "A1:F7",
   bracket: "A9:F15",
+};
+const C2S2_REGULAR_RANGES = {
+  standings: "A59:F69",
+  schedule: "A71:E170",
+  player_stats: "A151:G1150",
 };
 
 function getSeasonRaw() {
@@ -929,8 +935,9 @@ function computeSosMap(
 
 async function loadStandings() {
   try {
+    const seasonRaw = getSeasonRaw();
     const season = getSeason();
-    if (season === "c2s2") {
+    if (seasonRaw === "c2s2-playoffs") {
       const [standingsRes, scheduleRes, playerStatsRes, transactionsRes] = await Promise.all([
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
         fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
@@ -967,6 +974,50 @@ async function loadStandings() {
         standingsHeaders,
         standingsRows,
         scheduleRows,
+        6
+      );
+      advancedByTeam = computeAdvancedByTeam(playerRows);
+      transactionsByTeam = transactionsRes.ok
+        ? computeTransactionCounts(parseCSV(await transactionsRes.text()))
+        : new Map();
+      renderStandings();
+    } else if (seasonRaw === "c2s2-regular") {
+      const [regularRes, transactionsRes] = await Promise.all([
+        fetch(C2S2_REGULAR_URL, { cache: "no-store" }),
+        fetch(TRANSACTIONS_URL, { cache: "no-store" }),
+      ]);
+      if (!regularRes.ok) {
+        throw new Error(`Fetch failed: ${regularRes.status}`);
+      }
+      const regularRows = parseCSV(await regularRes.text());
+      const standingsTable = sliceRange(
+        regularRows,
+        C2S2_REGULAR_RANGES.standings
+      );
+      const scheduleTable = sliceRange(
+        regularRows,
+        C2S2_REGULAR_RANGES.schedule
+      );
+      const playerRows = sliceRange(
+        regularRows,
+        C2S2_REGULAR_RANGES.player_stats
+      );
+      if (!standingsTable.length) {
+        throw new Error("No data found.");
+      }
+      standingsHeaders = standingsTable[0] || [];
+      standingsRows = standingsTable.slice(1);
+      sosByTeam = computeSosMap(
+        standingsHeaders,
+        standingsRows,
+        scheduleTable,
+        1,
+        2
+      );
+      playoffStatusByTeam = computePlayoffStatusMap(
+        standingsHeaders,
+        standingsRows,
+        scheduleTable,
         6
       );
       advancedByTeam = computeAdvancedByTeam(playerRows);

@@ -3,6 +3,7 @@ const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
+const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const SEASON_KEY = "season";
 
 const els = {
@@ -35,6 +36,10 @@ const ARCHIVE_RANGES = {
   boxscore: "L31:R149",
 };
 const C2S2_SCHEDULE_RANGE = "A1:E82";
+const C2S2_REGULAR_RANGES = {
+  schedule: "A71:E170",
+  boxscore: "K60:R1059",
+};
 
 function getSeasonRaw() {
   const raw = localStorage.getItem(SEASON_KEY) || "c2s2-playoffs";
@@ -134,6 +139,11 @@ function sliceRange(rows, range) {
 
 function getC2S2ScheduleRows(rows) {
   const sliced = sliceRange(rows, C2S2_SCHEDULE_RANGE);
+  return [["Date", "Team 1", "Team 2", "Info", "Game Type"], ...sliced];
+}
+
+function getC2S2RegularScheduleRows(rows) {
+  const sliced = sliceRange(rows, C2S2_REGULAR_RANGES.schedule);
   return [["Date", "Team 1", "Team 2", "Info", "Game Type"], ...sliced];
 }
 
@@ -973,10 +983,11 @@ function bindCalendarEvents() {
 
 async function loadSchedule() {
   try {
+    const seasonRaw = getSeasonRaw();
     const season = getSeason();
     let rows = [];
 
-    if (season === "c2s2") {
+    if (seasonRaw === "c2s2-playoffs") {
       const [scheduleRes, boxRes, liveRes, playerStatsRes] = await Promise.all([
         fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
         fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
@@ -990,6 +1001,16 @@ async function loadSchedule() {
       const liveRows = liveRes.ok ? parseCSV(await liveRes.text()) : [];
       liveScoreMap = buildLiveScoreMap(liveRows);
       const playerRows = playerStatsRes.ok ? parseCSV(await playerStatsRes.text()) : [];
+      teamLeadersMap = computeTeamLeaders(playerRows);
+    } else if (seasonRaw === "c2s2-regular") {
+      const regularRes = await fetch(C2S2_REGULAR_URL, { cache: "no-store" });
+      if (!regularRes.ok) throw new Error(`Fetch failed: ${regularRes.status}`);
+      const regularRows = parseCSV(await regularRes.text());
+      rows = getC2S2RegularScheduleRows(regularRows);
+      cachedBoxScoreRows = sliceRange(regularRows, C2S2_REGULAR_RANGES.boxscore);
+      finalScoreMap = buildFinalScoreMap(cachedBoxScoreRows);
+      liveScoreMap = new Map();
+      const playerRows = sliceRange(regularRows, "A151:G1150");
       teamLeadersMap = computeTeamLeaders(playerRows);
     } else {
       const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
@@ -1012,6 +1033,19 @@ async function loadSchedule() {
 
     const now = new Date();
     currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const hasCurrentMonthGames = scheduleGames.some(
+      (g) =>
+        g.dateObj &&
+        g.dateObj.getMonth() === currentMonth.getMonth() &&
+        g.dateObj.getFullYear() === currentMonth.getFullYear()
+    );
+    if (!hasCurrentMonthGames && scheduleGames[0] && scheduleGames[0].dateObj) {
+      currentMonth = new Date(
+        scheduleGames[0].dateObj.getFullYear(),
+        scheduleGames[0].dateObj.getMonth(),
+        1
+      );
+    }
     const todayToken = getTodayToken();
     const firstInCurrentMonth = scheduleGames.find(
       (g) => g.dateObj && g.dateObj.getMonth() === currentMonth.getMonth()

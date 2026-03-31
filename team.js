@@ -5,6 +5,7 @@ const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
+const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
 const SEASON_KEY = "season";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
@@ -35,6 +36,12 @@ const ARCHIVE_RANGES = {
   boxscore: "L31:R149",
 };
 const C2S2_SCHEDULE_RANGE = "A1:E82";
+const C2S2_REGULAR_RANGES = {
+  standings: "A59:F69",
+  schedule: "A71:E170",
+  boxscore: "K60:R1059",
+  player_stats: "A151:G1150",
+};
 const LIVE_GAME_RANGES = [
   "A5:G11",
   "A13:G19",
@@ -89,8 +96,8 @@ const DRAFT_CAPITAL_COLUMNS = {
 const TEAM_STANDINGS_METRIC_KEY = "team_standings_metric";
 
 function getSeason() {
-  const raw = localStorage.getItem(SEASON_KEY) || "c2s2";
-  if (raw === "c2s2-regular") return "c2s2";
+  const raw = localStorage.getItem(SEASON_KEY) || "c2s2-playoffs";
+  if (raw === "c2s2") return "c2s2-playoffs";
   if (raw === "c2s1-playoffs") return "c2s1-post";
   return raw;
 }
@@ -1538,7 +1545,7 @@ async function loadRoster() {
 
   try {
     const season = getSeason();
-    if (season === "c2s2") {
+    if (season === "c2s2-playoffs") {
       const [rosterRes, standingsRes, scheduleRes, boxscoreRes, playerStatsRes, liveRes] = await Promise.all([
         fetch(ROSTER_CSV_URL, { cache: "no-store" }),
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
@@ -1599,7 +1606,7 @@ async function loadRoster() {
       updateStandingsFromRanges(teamName, standingsRows);
       const winPctMap = buildWinPctMapFromStandingsRows(standingsRows);
       const teamGp = getTeamGpFromStandingsRows(teamName, standingsRows);
-      const sos = computeTeamSOS(teamName, scheduleRows, winPctMap, season, teamGp);
+      const sos = computeTeamSOS(teamName, scheduleRows, winPctMap, "c2s2", teamGp);
       if (els.statSos) {
         els.statSos.textContent = sos !== null ? sos.toFixed(3) : "—";
       }
@@ -1610,8 +1617,71 @@ async function loadRoster() {
         teamName,
         scheduleRows,
         boxScoreData,
-        season
+        "c2s2"
       );
+      updateAdvancedTeamStats(computeAdvancedTeamStats(teamName, playerStatRows));
+    } else if (season === "c2s2-regular") {
+      const [rosterRes, regularRes] = await Promise.all([
+        fetch(ROSTER_CSV_URL, { cache: "no-store" }),
+        fetch(C2S2_REGULAR_URL, { cache: "no-store" }),
+      ]);
+      if (!rosterRes.ok) {
+        throw new Error(`Fetch failed: ${rosterRes.status}`);
+      }
+      if (!regularRes.ok) {
+        throw new Error(`Fetch failed: ${regularRes.status}`);
+      }
+      const rows = parseCSV(await rosterRes.text());
+      if (!rows.length) {
+        throw new Error("No data found.");
+      }
+      const range = TEAM_RANGES[teamName];
+      if (!range) {
+        throw new Error("Team roster range not found.");
+      }
+      const sliced = sliceRange(rows, range);
+      if (!sliced.length) {
+        throw new Error("No roster data in that range.");
+      }
+      renderTable(sliced[0], sliced.slice(1), teamName);
+
+      const regularRows = parseCSV(await regularRes.text());
+      const standingsTable = sliceRange(regularRows, C2S2_REGULAR_RANGES.standings);
+      const scheduleRows = getC2S2ScheduleRows(
+        regularRows,
+        C2S2_REGULAR_RANGES.schedule
+      );
+      const boxScoreData = sliceRange(regularRows, C2S2_REGULAR_RANGES.boxscore);
+      const playerStatRows = sliceRange(regularRows, C2S2_REGULAR_RANGES.player_stats);
+
+      teamLeadersMap = computeTeamLeaders(playerStatRows);
+      leagueStandingsMetrics = buildLeagueRowsFromArchive(
+        standingsTable,
+        scheduleRows,
+        "c2s2-regular"
+      );
+      applyTransactionCountsToLeagueRows(
+        leagueStandingsMetrics,
+        leagueTransactionCounts
+      );
+      renderLeagueMetricLeader();
+
+      const standingRow = findStandingsRowByTeam(teamName, standingsTable);
+      updateStandingsFromRow(standingRow || []);
+      const winPctMap = buildWinPctMapFromStandingsTable(standingsTable);
+      const teamGp = standingRow ? parseNumber(standingRow[1]) : null;
+      const sos = computeTeamSOS(
+        teamName,
+        scheduleRows,
+        winPctMap,
+        "c2s2-regular",
+        teamGp
+      );
+      if (els.statSos) {
+        els.statSos.textContent = sos !== null ? sos.toFixed(3) : "—";
+      }
+      liveScoreMap = new Map();
+      updateTeamSchedule(teamName, scheduleRows, boxScoreData, "c2s2-regular");
       updateAdvancedTeamStats(computeAdvancedTeamStats(teamName, playerStatRows));
     } else {
       const [archiveRes] = await Promise.all([
@@ -2106,9 +2176,22 @@ function getScheduleIndexes(headers, season) {
   return { date, team1, team2 };
 }
 
-function getC2S2ScheduleRows(rows) {
-  const sliced = sliceRange(rows, C2S2_SCHEDULE_RANGE);
+function getC2S2ScheduleRows(rows, range = C2S2_SCHEDULE_RANGE) {
+  const sliced = sliceRange(rows, range);
   return [["Date", "Team 1", "Team 2", "Info", "Game Type"], ...sliced];
+}
+
+function findStandingsRowByTeam(teamName, standingsTable) {
+  if (!standingsTable || standingsTable.length < 2) {
+    return null;
+  }
+  const teamKey = normalizeTeamLabel(teamName);
+  for (const row of standingsTable.slice(1)) {
+    if (normalizeTeamLabel(row[0]) === teamKey) {
+      return row;
+    }
+  }
+  return null;
 }
 
 function updateTeamSchedule(teamName, scheduleRows, boxScoreData, season) {

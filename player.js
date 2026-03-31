@@ -1,5 +1,6 @@
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
+const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
 const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
@@ -28,6 +29,9 @@ let playerColumns = {
 const ARCHIVE_RANGES = {
   player_stats: "A45:F117",
 };
+const C2S2_REGULAR_RANGES = {
+  player_stats: "A151:G1150",
+};
 
 function getPlayerSeason() {
   const playerSeason = localStorage.getItem(PLAYER_SEASON_KEY);
@@ -35,6 +39,9 @@ function getPlayerSeason() {
     return playerSeason;
   }
   const season = localStorage.getItem(SEASON_KEY);
+  if (season === "c2s2-regular") {
+    return "c2s2-regular";
+  }
   if (season === "c2s1-post") {
     return "c2s1-playoffs";
   }
@@ -82,7 +89,7 @@ function applyLeaderboardParams() {
         ? "c2s1-post"
         : season === "c2s1-regular"
         ? "c2s1-regular"
-        : "c2s2"
+        : "c2s2-regular"
     );
   }
 }
@@ -101,7 +108,7 @@ function initPlayerSeasonSelect() {
         ? "c2s1-post"
         : current === "c2s1-regular"
         ? "c2s1-regular"
-        : "c2s2";
+        : "c2s2-regular";
   }
 
   if (!localStorage.getItem(PLAYER_SEASON_KEY)) {
@@ -114,7 +121,7 @@ function initPlayerSeasonSelect() {
         ? "c2s1-post"
         : current === "c2s1-regular"
         ? "c2s1-regular"
-        : "c2s2"
+        : "c2s2-regular"
     );
   }
 
@@ -126,7 +133,7 @@ function initPlayerSeasonSelect() {
         ? "c2s1-post"
         : value === "c2s1-regular"
         ? "c2s1-regular"
-        : "c2s2"
+        : "c2s2-regular"
     );
     location.reload();
   };
@@ -620,11 +627,19 @@ async function loadPlayerStats() {
     await loadPlayerOverrides();
     const season = getPlayerSeason();
     if (season === "c2s2-regular") {
-      const response = await fetch(PLAYER_STATS_URL, { cache: "no-store" });
+      const sourceUrl =
+        localStorage.getItem(SEASON_KEY) === "c2s2-playoffs"
+          ? PLAYER_STATS_URL
+          : C2S2_REGULAR_URL;
+      const response = await fetch(sourceUrl, { cache: "no-store" });
       if (!response.ok) {
         throw new Error(`Fetch failed: ${response.status}`);
       }
-      const rows = parseCSV(await response.text());
+      const rawRows = parseCSV(await response.text());
+      const rows =
+        sourceUrl === C2S2_REGULAR_URL
+          ? sliceRange(rawRows, C2S2_REGULAR_RANGES.player_stats)
+          : rawRows;
       if (!rows.length) {
         throw new Error("No data found.");
       }
