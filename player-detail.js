@@ -683,8 +683,8 @@ function getSeason() {
   if (season === "c2s2-playoffs" || season === "c2s2-regular" || season === "c2s2") {
     return "c2s2-regular";
   }
-
-  return normalizeSeason(playerSeason);
+  // Default to C2S2 when there is no explicit season context.
+  return "c2s2-regular";
 }
 
 function initSeasonSelect() {
