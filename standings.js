@@ -1031,35 +1031,26 @@ async function loadStandings() {
         throw new Error(`Fetch failed: ${response.status}`);
       }
       const rows = parseCSV(await response.text());
-      if (season === "c2s1-regular") {
-        const standingsTable = sliceRange(rows, ARCHIVE_RANGES.standings);
-        const scheduleTable = sliceRange(rows, "G31:I79");
-        standingsHeaders = standingsTable[0] || [];
-        standingsRows = standingsTable.slice(1);
-        advancedByTeam = new Map();
-        transactionsByTeam = new Map();
-        sosByTeam = computeSosMap(
-          standingsHeaders,
-          standingsRows,
-          scheduleTable,
-          1,
-          2
-        );
-        playoffStatusByTeam = computePlayoffStatusMap(
-          standingsHeaders,
-          standingsRows,
-          scheduleTable,
-          6
-        );
-        renderStandings();
-      } else {
-        const sliced = sliceRange(rows, ARCHIVE_RANGES.bracket);
-        sosByTeam = new Map();
-        playoffStatusByTeam = new Map();
-        advancedByTeam = new Map();
-        transactionsByTeam = new Map();
-        renderTable(sliced);
-      }
+      const standingsTable = sliceRange(rows, ARCHIVE_RANGES.standings);
+      const scheduleTable = sliceRange(rows, "G31:I79");
+      standingsHeaders = standingsTable[0] || [];
+      standingsRows = standingsTable.slice(1);
+      advancedByTeam = new Map();
+      transactionsByTeam = new Map();
+      sosByTeam = computeSosMap(
+        standingsHeaders,
+        standingsRows,
+        scheduleTable,
+        1,
+        2
+      );
+      playoffStatusByTeam = computePlayoffStatusMap(
+        standingsHeaders,
+        standingsRows,
+        scheduleTable,
+        6
+      );
+      renderStandings();
     }
     updateLastUpdated();
   } catch (error) {
