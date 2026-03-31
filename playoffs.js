@@ -11,67 +11,13 @@ const PLAYOFF_GAME_SLOTS = [
   { cols: ["E", "F"], rows: [5, 10] },
 ];
 
-const EAST_BRACKET = [
-  { seed: 1, player: "@jordancarter" },
-  { seed: 16, player: "W P7" },
-  { seed: 2, player: "@dri" },
-  { seed: 15, player: "W P5" },
-  { seed: 3, player: "@logangeo" },
-  { seed: 14, player: "W P3" },
-  { seed: 4, player: "@fendforquis" },
-  { seed: 13, player: "W P1" },
-  { seed: 5, player: "@tinosthe2nd" },
-  { seed: 12, player: "@chromepac" },
-  { seed: 6, player: "@sports" },
-  { seed: 11, player: "@arachnid" },
-  { seed: 7, player: "@jamesthebot888" },
-  { seed: 10, player: "@bello" },
-  { seed: 8, player: "@fplostpro" },
-  { seed: 9, player: "@alec" },
-];
-
-const WEST_BRACKET = [
-  { seed: 1, player: "@_jake" },
-  { seed: 16, player: "W P6" },
-  { seed: 2, player: "@phx" },
-  { seed: 15, player: "W P4" },
-  { seed: 3, player: "@yanghansenlover" },
-  { seed: 14, player: "W P2" },
-  { seed: 4, player: "@corbin" },
-  { seed: 13, player: "@paolobancheromvpszn" },
-  { seed: 5, player: "@azure" },
-  { seed: 12, player: "@robertjr" },
-  { seed: 6, player: "@keegan" },
-  { seed: 11, player: "@thebigd0g" },
-  { seed: 7, player: "@noahrawji" },
-  { seed: 10, player: "@maliknabers.1" },
-  { seed: 8, player: "@avamax" },
-  { seed: 9, player: "@ok124" },
-];
-
-const PLAY_INS = {
-  P1: ["@power", "@aliyu_"],
-  P2: ["@duren", "@tuff0"],
-  P3: ["@mensahszn", "@andrej"],
-  P4: ["@josh_hart", "@cjstroud777"],
-  P5: ["@morant", "@patsontop7"],
-  P6: ["@rzk", "@jakemccarthy31"],
-  P7: ["@jakobe.walter", "@mmf"],
-};
-
-const BRACKET_PAIRS = [
-  [1, 16],
-  [8, 9],
-  [5, 12],
-  [4, 13],
-  [6, 11],
-  [3, 14],
-  [7, 10],
-  [2, 15],
-];
-
-const R2_ROWS = [2, 6, 10, 14];
-const S16_ROWS = [4, 12];
+const PLAYOFF_CONFIG = window.PLAYOFF_CONFIG || {};
+const EAST_BRACKET = PLAYOFF_CONFIG.EAST_BRACKET || [];
+const WEST_BRACKET = PLAYOFF_CONFIG.WEST_BRACKET || [];
+const PLAY_INS = PLAYOFF_CONFIG.PLAY_INS || {};
+const BRACKET_PAIRS = PLAYOFF_CONFIG.BRACKET_PAIRS || [];
+const R2_ROWS = PLAYOFF_CONFIG.R2_ROWS || [];
+const S16_ROWS = PLAYOFF_CONFIG.S16_ROWS || [];
 
 let liveState = {
   scoreMap: new Map(),
