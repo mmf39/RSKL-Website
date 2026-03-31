@@ -34,11 +34,10 @@ const C2S2_REGULAR_RANGES = {
 };
 
 function getPlayerSeason() {
-  const playerSeason = localStorage.getItem(PLAYER_SEASON_KEY);
-  if (playerSeason) {
-    return playerSeason;
-  }
   const season = localStorage.getItem(SEASON_KEY);
+  if (season === "c2s2-playoffs" || season === "c2s2-regular" || season === "c2s2") {
+    return "c2s2-regular";
+  }
   if (season === "c2s2-regular") {
     return "c2s2-regular";
   }
@@ -47,6 +46,10 @@ function getPlayerSeason() {
   }
   if (season === "c2s1-regular") {
     return "c2s1-regular";
+  }
+  const playerSeason = localStorage.getItem(PLAYER_SEASON_KEY);
+  if (playerSeason) {
+    return playerSeason;
   }
   return "c2s2-regular";
 }
@@ -549,6 +552,7 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
       ? "gp"
       : "avg";
   const visible = query ? sorted : sorted.slice(0, 25);
+  const selectedSeason = getPlayerSeason();
 
   const teamLogo = (team) => {
     if (team === "The Future") {
@@ -591,7 +595,7 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
           (item, index) => `
             <div class="player-leader-row">
               <div class="leader-rank">#${index + 1}</div>
-              <a class="leader-name" href="player-detail.html?player=${encodeURIComponent(item.tag)}">${escapeHtml(item.displayName)}</a>
+              <a class="leader-name" href="player-detail.html?player=${encodeURIComponent(item.tag)}&season=${encodeURIComponent(selectedSeason)}">${escapeHtml(item.displayName)}</a>
               <div class="leader-team">
                 ${teamLogo(item.team)}
                 <a class="leader-team-link" href="team.html?team=${encodeURIComponent(

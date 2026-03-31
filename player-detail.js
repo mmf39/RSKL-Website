@@ -635,6 +635,9 @@ function getPlayerName() {
 }
 
 function normalizeSeason(value) {
+  if (value === "c2s2-playoffs") {
+    return "c2s2-regular";
+  }
   if (
     value === "career" ||
     value === "c2s1-playoffs" ||
@@ -649,7 +652,38 @@ function normalizeSeason(value) {
 }
 
 function getSeason() {
+  const params = new URLSearchParams(window.location.search);
+  const rawFromQuery = params.get("season");
+  if (rawFromQuery) {
+    const normalized = normalizeSeason(rawFromQuery);
+    localStorage.setItem(PLAYER_SEASON_KEY, normalized);
+    localStorage.setItem(
+      SEASON_KEY,
+      normalized === "c2s1-playoffs"
+        ? "c2s1-post"
+        : normalized === "c2s1-regular"
+        ? "c2s1-regular"
+        : "c2s2-regular"
+    );
+    return normalized;
+  }
+
   const playerSeason = localStorage.getItem(PLAYER_SEASON_KEY);
+  if (playerSeason === "career") {
+    return "career";
+  }
+
+  const season = localStorage.getItem(SEASON_KEY);
+  if (season === "c2s1-post") {
+    return "c2s1-playoffs";
+  }
+  if (season === "c2s1-regular") {
+    return "c2s1-regular";
+  }
+  if (season === "c2s2-playoffs" || season === "c2s2-regular" || season === "c2s2") {
+    return "c2s2-regular";
+  }
+
   return normalizeSeason(playerSeason);
 }
 
