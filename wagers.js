@@ -85,7 +85,36 @@ function parseCSV(text) {
   return rows;
 }
 
-function parseLockTimeLocal(value) {
+function getTimeZoneOffsetMs(date, timeZone) {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const parts = dtf
+    .formatToParts(date)
+    .reduce((acc, part) => {
+      if (part.type !== "literal") acc[part.type] = part.value;
+      return acc;
+    }, {});
+  const asUtc = Date.UTC(
+    Number(parts.year || 0),
+    Number(parts.month || 1) - 1,
+    Number(parts.day || 1),
+    Number(parts.hour || 0),
+    Number(parts.minute || 0),
+    Number(parts.second || 0),
+    0
+  );
+  return asUtc - date.getTime();
+}
+
+function parseLockTimeEastern(value) {
   const text = String(value || "").trim();
   if (!text) return null;
   const isoWithZone = Date.parse(text);
@@ -102,9 +131,26 @@ function parseLockTimeLocal(value) {
     const hour = Number(m[4] || 0);
     const minute = Number(m[5] || 0);
     const second = Number(m[6] || 0);
-    return new Date(year, month, day, hour, minute, second, 0).getTime();
+    const baseUtc = Date.UTC(year, month, day, hour, minute, second, 0);
+    let guess = baseUtc;
+    for (let i = 0; i < 2; i += 1) {
+      const offset = getTimeZoneOffsetMs(new Date(guess), "America/New_York");
+      guess = baseUtc - offset;
+    }
+    return guess;
   }
   return Number.isFinite(isoWithZone) ? isoWithZone : null;
+}
+
+function formatEasternLock(ms) {
+  if (!Number.isFinite(ms)) return "";
+  return `${new Date(ms).toLocaleString(undefined, {
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/New_York",
+  })} ET`;
 }
 
 function colToIndex(letter) {
@@ -314,7 +360,7 @@ function parseScheduleGames(rows) {
       const team1SpreadOdds = String(row[9] || "").trim();
       const team2SpreadOdds = String(row[10] || "").trim();
       const lockTimeRaw = String(row[11] || "").trim();
-      const lockMs = parseLockTimeLocal(lockTimeRaw);
+      const lockMs = parseLockTimeEastern(lockTimeRaw);
       if (!dateToken || !team1 || !team2) return null;
       return {
         dateToken,
@@ -620,7 +666,7 @@ function renderGames() {
       return `
       <div class="wager-card">
         <div class="wager-title">${escapeHtml(game.dateToken)} • ${escapeHtml(game.team1)} vs ${escapeHtml(game.team2)}</div>
-        <div class="wager-sub">${escapeHtml(game.gameType || "Regular Season")} • ${status.toUpperCase()}${game.lockTimeRaw ? ` • Locks ${escapeHtml(game.lockTimeRaw)}` : ""}</div>
+        <div class="wager-sub">${escapeHtml(game.gameType || "Regular Season")} • ${status.toUpperCase()}${Number.isFinite(game.lockTimeMs) ? ` • Locks ${escapeHtml(formatEasternLock(game.lockTimeMs))}` : ""}</div>
         <div class="wager-actions">
           <input id="stake-${idx}" class="input wager-stake" type="number" min="1" step="1" placeholder="Stake" ${locked ? "disabled" : ""} />
           <div class="wager-markets">

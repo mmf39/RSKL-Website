@@ -35,10 +35,10 @@ const C2S2_REGULAR_RANGES = {
 
 function getPlayerSeason() {
   const season = localStorage.getItem(SEASON_KEY);
-  if (season === "c2s2-playoffs" || season === "c2s2-regular" || season === "c2s2") {
-    return "c2s2-regular";
+  if (season === "c2s2-playoffs") {
+    return "c2s2-playoffs";
   }
-  if (season === "c2s2-regular") {
+  if (season === "c2s2-regular" || season === "c2s2") {
     return "c2s2-regular";
   }
   if (season === "c2s1-post") {
@@ -74,6 +74,7 @@ function applyLeaderboardParams() {
     "gp",
   ]);
   const allowedSeasons = new Set([
+    "c2s2-playoffs",
     "c2s2-regular",
     "c2s1-playoffs",
     "c2s1-regular",
@@ -88,7 +89,9 @@ function applyLeaderboardParams() {
     localStorage.setItem(PLAYER_SEASON_KEY, season);
     localStorage.setItem(
       SEASON_KEY,
-      season === "c2s1-playoffs"
+      season === "c2s2-playoffs"
+        ? "c2s2-playoffs"
+        : season === "c2s1-playoffs"
         ? "c2s1-post"
         : season === "c2s1-regular"
         ? "c2s1-regular"
@@ -107,7 +110,9 @@ function initPlayerSeasonSelect() {
   }
   if (navSelect) {
     navSelect.value =
-      current === "c2s1-playoffs"
+      current === "c2s2-playoffs"
+        ? "c2s2-playoffs"
+        : current === "c2s1-playoffs"
         ? "c2s1-post"
         : current === "c2s1-regular"
         ? "c2s1-regular"
@@ -120,7 +125,9 @@ function initPlayerSeasonSelect() {
   if (!localStorage.getItem(SEASON_KEY)) {
     localStorage.setItem(
       SEASON_KEY,
-      current === "c2s1-playoffs"
+      current === "c2s2-playoffs"
+        ? "c2s2-playoffs"
+        : current === "c2s1-playoffs"
         ? "c2s1-post"
         : current === "c2s1-regular"
         ? "c2s1-regular"
@@ -132,7 +139,9 @@ function initPlayerSeasonSelect() {
     localStorage.setItem(PLAYER_SEASON_KEY, value);
     localStorage.setItem(
       SEASON_KEY,
-      value === "c2s1-playoffs"
+      value === "c2s2-playoffs"
+        ? "c2s2-playoffs"
+        : value === "c2s1-playoffs"
         ? "c2s1-post"
         : value === "c2s1-regular"
         ? "c2s1-regular"
@@ -147,6 +156,9 @@ function initPlayerSeasonSelect() {
   if (navSelect) {
     navSelect.addEventListener("change", () => {
       const mapped =
+        navSelect.value === "c2s2-playoffs"
+          ? "c2s2-playoffs"
+          : 
         navSelect.value === "c2s1-post"
           ? "c2s1-playoffs"
           : navSelect.value === "c2s1-regular"
@@ -630,20 +642,25 @@ async function loadPlayerStats() {
   try {
     await loadPlayerOverrides();
     const season = getPlayerSeason();
-    if (season === "c2s2-regular") {
-      const sourceUrl =
-        localStorage.getItem(SEASON_KEY) === "c2s2-playoffs"
-          ? PLAYER_STATS_URL
-          : C2S2_REGULAR_URL;
-      const response = await fetch(sourceUrl, { cache: "no-store" });
+    if (season === "c2s2-playoffs") {
+      const response = await fetch(PLAYER_STATS_URL, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Fetch failed: ${response.status}`);
+      }
+      const rows = parseCSV(await response.text());
+      if (!rows.length) {
+        throw new Error("No data found.");
+      }
+      const header = rows[0] || [];
+      playerColumns = detectPlayerColumns(header);
+      playerRows = rows.slice(1);
+    } else if (season === "c2s2-regular") {
+      const response = await fetch(C2S2_REGULAR_URL, { cache: "no-store" });
       if (!response.ok) {
         throw new Error(`Fetch failed: ${response.status}`);
       }
       const rawRows = parseCSV(await response.text());
-      const rows =
-        sourceUrl === C2S2_REGULAR_URL
-          ? sliceRange(rawRows, C2S2_REGULAR_RANGES.player_stats)
-          : rawRows;
+      const rows = sliceRange(rawRows, C2S2_REGULAR_RANGES.player_stats);
       if (!rows.length) {
         throw new Error("No data found.");
       }

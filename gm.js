@@ -1127,15 +1127,75 @@ function renderLineupTeam(team) {
   setLineupStatus("");
 }
 
+function getTimeZoneOffsetMs(date, timeZone) {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const parts = dtf
+    .formatToParts(date)
+    .reduce((acc, part) => {
+      if (part.type !== "literal") acc[part.type] = part.value;
+      return acc;
+    }, {});
+  const asUtc = Date.UTC(
+    Number(parts.year || 0),
+    Number(parts.month || 1) - 1,
+    Number(parts.day || 1),
+    Number(parts.hour || 0),
+    Number(parts.minute || 0),
+    Number(parts.second || 0),
+    0
+  );
+  return asUtc - date.getTime();
+}
+
+function parseEasternDateTimeMs(value) {
+  const text = String(value || "").trim();
+  if (!text) return null;
+  const zoned = Date.parse(text);
+  if (/z$|[+-]\d{2}:\d{2}$/i.test(text) && Number.isFinite(zoned)) {
+    return zoned;
+  }
+  const m = text.match(
+    /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2})(?::(\d{1,2}))?(?::(\d{1,2}))?)?$/
+  );
+  if (!m) return Number.isFinite(zoned) ? zoned : null;
+  const year = Number(m[1]);
+  const month = Number(m[2]) - 1;
+  const day = Number(m[3]);
+  const hour = Number(m[4] || 0);
+  const minute = Number(m[5] || 0);
+  const second = Number(m[6] || 0);
+  const baseUtc = Date.UTC(year, month, day, hour, minute, second, 0);
+  let guess = baseUtc;
+  for (let i = 0; i < 2; i += 1) {
+    const offset = getTimeZoneOffsetMs(new Date(guess), "America/New_York");
+    guess = baseUtc - offset;
+  }
+  return guess;
+}
+
 function getLockDateTimeForDay(dateText) {
   const custom = String(localGameLocksByDate?.[dateText] || "").trim();
   if (custom) {
-    const customDt = new Date(custom);
-    if (!Number.isNaN(customDt.getTime())) return customDt;
+    const customMs = parseEasternDateTimeMs(custom);
+    if (Number.isFinite(customMs)) return new Date(customMs);
   }
   const day = parseScheduleDateValue(dateText);
   if (!day) return null;
-  day.setHours(18, 55, 0, 0); // default lock: 6:55 PM local
+  const y = day.getFullYear();
+  const mo = day.getMonth() + 1;
+  const d = day.getDate();
+  const defaultLockText = `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}T18:55:00`;
+  const defaultMs = parseEasternDateTimeMs(defaultLockText);
+  if (Number.isFinite(defaultMs)) return new Date(defaultMs);
   return day;
 }
 
@@ -1156,7 +1216,30 @@ function formatDeadlineText(dateText) {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  })}`;
+    timeZone: "America/New_York",
+  })} ET`;
+}
+
+function toEasternInputValue(dateLike) {
+  const dt =
+    dateLike instanceof Date
+      ? dateLike
+      : new Date(
+          Number.isFinite(parseEasternDateTimeMs(dateLike))
+            ? parseEasternDateTimeMs(dateLike)
+            : dateLike
+        );
+  if (Number.isNaN(dt.getTime())) return "";
+  const fmt = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return fmt.format(dt).replace(" ", "T");
 }
 
 function getTeamUpcomingMatchups(team) {
@@ -1323,8 +1406,8 @@ function renderCommishLockGames() {
           <div class="gm-readonly-title">Game Day ${idx + 1}: ${escapeHtml(day.dateText)} • ${day.gameCount} game${day.gameCount === 1 ? "" : "s"}</div>
           <div>${escapeHtml(preview + extra)}</div>
           <div class="gm-readonly-group">
-            <div class="label">Lock Date/Time (local)</div>
-            <input class="text-input" type="datetime-local" data-lock-index="${idx}" value="${escapeHtml(day.lockAt || "")}" />
+            <div class="label">Lock Date/Time (ET)</div>
+            <input class="text-input" type="datetime-local" data-lock-index="${idx}" value="${escapeHtml(toEasternInputValue(day.lockAt || ""))}" />
           </div>
         </div>
       `
