@@ -96,8 +96,8 @@ const DRAFT_CAPITAL_COLUMNS = {
 const TEAM_STANDINGS_METRIC_KEY = "team_standings_metric";
 
 function getSeason() {
-  const raw = localStorage.getItem(SEASON_KEY) || "c2s2-playoffs";
-  if (raw === "c2s2") return "c2s2-playoffs";
+  const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
+  if (raw === "c2s2" || raw === "c2s2-playoffs") return "c2s3-regular";
   if (raw === "c2s1-playoffs") return "c2s1-post";
   return raw;
 }
@@ -1545,7 +1545,7 @@ async function loadRoster() {
 
   try {
     const season = getSeason();
-    if (season === "c2s2-playoffs") {
+    if (season === "c2s3-regular" || season === "c2s2-playoffs") {
       const [rosterRes, standingsRes, scheduleRes, boxscoreRes, playerStatsRes, liveRes] = await Promise.all([
         fetch(ROSTER_CSV_URL, { cache: "no-store" }),
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),

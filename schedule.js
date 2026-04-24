@@ -42,14 +42,14 @@ const C2S2_REGULAR_RANGES = {
 };
 
 function getSeasonRaw() {
-  const raw = localStorage.getItem(SEASON_KEY) || "c2s2-playoffs";
-  if (raw === "c2s2") return "c2s2-playoffs";
+  const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
+  if (raw === "c2s2" || raw === "c2s2-playoffs") return "c2s3-regular";
   return raw;
 }
 
 function getSeason() {
   const raw = getSeasonRaw();
-  if (raw === "c2s2-playoffs" || raw === "c2s2-regular") return "c2s2";
+  if (raw === "c2s3-regular" || raw === "c2s2-playoffs" || raw === "c2s2-regular") return "c2s2";
   return raw;
 }
 
@@ -58,7 +58,7 @@ function initSeasonSelect() {
   if (!select) return;
   select.value = getSeasonRaw();
   if (!select.value) {
-    select.value = "c2s2-playoffs";
+    select.value = "c2s3-regular";
   }
   localStorage.setItem(SEASON_KEY, select.value);
   select.addEventListener("change", () => {
@@ -987,7 +987,7 @@ async function loadSchedule() {
     const season = getSeason();
     let rows = [];
 
-    if (seasonRaw === "c2s2-playoffs") {
+    if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s2-playoffs") {
       const [scheduleRes, boxRes, liveRes, playerStatsRes] = await Promise.all([
         fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
         fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),

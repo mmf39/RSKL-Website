@@ -42,14 +42,14 @@ const C2S2_REGULAR_RANGES = {
 };
 
 function getSeasonRaw() {
-  const raw = localStorage.getItem(SEASON_KEY) || "c2s2-playoffs";
-  if (raw === "c2s2") return "c2s2-playoffs";
+  const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
+  if (raw === "c2s2" || raw === "c2s2-playoffs") return "c2s3-regular";
   return raw;
 }
 
 function getSeason() {
   const raw = getSeasonRaw();
-  if (raw === "c2s2-playoffs" || raw === "c2s2-regular") return "c2s2";
+  if (raw === "c2s3-regular" || raw === "c2s2-playoffs" || raw === "c2s2-regular") return "c2s2";
   if (raw === "c2s1-playoffs") return "c2s1-post";
   return raw;
 }
@@ -62,7 +62,7 @@ function initSeasonSelect() {
   const raw = getSeasonRaw();
   select.value = raw;
   if (!select.value) {
-    select.value = "c2s2-playoffs";
+    select.value = "c2s3-regular";
   }
   localStorage.setItem(SEASON_KEY, select.value);
   select.addEventListener("change", () => {
@@ -937,7 +937,7 @@ async function loadStandings() {
   try {
     const seasonRaw = getSeasonRaw();
     const season = getSeason();
-    if (seasonRaw === "c2s2-playoffs") {
+    if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s2-playoffs") {
       const [standingsRes, scheduleRes, playerStatsRes, transactionsRes] = await Promise.all([
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
         fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),

@@ -45,8 +45,8 @@
   }
 
   const normalizeSeason = (value) => {
-    if (value === "c2s2") return "c2s2-playoffs";
-    return value || "c2s2-playoffs";
+    if (value === "c2s2" || value === "c2s2-playoffs") return "c2s3-regular";
+    return value || "c2s3-regular";
   };
 
   const saved = normalizeSeason(localStorage.getItem("season"));
@@ -57,7 +57,7 @@
   seasonSelect.addEventListener("change", () => {
     localStorage.setItem("season", normalizeSeason(seasonSelect.value));
     const playerSeasonMap = {
-      "c2s2-playoffs": "c2s2-regular",
+      "c2s3-regular": "c2s3-regular",
       "c2s2-regular": "c2s2-regular",
       "c2s1-regular": "c2s1-regular",
       "c2s1-post": "c2s1-playoffs",
