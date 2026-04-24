@@ -266,7 +266,10 @@ function normalizePlayerKey(value) {
 
 function displayTeamName(value) {
   const name = String(value || "").trim();
-  return name === "Bullets" ? "Storm" : name;
+  if (name === "Bullets") return "Storm";
+  if (name === "Yetis") return "MayeDay";
+  if (name === "The Future") return "Dream Team";
+  return name;
 }
 
 function stripCaptainMarker(value) {
@@ -567,8 +570,8 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
   const selectedSeason = getPlayerSeason();
 
   const teamLogo = (team) => {
-    if (team === "The Future") {
-      return '<img class="standings-logo" src="/assets/the-future.png" alt="The Future logo" />';
+    if (team === "The Future" || team === "Dream Team") {
+      return '<img class="standings-logo" src="/assets/the-future.png" alt="Dream Team logo" />';
     }
     if (team === "The Lions") {
       return '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />';
@@ -579,8 +582,8 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
     if (team === "The Phantoms") {
       return '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';
     }
-    if (team === "Yetis") {
-      return '<img class="standings-logo" src="/assets/yetis.png" alt="Yetis logo" />';
+    if (team === "Yetis" || team === "MayeDay") {
+      return '<img class="standings-logo" src="/assets/yetis.png" alt="MayeDay logo" />';
     }
     if (team === "Gus N Em") {
       return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />';

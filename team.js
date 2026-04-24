@@ -104,7 +104,10 @@ function getSeason() {
 
 function displayTeamName(value) {
   const name = String(value || "").trim();
-  return name === "Bullets" ? "Storm" : name;
+  if (name === "Bullets") return "Storm";
+  if (name === "Yetis") return "MayeDay";
+  if (name === "The Future") return "Dream Team";
+  return name;
 }
 
 function initSeasonSelect() {
@@ -181,11 +184,11 @@ function parseMetricValue(metric, value) {
 
 function getTeamLogoSrc(team) {
   const clean = displayTeamName(team);
-  if (clean === "The Future") return "/assets/the-future.png";
+  if (clean === "The Future" || clean === "Dream Team") return "/assets/the-future.png";
   if (clean === "The Lions") return "/assets/the-lions.png";
   if (clean === "The Snipers") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
-  if (clean === "Yetis") return "/assets/yetis.png";
+  if (clean === "Yetis" || clean === "MayeDay") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
   if (clean === "Cheerios") return "/assets/cheerios.png";
   if (clean === "Illegals") return "/assets/illegals.png";
@@ -572,7 +575,11 @@ function updateLastUpdated() {
 
 function getTeamName() {
   const params = new URLSearchParams(window.location.search);
-  return params.get("team") || "";
+  const team = params.get("team") || "";
+  if (team === "Dream Team") return "The Future";
+  if (team === "MayeDay") return "Yetis";
+  if (team === "Storm") return "Bullets";
+  return team;
 }
 
 function colToIndex(letter) {
@@ -1214,11 +1221,11 @@ function linkifyPlayers(text) {
 
 function getTeamLogo(team) {
   const clean = displayTeamName(team);
-  if (clean === "The Future") return "/assets/the-future.png";
+  if (clean === "The Future" || clean === "Dream Team") return "/assets/the-future.png";
   if (clean === "The Lions") return "/assets/the-lions.png";
   if (clean === "The Snipers") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
-  if (clean === "Yetis") return "/assets/yetis.png";
+  if (clean === "Yetis" || clean === "MayeDay") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
   if (clean === "Cheerios") return "/assets/cheerios.png";
   if (clean === "Illegals") return "/assets/illegals.png";
@@ -1490,9 +1497,9 @@ async function loadRoster() {
   }
   await loadDraftCapital(teamName);
   if (els.logo) {
-    if (teamName === "The Future") {
+    if (teamName === "The Future" || teamName === "Dream Team") {
       els.logo.src = "/assets/the-future.png";
-      els.logo.alt = "The Future logo";
+      els.logo.alt = "Dream Team logo";
       els.logo.style.display = "block";
     } else if (teamName === "The Lions") {
       els.logo.src = "/assets/the-lions.png";
@@ -1506,9 +1513,9 @@ async function loadRoster() {
       els.logo.src = "/assets/the-phantoms.png";
       els.logo.alt = "The Phantoms logo";
       els.logo.style.display = "block";
-    } else if (teamName === "Yetis") {
+    } else if (teamName === "Yetis" || teamName === "MayeDay") {
       els.logo.src = "/assets/yetis.png";
-      els.logo.alt = "Yetis logo";
+      els.logo.alt = "MayeDay logo";
       els.logo.style.display = "block";
     } else if (teamName === "Gus N Em") {
       els.logo.src = "/assets/gus-n-em.png";

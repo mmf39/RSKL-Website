@@ -183,6 +183,14 @@ const ARCHIVE_RANGES = {
   player_stats: "A45:F117",
 };
 
+function displayTeamName(value) {
+  const name = String(value || "").trim();
+  if (name === "Bullets") return "Storm";
+  if (name === "Yetis") return "MayeDay";
+  if (name === "The Future") return "Dream Team";
+  return name;
+}
+
 function getTeamLogo(name) {
   const src = getTeamLogoSrc(name);
   if (!src) {
@@ -192,7 +200,7 @@ function getTeamLogo(name) {
 }
 
 function getTeamLogoSrc(name) {
-  if (name === "The Future") {
+  if (name === "The Future" || name === "Dream Team") {
     return "/assets/the-future.png";
   }
   if (name === "The Lions") {
@@ -204,7 +212,7 @@ function getTeamLogoSrc(name) {
   if (name === "The Phantoms") {
     return "/assets/the-phantoms.png";
   }
-  if (name === "Yetis") {
+  if (name === "Yetis" || name === "MayeDay") {
     return "/assets/yetis.png";
   }
   if (name === "Gus N Em") {
@@ -241,10 +249,10 @@ function getTeamColorClass(name) {
   if (clean === "gus n em") return "team-color-gus";
   if (clean === "storm" || clean === "bullets") return "team-color-storm";
   if (clean === "cheerios") return "team-color-cheerios";
-  if (clean === "yetis") return "team-color-yetis";
+  if (clean === "yetis" || clean === "mayeday") return "team-color-yetis";
   if (clean === "illegals") return "team-color-illegals";
   if (clean === "the lions") return "team-color-lions";
-  if (clean === "the future") return "team-color-future";
+  if (clean === "the future" || clean === "dream team") return "team-color-future";
   if (clean === "the snipers") return "team-color-snipers";
   if (clean === "the phantoms") return "team-color-phantoms";
   return "team-color-default";
@@ -281,7 +289,7 @@ function renderTeamsCards(standingsRecordRows) {
       return `
         <a class="team-card" href="${link}">
           ${logo}
-          <div class="team-title">${escapeHtml(name)}</div>
+          <div class="team-title">${escapeHtml(displayTeamName(name))}</div>
           <div class="team-record">
             <span>Record</span>
             <strong>${escapeHtml(record)}</strong>
@@ -327,7 +335,7 @@ function renderTeamsCardsArchive(standingsRows) {
       return `
         <a class="team-card" href="${link}">
           ${logo}
-          <div class="team-title">${escapeHtml(team.name)}</div>
+          <div class="team-title">${escapeHtml(displayTeamName(team.name))}</div>
           <div class="team-record">
             <span>Record</span>
             <strong>${escapeHtml(record)}</strong>

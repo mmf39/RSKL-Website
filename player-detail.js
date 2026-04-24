@@ -244,7 +244,10 @@ function normalizePlayerKey(value) {
 
 function displayTeamName(value) {
   const name = String(value || "").trim();
-  return name === "Bullets" ? "Storm" : name;
+  if (name === "Bullets") return "Storm";
+  if (name === "Yetis") return "MayeDay";
+  if (name === "The Future") return "Dream Team";
+  return name;
 }
 
 function stripCaptainMarker(value) {
@@ -754,16 +757,16 @@ function initSeasonSelect() {
 
 function getTeamLogoHtml(teamName) {
   const shownTeam = displayTeamName(teamName);
-  return shownTeam === "The Future"
-    ? '<img class="player-team-logo" src="/assets/the-future.png" alt="The Future logo" />'
+  return shownTeam === "The Future" || shownTeam === "Dream Team"
+    ? '<img class="player-team-logo" src="/assets/the-future.png" alt="Dream Team logo" />'
     : shownTeam === "The Lions"
     ? '<img class="player-team-logo" src="/assets/the-lions.png" alt="The Lions logo" />'
     : shownTeam === "The Snipers"
     ? '<img class="player-team-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />'
     : shownTeam === "The Phantoms"
     ? '<img class="player-team-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />'
-    : shownTeam === "Yetis"
-    ? '<img class="player-team-logo" src="/assets/yetis.png" alt="Yetis logo" />'
+    : shownTeam === "Yetis" || shownTeam === "MayeDay"
+    ? '<img class="player-team-logo" src="/assets/yetis.png" alt="MayeDay logo" />'
     : shownTeam === "Gus N Em"
     ? '<img class="player-team-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />'
     : shownTeam === "Cheerios"

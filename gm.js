@@ -206,7 +206,10 @@ function setActiveTab(tab) {
 
 function displayTeamName(value) {
   const team = String(value || "").trim();
-  return team === "Bullets" ? "Storm" : team;
+  if (team === "Bullets") return "Storm";
+  if (team === "Yetis") return "MayeDay";
+  if (team === "The Future") return "Dream Team";
+  return team;
 }
 
 function normalizeName(value) {

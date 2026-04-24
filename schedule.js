@@ -158,7 +158,10 @@ function escapeHtml(value) {
 
 function displayTeamName(value) {
   const name = String(value || "").trim();
-  return name === "Bullets" ? "Storm" : name;
+  if (name === "Bullets") return "Storm";
+  if (name === "Yetis") return "MayeDay";
+  if (name === "The Future") return "Dream Team";
+  return name;
 }
 
 function normalizeTeamName(value) {
@@ -176,11 +179,11 @@ function normalizeTeamName(value) {
 
 function getTeamLogo(team) {
   const clean = displayTeamName(team);
-  if (clean === "The Future") return "/assets/the-future.png";
+  if (clean === "The Future" || clean === "Dream Team") return "/assets/the-future.png";
   if (clean === "The Lions") return "/assets/the-lions.png";
   if (clean === "The Snipers") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
-  if (clean === "Yetis") return "/assets/yetis.png";
+  if (clean === "Yetis" || clean === "MayeDay") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
   if (clean === "Cheerios") return "/assets/cheerios.png";
   if (clean === "Illegals") return "/assets/illegals.png";
@@ -743,7 +746,7 @@ function buildLiveBoxMarkup(game, livePayload) {
     const team = parsed.name || "";
     const logo = getTeamLogo(team);
     const logoHtml = logo
-      ? `<img class="standings-logo" src="${logo}" alt="${escapeHtml(team)} logo" />`
+      ? `<img class="standings-logo" src="${logo}" alt="${escapeHtml(displayTeamName(team))} logo" />`
       : "";
     const teamLink = `/team.html?team=${encodeURIComponent(team)}`;
     const rows = (players || [])
@@ -832,10 +835,10 @@ function renderGameList() {
       const logo1 = getTeamLogo(g.team1);
       const logo2 = getTeamLogo(g.team2);
       const l1 = logo1
-        ? `<img class="standings-logo" src="${logo1}" alt="${escapeHtml(g.team1)} logo" />`
+        ? `<img class="standings-logo" src="${logo1}" alt="${escapeHtml(displayTeamName(g.team1))} logo" />`
         : "";
       const l2 = logo2
-        ? `<img class="standings-logo" src="${logo2}" alt="${escapeHtml(g.team2)} logo" />`
+        ? `<img class="standings-logo" src="${logo2}" alt="${escapeHtml(displayTeamName(g.team2))} logo" />`
         : "";
       const scoreState = getGameScoreState(g);
       const team1ScoreLine = scoreState.team1Score
@@ -869,9 +872,9 @@ function renderGameList() {
         <div class="calendar-game ${isTodayGame ? "today-game" : ""}" data-game-index="${g.idx}">
           <div class="calendar-game-date">${escapeHtml(g.dateToken)}</div>
           <div class="calendar-game-matchup">
-            <a class="schedule-team-link" href="/team.html?team=${encodeURIComponent(g.team1)}">${l1}<span class="team-name-stack"><span>${escapeHtml(g.team1)}</span>${team1ScoreLine}</span></a>
+            <a class="schedule-team-link" href="/team.html?team=${encodeURIComponent(g.team1)}">${l1}<span class="team-name-stack"><span>${escapeHtml(displayTeamName(g.team1))}</span>${team1ScoreLine}</span></a>
             <span>vs</span>
-            <a class="schedule-team-link" href="/team.html?team=${encodeURIComponent(g.team2)}">${l2}<span class="team-name-stack"><span>${escapeHtml(g.team2)}</span>${team2ScoreLine}</span></a>
+            <a class="schedule-team-link" href="/team.html?team=${encodeURIComponent(g.team2)}">${l2}<span class="team-name-stack"><span>${escapeHtml(displayTeamName(g.team2))}</span>${team2ScoreLine}</span></a>
           </div>
           <div class="calendar-game-status ${escapeHtml(scoreState.status)}">
             <strong>${escapeHtml(scoreState.label)}</strong>

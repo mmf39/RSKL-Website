@@ -132,7 +132,10 @@ function escapeHtml(value) {
 
 function displayTeamName(value) {
   const name = String(value || "").trim();
-  return name === "Bullets" ? "Storm" : name;
+  if (name === "Bullets") return "Storm";
+  if (name === "Yetis") return "MayeDay";
+  if (name === "The Future") return "Dream Team";
+  return name;
 }
 
 function colToIndex(letter) {
@@ -236,18 +239,18 @@ function renderStandings() {
     .map((row, index) => {
       const rawTeamName = row[0] || row[1] || "Team";
       const teamName = displayTeamName(rawTeamName);
-      const link = `team.html?team=${encodeURIComponent(teamName)}`;
+      const link = `team.html?team=${encodeURIComponent(rawTeamName)}`;
       const logo =
-        (rawTeamName === "The Future" || teamName === "The Future")
-          ? '<img class="standings-logo" src="/assets/the-future.png" alt="The Future logo" />'
+        (rawTeamName === "The Future" || teamName === "Dream Team")
+          ? '<img class="standings-logo" src="/assets/the-future.png" alt="Dream Team logo" />'
           : (rawTeamName === "The Lions" || teamName === "The Lions")
           ? '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />'
           : (rawTeamName === "The Snipers" || teamName === "The Snipers")
           ? '<img class="standings-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />'
           : (rawTeamName === "The Phantoms" || teamName === "The Phantoms")
           ? '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />'
-          : (rawTeamName === "Yetis" || teamName === "Yetis")
-          ? '<img class="standings-logo" src="/assets/yetis.png" alt="Yetis logo" />'
+          : (rawTeamName === "Yetis" || teamName === "MayeDay")
+          ? '<img class="standings-logo" src="/assets/yetis.png" alt="MayeDay logo" />'
           : (rawTeamName === "Gus N Em" || teamName === "Gus N Em")
           ? '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />'
           : (rawTeamName === "Cheerios" || teamName === "Cheerios")

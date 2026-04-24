@@ -130,7 +130,10 @@ function normalizeTeamName(name) {
   const clean = String(name || "")
     .replace(/\([^)]*\)/g, "")
     .trim();
-  return clean === "Bullets" ? "Storm" : clean;
+  if (clean === "Bullets") return "Storm";
+  if (clean === "Yetis") return "MayeDay";
+  if (clean === "The Future") return "Dream Team";
+  return clean;
 }
 
 function canonicalTeamName(name) {
@@ -403,11 +406,11 @@ function normalizeSearch(value) {
 
 function getTeamLogo(team) {
   const clean = canonicalTeamName(team);
-  if (clean === "The Future") return "/assets/the-future.png";
+  if (clean === "The Future" || clean === "Dream Team") return "/assets/the-future.png";
   if (clean === "The Lions") return "/assets/the-lions.png";
   if (clean === "The Snipers") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
-  if (clean === "Yetis") return "/assets/yetis.png";
+  if (clean === "Yetis" || clean === "MayeDay") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
   if (clean === "Cheerios") return "/assets/cheerios.png";
   if (clean === "Illegals") return "/assets/illegals.png";

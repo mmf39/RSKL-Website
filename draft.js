@@ -164,7 +164,10 @@ function cleanTeamName(value) {
 
 function displayTeamName(value) {
   const name = cleanTeamName(value);
-  return name === "Bullets" ? "Storm" : name;
+  if (name === "Bullets") return "Storm";
+  if (name === "Yetis") return "MayeDay";
+  if (name === "The Future") return "Dream Team";
+  return name;
 }
 
 function normalizeTeamName(value) {
@@ -194,8 +197,8 @@ function getFirstTeamMention(value) {
 
 function getTeamLogo(team) {
   const clean = displayTeamName(team);
-  if (clean === "The Future") {
-    return '<img class="standings-logo" src="/assets/the-future.png" alt="The Future logo" />';
+  if (clean === "The Future" || clean === "Dream Team") {
+    return '<img class="standings-logo" src="/assets/the-future.png" alt="Dream Team logo" />';
   }
   if (clean === "The Lions") {
     return '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />';
@@ -206,8 +209,8 @@ function getTeamLogo(team) {
   if (clean === "The Phantoms") {
     return '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';
   }
-  if (clean === "Yetis") {
-    return '<img class="standings-logo" src="/assets/yetis.png" alt="Yetis logo" />';
+  if (clean === "Yetis" || clean === "MayeDay") {
+    return '<img class="standings-logo" src="/assets/yetis.png" alt="MayeDay logo" />';
   }
   if (clean === "Gus N Em") {
     return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />';
@@ -255,7 +258,7 @@ function linkifyTeamsAndPlayers(text) {
     Bullets: "Storm",
     Turkeys: "Turkeys",
     Cheerios: "Cheerios",
-    Yetis: "Yetis",
+    Yetis: "MayeDay",
     Illegals: "Illegals",
     "The Lions": "The Lions",
     Lions: "The Lions",
@@ -263,9 +266,9 @@ function linkifyTeamsAndPlayers(text) {
     "The Phantoms": "The Phantoms",
     Phantoms: "The Phantoms",
     ThePhantoms: "The Phantoms",
-    "The Future": "The Future",
-    Future: "The Future",
-    TheFuture: "The Future",
+    "The Future": "Dream Team",
+    Future: "Dream Team",
+    TheFuture: "Dream Team",
     "The Snipers": "The Snipers",
     Snipers: "The Snipers",
     TheSnipers: "The Snipers",
