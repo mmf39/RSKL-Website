@@ -17,6 +17,19 @@ const PLAYOFF_STATUS_OVERRIDES = {
   "the snipers": "Eliminated",
   snipers: "Eliminated",
 };
+const STANDINGS_RANGES = {
+  Turkeys: "H3:M3",
+  "Gus N Em": "H4:M4",
+  Bullets: "H5:M5",
+  Storm: "H5:M5",
+  Cheerios: "H6:M6",
+  Yetis: "H7:M7",
+  Illegals: "H8:M8",
+  "The Lions": "H9:M9",
+  "The Future": "H10:M10",
+  "The Phantoms": "H11:M11",
+  "The Snipers": "H12:M12",
+};
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -30,6 +43,7 @@ let playoffStatusByTeam = new Map();
 let requestedMetric = "wins";
 let advancedByTeam = new Map();
 let transactionsByTeam = new Map();
+let leagueStandingsMetrics = [];
 
 const ARCHIVE_RANGES = {
   standings: "A1:F7",
@@ -40,6 +54,17 @@ const C2S2_REGULAR_RANGES = {
   schedule: "A71:E170",
   player_stats: "A151:G1150",
 };
+
+const EXCLUDED_STANDINGS_NAMES = new Set([
+  "team",
+  "north",
+  "south",
+  "east",
+  "west",
+  "bracket",
+  "standings",
+  "playoffs",
+]);
 
 function getSeasonRaw() {
   const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
@@ -138,6 +163,15 @@ function displayTeamName(value) {
   return name;
 }
 
+function isStandingsTeamName(value) {
+  const shown = displayTeamName(value);
+  const key = normalizeTeamLabel(shown);
+  if (!key || EXCLUDED_STANDINGS_NAMES.has(key)) {
+    return false;
+  }
+  return true;
+}
+
 function colToIndex(letter) {
   return letter.toUpperCase().charCodeAt(0) - 65;
 }
@@ -204,22 +238,80 @@ function renderTable(rows) {
   els.leaderboard.innerHTML = table;
 }
 
-function renderStandings() {
-  const statKeys = ["gp", "wins", "loss", "gb", "win %", "win%", "pct"];
-  const statIndices = statKeys
-    .map((key) =>
-      standingsHeaders.findIndex((h) => h.toLowerCase() === key)
-    )
-    .filter((idx, i, arr) => idx !== -1 && arr.indexOf(idx) === i);
+function getTeamLogoHtml(teamName) {
+  if (teamName === "Dream Team") {
+    return '<img class="standings-logo" src="/assets/the-future.png" alt="Dream Team logo" />';
+  }
+  if (teamName === "The Lions") {
+    return '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />';
+  }
+  if (teamName === "The Snipers") {
+    return '<img class="standings-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />';
+  }
+  if (teamName === "The Phantoms") {
+    return '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';
+  }
+  if (teamName === "MayeDay") {
+    return '<img class="standings-logo" src="/assets/yetis.png" alt="MayeDay logo" />';
+  }
+  if (teamName === "Gus N Em") {
+    return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />';
+  }
+  if (teamName === "Cheerios") {
+    return '<img class="standings-logo" src="/assets/cheerios.png" alt="Cheerios logo" />';
+  }
+  if (teamName === "Illegals") {
+    return '<img class="standings-logo" src="/assets/illegals.png" alt="Illegals logo" />';
+  }
+  if (teamName === "Storm") {
+    return '<img class="standings-logo" src="/assets/storm.png" alt="Storm logo" />';
+  }
+  if (teamName === "Turkeys") {
+    return '<img class="standings-logo" src="/assets/turkeys.png" alt="Turkeys logo" />';
+  }
+  return "";
+}
 
-  if (!standingsRows.length) {
+function parseMetricValue(metric, value) {
+  if (metric === "winpct") {
+    return parsePct(value);
+  }
+  return parseNumber(value);
+}
+
+function formatMetricDisplay(metric, value) {
+  if (value === null || value === undefined || value === "") {
+    return "—";
+  }
+  if (metric === "winpct") {
+    const pct = typeof value === "number" ? value : parsePct(value);
+    return pct === null ? "—" : pct.toFixed(3);
+  }
+  if (metric === "sos" || metric === "trel") {
+    const num = typeof value === "number" ? value : parseNumber(value);
+    return num === null ? "—" : num.toFixed(3);
+  }
+  if (metric === "pam") {
+    const num = typeof value === "number" ? value : parseNumber(value);
+    return num === null ? "—" : num.toFixed(2);
+  }
+  if (metric === "gb") {
+    const num = typeof value === "number" ? value : parseNumber(value);
+    return num === null ? "—" : String(num);
+  }
+  const num = typeof value === "number" ? value : parseNumber(value);
+  return num === null ? escapeHtml(String(value)) : String(num);
+}
+
+function renderStandings() {
+  if (!leagueStandingsMetrics.length) {
     els.leaderboard.innerHTML = "<p>No standings data available.</p>";
     return;
   }
 
-  const sortedRows = [...standingsRows].sort((a, b) => {
-    const av = getMetricValue(a, standingsHeaders, requestedMetric);
-    const bv = getMetricValue(b, standingsHeaders, requestedMetric);
+  const sortedRows = [...leagueStandingsMetrics].sort((a, b) => {
+    const av = parseMetricValue(requestedMetric, a[requestedMetric]);
+    const bv = parseMetricValue(requestedMetric, b[requestedMetric]);
     if (av === null && bv === null) {
       return 0;
     }
@@ -235,98 +327,408 @@ function renderStandings() {
     return bv - av;
   });
 
+  const chips = [
+    ["GP", "gp"],
+    ["Wins", "wins"],
+    ["Loss", "loss"],
+    ["GB", "gb"],
+    ["Win %", "winpct"],
+    ["SOS", "sos"],
+    ["PAM", "pam"],
+    ["tREL", "trel"],
+    ["Transactions", "transactions"],
+  ];
+
   els.leaderboard.innerHTML = sortedRows
     .map((row, index) => {
-      const rawTeamName = row[0] || row[1] || "Team";
+      const rawTeamName = row.team || "Team";
       const teamName = displayTeamName(rawTeamName);
+      const teamKey = normalizeTeamLabel(rawTeamName);
       const link = `team.html?team=${encodeURIComponent(rawTeamName)}`;
-      const logo =
-        (rawTeamName === "The Future" || teamName === "Dream Team")
-          ? '<img class="standings-logo" src="/assets/the-future.png" alt="Dream Team logo" />'
-          : (rawTeamName === "The Lions" || teamName === "The Lions")
-          ? '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />'
-          : (rawTeamName === "The Snipers" || teamName === "The Snipers")
-          ? '<img class="standings-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />'
-          : (rawTeamName === "The Phantoms" || teamName === "The Phantoms")
-          ? '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />'
-          : (rawTeamName === "Yetis" || teamName === "MayeDay")
-          ? '<img class="standings-logo" src="/assets/yetis.png" alt="MayeDay logo" />'
-          : (rawTeamName === "Gus N Em" || teamName === "Gus N Em")
-          ? '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />'
-          : (rawTeamName === "Cheerios" || teamName === "Cheerios")
-          ? '<img class="standings-logo" src="/assets/cheerios.png" alt="Cheerios logo" />'
-          : (rawTeamName === "Illegals" || teamName === "Illegals")
-          ? '<img class="standings-logo" src="/assets/illegals.png" alt="Illegals logo" />'
-          : (rawTeamName === "Bullets" || teamName === "Storm")
-          ? '<img class="standings-logo" src="/assets/storm.png" alt="Storm logo" />'
-          : teamName === "Turkeys"
-          ? '<img class="standings-logo" src="/assets/turkeys.png" alt="Turkeys logo" />'
-          : "";
+      const logo = getTeamLogoHtml(teamName);
+      const status = playoffStatusByTeam.get(teamKey) || "In Contention";
       return `
         <a class="leader-row" href="${link}">
           <div class="leader-rank">#${index + 1}</div>
           <div>
             <div class="leader-name">${logo}${escapeHtml(teamName)}</div>
-            <div class="leader-status ${statusClassName(
-              playoffStatusByTeam.get(normalizeTeamLabel(rawTeamName)) || "In Contention"
-            )}">
-              ${escapeHtml(
-                playoffStatusByTeam.get(normalizeTeamLabel(rawTeamName)) || "In Contention"
-              )}
+            <div class="leader-status ${statusClassName(status)}">
+              ${escapeHtml(status)}
             </div>
           </div>
           <div class="leader-meta">
-            ${statIndices
+            ${chips
               .map(
-                (i) => `
-                <div class="leader-chip">
-                  ${escapeHtml(standingsHeaders[i])}
-                  <span>${escapeHtml(row[i] ?? "")}</span>
-                </div>
-              `
+                ([label, key]) => `
+                  <div class="leader-chip">
+                    ${label}
+                    <span>${formatMetricDisplay(key, row[key])}</span>
+                  </div>
+                `
               )
               .join("")}
             <div class="leader-chip">
-              SOS
-              <span>${escapeHtml(
-                sosByTeam.has(normalizeTeamLabel(rawTeamName))
-                  ? sosByTeam.get(normalizeTeamLabel(rawTeamName))
-                  : "—"
-              )}</span>
-            </div>
-            <div class="leader-chip">
-              PAM
-              <span>${escapeHtml(
-                Number.isFinite((advancedByTeam.get(normalizeTeamLabel(rawTeamName)) || {}).pam)
-                  ? (advancedByTeam.get(normalizeTeamLabel(rawTeamName)).pam).toFixed(2)
-                  : "—"
-              )}</span>
-            </div>
-            <div class="leader-chip">
-              tREL
-              <span>${escapeHtml(
-                Number.isFinite((advancedByTeam.get(normalizeTeamLabel(rawTeamName)) || {}).tRel)
-                  ? (advancedByTeam.get(normalizeTeamLabel(rawTeamName)).tRel).toFixed(3)
-                  : "—"
-              )}</span>
-            </div>
-            <div class="leader-chip">
-              Transactions
-              <span>${escapeHtml(
-                String(transactionsByTeam.get(normalizeTeamLabel(rawTeamName)) || 0)
-              )}</span>
-            </div>
-            <div class="leader-chip">
               Status
-              <span>${escapeHtml(
-                playoffStatusByTeam.get(normalizeTeamLabel(rawTeamName)) || "In Contention"
-              )}</span>
+              <span>${escapeHtml(status)}</span>
             </div>
           </div>
         </a>
       `;
     })
     .join("");
+}
+
+function stripCaptainMarker(value) {
+  return String(value || "")
+    .replace(/\s*\(c\)\s*$/i, "")
+    .replace(/\s+c\s*$/i, "")
+    .trim();
+}
+
+function buildLeagueRowsFromC2S2(standingsRows, scheduleRows, playerRows) {
+  const uniqueTeams = new Map();
+  Object.keys(STANDINGS_RANGES).forEach((team) => {
+    const shown = displayTeamName(team);
+    if (!uniqueTeams.has(shown)) {
+      uniqueTeams.set(shown, STANDINGS_RANGES[team]);
+    }
+  });
+
+  const winPctMap = buildWinPctMapFromStandingsRows(standingsRows);
+  return Array.from(uniqueTeams.entries())
+    .map(([team, range]) => {
+      const sliced = sliceRange(standingsRows, range);
+      const metricRow = sliced[0] || [];
+      if (!metricRow.length) {
+        return null;
+      }
+      const gp = parseNumber(metricRow[1]);
+      const advanced = computeAdvancedTeamStats(team, playerRows) || {};
+      return {
+        team: displayTeamName(metricRow[0] || team),
+        gp,
+        wins: parseNumber(metricRow[2]),
+        loss: parseNumber(metricRow[3]),
+        gb: parseNumber(metricRow[4]),
+        winpct: parsePct(metricRow[5]),
+        sos: computeTeamSOS(team, scheduleRows, winPctMap, "c2s2", gp),
+        pam: typeof advanced.pam === "number" ? advanced.pam : null,
+        trel: typeof advanced.tRel === "number" ? advanced.tRel : null,
+        transactions: 0,
+      };
+    })
+    .filter((row) => row && isStandingsTeamName(row.team));
+}
+
+function buildLeagueRowsFromArchive(standingsTable, scheduleTable, season) {
+  if (!standingsTable.length) {
+    return [];
+  }
+  const headers = (standingsTable[0] || []).map((h) => String(h || "").trim().toLowerCase());
+  const teamIdx = headers.findIndex((h) => h === "team");
+  const gpIdx = headers.findIndex((h) => h === "gp");
+  const winsIdx = headers.findIndex((h) => h === "wins");
+  const lossIdx = headers.findIndex((h) => h === "loss" || h === "losses");
+  const gbIdx = headers.findIndex((h) => h === "gb");
+  const pctIdx = headers.findIndex((h) => h === "win %" || h === "win%" || h === "pct");
+  const winPctMap = buildWinPctMapFromStandingsTable(standingsTable);
+
+  return standingsTable
+    .slice(1)
+    .map((row) => {
+      const team = displayTeamName(row[teamIdx] || "");
+      if (!team) {
+        return null;
+      }
+      return {
+        team,
+        gp: parseNumber(row[gpIdx]),
+        wins: parseNumber(row[winsIdx]),
+        loss: parseNumber(row[lossIdx]),
+        gb: parseNumber(row[gbIdx]),
+        winpct: parsePct(row[pctIdx]),
+        sos: computeTeamSOS(team, scheduleTable, winPctMap, season),
+        pam: null,
+        trel: null,
+        transactions: 0,
+      };
+    })
+    .filter((row) => row && isStandingsTeamName(row.team));
+}
+
+function applyTransactionCountsToLeagueRows(rows, counts) {
+  rows.forEach((row) => {
+    row.transactions = counts.get(normalizeTeamLabel(row.team)) || 0;
+  });
+}
+
+function buildWinPctMapFromStandingsRows(standingsRows) {
+  const map = new Map();
+  Object.keys(STANDINGS_RANGES).forEach((team) => {
+    const sliced = sliceRange(standingsRows, STANDINGS_RANGES[team]);
+    if (!sliced.length) {
+      return;
+    }
+    const values = sliced[0] || [];
+    const rowTeam = String(values[0] || team).trim();
+    const pct = parsePct(values[5]);
+    if (rowTeam && pct !== null) {
+      map.set(rowTeam, pct);
+    }
+  });
+  return map;
+}
+
+function buildWinPctMapFromStandingsTable(tableRows) {
+  const map = new Map();
+  if (!tableRows || !tableRows.length) {
+    return map;
+  }
+  const headers = (tableRows[0] || []).map((h) => String(h || "").toLowerCase());
+  const teamIdx = headers.findIndex((h) => h === "team");
+  const pctIdx = headers.findIndex((h) => h === "win %" || h === "win%" || h === "pct");
+  if (teamIdx === -1 || pctIdx === -1) {
+    return map;
+  }
+  tableRows.slice(1).forEach((row) => {
+    const team = String(row[teamIdx] || "").trim();
+    const pct = parsePct(row[pctIdx]);
+    if (!team || pct === null) {
+      return;
+    }
+    map.set(team, pct);
+  });
+  return map;
+}
+
+function getScheduleIndexes(headers, season) {
+  const lower = headers.map((h) => String(h || "").trim().toLowerCase());
+  const findIdx = (checks) => lower.findIndex((h) => checks.some((check) => h.includes(check)));
+
+  let date = findIdx(["date"]);
+  let team1 = findIdx(["team 1", "team1", "away"]);
+  let team2 = findIdx(["team 2", "team2", "home"]);
+
+  if (date === -1 || team1 === -1 || team2 === -1) {
+    if (season === "c2s2") {
+      if (date === -1) date = 0;
+      if (team1 === -1) team1 = 1;
+      if (team2 === -1) team2 = 2;
+    } else if (headers.length <= 3) {
+      if (date === -1) date = 0;
+      if (team1 === -1) team1 = 1;
+      if (team2 === -1) team2 = 2;
+    } else {
+      if (date === -1) date = 1;
+      if (team1 === -1) team1 = 2;
+      if (team2 === -1) team2 = 3;
+    }
+  }
+
+  return { date, team1, team2 };
+}
+
+function computeTeamSOS(teamName, scheduleRows, winPctMap, season, gpLimit = null) {
+  if (!teamName || !scheduleRows.length || !winPctMap.size) {
+    return null;
+  }
+  const headers = scheduleRows[0] || [];
+  const idx = getScheduleIndexes(headers, season);
+  const gameTypeIdx = headers.findIndex((h) => String(h || "").toLowerCase().includes("type"));
+  const winPctByNormalizedTeam = new Map();
+  winPctMap.forEach((pct, team) => {
+    winPctByNormalizedTeam.set(normalizeTeamLabel(team), pct);
+  });
+  const dataRows = scheduleRows
+    .slice(1)
+    .map((row, order) => ({ row, order }))
+    .filter(({ row }) => {
+      if (gameTypeIdx >= 0) {
+        const gameType = String(row[gameTypeIdx] || "").toLowerCase();
+        if (gameType.includes("pre")) {
+          return false;
+        }
+      }
+      const team1 = String(row[idx.team1] || "").trim();
+      const team2 = String(row[idx.team2] || "").trim();
+      return teamMatches(team1, teamName) || teamMatches(team2, teamName);
+    })
+    .sort((a, b) => {
+      const aDate = parseDateValue(a.row[idx.date]);
+      const bDate = parseDateValue(b.row[idx.date]);
+      if (aDate === bDate) {
+        return a.order - b.order;
+      }
+      return aDate - bDate;
+    });
+
+  const limitedRows = Number.isFinite(gpLimit) && gpLimit >= 0 ? dataRows.slice(0, gpLimit) : dataRows;
+
+  let sum = 0;
+  let games = 0;
+  limitedRows.forEach(({ row }) => {
+    const team1 = String(row[idx.team1] || "").trim();
+    const team2 = String(row[idx.team2] || "").trim();
+    if (!team1 || !team2) {
+      return;
+    }
+    const opponent = teamMatches(team1, teamName) ? team2 : teamMatches(team2, teamName) ? team1 : "";
+    if (!opponent) {
+      return;
+    }
+    const oppPct = winPctByNormalizedTeam.get(normalizeTeamLabel(opponent));
+    if (oppPct === null || oppPct === undefined) {
+      return;
+    }
+    sum += oppPct;
+    games += 1;
+  });
+  return games ? sum / games : null;
+}
+
+function computeAdvancedTeamStats(teamName, allRows) {
+  if (!teamName || !allRows.length) {
+    return null;
+  }
+  const columns = detectPlayerColumns(allRows[0] || []);
+  const dataRows = allRows.slice(1);
+
+  const leagueTeamTotalsByDate = new Map();
+  const leagueScoresByDate = new Map();
+  dataRows.forEach((row) => {
+    const date = String(row[columns.date] || "").trim();
+    const rowTeam = String(row[columns.team] || "").trim();
+    const score = parseAdjustedScore(row, columns);
+    if (!date || score === null || !rowTeam) {
+      return;
+    }
+    if (!leagueTeamTotalsByDate.has(date)) {
+      leagueTeamTotalsByDate.set(date, new Map());
+    }
+    const teamTotals = leagueTeamTotalsByDate.get(date);
+    const teamKey = normalizeTeamLabel(rowTeam);
+    teamTotals.set(teamKey, (teamTotals.get(teamKey) || 0) + score);
+
+    if (!leagueScoresByDate.has(date)) {
+      leagueScoresByDate.set(date, []);
+    }
+    leagueScoresByDate.get(date).push(score);
+  });
+
+  const medianByDate = new Map();
+  leagueScoresByDate.forEach((scores, date) => {
+    const med = median(scores);
+    if (med !== null) {
+      medianByDate.set(date, med);
+    }
+  });
+  const teamMedianByDate = new Map();
+  leagueTeamTotalsByDate.forEach((teamTotals, date) => {
+    const totals = Array.from(teamTotals.values()).filter((v) => Number.isFinite(v));
+    const med = median(totals);
+    if (med !== null) {
+      teamMedianByDate.set(date, med);
+    }
+  });
+
+  const teamTotalsByDate = new Map();
+  const playerAgg = new Map();
+  dataRows.forEach((row) => {
+    const rowTeam = String(row[columns.team] || "").trim();
+    if (!teamMatches(rowTeam, teamName)) {
+      return;
+    }
+    const date = String(row[columns.date] || "").trim();
+    const score = parseAdjustedScore(row, columns);
+    const med = medianByDate.get(date);
+    if (!date || score === null || !med || med <= 0) {
+      return;
+    }
+
+    teamTotalsByDate.set(date, (teamTotalsByDate.get(date) || 0) + score);
+
+    const player = stripCaptainMarker(row[columns.player]);
+    if (!player) {
+      return;
+    }
+    if (!playerAgg.has(player)) {
+      playerAgg.set(player, { relSum: 0, relGames: 0, gp: 0 });
+    }
+    const agg = playerAgg.get(player);
+    agg.relSum += score / med;
+    agg.relGames += 1;
+    agg.gp += 1;
+  });
+
+  if (!teamTotalsByDate.size) {
+    return null;
+  }
+
+  let pam = 0;
+  let tRelWeighted = 0;
+  let tRelWeight = 0;
+  teamTotalsByDate.forEach((teamTotal, date) => {
+    const med = teamMedianByDate.get(date);
+    if (!med || med <= 0) {
+      return;
+    }
+    pam += teamTotal - med;
+  });
+
+  playerAgg.forEach((agg) => {
+    if (!agg.relGames || !agg.gp) {
+      return;
+    }
+    const rel = agg.relSum / agg.relGames;
+    tRelWeighted += rel * agg.gp;
+    tRelWeight += agg.gp;
+  });
+
+  return {
+    pam,
+    tRel: tRelWeight ? tRelWeighted / tRelWeight : null,
+  };
+}
+
+function computePlayoffStatusMapFromLeagueRows(rows, playoffSpots = 6, seasonGames = REGULAR_SEASON_GAMES) {
+  const map = new Map();
+  if (!rows.length) {
+    return map;
+  }
+
+  const teams = rows
+    .map((row) => {
+      const team = normalizeTeamLabel(row.team);
+      const wins = parseNumber(row.wins);
+      const gp = parseNumber(row.gp);
+      if (!team || wins === null || gp === null) {
+        return null;
+      }
+      const remaining = Math.max(0, seasonGames - gp);
+      return { team, wins, gp, maxWins: wins + remaining };
+    })
+    .filter(Boolean);
+
+  teams.forEach((team) => {
+    const teamsAboveMax = teams.filter((other) => other.team !== team.team && other.wins > team.maxWins).length;
+    const teamsThatCanPass = teams.filter((other) => other.team !== team.team && other.maxWins >= team.wins).length;
+
+    if (teamsAboveMax >= playoffSpots) {
+      map.set(team.team, "Eliminated");
+      return;
+    }
+    if (teamsThatCanPass <= playoffSpots - 1) {
+      map.set(team.team, "Clinched");
+      return;
+    }
+    map.set(team.team, "In Contention");
+  });
+
+  Object.entries(PLAYOFF_STATUS_OVERRIDES).forEach(([teamName, forcedStatus]) => {
+    map.set(normalizeTeamLabel(teamName), forcedStatus);
+  });
+
+  return map;
 }
 
 function parsePct(value) {
@@ -940,6 +1342,7 @@ async function loadStandings() {
   try {
     const seasonRaw = getSeasonRaw();
     const season = getSeason();
+
     if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s2-playoffs") {
       const [standingsRes, scheduleRes, playerStatsRes, transactionsRes] = await Promise.all([
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
@@ -947,42 +1350,25 @@ async function loadStandings() {
         fetch(PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(TRANSACTIONS_URL, { cache: "no-store" }),
       ]);
-      if (!standingsRes.ok) {
-        throw new Error(`Fetch failed: ${standingsRes.status}`);
+      if (!standingsRes.ok || !scheduleRes.ok || !playerStatsRes.ok) {
+        throw new Error(`Fetch failed: ${standingsRes.status || scheduleRes.status || playerStatsRes.status}`);
       }
-      if (!scheduleRes.ok) {
-        throw new Error(`Fetch failed: ${scheduleRes.status}`);
-      }
-      if (!playerStatsRes.ok) {
-        throw new Error(`Fetch failed: ${playerStatsRes.status}`);
-      }
-      const rows = parseCSV(await standingsRes.text());
-      const scheduleRows = getC2S2ScheduleRows(
-        parseCSV(await scheduleRes.text())
-      );
+
+      const standingsData = parseCSV(await standingsRes.text());
+      const scheduleRows = getC2S2ScheduleRows(parseCSV(await scheduleRes.text()));
       const playerRows = parseCSV(await playerStatsRes.text());
-      if (!rows.length) {
+      if (!standingsData.length) {
         throw new Error("No data found.");
       }
-      standingsHeaders = rows[0];
-      standingsRows = rows.slice(1);
-      sosByTeam = computeSosMap(
-        standingsHeaders,
-        standingsRows,
-        scheduleRows,
-        1,
-        2
-      );
-      playoffStatusByTeam = computePlayoffStatusMap(
-        standingsHeaders,
-        standingsRows,
-        scheduleRows,
-        6
-      );
-      advancedByTeam = computeAdvancedByTeam(playerRows);
+
+      standingsHeaders = standingsData[0] || [];
+      standingsRows = standingsData.slice(1);
       transactionsByTeam = transactionsRes.ok
         ? computeTransactionCounts(parseCSV(await transactionsRes.text()))
         : new Map();
+      leagueStandingsMetrics = buildLeagueRowsFromC2S2(standingsData, scheduleRows, playerRows);
+      applyTransactionCountsToLeagueRows(leagueStandingsMetrics, transactionsByTeam);
+      playoffStatusByTeam = computePlayoffStatusMapFromLeagueRows(leagueStandingsMetrics, 6);
       renderStandings();
     } else if (seasonRaw === "c2s2-regular") {
       const [regularRes, transactionsRes] = await Promise.all([
@@ -992,69 +1378,44 @@ async function loadStandings() {
       if (!regularRes.ok) {
         throw new Error(`Fetch failed: ${regularRes.status}`);
       }
+
       const regularRows = parseCSV(await regularRes.text());
-      const standingsTable = sliceRange(
-        regularRows,
-        C2S2_REGULAR_RANGES.standings
-      );
-      const scheduleTable = sliceRange(
-        regularRows,
-        C2S2_REGULAR_RANGES.schedule
-      );
-      const playerRows = sliceRange(
-        regularRows,
-        C2S2_REGULAR_RANGES.player_stats
-      );
+      const standingsTable = sliceRange(regularRows, C2S2_REGULAR_RANGES.standings);
+      const scheduleTable = sliceRange(regularRows, C2S2_REGULAR_RANGES.schedule);
       if (!standingsTable.length) {
         throw new Error("No data found.");
       }
+
       standingsHeaders = standingsTable[0] || [];
       standingsRows = standingsTable.slice(1);
-      sosByTeam = computeSosMap(
-        standingsHeaders,
-        standingsRows,
-        scheduleTable,
-        1,
-        2
-      );
-      playoffStatusByTeam = computePlayoffStatusMap(
-        standingsHeaders,
-        standingsRows,
-        scheduleTable,
-        6
-      );
-      advancedByTeam = computeAdvancedByTeam(playerRows);
       transactionsByTeam = transactionsRes.ok
         ? computeTransactionCounts(parseCSV(await transactionsRes.text()))
         : new Map();
+      leagueStandingsMetrics = buildLeagueRowsFromArchive(standingsTable, scheduleTable, season);
+      applyTransactionCountsToLeagueRows(leagueStandingsMetrics, transactionsByTeam);
+      playoffStatusByTeam = computePlayoffStatusMapFromLeagueRows(leagueStandingsMetrics, 6);
       renderStandings();
     } else {
       const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
       if (!response.ok) {
         throw new Error(`Fetch failed: ${response.status}`);
       }
+
       const rows = parseCSV(await response.text());
       const standingsTable = sliceRange(rows, ARCHIVE_RANGES.standings);
       const scheduleTable = sliceRange(rows, "G31:I79");
+      if (!standingsTable.length) {
+        throw new Error("No data found.");
+      }
+
       standingsHeaders = standingsTable[0] || [];
       standingsRows = standingsTable.slice(1);
-      advancedByTeam = new Map();
       transactionsByTeam = new Map();
-      sosByTeam = computeSosMap(
-        standingsHeaders,
-        standingsRows,
-        scheduleTable,
-        1,
-        2
-      );
-      playoffStatusByTeam = computePlayoffStatusMap(
-        standingsHeaders,
-        standingsRows,
-        scheduleTable,
-        6
-      );
+      leagueStandingsMetrics = buildLeagueRowsFromArchive(standingsTable, scheduleTable, season);
+      playoffStatusByTeam = computePlayoffStatusMapFromLeagueRows(leagueStandingsMetrics, 6);
       renderStandings();
     }
+
     updateLastUpdated();
   } catch (error) {
     els.leaderboard.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
