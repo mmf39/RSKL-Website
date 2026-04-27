@@ -66,6 +66,11 @@ const EXCLUDED_STANDINGS_NAMES = new Set([
   "playoffs",
 ]);
 
+const DIVISIONS = {
+  North: new Set(["Turkeys", "The Lions", "The Phantoms", "Gus N Em", "Illegals"]),
+  South: new Set(["Cheerios", "The Snipers", "Storm", "MayeDay", "Dream Team"]),
+};
+
 function getSeasonRaw() {
   const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
   if (raw === "c2s2" || raw === "c2s2-playoffs") return "c2s3-regular";
@@ -303,13 +308,8 @@ function formatMetricDisplay(metric, value) {
   return num === null ? escapeHtml(String(value)) : String(num);
 }
 
-function renderStandings() {
-  if (!leagueStandingsMetrics.length) {
-    els.leaderboard.innerHTML = "<p>No standings data available.</p>";
-    return;
-  }
-
-  const sortedRows = [...leagueStandingsMetrics].sort((a, b) => {
+function sortStandingsRows(rows) {
+  return [...rows].sort((a, b) => {
     const av = parseMetricValue(requestedMetric, a[requestedMetric]);
     const bv = parseMetricValue(requestedMetric, b[requestedMetric]);
     if (av === null && bv === null) {
@@ -326,7 +326,16 @@ function renderStandings() {
     }
     return bv - av;
   });
+}
 
+function getDivisionName(teamName) {
+  const shown = displayTeamName(teamName);
+  if (DIVISIONS.North.has(shown)) return "North";
+  if (DIVISIONS.South.has(shown)) return "South";
+  return "Other";
+}
+
+function renderStandingsSection(title, rows) {
   const chips = [
     ["GP", "gp"],
     ["Wins", "wins"],
@@ -339,43 +348,71 @@ function renderStandings() {
     ["Transactions", "transactions"],
   ];
 
-  els.leaderboard.innerHTML = sortedRows
-    .map((row, index) => {
-      const rawTeamName = row.team || "Team";
-      const teamName = displayTeamName(rawTeamName);
-      const teamKey = normalizeTeamLabel(rawTeamName);
-      const link = `team.html?team=${encodeURIComponent(rawTeamName)}`;
-      const logo = getTeamLogoHtml(teamName);
-      const status = playoffStatusByTeam.get(teamKey) || "In Contention";
-      return `
-        <a class="leader-row" href="${link}">
-          <div class="leader-rank">#${index + 1}</div>
-          <div>
-            <div class="leader-name">${logo}${escapeHtml(teamName)}</div>
-            <div class="leader-status ${statusClassName(status)}">
-              ${escapeHtml(status)}
-            </div>
-          </div>
-          <div class="leader-meta">
-            ${chips
-              .map(
-                ([label, key]) => `
-                  <div class="leader-chip">
-                    ${label}
-                    <span>${formatMetricDisplay(key, row[key])}</span>
+  return `
+    <section class="leader-section">
+      <h2 class="leader-section-title">${escapeHtml(title)}</h2>
+      <div class="leader-section-grid">
+        ${rows
+          .map((row, index) => {
+            const rawTeamName = row.team || "Team";
+            const teamName = displayTeamName(rawTeamName);
+            const teamKey = normalizeTeamLabel(rawTeamName);
+            const link = `team.html?team=${encodeURIComponent(rawTeamName)}`;
+            const logo = getTeamLogoHtml(teamName);
+            const status = playoffStatusByTeam.get(teamKey) || "In Contention";
+            return `
+              <a class="leader-row" href="${link}">
+                <div class="leader-rank">#${index + 1}</div>
+                <div>
+                  <div class="leader-name">${logo}${escapeHtml(teamName)}</div>
+                  <div class="leader-status ${statusClassName(status)}">
+                    ${escapeHtml(status)}
                   </div>
-                `
-              )
-              .join("")}
-            <div class="leader-chip">
-              Status
-              <span>${escapeHtml(status)}</span>
-            </div>
-          </div>
-        </a>
-      `;
-    })
-    .join("");
+                </div>
+                <div class="leader-meta">
+                  ${chips
+                    .map(
+                      ([label, key]) => `
+                        <div class="leader-chip">
+                          ${label}
+                          <span>${formatMetricDisplay(key, row[key])}</span>
+                        </div>
+                      `
+                    )
+                    .join("")}
+                  <div class="leader-chip">
+                    Status
+                    <span>${escapeHtml(status)}</span>
+                  </div>
+                </div>
+              </a>
+            `;
+          })
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderStandings() {
+  if (!leagueStandingsMetrics.length) {
+    els.leaderboard.innerHTML = "<p>No standings data available.</p>";
+    return;
+  }
+
+  const leagueRows = sortStandingsRows(leagueStandingsMetrics);
+  const northRows = sortStandingsRows(
+    leagueStandingsMetrics.filter((row) => getDivisionName(row.team) === "North")
+  );
+  const southRows = sortStandingsRows(
+    leagueStandingsMetrics.filter((row) => getDivisionName(row.team) === "South")
+  );
+
+  els.leaderboard.innerHTML = [
+    renderStandingsSection("League Standings", leagueRows),
+    renderStandingsSection("North Division", northRows),
+    renderStandingsSection("South Division", southRows),
+  ].join("");
 }
 
 function stripCaptainMarker(value) {

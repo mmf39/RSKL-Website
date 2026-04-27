@@ -856,6 +856,25 @@ input[type="text"] {
   gap: 12px;
 }
 
+.leader-section {
+  display: grid;
+  gap: 12px;
+}
+
+.leader-section-title {
+  margin: 8px 0 0;
+  color: var(--accent);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.leader-section-grid {
+  display: grid;
+  gap: 12px;
+}
+
 .leader-label {
   margin: 0 0 12px;
   color: var(--muted);
