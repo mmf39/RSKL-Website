@@ -1,4 +1,4 @@
-const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
+const STANDINGS_CSV_URL = "/api/sheet?name=standings";
 const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
