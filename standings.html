@@ -47,13 +47,10 @@
       <section class="panel">
         <div class="panel-head">
           <h2>Standings</h2>
-          <div class="controls">
-            <label for="standings-scope" class="label">View</label>
-            <select id="standings-scope">
-              <option value="league">League</option>
-              <option value="north">North</option>
-              <option value="south">South</option>
-            </select>
+          <div class="standings-scope-tabs" id="standings-scope-tabs" aria-label="Standings view">
+            <button class="standings-scope-tab" type="button" data-scope="league">League</button>
+            <button class="standings-scope-tab" type="button" data-scope="north">North</button>
+            <button class="standings-scope-tab" type="button" data-scope="south">South</button>
           </div>
         </div>
         <div id="leaderboard" class="leaderboard"></div>
