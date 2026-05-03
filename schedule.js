@@ -12,6 +12,7 @@ const els = {
   search: document.getElementById("schedule-search"),
   daySelect: document.getElementById("schedule-day"),
   dayGamesTitle: document.getElementById("day-games-title"),
+  upcomingGamesTitle: document.getElementById("upcoming-games-title"),
   nextGames: document.getElementById("next-games"),
   dayGames: document.getElementById("day-games"),
   modal: document.getElementById("boxscore-modal"),
@@ -890,7 +891,7 @@ function renderGameSection(target, games, emptyMessage) {
   target.innerHTML = html || `<div class="gm-empty">${escapeHtml(emptyMessage)}</div>`;
 }
 
-function getUpcomingGames(limit = 3) {
+function getUpcomingGameDay() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const sorted = [...scheduleGames].sort(compareGameDates);
@@ -900,17 +901,30 @@ function getUpcomingGames(limit = 3) {
     date.setHours(0, 0, 0, 0);
     return date >= today;
   });
-  return (upcoming.length ? upcoming : sorted).slice(0, limit);
+  const source = upcoming.length ? upcoming : sorted;
+  const nextGame = source[0];
+  if (!nextGame) {
+    return { label: "Upcoming Game Day", games: [] };
+  }
+  const sameDayGames = source.filter((game) => game.dateToken === nextGame.dateToken);
+  return {
+    label: `Upcoming Game Day: ${formatDayLabel(nextGame.dateToken)}`,
+    games: sameDayGames,
+  };
 }
 
 function renderScheduleViews() {
   populateDaySelect();
+  const upcomingDay = getUpcomingGameDay();
+  if (els.upcomingGamesTitle) {
+    els.upcomingGamesTitle.textContent = upcomingDay.label;
+  }
   if (els.dayGamesTitle) {
     els.dayGamesTitle.textContent = selectedDateKey
       ? `Games for ${formatDayLabel(selectedDateKey)}`
       : "Games By Day";
   }
-  renderGameSection(els.nextGames, getUpcomingGames(3), "No upcoming games found.");
+  renderGameSection(els.nextGames, upcomingDay.games, "No upcoming games found.");
   renderGameSection(
     els.dayGames,
     selectedDateKey ? gamesByDate.get(selectedDateKey) || [] : [],
@@ -1036,7 +1050,7 @@ async function loadSchedule() {
     if (!scheduleGames.length) throw new Error("No games found.");
 
     const todayToken = getTodayToken();
-    const upcomingGames = getUpcomingGames(1);
+    const upcomingGames = getUpcomingGameDay().games;
     selectedDateKey = gamesByDate.has(todayToken)
       ? todayToken
       : upcomingGames[0]
