@@ -192,11 +192,12 @@ function displayTeamName(value) {
 }
 
 function getTeamLogo(name) {
-  const src = getTeamLogoSrc(name);
+  const shownName = displayTeamName(name);
+  const src = getTeamLogoSrc(shownName);
   if (!src) {
     return "";
   }
-  return `<img class="team-logo" src="${src}" alt="${escapeHtml(name)} logo" />`;
+  return `<img class="team-logo" src="${src}" alt="${escapeHtml(shownName)} logo" />`;
 }
 
 function getTeamLogoSrc(name) {
