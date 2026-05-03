@@ -188,7 +188,8 @@ function getTeamLogoSrc(team) {
   if (clean === "The Lions") return "/assets/the-lions.png";
   if (clean === "The Snipers") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
-  if (clean === "Yetis" || clean === "MayeDay") return "/assets/yetis.png";
+  if (clean === "MayeDay") return "/assets/mayeday.jpg";
+  if (clean === "Yetis") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
   if (clean === "Cheerios") return "/assets/cheerios.png";
   if (clean === "Illegals") return "/assets/illegals.png";
@@ -1225,7 +1226,8 @@ function getTeamLogo(team) {
   if (clean === "The Lions") return "/assets/the-lions.png";
   if (clean === "The Snipers") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
-  if (clean === "Yetis" || clean === "MayeDay") return "/assets/yetis.png";
+  if (clean === "MayeDay") return "/assets/mayeday.jpg";
+  if (clean === "Yetis") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
   if (clean === "Cheerios") return "/assets/cheerios.png";
   if (clean === "Illegals") return "/assets/illegals.png";
@@ -1513,9 +1515,13 @@ async function loadRoster() {
       els.logo.src = "/assets/the-phantoms.png";
       els.logo.alt = "The Phantoms logo";
       els.logo.style.display = "block";
-    } else if (teamName === "Yetis" || teamName === "MayeDay") {
-      els.logo.src = "/assets/yetis.png";
+    } else if (teamName === "MayeDay") {
+      els.logo.src = "/assets/mayeday.jpg";
       els.logo.alt = "MayeDay logo";
+      els.logo.style.display = "block";
+    } else if (teamName === "Yetis") {
+      els.logo.src = "/assets/yetis.png";
+      els.logo.alt = "Yetis logo";
       els.logo.style.display = "block";
     } else if (teamName === "Gus N Em") {
       els.logo.src = "/assets/gus-n-em.png";

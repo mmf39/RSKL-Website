@@ -257,7 +257,7 @@ function getTeamLogoHtml(teamName) {
     return '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';
   }
   if (teamName === "MayeDay") {
-    return '<img class="standings-logo" src="/assets/yetis.png" alt="MayeDay logo" />';
+    return '<img class="standings-logo" src="/assets/mayeday.jpg" alt="MayeDay logo" />';
   }
   if (teamName === "Gus N Em") {
     return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />';

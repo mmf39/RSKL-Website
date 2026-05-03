@@ -212,7 +212,10 @@ function getTeamLogoSrc(name) {
   if (name === "The Phantoms") {
     return "/assets/the-phantoms.png";
   }
-  if (name === "Yetis" || name === "MayeDay") {
+  if (name === "MayeDay") {
+    return "/assets/mayeday.jpg";
+  }
+  if (name === "Yetis") {
     return "/assets/yetis.png";
   }
   if (name === "Gus N Em") {

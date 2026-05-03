@@ -211,8 +211,11 @@ function getTeamLogo(team) {
   if (clean === "The Phantoms") {
     return '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';
   }
-  if (clean === "Yetis" || clean === "MayeDay") {
-    return '<img class="standings-logo" src="/assets/yetis.png" alt="MayeDay logo" />';
+  if (clean === "MayeDay") {
+    return '<img class="standings-logo" src="/assets/mayeday.jpg" alt="MayeDay logo" />';
+  }
+  if (clean === "Yetis") {
+    return '<img class="standings-logo" src="/assets/yetis.png" alt="Yetis logo" />';
   }
   if (clean === "Gus N Em") {
     return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />';

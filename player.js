@@ -582,8 +582,11 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
     if (team === "The Phantoms") {
       return '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';
     }
-    if (team === "Yetis" || team === "MayeDay") {
-      return '<img class="standings-logo" src="/assets/yetis.png" alt="MayeDay logo" />';
+    if (team === "MayeDay") {
+      return '<img class="standings-logo" src="/assets/mayeday.jpg" alt="MayeDay logo" />';
+    }
+    if (team === "Yetis") {
+      return '<img class="standings-logo" src="/assets/yetis.png" alt="Yetis logo" />';
     }
     if (team === "Gus N Em") {
       return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />';

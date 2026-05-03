@@ -410,7 +410,8 @@ function getTeamLogo(team) {
   if (clean === "The Lions") return "/assets/the-lions.png";
   if (clean === "The Snipers") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
-  if (clean === "Yetis" || clean === "MayeDay") return "/assets/yetis.png";
+  if (clean === "MayeDay") return "/assets/mayeday.jpg";
+  if (clean === "Yetis") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
   if (clean === "Cheerios") return "/assets/cheerios.png";
   if (clean === "Illegals") return "/assets/illegals.png";

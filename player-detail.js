@@ -765,8 +765,10 @@ function getTeamLogoHtml(teamName) {
     ? '<img class="player-team-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />'
     : shownTeam === "The Phantoms"
     ? '<img class="player-team-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />'
-    : shownTeam === "Yetis" || shownTeam === "MayeDay"
-    ? '<img class="player-team-logo" src="/assets/yetis.png" alt="MayeDay logo" />'
+    : shownTeam === "MayeDay"
+    ? '<img class="player-team-logo" src="/assets/mayeday.jpg" alt="MayeDay logo" />'
+    : shownTeam === "Yetis"
+    ? '<img class="player-team-logo" src="/assets/yetis.png" alt="Yetis logo" />'
     : shownTeam === "Gus N Em"
     ? '<img class="player-team-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />'
     : shownTeam === "Cheerios"
