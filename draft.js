@@ -57,9 +57,11 @@ const TEAM_NAMES = new Set([
   "Turkeys",
   "Cheerios",
   "Yetis",
+  "MayeDay",
   "Illegals",
   "The Lions",
   "The Future",
+  "Dream Team",
   "The Snipers",
   "The Phantoms",
 ]);
@@ -240,10 +242,12 @@ function canonicalTeamName(value) {
   if (lower === "thesnipers") return "The Snipers";
   if (lower === "thephantoms") return "The Phantoms";
   if (lower === "thefuture") return "The Future";
+  if (lower === "dreamteam") return "Dream Team";
   if (lower === "thelions") return "The Lions";
   if (lower === "lions") return "The Lions";
   if (lower === "phantoms") return "The Phantoms";
   if (lower === "future") return "The Future";
+  if (lower === "mayeday") return "MayeDay";
   if (lower === "snipers") return "The Snipers";
   if (lower === "bullets") return "Storm";
   return clean;
@@ -259,6 +263,7 @@ function linkifyTeamsAndPlayers(text) {
     Turkeys: "Turkeys",
     Cheerios: "Cheerios",
     Yetis: "MayeDay",
+    MayeDay: "MayeDay",
     Illegals: "Illegals",
     "The Lions": "The Lions",
     Lions: "The Lions",
@@ -267,6 +272,7 @@ function linkifyTeamsAndPlayers(text) {
     Phantoms: "The Phantoms",
     ThePhantoms: "The Phantoms",
     "The Future": "Dream Team",
+    "Dream Team": "Dream Team",
     Future: "Dream Team",
     TheFuture: "Dream Team",
     "The Snipers": "The Snipers",
@@ -588,6 +594,12 @@ function extractProspectsRows(rows) {
   return sliceRange(rows, PROSPECTS_RANGE).filter(hasText);
 }
 
+function extractC2S3DraftBoardRows(rows) {
+  return rows
+    .map((row) => [row[0] || "", row[1] || "", row[2] || ""])
+    .filter(hasText);
+}
+
 function renderProspects(rows, selectedYear) {
   if (selectedYear === "c2s1") {
     els.sections.innerHTML = `
@@ -714,34 +726,14 @@ async function loadDraft() {
     c2s3Context = null;
 
     if (selectedYear === "c2s3" && selectedView === "teams") {
-      const [standingsRowsRaw, draftCapitalRows] = await Promise.all([
-        fetchRows(STANDINGS_CSV_URL),
-        fetchRows(DRAFT_CAPITAL_CSV_URL),
-      ]);
-      const standingsRows = parseStandingsRows(standingsRowsRaw);
-      const order = getReverseStandingsOrder(standingsRows);
-      const draftCapitalByRound = parseDraftCapitalRows(draftCapitalRows);
-      const roundRanges = ROUND_RANGES_BY_YEAR.c2s3;
-      els.sections.innerHTML = roundRanges
-        .map(({ id, title }, idx) => {
-          const roundNo = idx + 1;
-          const rows = buildC2S3DraftRows(order, draftCapitalByRound, roundNo);
-          return renderRound(id, title, [["Pick", "Original Pick", "Selection Team"], ...rows]);
-        })
-        .join("");
-      applyRoundFilter();
-      const nonPlayoff = order.slice(0, 4);
-      c2s3Context = {
-        order,
-        draftCapitalByRound,
-        weighted: [
-          { team: nonPlayoff[0], odds: 40 },
-          { team: nonPlayoff[1], odds: 30 },
-          { team: nonPlayoff[2], odds: 20 },
-          { team: nonPlayoff[3], odds: 10 },
-        ].filter((x) => x.team),
-      };
-      renderC2S3LotteryPanel(order);
+      const rows = await fetchRows(DRAFT_CSV_URL);
+      draftRowsCache = rows;
+      const boardRows = extractC2S3DraftBoardRows(rows);
+      els.sections.innerHTML = renderRound(
+        "c2s3-board",
+        "C2S3 Draft Board",
+        boardRows
+      );
       updateLastUpdated();
       return;
     }
