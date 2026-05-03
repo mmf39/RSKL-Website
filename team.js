@@ -1499,49 +1499,11 @@ async function loadRoster() {
   }
   await loadDraftCapital(teamName);
   if (els.logo) {
-    if (teamName === "The Future" || teamName === "Dream Team") {
-      els.logo.src = "/assets/the-future.png";
-      els.logo.alt = "Dream Team logo";
-      els.logo.style.display = "block";
-    } else if (teamName === "The Lions") {
-      els.logo.src = "/assets/the-lions.png";
-      els.logo.alt = "The Lions logo";
-      els.logo.style.display = "block";
-    } else if (teamName === "The Snipers") {
-      els.logo.src = "/assets/the-snipers.png";
-      els.logo.alt = "The Snipers logo";
-      els.logo.style.display = "block";
-    } else if (teamName === "The Phantoms") {
-      els.logo.src = "/assets/the-phantoms.png";
-      els.logo.alt = "The Phantoms logo";
-      els.logo.style.display = "block";
-    } else if (teamName === "MayeDay") {
-      els.logo.src = "/assets/mayeday.jpg";
-      els.logo.alt = "MayeDay logo";
-      els.logo.style.display = "block";
-    } else if (teamName === "Yetis") {
-      els.logo.src = "/assets/yetis.png";
-      els.logo.alt = "Yetis logo";
-      els.logo.style.display = "block";
-    } else if (teamName === "Gus N Em") {
-      els.logo.src = "/assets/gus-n-em.png";
-      els.logo.alt = "Gus N Em logo";
-      els.logo.style.display = "block";
-    } else if (teamName === "Cheerios") {
-      els.logo.src = "/assets/cheerios.png";
-      els.logo.alt = "Cheerios logo";
-      els.logo.style.display = "block";
-    } else if (teamName === "Illegals") {
-      els.logo.src = "/assets/illegals.png";
-      els.logo.alt = "Illegals logo";
-      els.logo.style.display = "block";
-    } else if (teamName === "Bullets" || teamName === "Storm") {
-      els.logo.src = "/assets/storm.png";
-      els.logo.alt = "Storm logo";
-      els.logo.style.display = "block";
-    } else if (teamName === "Turkeys") {
-      els.logo.src = "/assets/turkeys.png";
-      els.logo.alt = "Turkeys logo";
+    const shownTeam = displayTeamName(teamName);
+    const logoSrc = getTeamLogoSrc(teamName);
+    if (logoSrc) {
+      els.logo.src = logoSrc;
+      els.logo.alt = `${shownTeam} logo`;
       els.logo.style.display = "block";
     } else {
       els.logo.style.display = "none";
