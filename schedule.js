@@ -866,7 +866,7 @@ function buildGameCards(games) {
         : "";
       const isTodayGame = g.dateToken === getTodayToken();
       return `
-        <div class="calendar-game ${isTodayGame ? "today-game" : ""}" data-game-index="${g.idx}">
+        <div class="calendar-game ${isTodayGame ? "today-game" : ""}" data-game-index="${g.idx}" aria-expanded="false">
           <div class="calendar-game-date">${escapeHtml(g.dateToken)}</div>
           <div class="calendar-game-matchup">
             <a class="schedule-team-link" href="/team.html?team=${encodeURIComponent(g.team1)}">${l1}<span class="team-name-stack"><span>${escapeHtml(displayTeamName(g.team1))}</span>${team1ScoreLine}</span></a>
@@ -926,6 +926,14 @@ function bindCalendarEvents() {
     });
   }
 
+  const setCardOpenState = (card, isOpen) => {
+    const details = card.querySelector(".calendar-game-details");
+    if (!details) return;
+    details.hidden = !isOpen;
+    card.classList.toggle("open", isOpen);
+    card.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  };
+
   const handleGameClick = (event) => {
     const link = event.target.closest("a");
     if (link) return;
@@ -936,14 +944,11 @@ function bindCalendarEvents() {
     if (!game) return;
     const details = card.querySelector(".calendar-game-details");
     if (!details) return;
-    const isOpen = !details.hidden;
-    if (isOpen) {
-      details.hidden = true;
-      card.classList.remove("open");
+    const shouldClose = card.classList.contains("open");
+    if (shouldClose) {
+      setCardOpenState(card, false);
       return;
     }
-    details.hidden = false;
-    card.classList.add("open");
     if (!details.dataset.loaded) {
       const scoreState = getGameScoreState(game);
       if (scoreState.status === "upcoming") {
@@ -956,6 +961,7 @@ function bindCalendarEvents() {
       }
       details.dataset.loaded = "1";
     }
+    setCardOpenState(card, true);
   };
 
   if (els.nextGames) {
