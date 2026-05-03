@@ -821,6 +821,36 @@ h2 {
   align-items: center;
 }
 
+.standings-scope-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.standings-scope-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.standings-scope-tab:hover {
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.standings-scope-tab.active {
+  color: #ffffff;
+}
+
 .controls input[type="text"],
 .controls select {
   min-width: 0;
