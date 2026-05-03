@@ -812,6 +812,7 @@ function buildPreviewMarkup(game) {
 
 function renderGameList() {
   if (!els.games) return [];
+  els.games.hidden = false;
   const term = String(els.search?.value || "").trim().toLowerCase();
 
   let games = selectedDateKey ? (gamesByDate.get(selectedDateKey) || []) : [];
@@ -1065,6 +1066,7 @@ async function loadSchedule() {
     updateLastUpdated();
   } catch (error) {
     if (els.games) {
+      els.games.hidden = false;
       els.games.innerHTML = `<div class="gm-empty">${escapeHtml(error.message)}</div>`;
     }
   }

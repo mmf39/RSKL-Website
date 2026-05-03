@@ -1656,10 +1656,6 @@ input[type="text"] {
   gap: 12px;
 }
 
-#calendar-games {
-  display: none !important;
-}
-
 .calendar-game {
   width: 100%;
   border: 1px solid rgba(255, 140, 0, 0.5);
