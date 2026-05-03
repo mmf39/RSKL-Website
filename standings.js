@@ -27,6 +27,7 @@ const STANDINGS_RANGES = {
 const els = {
   lastUpdated: document.getElementById("last-updated"),
   leaderboard: document.getElementById("leaderboard"),
+  scope: document.getElementById("standings-scope"),
 };
 
 let standingsRows = [];
@@ -36,6 +37,7 @@ let requestedMetric = "wins";
 let advancedByTeam = new Map();
 let transactionsByTeam = new Map();
 let leagueStandingsMetrics = [];
+const STANDINGS_SCOPE_KEY = "standings_scope";
 
 const ARCHIVE_RANGES = {
   standings: "A1:F7",
@@ -327,6 +329,20 @@ function getDivisionName(teamName) {
   return "Other";
 }
 
+function getStandingsScope() {
+  const raw = String(localStorage.getItem(STANDINGS_SCOPE_KEY) || "league").toLowerCase();
+  return raw === "north" || raw === "south" ? raw : "league";
+}
+
+function initStandingsScope() {
+  if (!els.scope) return;
+  els.scope.value = getStandingsScope();
+  els.scope.addEventListener("change", () => {
+    localStorage.setItem(STANDINGS_SCOPE_KEY, els.scope.value || "league");
+    renderStandings();
+  });
+}
+
 function renderStandingsSection(title, rows) {
   const chips = [
     ["GP", "gp"],
@@ -383,6 +399,7 @@ function renderStandings() {
     return;
   }
 
+  const scope = els.scope ? els.scope.value || "league" : getStandingsScope();
   const leagueRows = sortStandingsRows(leagueStandingsMetrics);
   const northRows = sortStandingsRows(
     leagueStandingsMetrics.filter((row) => getDivisionName(row.team) === "North")
@@ -391,11 +408,15 @@ function renderStandings() {
     leagueStandingsMetrics.filter((row) => getDivisionName(row.team) === "South")
   );
 
-  els.leaderboard.innerHTML = [
-    renderStandingsSection("League Standings", leagueRows),
-    renderStandingsSection("North Division", northRows),
-    renderStandingsSection("South Division", southRows),
-  ].join("");
+  if (scope === "north") {
+    els.leaderboard.innerHTML = renderStandingsSection("North Division", northRows);
+    return;
+  }
+  if (scope === "south") {
+    els.leaderboard.innerHTML = renderStandingsSection("South Division", southRows);
+    return;
+  }
+  els.leaderboard.innerHTML = renderStandingsSection("League Standings", leagueRows);
 }
 
 function stripCaptainMarker(value) {
@@ -1302,5 +1323,6 @@ function updateLastUpdated() {
 }
 
 initSeasonSelect();
+initStandingsScope();
 requestedMetric = getRequestedMetric();
 loadStandings();
