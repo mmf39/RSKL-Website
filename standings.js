@@ -27,7 +27,7 @@ const STANDINGS_RANGES = {
 const els = {
   lastUpdated: document.getElementById("last-updated"),
   leaderboard: document.getElementById("leaderboard"),
-  scope: document.getElementById("standings-scope"),
+  scopeTabs: document.getElementById("standings-scope-tabs"),
 };
 
 let standingsRows = [];
@@ -335,11 +335,22 @@ function getStandingsScope() {
 }
 
 function initStandingsScope() {
-  if (!els.scope) return;
-  els.scope.value = getStandingsScope();
-  els.scope.addEventListener("change", () => {
-    localStorage.setItem(STANDINGS_SCOPE_KEY, els.scope.value || "league");
-    renderStandings();
+  if (!els.scopeTabs) return;
+  const activeScope = getStandingsScope();
+  Array.from(els.scopeTabs.querySelectorAll("[data-scope]")).forEach((button) => {
+    const scope = String(button.dataset.scope || "league").toLowerCase();
+    const isActive = scope === activeScope;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", isActive ? "true" : "false");
+    button.addEventListener("click", () => {
+      localStorage.setItem(STANDINGS_SCOPE_KEY, scope);
+      Array.from(els.scopeTabs.querySelectorAll("[data-scope]")).forEach((tab) => {
+        const tabActive = tab === button;
+        tab.classList.toggle("active", tabActive);
+        tab.setAttribute("aria-pressed", tabActive ? "true" : "false");
+      });
+      renderStandings();
+    });
   });
 }
 
@@ -399,7 +410,7 @@ function renderStandings() {
     return;
   }
 
-  const scope = els.scope ? els.scope.value || "league" : getStandingsScope();
+  const scope = getStandingsScope();
   const leagueRows = sortStandingsRows(leagueStandingsMetrics);
   const northRows = sortStandingsRows(
     leagueStandingsMetrics.filter((row) => getDivisionName(row.team) === "North")
