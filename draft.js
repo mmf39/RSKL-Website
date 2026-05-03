@@ -200,7 +200,7 @@ function getFirstTeamMention(value) {
 function getTeamLogo(team) {
   const clean = displayTeamName(team);
   if (clean === "The Future" || clean === "Dream Team") {
-    return '<img class="standings-logo" src="/assets/the-future.png" alt="Dream Team logo" />';
+    return '<img class="standings-logo" src="/assets/dream-team.jpg" alt="Dream Team logo" />';
   }
   if (clean === "The Lions") {
     return '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />';

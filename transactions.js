@@ -406,7 +406,7 @@ function normalizeSearch(value) {
 
 function getTeamLogo(team) {
   const clean = canonicalTeamName(team);
-  if (clean === "The Future" || clean === "Dream Team") return "/assets/the-future.png";
+  if (clean === "The Future" || clean === "Dream Team") return "/assets/dream-team.jpg";
   if (clean === "The Lions") return "/assets/the-lions.png";
   if (clean === "The Snipers") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";

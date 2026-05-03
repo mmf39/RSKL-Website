@@ -571,7 +571,7 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
 
   const teamLogo = (team) => {
     if (team === "The Future" || team === "Dream Team") {
-      return '<img class="standings-logo" src="/assets/the-future.png" alt="Dream Team logo" />';
+      return '<img class="standings-logo" src="/assets/dream-team.jpg" alt="Dream Team logo" />';
     }
     if (team === "The Lions") {
       return '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />';

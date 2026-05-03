@@ -202,7 +202,7 @@ function getTeamLogo(name) {
 
 function getTeamLogoSrc(name) {
   if (name === "The Future" || name === "Dream Team") {
-    return "/assets/the-future.png";
+    return "/assets/dream-team.jpg";
   }
   if (name === "The Lions") {
     return "/assets/the-lions.png";

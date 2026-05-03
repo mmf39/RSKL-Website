@@ -10,13 +10,6 @@ const TRANSACTIONS_RANGE = "A3:E81";
 const RETIREMENT_RANGE = "G3:J70";
 const CUT_RANGE = "L3:O81";
 const SIGNING_RANGE = "Q3:T81";
-const REGULAR_SEASON_GAMES = 15;
-const PLAYOFF_STATUS_OVERRIDES = {
-  cheerios: "Clinched",
-  illegals: "Clinched",
-  "the snipers": "Eliminated",
-  snipers: "Eliminated",
-};
 const STANDINGS_RANGES = {
   Turkeys: "H3:M3",
   "Gus N Em": "H4:M4",
@@ -39,7 +32,6 @@ const els = {
 let standingsRows = [];
 let standingsHeaders = [];
 let sosByTeam = new Map();
-let playoffStatusByTeam = new Map();
 let requestedMetric = "wins";
 let advancedByTeam = new Map();
 let transactionsByTeam = new Map();
@@ -245,7 +237,7 @@ function renderTable(rows) {
 
 function getTeamLogoHtml(teamName) {
   if (teamName === "Dream Team") {
-    return '<img class="standings-logo" src="/assets/the-future.png" alt="Dream Team logo" />';
+    return '<img class="standings-logo" src="/assets/dream-team.jpg" alt="Dream Team logo" />';
   }
   if (teamName === "The Lions") {
     return '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />';
@@ -356,18 +348,13 @@ function renderStandingsSection(title, rows) {
           .map((row, index) => {
             const rawTeamName = row.team || "Team";
             const teamName = displayTeamName(rawTeamName);
-            const teamKey = normalizeTeamLabel(rawTeamName);
             const link = `team.html?team=${encodeURIComponent(rawTeamName)}`;
             const logo = getTeamLogoHtml(teamName);
-            const status = playoffStatusByTeam.get(teamKey) || "In Contention";
             return `
               <a class="leader-row" href="${link}">
                 <div class="leader-rank">#${index + 1}</div>
                 <div>
                   <div class="leader-name">${logo}${escapeHtml(teamName)}</div>
-                  <div class="leader-status ${statusClassName(status)}">
-                    ${escapeHtml(status)}
-                  </div>
                 </div>
                 <div class="leader-meta">
                   ${chips
@@ -380,10 +367,6 @@ function renderStandingsSection(title, rows) {
                       `
                     )
                     .join("")}
-                  <div class="leader-chip">
-                    Status
-                    <span>${escapeHtml(status)}</span>
-                  </div>
                 </div>
               </a>
             `;
@@ -727,47 +710,6 @@ function computeAdvancedTeamStats(teamName, allRows) {
   };
 }
 
-function computePlayoffStatusMapFromLeagueRows(rows, playoffSpots = 6, seasonGames = REGULAR_SEASON_GAMES) {
-  const map = new Map();
-  if (!rows.length) {
-    return map;
-  }
-
-  const teams = rows
-    .map((row) => {
-      const team = normalizeTeamLabel(row.team);
-      const wins = parseNumber(row.wins);
-      const gp = parseNumber(row.gp);
-      if (!team || wins === null || gp === null) {
-        return null;
-      }
-      const remaining = Math.max(0, seasonGames - gp);
-      return { team, wins, gp, maxWins: wins + remaining };
-    })
-    .filter(Boolean);
-
-  teams.forEach((team) => {
-    const teamsAboveMax = teams.filter((other) => other.team !== team.team && other.wins > team.maxWins).length;
-    const teamsThatCanPass = teams.filter((other) => other.team !== team.team && other.maxWins >= team.wins).length;
-
-    if (teamsAboveMax >= playoffSpots) {
-      map.set(team.team, "Eliminated");
-      return;
-    }
-    if (teamsThatCanPass <= playoffSpots - 1) {
-      map.set(team.team, "Clinched");
-      return;
-    }
-    map.set(team.team, "In Contention");
-  });
-
-  Object.entries(PLAYOFF_STATUS_OVERRIDES).forEach(([teamName, forcedStatus]) => {
-    map.set(normalizeTeamLabel(teamName), forcedStatus);
-  });
-
-  return map;
-}
-
 function parsePct(value) {
   const num = Number(String(value || "").replace(/[^0-9.\-]/g, ""));
   if (Number.isNaN(num)) {
@@ -779,114 +721,6 @@ function parsePct(value) {
 function parseNumber(value) {
   const num = Number(String(value || "").replace(/[^0-9.\-]/g, ""));
   return Number.isNaN(num) ? null : num;
-}
-
-function statusClassName(status) {
-  const key = String(status || "").toLowerCase();
-  if (key.includes("clinched")) return "clinched";
-  if (key.includes("eliminated")) return "eliminated";
-  return "contention";
-}
-
-function computeTeamGameCountsFromSchedule(scheduleRows) {
-  const counts = new Map();
-  if (!scheduleRows || scheduleRows.length < 2) {
-    return counts;
-  }
-
-  const scheduleHeader = (scheduleRows[0] || []).map((h) =>
-    String(h || "").trim().toLowerCase()
-  );
-  const findScheduleIdx = (checks) =>
-    scheduleHeader.findIndex((h) => checks.some((check) => h.includes(check)));
-
-  const team1Idx = (() => {
-    const idx = findScheduleIdx(["team 1", "team1", "away"]);
-    return idx !== -1 ? idx : 2;
-  })();
-  const team2Idx = (() => {
-    const idx = findScheduleIdx(["team 2", "team2", "home"]);
-    return idx !== -1 ? idx : 3;
-  })();
-  const typeIdx = findScheduleIdx(["type", "game type"]);
-
-  scheduleRows.slice(1).forEach((row) => {
-    const team1 = normalizeTeamLabel(row[team1Idx]);
-    const team2 = normalizeTeamLabel(row[team2Idx]);
-    const gameType = typeIdx >= 0 ? String(row[typeIdx] || "").toLowerCase() : "";
-    if (!team1 || !team2 || gameType.includes("pre")) {
-      return;
-    }
-    counts.set(team1, (counts.get(team1) || 0) + 1);
-    counts.set(team2, (counts.get(team2) || 0) + 1);
-  });
-
-  return counts;
-}
-
-function computePlayoffStatusMap(
-  standingsHeader,
-  standingsDataRows,
-  scheduleRows,
-  playoffSpots = 6,
-  seasonGames = REGULAR_SEASON_GAMES
-) {
-  const map = new Map();
-  if (!standingsDataRows.length) {
-    return map;
-  }
-
-  const lower = standingsHeader.map((h) => String(h || "").toLowerCase());
-  const teamIdx = lower.findIndex((h) => h === "team");
-  const winsIdx = lower.findIndex((h) => h === "wins");
-  const gpIdx = lower.findIndex((h) => h === "gp");
-  if (teamIdx === -1 || winsIdx === -1 || gpIdx === -1) {
-    return map;
-  }
-
-  const totalGamesByTeam = computeTeamGameCountsFromSchedule(scheduleRows);
-
-  const teams = standingsDataRows
-    .map((row) => {
-      const team = normalizeTeamLabel(row[teamIdx]);
-      const wins = parseNumber(row[winsIdx]);
-      const gp = parseNumber(row[gpIdx]);
-      if (!team || wins === null || gp === null) {
-        return null;
-      }
-      const scheduleTotal = totalGamesByTeam.get(team);
-      const totalGames = Number.isFinite(seasonGames) && seasonGames > 0
-        ? seasonGames
-        : (scheduleTotal || gp);
-      const remaining = Math.max(0, totalGames - gp);
-      return { team, wins, gp, maxWins: wins + remaining };
-    })
-    .filter(Boolean);
-
-  teams.forEach((team) => {
-    const teamsAboveMax = teams.filter(
-      (other) => other.team !== team.team && other.wins > team.maxWins
-    ).length;
-    const teamsThatCanPass = teams.filter(
-      (other) => other.team !== team.team && other.maxWins >= team.wins
-    ).length;
-
-    if (teamsAboveMax >= playoffSpots) {
-      map.set(team.team, "Eliminated");
-      return;
-    }
-    if (teamsThatCanPass <= playoffSpots - 1) {
-      map.set(team.team, "Clinched");
-      return;
-    }
-    map.set(team.team, "In Contention");
-  });
-
-  Object.entries(PLAYOFF_STATUS_OVERRIDES).forEach(([teamName, forcedStatus]) => {
-    map.set(normalizeTeamLabel(teamName), forcedStatus);
-  });
-
-  return map;
 }
 
 function median(numbers) {
@@ -1405,7 +1239,6 @@ async function loadStandings() {
         : new Map();
       leagueStandingsMetrics = buildLeagueRowsFromC2S2(standingsData, scheduleRows, playerRows);
       applyTransactionCountsToLeagueRows(leagueStandingsMetrics, transactionsByTeam);
-      playoffStatusByTeam = computePlayoffStatusMapFromLeagueRows(leagueStandingsMetrics, 6);
       renderStandings();
     } else if (seasonRaw === "c2s2-regular") {
       const [regularRes, transactionsRes] = await Promise.all([
@@ -1430,7 +1263,6 @@ async function loadStandings() {
         : new Map();
       leagueStandingsMetrics = buildLeagueRowsFromArchive(standingsTable, scheduleTable, season);
       applyTransactionCountsToLeagueRows(leagueStandingsMetrics, transactionsByTeam);
-      playoffStatusByTeam = computePlayoffStatusMapFromLeagueRows(leagueStandingsMetrics, 6);
       renderStandings();
     } else {
       const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
@@ -1449,7 +1281,6 @@ async function loadStandings() {
       standingsRows = standingsTable.slice(1);
       transactionsByTeam = new Map();
       leagueStandingsMetrics = buildLeagueRowsFromArchive(standingsTable, scheduleTable, season);
-      playoffStatusByTeam = computePlayoffStatusMapFromLeagueRows(leagueStandingsMetrics, 6);
       renderStandings();
     }
 

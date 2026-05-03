@@ -758,7 +758,7 @@ function initSeasonSelect() {
 function getTeamLogoHtml(teamName) {
   const shownTeam = displayTeamName(teamName);
   return shownTeam === "The Future" || shownTeam === "Dream Team"
-    ? '<img class="player-team-logo" src="/assets/the-future.png" alt="Dream Team logo" />'
+    ? '<img class="player-team-logo" src="/assets/dream-team.jpg" alt="Dream Team logo" />'
     : shownTeam === "The Lions"
     ? '<img class="player-team-logo" src="/assets/the-lions.png" alt="The Lions logo" />'
     : shownTeam === "The Snipers"
