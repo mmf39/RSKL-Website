@@ -1,4 +1,5 @@
-const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
+const SCHEDULE_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=507537612&single=true&output=csv";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
@@ -9,16 +10,12 @@ const SEASON_KEY = "season";
 const els = {
   lastUpdated: document.getElementById("last-updated"),
   search: document.getElementById("schedule-search"),
+  daySelect: document.getElementById("schedule-day"),
+  dayGamesTitle: document.getElementById("day-games-title"),
+  nextGames: document.getElementById("next-games"),
+  dayGames: document.getElementById("day-games"),
   modal: document.getElementById("boxscore-modal"),
   boxDetails: document.getElementById("boxscore-details"),
-  gamesModal: document.getElementById("games-modal"),
-  gamesModalTitle: document.getElementById("games-modal-title"),
-  gamesModalDetails: document.getElementById("games-modal-details"),
-  month: document.getElementById("calendar-month"),
-  prev: document.getElementById("calendar-prev"),
-  next: document.getElementById("calendar-next"),
-  grid: document.getElementById("calendar-grid"),
-  games: document.getElementById("calendar-games"),
 };
 
 let cachedBoxScoreRows = [];
@@ -27,7 +24,6 @@ let finalScoreMap = new Map();
 let teamLeadersMap = new Map();
 let scheduleGames = [];
 let gamesByDate = new Map();
-let currentMonth = null;
 let selectedDateKey = "";
 
 const ARCHIVE_RANGES = {
@@ -138,6 +134,21 @@ function sliceRange(rows, range) {
 }
 
 function getC2S2ScheduleRows(rows) {
+  const headerRowIndex = rows.findIndex((row) => {
+    const header = row.map((value) => String(value || "").trim().toLowerCase());
+    return (
+      header.some((value) => value === "date" || value.includes("date")) &&
+      header.some(
+        (value) => value.includes("team 1") || value.includes("team1") || value.includes("away")
+      ) &&
+      header.some(
+        (value) => value.includes("team 2") || value.includes("team2") || value.includes("home")
+      )
+    );
+  });
+  if (headerRowIndex >= 0) {
+    return rows.slice(headerRowIndex);
+  }
   const sliced = sliceRange(rows, C2S2_SCHEDULE_RANGE);
   return [["Date", "Team 1", "Team 2", "Info", "Game Type"], ...sliced];
 }
@@ -508,49 +519,48 @@ function rebuildGamesByDate() {
   });
 }
 
-function formatMonthLabel(d) {
-  return d.toLocaleString(undefined, { month: "long", year: "numeric" });
+function compareGameDates(a, b) {
+  if (a.dateObj && b.dateObj) {
+    return a.dateObj - b.dateObj;
+  }
+  if (a.dateObj) return -1;
+  if (b.dateObj) return 1;
+  return String(a.dateToken || "").localeCompare(String(b.dateToken || ""), undefined, {
+    numeric: true,
+  });
 }
 
-function getMonthBounds(d) {
-  return {
-    first: new Date(d.getFullYear(), d.getMonth(), 1),
-    last: new Date(d.getFullYear(), d.getMonth() + 1, 0),
-  };
+function formatDayLabel(token) {
+  const parsed = parseDateFromToken(token);
+  if (!parsed) {
+    return token;
+  }
+  return parsed.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
 }
 
-function renderCalendar() {
-  if (!els.grid || !currentMonth) return;
-  const { first, last } = getMonthBounds(currentMonth);
-  if (els.month) els.month.textContent = formatMonthLabel(first);
-
-  const weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const cells = [];
-
-  weekday.forEach((w) => cells.push(`<div class="calendar-weekday">${w}</div>`));
-  for (let i = 0; i < first.getDay(); i += 1) {
-    cells.push('<div class="calendar-day empty"></div>');
-  }
-
-  for (let day = 1; day <= last.getDate(); day += 1) {
-    const token = `${first.getMonth() + 1}/${day}`;
-    const gameCount = (gamesByDate.get(token) || []).length;
-    const hasGames = gameCount > 0;
-    const isSelected = token === selectedDateKey;
-    const now = new Date();
-    const isToday =
-      now.getFullYear() === first.getFullYear() &&
-      now.getMonth() === first.getMonth() &&
-      now.getDate() === day;
-    cells.push(`
-      <button class="calendar-day ${hasGames ? "has-games" : ""} ${isSelected ? "selected" : ""} ${isToday ? "today" : ""}" data-date="${token}" type="button">
-        <span class="calendar-num">${day}</span>
-        <span class="calendar-count">${gameCount} ${gameCount === 1 ? "game" : "games"}</span>
-      </button>
-    `);
-  }
-
-  els.grid.innerHTML = cells.join("");
+function populateDaySelect() {
+  if (!els.daySelect) return;
+  const options = Array.from(gamesByDate.keys()).sort((a, b) => {
+    const dateA = parseDateFromToken(a);
+    const dateB = parseDateFromToken(b);
+    if (dateA && dateB) return dateA - dateB;
+    if (dateA) return -1;
+    if (dateB) return 1;
+    return a.localeCompare(b, undefined, { numeric: true });
+  });
+  els.daySelect.innerHTML = options
+    .map((token) => {
+      const count = (gamesByDate.get(token) || []).length;
+      const selected = token === selectedDateKey ? ' selected' : "";
+      return `<option value="${escapeHtml(token)}"${selected}>${escapeHtml(
+        `${formatDayLabel(token)} (${count})`
+      )}</option>`;
+    })
+    .join("");
 }
 
 function findBoxScoreRowsForGame(game) {
@@ -810,29 +820,14 @@ function buildPreviewMarkup(game) {
   </div>`;
 }
 
-function renderGameList() {
-  if (!els.games) return [];
-  els.games.hidden = false;
+function buildGameCards(games) {
   const term = String(els.search?.value || "").trim().toLowerCase();
-
-  let games = selectedDateKey ? (gamesByDate.get(selectedDateKey) || []) : [];
-  if (!selectedDateKey && currentMonth) {
-    const month = currentMonth.getMonth() + 1;
-    games = scheduleGames.filter((g) => String(g.dateToken).startsWith(`${month}/`));
-  }
-
   const filtered = term
     ? games.filter((g) =>
         [g.team1, g.team2, g.rawDate, g.dateToken].join(" ").toLowerCase().includes(term)
       )
     : games;
-
-  if (!filtered.length) {
-    els.games.innerHTML = '<div class="gm-empty">No games found.</div>';
-    return [];
-  }
-
-  const html = filtered
+  return filtered
     .map((g, idx) => {
       const logo1 = getTeamLogo(g.team1);
       const logo2 = getTeamLogo(g.team2);
@@ -886,102 +881,99 @@ function renderGameList() {
       `;
     })
     .join("");
-  els.games.innerHTML = html;
-  return filtered;
 }
 
-function openGamesModal(games) {
-  if (!els.gamesModal || !els.gamesModalDetails || !els.gamesModalTitle) return;
-  const titleDate = selectedDateKey || "Selected Date";
-  els.gamesModalTitle.textContent = `Games • ${titleDate}`;
-  if (!games.length) {
-    els.gamesModalDetails.innerHTML = '<div class="gm-empty">No games found.</div>';
-  } else {
-    els.gamesModalDetails.innerHTML = els.games.innerHTML;
+function renderGameSection(target, games, emptyMessage) {
+  if (!target) return;
+  target.hidden = false;
+  const html = buildGameCards(games);
+  target.innerHTML = html || `<div class="gm-empty">${escapeHtml(emptyMessage)}</div>`;
+}
+
+function getUpcomingGames(limit = 3) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const sorted = [...scheduleGames].sort(compareGameDates);
+  const upcoming = sorted.filter((game) => {
+    if (!game.dateObj) return true;
+    const date = new Date(game.dateObj);
+    date.setHours(0, 0, 0, 0);
+    return date >= today;
+  });
+  return (upcoming.length ? upcoming : sorted).slice(0, limit);
+}
+
+function renderScheduleViews() {
+  populateDaySelect();
+  if (els.dayGamesTitle) {
+    els.dayGamesTitle.textContent = selectedDateKey
+      ? `Games for ${formatDayLabel(selectedDateKey)}`
+      : "Games By Day";
   }
-  els.gamesModal.hidden = false;
+  renderGameSection(els.nextGames, getUpcomingGames(3), "No upcoming games found.");
+  renderGameSection(
+    els.dayGames,
+    selectedDateKey ? gamesByDate.get(selectedDateKey) || [] : [],
+    "No games found for that day."
+  );
 }
 
 function bindCalendarEvents() {
-  if (els.prev) {
-    els.prev.addEventListener("click", () => {
-      currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
-      selectedDateKey = "";
-      renderCalendar();
-      renderGameList();
-    });
-  }
-  if (els.next) {
-    els.next.addEventListener("click", () => {
-      currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
-      selectedDateKey = "";
-      renderCalendar();
-      renderGameList();
-    });
-  }
-
-  if (els.grid) {
-    els.grid.addEventListener("click", (event) => {
-      const cell = event.target.closest("[data-date]");
-      if (!cell) return;
-      selectedDateKey = String(cell.dataset.date || "");
-      renderCalendar();
-      const games = renderGameList();
-      openGamesModal(games);
+  if (els.daySelect) {
+    els.daySelect.addEventListener("change", () => {
+      selectedDateKey = String(els.daySelect.value || "");
+      renderScheduleViews();
     });
   }
 
   const handleGameClick = (event) => {
-      const link = event.target.closest("a");
-      if (link) return;
-      const card = event.target.closest("[data-game-index]");
-      if (!card) return;
-      const idx = Number(card.dataset.gameIndex);
-      const game = scheduleGames[idx];
-      if (!game) return;
-      const details = card.querySelector(".calendar-game-details");
-      if (!details) return;
-      const isOpen = !details.hidden;
-      if (isOpen) {
-        details.hidden = true;
-        card.classList.remove("open");
-        return;
+    const link = event.target.closest("a");
+    if (link) return;
+    const card = event.target.closest("[data-game-index]");
+    if (!card) return;
+    const idx = Number(card.dataset.gameIndex);
+    const game = scheduleGames[idx];
+    if (!game) return;
+    const details = card.querySelector(".calendar-game-details");
+    if (!details) return;
+    const isOpen = !details.hidden;
+    if (isOpen) {
+      details.hidden = true;
+      card.classList.remove("open");
+      return;
+    }
+    details.hidden = false;
+    card.classList.add("open");
+    if (!details.dataset.loaded) {
+      const scoreState = getGameScoreState(game);
+      if (scoreState.status === "upcoming") {
+        details.innerHTML = buildPreviewMarkup(game);
+      } else if (scoreState.status === "live") {
+        details.innerHTML = buildLiveBoxMarkup(game, scoreState.livePayload);
+      } else {
+        const payload = getBoxScorePayload(game);
+        details.innerHTML = payload.html;
       }
-      details.hidden = false;
-      card.classList.add("open");
-      if (!details.dataset.loaded) {
-        const scoreState = getGameScoreState(game);
-        if (scoreState.status === "upcoming") {
-          details.innerHTML = buildPreviewMarkup(game);
-        } else if (scoreState.status === "live") {
-          details.innerHTML = buildLiveBoxMarkup(game, scoreState.livePayload);
-        } else {
-          const payload = getBoxScorePayload(game);
-          details.innerHTML = payload.html;
-        }
-        details.dataset.loaded = "1";
-      }
-    };
+      details.dataset.loaded = "1";
+    }
+  };
 
-  if (els.games) {
-    els.games.addEventListener("click", handleGameClick);
+  if (els.nextGames) {
+    els.nextGames.addEventListener("click", handleGameClick);
   }
-  if (els.gamesModalDetails) {
-    els.gamesModalDetails.addEventListener("click", handleGameClick);
+  if (els.dayGames) {
+    els.dayGames.addEventListener("click", handleGameClick);
   }
 
   if (els.search) {
     els.search.addEventListener("input", () => {
-      renderGameList();
+      renderScheduleViews();
     });
   }
 
   document.addEventListener("click", (event) => {
     if (event.target.matches('[data-close="true"]')) {
       els.modal.hidden = true;
-      if (els.gamesModal) {
-        els.gamesModal.hidden = true;
-      }
     }
   });
 }
@@ -1032,43 +1024,23 @@ async function loadSchedule() {
     if (!rows.length) throw new Error("No data found.");
 
     scheduleGames = buildGames(rows, season);
+    scheduleGames.sort(compareGameDates);
     rebuildGamesByDate();
 
     if (!scheduleGames.length) throw new Error("No games found.");
 
-    const now = new Date();
-    currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const hasCurrentMonthGames = scheduleGames.some(
-      (g) =>
-        g.dateObj &&
-        g.dateObj.getMonth() === currentMonth.getMonth() &&
-        g.dateObj.getFullYear() === currentMonth.getFullYear()
-    );
-    if (!hasCurrentMonthGames && scheduleGames[0] && scheduleGames[0].dateObj) {
-      currentMonth = new Date(
-        scheduleGames[0].dateObj.getFullYear(),
-        scheduleGames[0].dateObj.getMonth(),
-        1
-      );
-    }
     const todayToken = getTodayToken();
-    const firstInCurrentMonth = scheduleGames.find(
-      (g) => g.dateObj && g.dateObj.getMonth() === currentMonth.getMonth()
-    );
+    const upcomingGames = getUpcomingGames(1);
     selectedDateKey = gamesByDate.has(todayToken)
       ? todayToken
-      : firstInCurrentMonth
-      ? firstInCurrentMonth.dateToken
+      : upcomingGames[0]
+      ? upcomingGames[0].dateToken
       : scheduleGames[0].dateToken;
-
-    renderCalendar();
-    renderGameList();
+    renderScheduleViews();
     updateLastUpdated();
   } catch (error) {
-    if (els.games) {
-      els.games.hidden = false;
-      els.games.innerHTML = `<div class="gm-empty">${escapeHtml(error.message)}</div>`;
-    }
+    renderGameSection(els.nextGames, [], error.message);
+    renderGameSection(els.dayGames, [], error.message);
   }
 }
 

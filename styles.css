@@ -821,6 +821,30 @@ h2 {
   align-items: center;
 }
 
+.controls input[type="text"],
+.controls select {
+  min-width: 0;
+}
+
+.schedule-group + .schedule-group {
+  margin-top: 20px;
+}
+
+.schedule-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.schedule-group-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .fa-controls {
   width: min(100%, 860px);
   display: grid;

@@ -50,20 +50,24 @@
         <div class="panel-head">
           <h2>Schedule</h2>
           <div class="controls">
+            <label for="schedule-day" class="label">Day</label>
+            <select id="schedule-day"></select>
             <label for="schedule-search" class="label">Search</label>
             <input id="schedule-search" type="text" placeholder="Search games" />
           </div>
         </div>
-        <div class="calendar-toolbar">
-          <button id="calendar-prev" class="btn ghost" type="button">Prev</button>
-          <strong id="calendar-month">Month</strong>
-          <button id="calendar-next" class="btn ghost" type="button">Next</button>
-        </div>
-        <div id="calendar-grid" class="calendar-grid"></div>
-        <div id="calendar-games" class="calendar-games" hidden></div>
-        <div class="table-wrap" hidden>
-          <table id="schedule-table"><thead></thead><tbody></tbody></table>
-        </div>
+        <section class="schedule-group">
+          <div class="schedule-group-head">
+            <h3>Next 3 Games</h3>
+          </div>
+          <div id="next-games" class="calendar-games"></div>
+        </section>
+        <section class="schedule-group">
+          <div class="schedule-group-head">
+            <h3 id="day-games-title">Games By Day</h3>
+          </div>
+          <div id="day-games" class="calendar-games"></div>
+        </section>
       </section>
     </main>
 
@@ -77,17 +81,6 @@
         <div id="boxscore-details" class="boxscore-details"></div>
       </div>
     </div>
-    <div id="games-modal" class="modal" hidden>
-      <div class="modal-backdrop" data-close="true"></div>
-      <div class="modal-card" role="dialog" aria-modal="true">
-        <div class="modal-head">
-          <h2 id="games-modal-title">Games</h2>
-          <button class="modal-close" data-close="true">Close</button>
-        </div>
-        <div id="games-modal-details" class="calendar-games"></div>
-      </div>
-    </div>
-
     <footer class="footer">
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
