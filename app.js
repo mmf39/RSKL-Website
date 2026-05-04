@@ -327,6 +327,23 @@ function buildStateCard(title, body) {
   return `<div class="dashboard-state-card"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(body)}</span></div>`;
 }
 
+function prepareDashboardScheduleRows(rows, seasonRaw) {
+  if (!rows.length) return [];
+  if (seasonRaw !== "c2s3-regular") return rows;
+  const headerRowIndex = rows.findIndex((row) => {
+    const header = row.map((value) => String(value || "").trim().toLowerCase());
+    return (
+      header.some((value) => value === "date" || value.includes("date")) &&
+      header.some((value) => value.includes("team 1") || value.includes("team1") || value.includes("away")) &&
+      header.some((value) => value.includes("team 2") || value.includes("team2") || value.includes("home"))
+    );
+  });
+  if (headerRowIndex >= 0) {
+    return rows.slice(headerRowIndex);
+  }
+  return rows;
+}
+
 function updateLastUpdated() {
   const now = new Date();
   const formatted = now.toLocaleString(undefined, {
@@ -443,12 +460,12 @@ function renderLeagueSnapshot(items) {
         <a class="team-card dashboard-team-card ${getTeamColorClass(team)}" href="/team.html?team=${encodeURIComponent(team)}">
           <div class="dashboard-team-top">
             <span class="dashboard-rank-badge">#${item.rank}</span>
-            ${renderSmallTeamLogo(team)}
+            <span class="dashboard-team-logo-wrap">${renderSmallTeamLogo(team)}</span>
           </div>
           <div class="team-title">${escapeHtml(team)}</div>
           <div class="dashboard-team-metrics">
             <div class="team-record">
-              <span>Record</span>
+              <span>W-L</span>
               <strong>${escapeHtml(record)}</strong>
             </div>
             <div class="team-record small">
@@ -456,7 +473,7 @@ function renderLeagueSnapshot(items) {
               <strong>${escapeHtml(String(gb))}</strong>
             </div>
             <div class="team-record small">
-              <span>Win %</span>
+              <span>PCT</span>
               <strong>${escapeHtml(winPct)}</strong>
             </div>
           </div>
@@ -688,10 +705,10 @@ function renderFeaturedMatchups(games, seasonRaw) {
   if (!els.featuredMatchups) return;
   if (!games.length) {
     els.featuredMatchups.innerHTML = buildStateCard(
-      "No Featured Matchups",
+      "No Featured Games",
       seasonRaw === "c2s1-regular"
-        ? "No schedule-driven featured matchups are available for this archived season."
-        : "No upcoming or featured games were found in the current schedule feed."
+        ? "Archived season has no feature-ready schedule block."
+        : "Add future-dated games to the schedule feed."
     );
     return;
   }
@@ -840,7 +857,11 @@ function parseTradeRows(rows) {
     .map((row) => ({
       date: String(row[0] || "").trim() || "—",
       type: "Trade",
-      summary: `${displayTeamName(row[1] || "Team 1")} receive ${String(row[2] || "").trim() || "—"} | ${displayTeamName(row[3] || "Team 2")} receive ${String(row[4] || "").trim() || "—"}`,
+      summary: `${displayTeamName(row[1] || "Team 1")} gets ${String(row[2] || "").trim() || "—"} • ${displayTeamName(row[3] || "Team 2")} gets ${String(row[4] || "").trim() || "—"}`,
+      team1: displayTeamName(row[1] || ""),
+      team1Gets: String(row[2] || "").trim() || "—",
+      team2: displayTeamName(row[3] || ""),
+      team2Gets: String(row[4] || "").trim() || "—",
       teams: [displayTeamName(row[1] || ""), displayTeamName(row[3] || "")].filter(Boolean),
       players: Array.from(new Set([...extractPlayers(row[2]), ...extractPlayers(row[4])])),
     }));
@@ -865,6 +886,7 @@ function parseSinglePartyRows(rows, type) {
         date,
         type,
         summary: `${player || "Player"} ${verb}${team ? ` • ${team}` : ""}`,
+        team,
         teams: team ? [team] : [],
         players: player ? [player] : [],
       };
@@ -879,23 +901,52 @@ function renderRecentTransactions(items) {
   }
 
   els.recentTransactions.innerHTML = items
-    .map(
-      (item) => `
+    .map((item) => {
+      const teamPills = (item.teams || [])
+        .slice(0, 2)
+        .map(
+          (team) => `
+            <a class="dashboard-pill-link" href="/team.html?team=${encodeURIComponent(team)}">
+              ${renderSmallTeamLogo(team)}
+              <span>${escapeHtml(team)}</span>
+            </a>
+          `
+        )
+        .join("");
+
+      const tradeSides =
+        item.type === "Trade" && item.team1 && item.team2
+          ? `
+            <div class="dashboard-trade-sides">
+              <div class="dashboard-trade-side">
+                <a class="dashboard-trade-team" href="/team.html?team=${encodeURIComponent(item.team1)}">
+                  ${renderSmallTeamLogo(item.team1)}
+                  <span>${escapeHtml(item.team1)}</span>
+                </a>
+                <div class="dashboard-trade-return">${escapeHtml(item.team1Gets || "—")}</div>
+              </div>
+              <div class="dashboard-trade-side">
+                <a class="dashboard-trade-team" href="/team.html?team=${encodeURIComponent(item.team2)}">
+                  ${renderSmallTeamLogo(item.team2)}
+                  <span>${escapeHtml(item.team2)}</span>
+                </a>
+                <div class="dashboard-trade-return">${escapeHtml(item.team2Gets || "—")}</div>
+              </div>
+            </div>
+          `
+          : `<div class="dashboard-transaction-body">${escapeHtml(item.summary)}</div>`;
+
+      return `
         <article class="dashboard-transaction-card">
           <div class="dashboard-transaction-head">
             <span class="dashboard-transaction-type">${escapeHtml(item.type)}</span>
             <span class="dashboard-transaction-date">${escapeHtml(item.date || "—")}</span>
           </div>
-          <div class="dashboard-transaction-body">${escapeHtml(item.summary)}</div>
-          <div class="dashboard-transaction-meta">
-            ${(item.teams || [])
-              .slice(0, 2)
-              .map((team) => `<a class="dashboard-pill-link" href="/team.html?team=${encodeURIComponent(team)}">${escapeHtml(team)}</a>`)
-              .join("")}
-          </div>
+          ${tradeSides}
+          <div class="dashboard-transaction-meta">${teamPills}</div>
         </article>
-      `
-    )
+      `;
+    })
     .join("");
 }
 
@@ -969,7 +1020,7 @@ async function loadData() {
       const liveGames = liveRows.length ? parseLiveGames(liveRows) : [];
       renderLiveScoring(liveGames, seasonRaw);
 
-      const featuredGames = scheduleRows.length ? getFeaturedGames(buildScheduleGames(scheduleRows, seasonRaw), liveGames) : [];
+      const featuredGames = scheduleRows.length ? getFeaturedGames(buildScheduleGames(prepareDashboardScheduleRows(scheduleRows, seasonRaw), seasonRaw), liveGames) : [];
       renderFeaturedMatchups(featuredGames, seasonRaw);
 
       if (playerRows.length) {

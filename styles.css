@@ -846,13 +846,34 @@ h1 {
   background: rgba(9, 18, 38, 0.56) !important;
 }
 
-.home-hero-copy,
 .dashboard-live-card,
 .dashboard-matchup-card,
 .dashboard-team-card,
 .dashboard-transaction-card,
 .dashboard-leader-card {
   text-align: left;
+}
+
+.home-hero-copy {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+.home-kicker {
+  justify-content: center;
+}
+
+.home-hero-logo {
+  margin-top: 0;
+}
+
+.home-subtitle {
+  text-align: center;
+}
+
+.home-action-row {
+  justify-content: center;
 }
 
 .dashboard-panel {
@@ -1086,13 +1107,30 @@ h1 {
 
 .dashboard-team-card {
   display: grid;
-  gap: 14px;
-  padding: 18px;
+  gap: 16px;
+  padding: 20px;
 }
 
 .dashboard-team-card .team-title {
-  font-size: 1.16rem;
+  font-size: 1.5rem;
+  line-height: 1.05;
   text-align: left;
+}
+
+.dashboard-team-logo-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 170, 86, 0.12);
+}
+
+.dashboard-team-logo-wrap .standings-logo {
+  width: 40px;
+  height: 40px;
 }
 
 .dashboard-team-metrics {
@@ -1103,14 +1141,26 @@ h1 {
 
 .dashboard-team-card .team-record {
   border-radius: 14px;
-  padding: 12px 10px;
+  padding: 12px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 170, 86, 0.12);
   text-align: left;
+  display: grid;
+  gap: 6px;
+}
+
+.dashboard-team-card .team-record span {
+  color: rgba(255, 223, 188, 0.7);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .dashboard-team-card .team-record strong {
-  font-size: 1.18rem;
+  color: #ffbf61;
+  font-size: 1.8rem;
+  line-height: 1;
 }
 
 .dashboard-transactions-list {
@@ -1129,6 +1179,35 @@ h1 {
   text-wrap: pretty;
 }
 
+.dashboard-trade-sides {
+  display: grid;
+  gap: 12px;
+}
+
+.dashboard-trade-side {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 170, 86, 0.1);
+}
+
+.dashboard-trade-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff7ed;
+  font-size: 1.06rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.dashboard-trade-return {
+  color: rgba(255, 228, 196, 0.86);
+  line-height: 1.45;
+}
+
 .dashboard-transaction-meta {
   display: flex;
   flex-wrap: wrap;
@@ -1144,8 +1223,14 @@ h1 {
   background: rgba(255, 140, 26, 0.12);
   color: rgba(255, 221, 178, 0.92);
   text-decoration: none;
+  gap: 8px;
   font-size: 0.82rem;
   font-weight: 700;
+}
+
+.dashboard-pill-link .standings-logo {
+  width: 20px;
+  height: 20px;
 }
 
 .site-menu[hidden] {
@@ -4272,6 +4357,32 @@ input[type="text"] {
 
   .dashboard-live-score {
     font-size: 1.4rem;
+  }
+
+  .home-title {
+    font-size: clamp(3rem, 20vw, 4.5rem);
+  }
+
+  .home-subtitle {
+    font-size: 1rem;
+  }
+
+  .home-action-row {
+    width: 100%;
+  }
+
+  .home-action-row .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .dashboard-team-metrics,
+  .dashboard-trade-sides {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-team-card .team-record strong {
+    font-size: 1.55rem;
   }
 
   .summary-card {
