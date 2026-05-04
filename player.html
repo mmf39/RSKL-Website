@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20260503i" />
   </head>
   <body class="player-page">
     <div class="bg"></div>
@@ -43,35 +43,48 @@
       </div>
     </header>
 
-    <main class="container">
-      <section class="panel">
+    <main class="container player-shell">
+      <section class="panel player-dashboard-panel">
         <div class="panel-head">
-          <h2>Top 25 (Avg/Game)</h2>
-          <div class="controls">
-            <label for="player-season-select" class="label">Season</label>
-            <select id="player-season-select">
-              <option value="c2s3-regular">C2S3 Regular Season</option>
-              <option value="c2s2-regular">C2S2 Regular Season (Previous)</option>
-              <option value="c2s1-playoffs">C2S1 Playoffs</option>
-              <option value="c2s1-regular">C2S1 Regular Season</option>
-            </select>
-            <label for="player-filter" class="label">Filter</label>
-            <select id="player-filter">
-              <option value="avg_score">Score Average</option>
-              <option value="total_score">Total Score</option>
-              <option value="avg_rank">Rank Average</option>
-              <option value="rel_median">REL (Median)</option>
-              <option value="rel_mean">REL (Mean)</option>
-              <option value="war">WAR</option>
-              <option value="gp">GP</option>
-            </select>
-            <label for="player-search" class="label">Player</label>
-            <input id="player-search" type="text" placeholder="Type a player name" />
-            <label for="player-min-gp" class="label">Min GP</label>
-            <input id="player-min-gp" type="number" min="0" step="1" value="0" placeholder="0" />
+          <div class="player-panel-heading">
+            <span class="player-panel-kicker">Leaderboard</span>
+            <h2>Top 25 Players</h2>
+          </div>
+          <div class="controls player-controls">
+            <div class="control-field">
+              <label for="player-season-select" class="label">Season</label>
+              <select id="player-season-select">
+                <option value="c2s3-regular">C2S3 Regular Season</option>
+                <option value="c2s2-regular">C2S2 Regular Season (Previous)</option>
+                <option value="c2s1-playoffs">C2S1 Playoffs</option>
+                <option value="c2s1-regular">C2S1 Regular Season</option>
+              </select>
+            </div>
+            <div class="control-field">
+              <label for="player-filter" class="label">Filter</label>
+              <select id="player-filter">
+                <option value="avg_score">Score Average</option>
+                <option value="total_score">Total Score</option>
+                <option value="avg_rank">Rank Average</option>
+                <option value="rel_median">REL (Median)</option>
+                <option value="rel_mean">REL (Mean)</option>
+                <option value="war">WAR</option>
+                <option value="gp">GP</option>
+              </select>
+            </div>
+            <div class="control-field">
+              <label for="player-search" class="label">Player</label>
+              <input id="player-search" type="text" placeholder="Type a player name" />
+            </div>
+            <div class="control-field">
+              <label for="player-min-gp" class="label">Min GP</label>
+              <input id="player-min-gp" type="number" min="0" step="1" value="0" placeholder="0" />
+            </div>
           </div>
         </div>
-        <div id="player-results" class="player-results"></div>
+        <div class="player-results-shell">
+          <div id="player-results" class="player-results"></div>
+        </div>
       </section>
     </main>
 
@@ -79,7 +92,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="player.js?v=20260424a"></script>
+    <script src="player.js?v=20260503a"></script>
       <script src="header-nav.js"></script>
   </body>
 </html>
