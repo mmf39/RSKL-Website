@@ -4004,15 +4004,6 @@ input[type="text"] {
   background: rgba(255, 176, 86, 0.06);
 }
 
-.gm-tab-meta {
-  display: inline-block;
-  margin-left: 8px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: rgba(234, 214, 188, 0.78);
-}
-
 .gm-tab.active {
   border-color: rgba(255, 173, 71, 0.7);
   color: #1f2436;
@@ -4020,8 +4011,17 @@ input[type="text"] {
   box-shadow: 0 10px 28px rgba(255, 160, 32, 0.22);
 }
 
-.gm-tab.active .gm-tab-meta {
-  color: rgba(31, 36, 54, 0.8);
+.gm-tab-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 10px 18px;
+  background: rgba(255, 176, 86, 0.08);
+  border: 1px solid rgba(255, 176, 86, 0.22);
+  color: rgba(234, 214, 188, 0.82);
+  cursor: default;
+  pointer-events: none;
 }
 
 .gm-tab-panel {
@@ -5288,9 +5288,9 @@ input[type="text"] {
     padding: 10px 12px;
   }
 
-  .gm-tab-meta {
-    display: block;
-    margin: 4px 0 0;
+  .gm-tab-info {
+    width: 100%;
+    text-align: center;
   }
 
   #gm-panel-head {
