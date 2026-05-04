@@ -386,7 +386,9 @@ async function findTeamForPlayer(season, playerName) {
     return "";
   }
   if (season === "c2s3-regular" || season === "c2s2-regular" || season === "career") {
-    const response = await fetch("/api/sheet?name=roster", { cache: "no-store" });
+    const rosterUrl =
+      season === "c2s2-regular" ? C2S2_REGULAR_URL : "/api/sheet?name=roster";
+    const response = await fetch(rosterUrl, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`Fetch failed: ${response.status}`);
     }

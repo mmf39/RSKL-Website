@@ -3,6 +3,7 @@ const STANDINGS_RECORDS_URL = "/api/sheet?name=standings";
 const TEAMS_CSV_URL = "/api/sheet?name=teams";
 const LIVE_SCORING_URL = "/api/sheet?name=live-scoring";
 const ARCHIVE_URL = "/api/sheet?name=archive";
+const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const SEASON_KEY = "season";
 
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
@@ -691,8 +692,9 @@ async function fetchSheet(url) {
 
 async function loadData() {
   try {
+    const seasonRaw = getSeasonRaw();
     const season = getSeason();
-    if (season === "c2s2") {
+    if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s2-playoffs") {
       const [standingsRecordData, liveData, scheduleData] = await Promise.all([
         fetchSheet(STANDINGS_RECORDS_URL),
         fetchSheet(LIVE_SCORING_URL),
@@ -701,6 +703,11 @@ async function loadData() {
       renderTeamsCards(standingsRecordData);
       renderLiveScoring(liveData, scheduleData);
       els.liveRow.parentElement.style.display = "";
+    } else if (seasonRaw === "c2s2-regular") {
+      const regularRows = await fetchSheet(C2S2_REGULAR_URL);
+      const standings = sliceRange(regularRows, "A59:F69");
+      renderTeamsCardsArchive(standings);
+      els.liveRow.parentElement.style.display = "none";
     } else {
       const archive = await fetchSheet(ARCHIVE_URL);
       const standings = sliceRange(archive, ARCHIVE_RANGES.standings);

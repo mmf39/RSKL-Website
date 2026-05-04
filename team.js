@@ -1596,20 +1596,13 @@ async function loadRoster() {
       );
       updateAdvancedTeamStats(computeAdvancedTeamStats(teamName, playerStatRows));
     } else if (season === "c2s2-regular") {
-      const [rosterRes, regularRes] = await Promise.all([
-        fetch(ROSTER_CSV_URL, { cache: "no-store" }),
+      const [regularRes] = await Promise.all([
         fetch(C2S2_REGULAR_URL, { cache: "no-store" }),
       ]);
-      if (!rosterRes.ok) {
-        throw new Error(`Fetch failed: ${rosterRes.status}`);
-      }
       if (!regularRes.ok) {
         throw new Error(`Fetch failed: ${regularRes.status}`);
       }
-      const rows = parseCSV(await rosterRes.text());
-      if (!rows.length) {
-        throw new Error("No data found.");
-      }
+      const rows = parseCSV(await regularRes.text());
       const range = TEAM_RANGES[teamName];
       if (!range) {
         throw new Error("Team roster range not found.");
@@ -1620,7 +1613,7 @@ async function loadRoster() {
       }
       renderTable(sliced[0], sliced.slice(1), teamName);
 
-      const regularRows = parseCSV(await regularRes.text());
+      const regularRows = rows;
       const standingsTable = sliceRange(regularRows, C2S2_REGULAR_RANGES.standings);
       const scheduleRows = getC2S2ScheduleRows(
         regularRows,
