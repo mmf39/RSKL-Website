@@ -1,28 +1,102 @@
 const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
 const STANDINGS_RECORDS_URL = "/api/sheet?name=standings";
 const TEAMS_CSV_URL = "/api/sheet?name=teams";
+const SCHEDULE_URL = "/api/sheet?name=schedule";
 const LIVE_SCORING_URL = "/api/sheet?name=live-scoring";
+const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
+const TRANSACTIONS_CSV_URL = "/api/sheet?name=transactions";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const SEASON_KEY = "season";
 
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
+const TEAMS_LIMIT = 10;
+
+const TEAM_ORDER = [
+  "Turkeys",
+  "Gus N Em",
+  "Storm",
+  "Cheerios",
+  "MayeDay",
+  "Illegals",
+  "The Lions",
+  "Dream Team",
+  "The Snipers",
+  "The Phantoms",
+];
+
+const CURRENT_STANDINGS_RANGES = {
+  Turkeys: "H3:M3",
+  "Gus N Em": "H4:M4",
+  Storm: "H5:M5",
+  Cheerios: "H6:M6",
+  MayeDay: "H7:M7",
+  Illegals: "H8:M8",
+  "The Lions": "H9:M9",
+  "Dream Team": "H10:M10",
+  "The Phantoms": "H11:M11",
+  "The Snipers": "H12:M12",
+};
+
+const ARCHIVE_RANGES = {
+  standings: "A1:F7",
+  schedule_regular: "G31:I79",
+  schedule_post: "A31:D43",
+  player_stats: "A45:F117",
+};
+
+const C2S2_REGULAR_RANGES = {
+  standings: "A59:F69",
+  schedule: "A71:E170",
+  player_stats: "A151:G1150",
+};
+
+const TRANSACTION_RANGES = {
+  trade: "A3:E81",
+  retirement: "G3:J70",
+  cut: "L3:O81",
+  signing: "Q3:T81",
+};
+
+const LIVE_GAME_RANGES = [
+  "A5:G11",
+  "A13:G19",
+  "A21:G27",
+  "A29:G35",
+  "A37:G43",
+  "A45:G51",
+  "A53:G59",
+  "A61:G67",
+  "A69:G75",
+  "A77:G83",
+  "A85:G91",
+  "A93:G99",
+  "A101:G107",
+  "A109:G115",
+  "A117:G122",
+];
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
-  teamsGrid: document.getElementById("teams-grid"),
   standingsLink: document.getElementById("standings-link"),
   teamsLink: document.getElementById("teams-link"),
+  teamsGrid: document.getElementById("teams-grid"),
   liveRow: document.getElementById("live-scoring"),
+  featuredMatchups: document.getElementById("featured-matchups"),
+  leagueLeaders: document.getElementById("league-leaders"),
+  recentTransactions: document.getElementById("recent-transactions"),
   liveModal: document.getElementById("live-modal"),
   liveDetails: document.getElementById("live-details"),
 };
 
-const TEAMS_LIMIT = 10;
+let currentLiveGames = [];
 
-
-els.standingsLink.href = STANDINGS_CSV_URL;
-els.teamsLink.href = TEAMS_CSV_URL;
+if (els.standingsLink) {
+  els.standingsLink.href = STANDINGS_CSV_URL;
+}
+if (els.teamsLink) {
+  els.teamsLink.href = TEAMS_CSV_URL;
+}
 
 function parseCSV(text) {
   const rows = [];
@@ -74,41 +148,6 @@ function parseCSV(text) {
   return rows;
 }
 
-function getSeason() {
-  const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
-  if (
-    raw === "c2s3-regular" ||
-    raw === "c2s2-playoffs" ||
-    raw === "c2s2-regular" ||
-    raw === "c2s2"
-  ) {
-    return "c2s2";
-  }
-  return raw;
-}
-
-function getSeasonRaw() {
-  const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
-  if (raw === "c2s2" || raw === "c2s2-playoffs") return "c2s3-regular";
-  return raw;
-}
-
-function initSeasonSelect() {
-  const select = document.getElementById("season-select");
-  if (!select) {
-    return;
-  }
-  select.value = getSeasonRaw();
-  if (!select.value) {
-    select.value = "c2s3-regular";
-  }
-  localStorage.setItem(SEASON_KEY, select.value);
-  select.addEventListener("change", () => {
-    localStorage.setItem(SEASON_KEY, select.value);
-    location.reload();
-  });
-}
-
 function colToIndex(letter) {
   return letter.toUpperCase().charCodeAt(0) - 65;
 }
@@ -132,10 +171,9 @@ function sliceRange(rows, range) {
   if (!parsed) {
     return [];
   }
-  const slicedRows = rows.slice(parsed.startRow, parsed.endRow + 1);
-  return slicedRows.map((row) =>
-    row.slice(parsed.startCol, parsed.endCol + 1)
-  );
+  return rows
+    .slice(parsed.startRow, parsed.endRow + 1)
+    .map((row) => row.slice(parsed.startCol, parsed.endCol + 1));
 }
 
 function escapeHtml(value) {
@@ -147,216 +185,63 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-
-const TEAM_RANGES = {
-  "Gus N Em": "B2:C13",
-  Storm: "E2:F13",
-  Turkeys: "H2:I13",
-  Cheerios: "B17:C28",
-  Yetis: "E17:F28",
-  Illegals: "H17:I28",
-  "The Lions": "B32:C43",
-  "The Future": "E32:F43",
-  "The Snipers": "H32:I43",
-  "The Phantoms": "B45:C56",
-};
-
-const TEAM_RECORD_RANGES = {
-  Turkeys: { record: "J3:K3", winPct: "M3:M3" },
-  "Gus N Em": { record: "J4:K4", winPct: "M4:M4" },
-  Storm: { record: "J5:K5", winPct: "M5:M5" },
-  Cheerios: { record: "J6:K6", winPct: "M6:M6" },
-  Yetis: { record: "J7:K7", winPct: "M7:M7" },
-  Illegals: { record: "J8:K8", winPct: "M8:M8" },
-  "The Lions": { record: "J9:K9", winPct: "M9:M9" },
-  "The Future": { record: "J10:K10", winPct: "M10:M10" },
-  "The Phantoms": { record: "J11:K11", winPct: "M11:M11" },
-  "The Snipers": { record: "J12:K12", winPct: "M12:M12" },
-};
-
-const ARCHIVE_RANGES = {
-  standings: "A1:F7",
-  teams: "H1:O27",
-  schedule_regular: "G31:I79",
-  schedule_post: "A31:D43",
-  bracket: "A9:F15",
-  boxscore: "L31:R149",
-  player_stats: "A45:F117",
-};
-
-function displayTeamName(value) {
-  const name = String(value || "").trim();
-  if (name === "Bullets") return "Storm";
-  if (name === "Yetis") return "MayeDay";
-  if (name === "The Future") return "Dream Team";
-  return name;
+function parseNumber(value) {
+  const num = Number(String(value || "").replace(/[^0-9.\-]/g, ""));
+  return Number.isNaN(num) ? null : num;
 }
 
-function getTeamLogo(name) {
-  const shownName = displayTeamName(name);
-  const src = getTeamLogoSrc(shownName);
-  if (!src) {
-    return "";
-  }
-  return `<img class="team-logo" src="${src}" alt="${escapeHtml(shownName)} logo" />`;
+function parsePct(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const num = parseNumber(raw);
+  if (num === null) return null;
+  return num > 1 ? num / 100 : num;
 }
 
-function getTeamLogoSrc(name) {
-  if (name === "The Future" || name === "Dream Team") {
-    return "/assets/dream-team.jpg";
+function parseDateValue(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return Number.NEGATIVE_INFINITY;
   }
-  if (name === "The Lions") {
-    return "/assets/the-lions.png";
+  const mdy = text.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (mdy) {
+    const month = Number(mdy[1]) - 1;
+    const day = Number(mdy[2]);
+    let year = mdy[3] ? Number(mdy[3]) : new Date().getFullYear();
+    if (year < 100) year += 2000;
+    const timestamp = new Date(year, month, day).getTime();
+    return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp;
   }
-  if (name === "The Snipers") {
-    return "/assets/the-snipers.png";
-  }
-  if (name === "The Phantoms") {
-    return "/assets/the-phantoms.png";
-  }
-  if (name === "MayeDay") {
-    return "/assets/mayeday.jpg";
-  }
-  if (name === "Yetis") {
-    return "/assets/yetis.png";
-  }
-  if (name === "Gus N Em") {
-    return "/assets/gus-n-em.png";
-  }
-  if (name === "Cheerios") {
-    return "/assets/cheerios.png";
-  }
-  if (name === "Illegals") {
-    return "/assets/illegals.png";
-  }
-  if (name === "Bullets" || name === "Storm") {
-    return "/assets/storm.png";
-  }
-  if (name === "Turkeys") {
-    return "/assets/turkeys.png";
-  }
-  return "";
+  const parsed = Date.parse(text);
+  return Number.isNaN(parsed) ? Number.NEGATIVE_INFINITY : parsed;
 }
 
-function renderSmallTeamLogo(name) {
-  const src = getTeamLogoSrc(String(name || "").trim());
-  if (!src) {
-    return "";
-  }
-  return `<img class="standings-logo" src="${src}" alt="${escapeHtml(
-    String(name || "").trim()
-  )} logo" />`;
+function normalizeDateToken(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/(\d{1,2}\/\d{1,2})(?:\/\d{2,4})?/);
+  return match ? match[1] : "";
 }
 
-function getTeamColorClass(name) {
-  const clean = String(name || "").trim().toLowerCase();
-  if (clean === "turkeys") return "team-color-turkeys";
-  if (clean === "gus n em") return "team-color-gus";
-  if (clean === "storm" || clean === "bullets") return "team-color-storm";
-  if (clean === "cheerios") return "team-color-cheerios";
-  if (clean === "yetis" || clean === "mayeday") return "team-color-yetis";
-  if (clean === "illegals") return "team-color-illegals";
-  if (clean === "the lions") return "team-color-lions";
-  if (clean === "the future" || clean === "dream team") return "team-color-future";
-  if (clean === "the snipers") return "team-color-snipers";
-  if (clean === "the phantoms") return "team-color-phantoms";
-  return "team-color-default";
+function parseDateFromToken(token) {
+  const match = String(token || "").trim().match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (!match) return null;
+  const now = new Date();
+  const date = new Date(now.getFullYear(), Number(match[1]) - 1, Number(match[2]));
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function renderTeamsCards(standingsRecordRows) {
-  const teamNames = Object.keys(TEAM_RANGES).slice(0, TEAMS_LIMIT);
-  if (!teamNames.length) {
-    els.teamsGrid.innerHTML = "<p>No team data available.</p>";
-    return;
-  }
-
-  els.teamsGrid.innerHTML = teamNames
-    .map((name) => {
-      const link = `team.html?team=${encodeURIComponent(name)}`;
-      const logo = getTeamLogo(name);
-      const ranges = TEAM_RECORD_RANGES[name];
-      const recordSlice =
-        ranges && standingsRecordRows.length
-          ? sliceRange(standingsRecordRows, ranges.record)
-          : [];
-      const winPctSlice =
-        ranges && standingsRecordRows.length
-          ? sliceRange(standingsRecordRows, ranges.winPct)
-          : [];
-      const record =
-        recordSlice.length && recordSlice[0].length >= 2
-          ? `${recordSlice[0][0]}-${recordSlice[0][1]}`
-          : "—";
-      const winPct =
-        winPctSlice.length && winPctSlice[0].length
-          ? winPctSlice[0][0]
-          : "—";
-      return `
-        <a class="team-card" href="${link}">
-          ${logo}
-          <div class="team-title">${escapeHtml(displayTeamName(name))}</div>
-          <div class="team-record">
-            <span>Record</span>
-            <strong>${escapeHtml(record)}</strong>
-          </div>
-          <div class="team-record small">
-            <span>Win %</span>
-            <strong>${escapeHtml(winPct || "—")}</strong>
-          </div>
-        </a>
-      `;
-    })
-    .join("");
-}
-
-function renderTeamsCardsArchive(standingsRows) {
-  const headers = standingsRows[0] || [];
-  const dataRows = standingsRows.slice(1);
-  const lower = headers.map((h) => h.toLowerCase());
-  const teamIdx = lower.findIndex((h) => h.includes("team"));
-  const winsIdx = lower.findIndex((h) => h.includes("win"));
-  const lossIdx = lower.findIndex((h) => h.includes("loss"));
-  const winPctIdx = lower.findIndex((h) => h.includes("win %") || h.includes("win%"));
-
-  const teams = dataRows
-    .map((row) => ({
-      name: row[teamIdx !== -1 ? teamIdx : 0],
-      wins: row[winsIdx],
-      losses: row[lossIdx],
-      winPct: row[winPctIdx],
-    }))
-    .filter((row) => row.name);
-
-  els.teamsGrid.innerHTML = teams
-    .slice(0, TEAMS_LIMIT)
-    .map((team) => {
-      const link = `team.html?team=${encodeURIComponent(team.name)}`;
-      const logo = getTeamLogo(team.name);
-      const record =
-        team.wins !== undefined && team.losses !== undefined
-          ? `${team.wins}-${team.losses}`
-          : "—";
-      const winPct = team.winPct ?? "—";
-      return `
-        <a class="team-card" href="${link}">
-          ${logo}
-          <div class="team-title">${escapeHtml(displayTeamName(team.name))}</div>
-          <div class="team-record">
-            <span>Record</span>
-            <strong>${escapeHtml(record)}</strong>
-          </div>
-          <div class="team-record small">
-            <span>Win %</span>
-            <strong>${escapeHtml(winPct)}</strong>
-          </div>
-        </a>
-      `;
-    })
-    .join("");
+function formatDateLabel(token) {
+  const parsed = parseDateFromToken(token);
+  if (!parsed) return token;
+  return parsed.toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function normalizeTeamName(name) {
-  return String(name || "")
+  return displayTeamName(String(name || ""))
     .replace(/\([^)]*\)/g, "")
     .replace(/[:*]/g, "")
     .replace(/[^a-zA-Z0-9 ]/g, " ")
@@ -366,315 +251,93 @@ function normalizeTeamName(name) {
     .toLowerCase();
 }
 
-function cleanTeamLabel(name) {
-  return String(name || "").replace(/\([^)]*\)/g, "").trim();
+function getSeasonRaw() {
+  const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
+  if (raw === "c2s2" || raw === "c2s2-playoffs") return "c2s3-regular";
+  return raw;
 }
 
-function extractLeagueDay(rows) {
-  const row = rows.find(
-    (r) =>
-      String(r[0] || "").includes("League Day") ||
-      String(r[1] || "").includes("League Day")
-  );
-  if (!row) {
-    return "";
+function initSeasonSelect() {
+  const select = document.getElementById("season-select");
+  if (!select) return;
+  select.value = getSeasonRaw();
+  if (!select.value) {
+    select.value = "c2s3-regular";
   }
-  const cell = String(row[0] || row[1] || "");
-  const parts = cell.split(":");
-  return parts.length > 1 ? parts[1].trim() : cell.trim();
-}
-
-function parseLiveGames(rows) {
-  const LIVE_GAME_RANGES = [
-    { range: "A5:G11", format: "standard" },
-    { range: "A13:G19", format: "standard" },
-    { range: "A21:G27", format: "standard" },
-    { range: "A29:G35", format: "standard" },
-    { range: "A37:G43", format: "standard" },
-    { range: "A45:G51", format: "standard" },
-    { range: "A53:G59", format: "standard" },
-    { range: "A61:G67", format: "standard" },
-    { range: "A69:G75", format: "standard" },
-    { range: "A77:G83", format: "standard" },
-    { range: "A85:G91", format: "standard" },
-    { range: "A93:G99", format: "standard" },
-    { range: "A101:G107", format: "standard" },
-    { range: "A109:G115", format: "standard" },
-    { range: "A117:G122", format: "standard" },
-  ];
-  const games = [];
-  LIVE_GAME_RANGES.forEach(({ range, format }) => {
-    const block = sliceRange(rows, range);
-    if (!block.length) {
-      return;
-    }
-    let team1 = "";
-    let team2 = "";
-    let headerIndex = 0;
-    if (format === "compact") {
-      const header = block[0] || [];
-      const headerA = String(header[0] || "").trim();
-      const headerD = String(header[3] || "").trim();
-      const combinedHeader = [headerA, headerD].filter(Boolean).join(" ");
-      const vsMatch = combinedHeader.match(/(.+?)\s+vs\s+(.+)/i);
-      if (vsMatch) {
-        team1 = String(vsMatch[1] || "").trim();
-        team2 = String(vsMatch[2] || "").trim();
-      } else {
-        team1 = headerA;
-        team2 = headerD;
-      }
-      if (String(team1).startsWith("@") || String(team2).startsWith("@")) {
-        team1 = "";
-        team2 = "";
-      }
-    } else {
-      let header = block[0] || [];
-      for (let i = 0; i < block.length; i += 1) {
-        const candidate = block[i] || [];
-        const left = String(candidate[0] || "").trim();
-        const right = String(candidate[4] || "").trim();
-        const looksHeader =
-          left &&
-          right &&
-          !left.startsWith("@") &&
-          !right.startsWith("@") &&
-          !left.includes("League Day") &&
-          !right.includes("League Day");
-        if (looksHeader) {
-          header = candidate;
-          headerIndex = i;
-          break;
-        }
-      }
-      team1 = String(header[0] || "").trim();
-      team2 = String(header[4] || "").trim();
-    }
-    if (!team1 || !team2) {
-      return;
-    }
-    let players = [];
-    let team1Players = [];
-    let team2Players = [];
-    if (format === "compact") {
-      const firstRow = block[0] || [];
-      const firstRowLooksPlayer =
-        String(firstRow[0] || "").trim().startsWith("@") ||
-        String(firstRow[3] || "").trim().startsWith("@");
-      const sourceRows = firstRowLooksPlayer ? block : block.slice(1);
-      const lines = sourceRows.filter((row) => {
-        const left = String(row[0] || "").trim();
-        const right = String(row[3] || "").trim();
-        return !!left || !!right;
-      });
-      team1Players = lines.map((row) => ({
-        player: row[0] || "",
-        points: row[1] || "",
-        rank: row[2] || "",
-      }));
-      team2Players = lines.map((row) => ({
-        player: row[3] || "",
-        points: "",
-        rank: "",
-      }));
-      players = lines;
-    } else {
-      players = block
-        .slice(headerIndex + 1)
-        .filter((row) => String(row[0] || row[4] || "").trim() !== "");
-      team1Players = players.map((row) => ({
-        player: row[0] || "",
-        points: row[1] || "",
-        rank: row[2] || "",
-      }));
-      team2Players = players.map((row) => ({
-        player: row[4] || "",
-        points: row[5] || "",
-        rank: row[6] || "",
-      }));
-    }
-    games.push({
-      team1,
-      team2,
-      key: `${normalizeTeamName(team1)}|${normalizeTeamName(team2)}`,
-      players,
-      team1Players,
-      team2Players,
-    });
+  localStorage.setItem(SEASON_KEY, select.value);
+  select.addEventListener("change", () => {
+    localStorage.setItem(SEASON_KEY, select.value);
+    location.reload();
   });
-
-  return games;
 }
 
-function getLiveScheduleIndexes(scheduleRows) {
-  const headers = (scheduleRows[0] || []).map((h) =>
-    String(h || "").trim().toLowerCase()
-  );
-  const findIdx = (checks) =>
-    headers.findIndex((h) => checks.some((check) => h.includes(check)));
-
-  let date = findIdx(["date"]);
-  let team1 = findIdx(["team 1", "team1", "away"]);
-  let team2 = findIdx(["team 2", "team2", "home"]);
-
-  if (team1 === -1 || team2 === -1) {
-    if ((scheduleRows[0] || []).length >= 4) {
-      if (date === -1) {
-        date = 1;
-      }
-      if (team1 === -1) {
-        team1 = 2;
-      }
-      if (team2 === -1) {
-        team2 = 3;
-      }
-    } else {
-      if (date === -1) {
-        date = 0;
-      }
-      if (team1 === -1) {
-        team1 = 1;
-      }
-      if (team2 === -1) {
-        team2 = 2;
-      }
-    }
-  }
-
-  return { date, team1, team2 };
+function displayTeamName(value) {
+  const name = String(value || "").trim();
+  if (name === "Bullets") return "Storm";
+  if (name === "Yetis") return "MayeDay";
+  if (name === "The Future") return "Dream Team";
+  return name;
 }
 
-function renderLiveScoring(rows, scheduleRows) {
-  if (!rows.length) {
-    els.liveRow.textContent = "No live scoring available.";
-    return;
+function getTeamLogoSrc(name) {
+  const shown = displayTeamName(name);
+  if (shown === "Dream Team") return "/assets/dream-team.jpg";
+  if (shown === "The Lions") return "/assets/the-lions.png";
+  if (shown === "The Snipers") return "/assets/the-snipers.png";
+  if (shown === "The Phantoms") return "/assets/the-phantoms.png";
+  if (shown === "MayeDay") return "/assets/mayeday.jpg";
+  if (shown === "Gus N Em") return "/assets/gus-n-em.png";
+  if (shown === "Cheerios") return "/assets/cheerios.png";
+  if (shown === "Illegals") return "/assets/illegals.png";
+  if (shown === "Storm") return "/assets/storm.png";
+  if (shown === "Turkeys") return "/assets/turkeys.png";
+  return "";
+}
+
+function getTeamColorClass(name) {
+  const clean = normalizeTeamName(name);
+  if (clean === "turkeys") return "team-color-turkeys";
+  if (clean === "gus n em") return "team-color-gus";
+  if (clean === "storm") return "team-color-storm";
+  if (clean === "cheerios") return "team-color-cheerios";
+  if (clean === "mayeday" || clean === "yetis") return "team-color-yetis";
+  if (clean === "illegals") return "team-color-illegals";
+  if (clean === "the lions") return "team-color-lions";
+  if (clean === "dream team" || clean === "the future") return "team-color-future";
+  if (clean === "the snipers") return "team-color-snipers";
+  if (clean === "the phantoms") return "team-color-phantoms";
+  return "team-color-default";
+}
+
+function renderSmallTeamLogo(name) {
+  const src = getTeamLogoSrc(name);
+  if (!src) return "";
+  return `<img class="standings-logo" src="${src}" alt="${escapeHtml(displayTeamName(name))} logo" />`;
+}
+
+function getSeasonLabel(seasonRaw) {
+  if (seasonRaw === "c2s3-regular") return "C2S3 Regular Season";
+  if (seasonRaw === "c2s2-regular") return "C2S2 Regular Season";
+  if (seasonRaw === "c2s1-regular") return "C2S1 Regular Season";
+  if (seasonRaw === "c2s1-post") return "C2S1 Postseason";
+  return "League Season";
+}
+
+function buildStateCard(title, body) {
+  return `<div class="dashboard-state-card"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(body)}</span></div>`;
+}
+
+function updateLastUpdated() {
+  const now = new Date();
+  const formatted = now.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  if (els.lastUpdated) {
+    els.lastUpdated.textContent = `Last updated: ${formatted}`;
   }
-
-  const leagueDay = extractLeagueDay(rows);
-  const liveGames = parseLiveGames(rows);
-  const liveMap = new Map(liveGames.map((g) => [g.key, g]));
-  const scheduleIdx = getLiveScheduleIndexes(scheduleRows);
-
-  const scheduleData = scheduleRows.slice(1);
-  const scheduleGames = scheduleData
-    .filter((row) => {
-      const dateValue = String(row[scheduleIdx.date] || "").trim();
-      return leagueDay && dateValue === leagueDay;
-    })
-    .map((row, idx) => {
-      const team1 = String(row[scheduleIdx.team1] || "").trim();
-      const team2 = String(row[scheduleIdx.team2] || "").trim();
-      const key = `${normalizeTeamName(team1)}|${normalizeTeamName(team2)}`;
-      const live = liveMap.get(key) || null;
-      return {
-        team1,
-        team2,
-        players: live ? live.players : [],
-        team1Players: live ? live.team1Players : [],
-        team2Players: live ? live.team2Players : [],
-      };
-    });
-
-  const games = scheduleGames.length ? scheduleGames : liveGames;
-
-  if (!games.length) {
-    els.liveRow.textContent = "No live games found for this day.";
-    return;
-  }
-
-  // Intentionally render only matchup cards (no "X live games • date" summary line).
-  els.liveRow.innerHTML = `
-    <div class="live-list">
-      ${games
-        .map((game, index) => {
-          const team1Label = cleanTeamLabel(game.team1);
-          const team2Label = cleanTeamLabel(game.team2);
-          return `
-            <div class="live-row-item ${getTeamColorClass(team1Label)} ${getTeamColorClass(
-            team2Label
-          )}" data-index="${index}">
-              <div class="live-matchup">
-                <strong class="live-team-name ${getTeamColorClass(team1Label)}">${renderSmallTeamLogo(
-                  team1Label
-                )}<span>${escapeHtml(game.team1)}</span></strong>
-                <span>vs</span>
-                <strong class="live-team-name ${getTeamColorClass(team2Label)}">${renderSmallTeamLogo(
-                  team2Label
-                )}<span>${escapeHtml(game.team2)}</span></strong>
-              </div>
-            </div>
-          `;
-        })
-        .join("")}
-    </div>
-  `;
-
-  els.liveRow.onclick = (event) => {
-    const rowEl = event.target.closest(".live-row-item");
-    if (!rowEl) {
-      return;
-    }
-    const index = Number(rowEl.dataset.index);
-    const game = games[index];
-    if (!game) {
-      return;
-    }
-
-    const team1Players = (game.team1Players || []).length
-      ? game.team1Players
-      : (game.players || []).map((row) => ({
-          player: row[0] || "",
-          points: row[1] || "",
-          rank: row[2] || "",
-        }));
-    const team2Players = (game.team2Players || []).length
-      ? game.team2Players
-      : (game.players || []).map((row) => ({
-          player: row[4] || "",
-          points: row[5] || "",
-          rank: row[6] || "",
-        }));
-
-    const renderTeamTable = (rowsList, header) => {
-      const teamLink = `team.html?team=${encodeURIComponent(
-        cleanTeamLabel(header)
-      )}`;
-      const logo = renderSmallTeamLogo(cleanTeamLabel(header));
-      const body = rowsList
-        .filter((row) => String(row.player || "").trim() !== "")
-        .map(
-          (row) => `
-            <div class="boxscore-row">
-              <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(
-                String(row.player || "").trim()
-              )}">${escapeHtml(row.player)}</a>
-              <span>${escapeHtml(row.points)}</span>
-              <span>${escapeHtml(row.rank)}</span>
-            </div>
-          `
-        )
-        .join("");
-      return `
-        <div class="boxscore-card">
-          <a class="boxscore-team" href="${teamLink}">${logo}<span>${escapeHtml(
-            header
-          )}</span></a>
-          <div class="boxscore-row">
-            <span>Player</span>
-            <span>Points</span>
-            <span>Rank</span>
-          </div>
-          ${body || '<div class="boxscore-empty">No stats available.</div>'}
-        </div>
-      `;
-    };
-
-    els.liveDetails.innerHTML = `
-      ${renderTeamTable(team1Players, game.team1)}
-      ${renderTeamTable(team2Players, game.team2)}
-    `;
-    els.liveModal.hidden = false;
-  };
 }
 
 async function fetchSheet(url) {
@@ -690,54 +353,765 @@ async function fetchSheet(url) {
   return rows;
 }
 
-async function loadData() {
-  try {
-    const seasonRaw = getSeasonRaw();
-    const season = getSeason();
-    if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s2-playoffs") {
-      const [standingsRecordData, liveData, scheduleData] = await Promise.all([
-        fetchSheet(STANDINGS_RECORDS_URL),
-        fetchSheet(LIVE_SCORING_URL),
-        fetchSheet("/api/sheet?name=schedule"),
-      ]);
-      renderTeamsCards(standingsRecordData);
-      renderLiveScoring(liveData, scheduleData);
-      els.liveRow.parentElement.style.display = "";
-    } else if (seasonRaw === "c2s2-regular") {
-      const regularRows = await fetchSheet(C2S2_REGULAR_URL);
-      const standings = sliceRange(regularRows, "A59:F69");
-      renderTeamsCardsArchive(standings);
-      els.liveRow.parentElement.style.display = "none";
-    } else {
-      const archive = await fetchSheet(ARCHIVE_URL);
-      const standings = sliceRange(archive, ARCHIVE_RANGES.standings);
-      renderTeamsCardsArchive(standings);
-      els.liveRow.parentElement.style.display = "none";
-    }
-    updateLastUpdated();
-  } catch (error) {
-    els.teamsGrid.innerHTML = "";
-    els.liveRow.textContent = "Live scoring unavailable.";
+function setDashboardLoading() {
+  if (els.liveRow) {
+    els.liveRow.innerHTML = buildStateCard("Loading Live Scoring", "Pulling the current scoreboard from Google Sheets.");
+  }
+  if (els.featuredMatchups) {
+    els.featuredMatchups.innerHTML = buildStateCard("Loading Matchups", "Looking for the next featured game day.");
+  }
+  if (els.leagueLeaders) {
+    els.leagueLeaders.innerHTML = buildStateCard("Loading Leaders", "Computing top performers from player stats.");
+  }
+  if (els.recentTransactions) {
+    els.recentTransactions.innerHTML = buildStateCard("Loading Transactions", "Checking the latest front-office movement.");
+  }
+  if (els.teamsGrid) {
+    els.teamsGrid.innerHTML = buildStateCard("Loading League Snapshot", "Building team cards from standings data.");
   }
 }
 
-function updateLastUpdated() {
-  const now = new Date();
-  const formatted = now.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
+function buildCurrentLeagueSnapshotRows(rows) {
+  const items = TEAM_ORDER.map((team) => {
+    const range = CURRENT_STANDINGS_RANGES[team];
+    const slice = range ? sliceRange(rows, range) : [];
+    const row = slice[0] || [];
+    return {
+      team,
+      wins: parseNumber(row[1]) ?? 0,
+      losses: parseNumber(row[2]) ?? 0,
+      gb: parseNumber(row[4]) ?? 0,
+      winPct: parsePct(row[5]) ?? 0,
+    };
+  }).filter((item) => item.team);
+
+  items.sort((a, b) => {
+    if ((b.winPct ?? -1) !== (a.winPct ?? -1)) return (b.winPct ?? -1) - (a.winPct ?? -1);
+    if ((a.gb ?? 999) !== (b.gb ?? 999)) return (a.gb ?? 999) - (b.gb ?? 999);
+    return a.team.localeCompare(b.team);
   });
-  els.lastUpdated.textContent = `Last updated: ${formatted}`;
+
+  return items.map((item, index) => ({ ...item, rank: index + 1 }));
 }
+
+function buildArchiveLeagueSnapshotRows(rows) {
+  if (!rows.length) return [];
+  const headers = (rows[0] || []).map((cell) => String(cell || "").trim().toLowerCase());
+  const teamIdx = headers.findIndex((h) => h.includes("team"));
+  const winsIdx = headers.findIndex((h) => h === "wins" || h === "win");
+  const lossesIdx = headers.findIndex((h) => h === "loss" || h === "losses");
+  const gbIdx = headers.findIndex((h) => h === "gb");
+  const pctIdx = headers.findIndex((h) => h.includes("win %") || h.includes("win%"));
+  const items = rows
+    .slice(1)
+    .map((row) => {
+      const team = displayTeamName(String(row[teamIdx >= 0 ? teamIdx : 0] || "").trim());
+      return {
+        team,
+        wins: parseNumber(row[winsIdx]),
+        losses: parseNumber(row[lossesIdx]),
+        gb: parseNumber(row[gbIdx]),
+        winPct: parsePct(row[pctIdx]),
+      };
+    })
+    .filter((item) => item.team);
+
+  items.sort((a, b) => {
+    if ((b.winPct ?? -1) !== (a.winPct ?? -1)) return (b.winPct ?? -1) - (a.winPct ?? -1);
+    if ((a.gb ?? 999) !== (b.gb ?? 999)) return (a.gb ?? 999) - (b.gb ?? 999);
+    return a.team.localeCompare(b.team);
+  });
+
+  return items.map((item, index) => ({ ...item, rank: index + 1 }));
+}
+
+function renderLeagueSnapshot(items) {
+  if (!els.teamsGrid) return;
+  if (!items.length) {
+    els.teamsGrid.innerHTML = buildStateCard("No League Snapshot", "Standings data is missing for this season.");
+    return;
+  }
+
+  els.teamsGrid.innerHTML = items
+    .slice(0, TEAMS_LIMIT)
+    .map((item) => {
+      const team = displayTeamName(item.team);
+      const record = item.wins !== null && item.losses !== null ? `${item.wins}-${item.losses}` : "—";
+      const winPct = item.winPct !== null ? item.winPct.toFixed(3).replace(/^0/, ".") : "—";
+      const gb = item.gb !== null ? item.gb : "—";
+      return `
+        <a class="team-card dashboard-team-card ${getTeamColorClass(team)}" href="/team.html?team=${encodeURIComponent(team)}">
+          <div class="dashboard-team-top">
+            <span class="dashboard-rank-badge">#${item.rank}</span>
+            ${renderSmallTeamLogo(team)}
+          </div>
+          <div class="team-title">${escapeHtml(team)}</div>
+          <div class="dashboard-team-metrics">
+            <div class="team-record">
+              <span>Record</span>
+              <strong>${escapeHtml(record)}</strong>
+            </div>
+            <div class="team-record small">
+              <span>GB</span>
+              <strong>${escapeHtml(String(gb))}</strong>
+            </div>
+            <div class="team-record small">
+              <span>Win %</span>
+              <strong>${escapeHtml(winPct)}</strong>
+            </div>
+          </div>
+        </a>
+      `;
+    })
+    .join("");
+}
+
+function parseTeamHeader(value) {
+  const text = String(value || "").trim();
+  if (!text) return { name: "", score: "" };
+  const match = text.match(/^(.*?)(?:\(([-+]?\d+)\))?\s*$/);
+  const name = displayTeamName(String(match ? match[1] : text).trim());
+  const score = match && match[2] ? String(match[2]).trim() : "";
+  return { name, score };
+}
+
+function extractLeagueDay(rows) {
+  const row = rows.find(
+    (r) =>
+      String(r[0] || "").includes("League Day") ||
+      String(r[1] || "").includes("League Day")
+  );
+  if (!row) return "";
+  const cell = String(row[0] || row[1] || "");
+  const parts = cell.split(":");
+  return parts.length > 1 ? parts[1].trim() : cell.trim();
+}
+
+function buildGameKey(dateToken, team1, team2) {
+  return `${String(dateToken || "").trim()}|${normalizeTeamName(team1)}|${normalizeTeamName(team2)}`;
+}
+
+function parseLiveGames(rows) {
+  const games = [];
+  LIVE_GAME_RANGES.forEach((range) => {
+    const block = sliceRange(rows, range);
+    if (!block.length) return;
+    let header = null;
+    let headerIndex = 0;
+    for (let i = 0; i < block.length; i += 1) {
+      const left = String(block[i][0] || "").trim();
+      const right = String(block[i][4] || "").trim();
+      if (
+        left &&
+        right &&
+        !left.startsWith("@") &&
+        !right.startsWith("@") &&
+        !left.includes("League Day") &&
+        !right.includes("League Day")
+      ) {
+        header = block[i];
+        headerIndex = i;
+        break;
+      }
+    }
+    if (!header) return;
+    const team1 = parseTeamHeader(header[0]);
+    const team2 = parseTeamHeader(header[4]);
+    if (!team1.name || !team2.name) return;
+    const players = block.slice(headerIndex + 1).filter((row) => String(row[0] || row[4] || "").trim() !== "");
+    games.push({
+      dateToken: extractLeagueDay(rows),
+      team1: team1.name,
+      team2: team2.name,
+      team1Score: team1.score || "",
+      team2Score: team2.score || "",
+      team1Header: String(header[0] || "").trim(),
+      team2Header: String(header[4] || "").trim(),
+      team1Players: players
+        .filter((row) => String(row[0] || "").trim() !== "")
+        .map((row) => ({
+          player: String(row[0] || "").trim(),
+          points: String(row[1] || "").trim(),
+          rank: String(row[2] || "").trim(),
+        })),
+      team2Players: players
+        .filter((row) => String(row[4] || "").trim() !== "")
+        .map((row) => ({
+          player: String(row[4] || "").trim(),
+          points: String(row[5] || "").trim(),
+          rank: String(row[6] || "").trim(),
+        })),
+    });
+  });
+  return games;
+}
+
+function renderLiveScoring(games, seasonRaw) {
+  if (!els.liveRow) return;
+  currentLiveGames = games || [];
+  if (seasonRaw !== "c2s3-regular") {
+    els.liveRow.innerHTML = buildStateCard(
+      "Live Scoring Off",
+      "Live box scores are only available during the current regular season feed."
+    );
+    return;
+  }
+  if (!currentLiveGames.length) {
+    els.liveRow.innerHTML = buildStateCard(
+      "No Live Games",
+      "No active matchups are showing in the current live scoring sheet."
+    );
+    return;
+  }
+
+  els.liveRow.innerHTML = `
+    <div class="live-list dashboard-live-list">
+      ${currentLiveGames
+        .map(
+          (game, index) => `
+            <button class="live-row-item dashboard-live-card ${getTeamColorClass(game.team1)} ${getTeamColorClass(game.team2)}" type="button" data-live-index="${index}">
+              <div class="dashboard-live-head">
+                <span class="dashboard-live-badge">LIVE</span>
+                <span class="dashboard-live-date">${escapeHtml(formatDateLabel(game.dateToken || ""))}</span>
+              </div>
+              <div class="live-matchup">
+                <strong class="live-team-name ${getTeamColorClass(game.team1)}">${renderSmallTeamLogo(game.team1)}<span>${escapeHtml(game.team1)}</span></strong>
+                <span class="dashboard-live-score">${escapeHtml(game.team1Score || "—")}</span>
+              </div>
+              <div class="live-matchup">
+                <strong class="live-team-name ${getTeamColorClass(game.team2)}">${renderSmallTeamLogo(game.team2)}<span>${escapeHtml(game.team2)}</span></strong>
+                <span class="dashboard-live-score">${escapeHtml(game.team2Score || "—")}</span>
+              </div>
+              <span class="dashboard-live-cta">Open live box score</span>
+            </button>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function detectScheduleIndexes(rows, seasonRaw) {
+  const header = (rows[0] || []).map((cell) => String(cell || "").trim().toLowerCase());
+  const findIdx = (checks) => header.findIndex((value) => checks.some((check) => value.includes(check)));
+  let date = findIdx(["date"]);
+  let team1 = findIdx(["team 1", "team1", "away"]);
+  let team2 = findIdx(["team 2", "team2", "home"]);
+  let gameType = findIdx(["game type", "type"]);
+
+  if (seasonRaw === "c2s2-regular") {
+    if (date === -1) date = 0;
+    if (team1 === -1) team1 = 1;
+    if (team2 === -1) team2 = 2;
+    if (gameType === -1 && (rows[0] || []).length >= 5) gameType = 4;
+  } else if (seasonRaw === "c2s1-regular" || seasonRaw === "c2s1-post") {
+    if (date === -1) date = 0;
+    if (team1 === -1) team1 = 1;
+    if (team2 === -1) team2 = 2;
+  } else {
+    if (date === -1) date = (rows[0] || []).length >= 4 ? 1 : 0;
+    if (team1 === -1) team1 = (rows[0] || []).length >= 4 ? 2 : 1;
+    if (team2 === -1) team2 = (rows[0] || []).length >= 4 ? 3 : 2;
+  }
+
+  return { date, team1, team2, gameType };
+}
+
+function buildScheduleGames(rows, seasonRaw) {
+  if (!rows.length) return [];
+  const indexes = detectScheduleIndexes(rows, seasonRaw);
+  return rows
+    .slice(1)
+    .filter((row) => row.some((cell) => String(cell || "").trim() !== ""))
+    .map((row) => {
+      const rawDate = String(row[indexes.date] || "").trim();
+      const dateToken = normalizeDateToken(rawDate);
+      const team1 = displayTeamName(String(row[indexes.team1] || "").trim());
+      const team2 = displayTeamName(String(row[indexes.team2] || "").trim());
+      const gameType = indexes.gameType >= 0 ? String(row[indexes.gameType] || "").trim() : "";
+      if (!dateToken || !team1 || !team2) return null;
+      return {
+        rawDate,
+        dateToken,
+        dateObj: parseDateFromToken(dateToken),
+        team1,
+        team2,
+        gameType,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (a.dateObj && b.dateObj) return a.dateObj - b.dateObj;
+      if (a.dateObj) return -1;
+      if (b.dateObj) return 1;
+      return a.dateToken.localeCompare(b.dateToken, undefined, { numeric: true });
+    });
+}
+
+function getFeaturedGames(scheduleGames, liveGames) {
+  if (!scheduleGames.length) return [];
+  const liveByKey = new Map((liveGames || []).map((game) => [buildGameKey(game.dateToken, game.team1, game.team2), game]));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const liveDay = liveGames.length ? liveGames[0].dateToken : "";
+  if (liveDay) {
+    const liveMatches = scheduleGames.filter((game) => game.dateToken === liveDay);
+    if (liveMatches.length) {
+      return liveMatches.map((game) => ({
+        ...game,
+        state: "live",
+        live: liveByKey.get(buildGameKey(game.dateToken, game.team1, game.team2)) || null,
+      }));
+    }
+  }
+
+  const upcoming = scheduleGames.filter((game) => {
+    if (!game.dateObj) return false;
+    const date = new Date(game.dateObj);
+    date.setHours(0, 0, 0, 0);
+    return date >= today;
+  });
+  const source = upcoming.length ? upcoming : scheduleGames;
+  const featureDay = source[0]?.dateToken || "";
+  return source
+    .filter((game) => game.dateToken === featureDay)
+    .slice(0, 4)
+    .map((game) => ({
+      ...game,
+      state: "upcoming",
+      live: null,
+    }));
+}
+
+function renderFeaturedMatchups(games, seasonRaw) {
+  if (!els.featuredMatchups) return;
+  if (!games.length) {
+    els.featuredMatchups.innerHTML = buildStateCard(
+      "No Featured Matchups",
+      seasonRaw === "c2s1-regular"
+        ? "No schedule-driven featured matchups are available for this archived season."
+        : "No upcoming or featured games were found in the current schedule feed."
+    );
+    return;
+  }
+
+  els.featuredMatchups.innerHTML = games
+    .map((game) => {
+      const live = game.live;
+      const status = live ? "LIVE" : game.gameType || (seasonRaw === "c2s3-regular" ? "Upcoming" : "Featured");
+      const scoreText = live ? `${live.team1Score || "—"} - ${live.team2Score || "—"}` : "Preview";
+      return `
+        <article class="dashboard-matchup-card ${getTeamColorClass(game.team1)}">
+          <div class="dashboard-matchup-head">
+            <span class="dashboard-matchup-badge">${escapeHtml(status)}</span>
+            <span class="dashboard-matchup-date">${escapeHtml(formatDateLabel(game.dateToken))}</span>
+          </div>
+          <div class="dashboard-matchup-body">
+            <a class="dashboard-matchup-team" href="/team.html?team=${encodeURIComponent(game.team1)}">${renderSmallTeamLogo(game.team1)}<span>${escapeHtml(game.team1)}</span></a>
+            <div class="dashboard-matchup-score">${escapeHtml(scoreText)}</div>
+            <a class="dashboard-matchup-team" href="/team.html?team=${encodeURIComponent(game.team2)}">${renderSmallTeamLogo(game.team2)}<span>${escapeHtml(game.team2)}</span></a>
+          </div>
+          <div class="dashboard-matchup-actions">
+            <a class="dashboard-inline-link" href="/schedule.html">Open schedule</a>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function detectPlayerColumns(headerRow) {
+  const lowered = (headerRow || []).map((cell) => String(cell || "").toLowerCase());
+  const pick = (label) => lowered.indexOf(label);
+  return {
+    date: pick("date") !== -1 ? pick("date") : 0,
+    team: pick("team") !== -1 ? pick("team") : 1,
+    player: pick("player") !== -1 ? pick("player") : 2,
+    score: pick("score") !== -1 ? pick("score") : pick("points") !== -1 ? pick("points") : 3,
+    rank: pick("rank") !== -1 ? pick("rank") : 4,
+    opponent: pick("opponent") !== -1 ? pick("opponent") : 5,
+  };
+}
+
+function normalizePlayerKey(value) {
+  return String(value || "").trim().replace(/^@/, "").toLowerCase();
+}
+
+function buildLeaderboard(rows, playerColumns) {
+  const totals = new Map();
+  rows.forEach((row) => {
+    const tag = String(row[playerColumns.player] || "").trim();
+    const team = displayTeamName(String(row[playerColumns.team] || "").trim());
+    const score = parseNumber(row[playerColumns.score]);
+    const rank = parseNumber(row[playerColumns.rank]);
+    if (!tag || score === null) return;
+    const key = normalizePlayerKey(tag);
+    const entry = totals.get(key) || {
+      tag,
+      displayName: tag,
+      team,
+      total: 0,
+      gp: 0,
+      rankSum: 0,
+      rankGames: 0,
+      war: 0,
+    };
+    entry.total += score;
+    entry.gp += 1;
+    if (rank !== null) {
+      entry.rankSum += rank;
+      entry.rankGames += 1;
+    }
+    const replacement = 7;
+    entry.war += (score - replacement) / 8;
+    totals.set(key, entry);
+  });
+
+  return Array.from(totals.values()).map((entry) => ({
+    ...entry,
+    avg: entry.gp ? entry.total / entry.gp : 0,
+    avgRank: entry.rankGames ? entry.rankSum / entry.rankGames : 0,
+  }));
+}
+
+function renderLeagueLeaders(rows, seasonRaw) {
+  if (!els.leagueLeaders) return;
+  if (!rows.length) {
+    els.leagueLeaders.innerHTML = buildStateCard(
+      "No League Leaders",
+      seasonRaw === "c2s1-regular"
+        ? "Player stats are not available for C2S1 regular season in the current archive feed."
+        : "Player stats could not be loaded for this season."
+    );
+    return;
+  }
+
+  const metrics = [
+    {
+      title: "Score Average",
+      subtitle: "Best per-game scorer",
+      pick: [...rows].sort((a, b) => b.avg - a.avg)[0],
+      formatter: (item) => item.avg.toFixed(2),
+    },
+    {
+      title: "Total Score",
+      subtitle: "Most total points",
+      pick: [...rows].sort((a, b) => b.total - a.total)[0],
+      formatter: (item) => item.total.toFixed(0),
+    },
+    {
+      title: "WAR",
+      subtitle: "Value leader",
+      pick: [...rows].sort((a, b) => b.war - a.war)[0],
+      formatter: (item) => item.war.toFixed(2),
+    },
+  ];
+
+  els.leagueLeaders.innerHTML = metrics
+    .map((metric) => {
+      if (!metric.pick) {
+        return buildStateCard(metric.title, "No qualifying player.");
+      }
+      const item = metric.pick;
+      return `
+        <article class="leader-card dashboard-leader-card">
+          <div class="dashboard-leader-kicker">${escapeHtml(metric.title)}</div>
+          <a class="leader-name" href="/player-detail.html?player=${encodeURIComponent(item.tag)}&season=${encodeURIComponent(seasonRaw)}">${escapeHtml(item.displayName)}</a>
+          <div class="leader-value">${escapeHtml(metric.formatter(item))}</div>
+          <div class="leader-sub">${escapeHtml(metric.subtitle)}</div>
+          <div class="dashboard-leader-meta">
+            <a class="leader-team-link" href="/team.html?team=${encodeURIComponent(item.team)}">${renderSmallTeamLogo(item.team)}<span>${escapeHtml(item.team || "—")}</span></a>
+            <span>${escapeHtml(String(item.gp || 0))} GP</span>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function extractPlayers(text) {
+  return String(text || "").match(/@[A-Za-z0-9_.]+/g) || [];
+}
+
+function parseTradeRows(rows) {
+  return rows
+    .filter((row) => row.some((cell) => String(cell || "").trim() !== ""))
+    .map((row) => ({
+      date: String(row[0] || "").trim() || "—",
+      type: "Trade",
+      summary: `${displayTeamName(row[1] || "Team 1")} receive ${String(row[2] || "").trim() || "—"} | ${displayTeamName(row[3] || "Team 2")} receive ${String(row[4] || "").trim() || "—"}`,
+      teams: [displayTeamName(row[1] || ""), displayTeamName(row[3] || "")].filter(Boolean),
+      players: Array.from(new Set([...extractPlayers(row[2]), ...extractPlayers(row[4])])),
+    }));
+}
+
+function parseSinglePartyRows(rows, type) {
+  return rows
+    .filter((row) => row.some((cell) => String(cell || "").trim() !== ""))
+    .map((row) => {
+      const player = String(row[0] || row[1] || "").trim();
+      const mergedCell = String(row[2] || row[3] || "").trim();
+      const dateMatch = mergedCell.match(/^(\d{1,2}\/\d{1,2})/);
+      const date = dateMatch ? dateMatch[1] : "—";
+      const team = displayTeamName(mergedCell.replace(/^(\d{1,2}\/\d{1,2})/, "").trim());
+      const verb =
+        type === "Signing"
+          ? "signed"
+          : type === "Cut"
+          ? "cut"
+          : "retired";
+      return {
+        date,
+        type,
+        summary: `${player || "Player"} ${verb}${team ? ` • ${team}` : ""}`,
+        teams: team ? [team] : [],
+        players: player ? [player] : [],
+      };
+    });
+}
+
+function renderRecentTransactions(items) {
+  if (!els.recentTransactions) return;
+  if (!items.length) {
+    els.recentTransactions.innerHTML = buildStateCard("No Transactions", "No recent transactions were found in the sheet.");
+    return;
+  }
+
+  els.recentTransactions.innerHTML = items
+    .map(
+      (item) => `
+        <article class="dashboard-transaction-card">
+          <div class="dashboard-transaction-head">
+            <span class="dashboard-transaction-type">${escapeHtml(item.type)}</span>
+            <span class="dashboard-transaction-date">${escapeHtml(item.date || "—")}</span>
+          </div>
+          <div class="dashboard-transaction-body">${escapeHtml(item.summary)}</div>
+          <div class="dashboard-transaction-meta">
+            ${(item.teams || [])
+              .slice(0, 2)
+              .map((team) => `<a class="dashboard-pill-link" href="/team.html?team=${encodeURIComponent(team)}">${escapeHtml(team)}</a>`)
+              .join("")}
+          </div>
+        </article>
+      `
+    )
+    .join("");
+}
+
+function renderLiveModal(game) {
+  if (!els.liveDetails || !els.liveModal || !game) return;
+
+  const renderTeamTable = (header, players) => `
+    <div class="boxscore-card">
+      <a class="boxscore-team" href="/team.html?team=${encodeURIComponent(displayTeamName(header))}">
+        ${renderSmallTeamLogo(header)}
+        <span>${escapeHtml(displayTeamName(header))}</span>
+      </a>
+      <div class="boxscore-row">
+        <span>Player</span>
+        <span>Points</span>
+        <span>Rank</span>
+      </div>
+      ${(players || [])
+        .map(
+          (player) => `
+            <div class="boxscore-row">
+              <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(player.player)}">${escapeHtml(player.player)}</a>
+              <span>${escapeHtml(player.points || "")}</span>
+              <span>${escapeHtml(player.rank || "")}</span>
+            </div>
+          `
+        )
+        .join("") || '<div class="boxscore-empty">No stats available.</div>'}
+    </div>
+  `;
+
+  els.liveDetails.innerHTML = `
+    <div class="boxscore-meta">League Day: ${escapeHtml(game.dateToken || "")}</div>
+    ${renderTeamTable(game.team1, game.team1Players)}
+    ${renderTeamTable(game.team2, game.team2Players)}
+  `;
+  els.liveModal.hidden = false;
+}
+
+async function loadData() {
+  setDashboardLoading();
+  const seasonRaw = getSeasonRaw();
+
+  if (els.standingsLink) {
+    els.standingsLink.href =
+      seasonRaw === "c2s2-regular" ? C2S2_REGULAR_URL : seasonRaw === "c2s1-post" || seasonRaw === "c2s1-regular" ? ARCHIVE_URL : STANDINGS_CSV_URL;
+  }
+  if (els.teamsLink) {
+    els.teamsLink.href =
+      seasonRaw === "c2s2-regular" ? C2S2_REGULAR_URL : seasonRaw === "c2s1-post" || seasonRaw === "c2s1-regular" ? ARCHIVE_URL : TEAMS_CSV_URL;
+  }
+
+  try {
+    if (seasonRaw === "c2s3-regular") {
+      const results = await Promise.allSettled([
+        fetchSheet(STANDINGS_RECORDS_URL),
+        fetchSheet(LIVE_SCORING_URL),
+        fetchSheet(SCHEDULE_URL),
+        fetchSheet(PLAYER_STATS_URL),
+        fetchSheet(TRANSACTIONS_CSV_URL),
+      ]);
+
+      const standingsRows = results[0].status === "fulfilled" ? results[0].value : [];
+      const liveRows = results[1].status === "fulfilled" ? results[1].value : [];
+      const scheduleRows = results[2].status === "fulfilled" ? results[2].value : [];
+      const playerRows = results[3].status === "fulfilled" ? results[3].value : [];
+      const transactionRows = results[4].status === "fulfilled" ? results[4].value : [];
+
+      renderLeagueSnapshot(buildCurrentLeagueSnapshotRows(standingsRows));
+
+      const liveGames = liveRows.length ? parseLiveGames(liveRows) : [];
+      renderLiveScoring(liveGames, seasonRaw);
+
+      const featuredGames = scheduleRows.length ? getFeaturedGames(buildScheduleGames(scheduleRows, seasonRaw), liveGames) : [];
+      renderFeaturedMatchups(featuredGames, seasonRaw);
+
+      if (playerRows.length) {
+        const columns = detectPlayerColumns(playerRows[0] || []);
+        renderLeagueLeaders(buildLeaderboard(playerRows.slice(1), columns), seasonRaw);
+      } else {
+        renderLeagueLeaders([], seasonRaw);
+      }
+
+      if (transactionRows.length) {
+        const events = [
+          ...parseTradeRows(sliceRange(transactionRows, TRANSACTION_RANGES.trade)),
+          ...parseSinglePartyRows(sliceRange(transactionRows, TRANSACTION_RANGES.signing), "Signing"),
+          ...parseSinglePartyRows(sliceRange(transactionRows, TRANSACTION_RANGES.cut), "Cut"),
+          ...parseSinglePartyRows(sliceRange(transactionRows, TRANSACTION_RANGES.retirement), "Retirement"),
+        ]
+          .sort((a, b) => parseDateValue(b.date) - parseDateValue(a.date))
+          .slice(0, 4);
+        renderRecentTransactions(events);
+      } else {
+        renderRecentTransactions([]);
+      }
+    } else if (seasonRaw === "c2s2-regular") {
+      const results = await Promise.allSettled([
+        fetchSheet(C2S2_REGULAR_URL),
+        fetchSheet(TRANSACTIONS_CSV_URL),
+      ]);
+      const regularRows = results[0].status === "fulfilled" ? results[0].value : [];
+      const transactionRows = results[1].status === "fulfilled" ? results[1].value : [];
+
+      if (regularRows.length) {
+        renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(sliceRange(regularRows, C2S2_REGULAR_RANGES.standings)));
+        renderFeaturedMatchups(
+          getFeaturedGames(buildScheduleGames(sliceRange(regularRows, C2S2_REGULAR_RANGES.schedule), seasonRaw), []),
+          seasonRaw
+        );
+        const playerTable = sliceRange(regularRows, C2S2_REGULAR_RANGES.player_stats);
+        const columns = detectPlayerColumns(playerTable[0] || []);
+        renderLeagueLeaders(buildLeaderboard(playerTable.slice(1), columns), seasonRaw);
+      } else {
+        renderLeagueSnapshot([]);
+        renderFeaturedMatchups([], seasonRaw);
+        renderLeagueLeaders([], seasonRaw);
+      }
+
+      renderLiveScoring([], seasonRaw);
+
+      if (transactionRows.length) {
+        const events = [
+          ...parseTradeRows(sliceRange(transactionRows, TRANSACTION_RANGES.trade)),
+          ...parseSinglePartyRows(sliceRange(transactionRows, TRANSACTION_RANGES.signing), "Signing"),
+          ...parseSinglePartyRows(sliceRange(transactionRows, TRANSACTION_RANGES.cut), "Cut"),
+          ...parseSinglePartyRows(sliceRange(transactionRows, TRANSACTION_RANGES.retirement), "Retirement"),
+        ]
+          .sort((a, b) => parseDateValue(b.date) - parseDateValue(a.date))
+          .slice(0, 4);
+        renderRecentTransactions(events);
+      } else {
+        renderRecentTransactions([]);
+      }
+    } else {
+      const results = await Promise.allSettled([
+        fetchSheet(ARCHIVE_URL),
+        fetchSheet(TRANSACTIONS_CSV_URL),
+      ]);
+      const archiveRows = results[0].status === "fulfilled" ? results[0].value : [];
+      const transactionRows = results[1].status === "fulfilled" ? results[1].value : [];
+      const scheduleRange = seasonRaw === "c2s1-post" ? ARCHIVE_RANGES.schedule_post : ARCHIVE_RANGES.schedule_regular;
+
+      if (archiveRows.length) {
+        renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(sliceRange(archiveRows, ARCHIVE_RANGES.standings)));
+        renderFeaturedMatchups(
+          getFeaturedGames(buildScheduleGames(sliceRange(archiveRows, scheduleRange), seasonRaw), []),
+          seasonRaw
+        );
+        if (seasonRaw === "c2s1-post") {
+          const playerTable = sliceRange(archiveRows, ARCHIVE_RANGES.player_stats);
+          const columns = detectPlayerColumns(playerTable[0] || []);
+          renderLeagueLeaders(buildLeaderboard(playerTable.slice(1), columns), seasonRaw);
+        } else {
+          renderLeagueLeaders([], seasonRaw);
+        }
+      } else {
+        renderLeagueSnapshot([]);
+        renderFeaturedMatchups([], seasonRaw);
+        renderLeagueLeaders([], seasonRaw);
+      }
+
+      renderLiveScoring([], seasonRaw);
+
+      if (transactionRows.length) {
+        const events = [
+          ...parseTradeRows(sliceRange(transactionRows, TRANSACTION_RANGES.trade)),
+          ...parseSinglePartyRows(sliceRange(transactionRows, TRANSACTION_RANGES.signing), "Signing"),
+          ...parseSinglePartyRows(sliceRange(transactionRows, TRANSACTION_RANGES.cut), "Cut"),
+          ...parseSinglePartyRows(sliceRange(transactionRows, TRANSACTION_RANGES.retirement), "Retirement"),
+        ]
+          .sort((a, b) => parseDateValue(b.date) - parseDateValue(a.date))
+          .slice(0, 4);
+        renderRecentTransactions(events);
+      } else {
+        renderRecentTransactions([]);
+      }
+    }
+
+    updateLastUpdated();
+  } catch (error) {
+    if (els.teamsGrid) {
+      els.teamsGrid.innerHTML = buildStateCard("Dashboard Error", "The league dashboard could not be loaded from the current sheet feeds.");
+    }
+    if (els.liveRow) {
+      els.liveRow.innerHTML = buildStateCard("Live Scoring Unavailable", "The live feed could not be loaded right now.");
+    }
+    if (els.featuredMatchups) {
+      els.featuredMatchups.innerHTML = buildStateCard("Schedule Unavailable", "Featured matchups could not be built from the current sheet.");
+    }
+    if (els.leagueLeaders) {
+      els.leagueLeaders.innerHTML = buildStateCard("Leaders Unavailable", "Player leader data could not be calculated right now.");
+    }
+    if (els.recentTransactions) {
+      els.recentTransactions.innerHTML = buildStateCard("Transactions Unavailable", "Recent transaction data is currently unavailable.");
+    }
+  }
+}
+
+if (els.liveRow) {
+  els.liveRow.addEventListener("click", (event) => {
+    const trigger = event.target.closest("[data-live-index]");
+    if (!trigger) return;
+    const index = Number(trigger.dataset.liveIndex);
+    const game = currentLiveGames[index];
+    if (!game) return;
+    renderLiveModal(game);
+  });
+}
+
+document.addEventListener("click", (event) => {
+  if (event.target.matches("[data-close=\"true\"]") && els.liveModal) {
+    els.liveModal.hidden = true;
+  }
+});
 
 initSeasonSelect();
 loadData();
 setInterval(loadData, AUTO_REFRESH_MS);
-
-document.addEventListener("click", (event) => {
-  if (event.target.matches("[data-close=\"true\"]")) {
-    els.liveModal.hidden = true;
-  }
-});
