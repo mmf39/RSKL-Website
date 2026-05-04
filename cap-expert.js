@@ -79,6 +79,9 @@ function displayTeamName(value) {
   if (name === "Bullets") return "Storm";
   if (name === "Yetis") return "MayeDay";
   if (name === "The Future") return "Dream Team";
+  if (name === "Lions") return "The Lions";
+  if (name === "Phantoms" || name === "Phantons") return "The Phantoms";
+  if (name === "Snipers" || name === "Sniper") return "The Snipers";
   return name;
 }
 
