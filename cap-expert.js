@@ -291,9 +291,9 @@ function renderTeamSummary(rows) {
   if (!els.teamSummary) return;
   els.teamSummary.innerHTML = `
     <article class="cap-summary-card">
-      <span class="dashboard-kicker">Teams</span>
-      <strong>${formatNumber(teamEntries.length)}</strong>
-      <span>Tracked cap sheets</span>
+      <span class="dashboard-kicker">Team Cap</span>
+      <strong>${formatNumber(TEAM_CAP_LIMIT)}</strong>
+      <span>Cap per franchise</span>
     </article>
     <article class="cap-summary-card">
       <span class="dashboard-kicker">Usage</span>
@@ -325,18 +325,20 @@ function renderTeamSummary(rows) {
 
 function renderPlayerSummary(rows) {
   const totalCap = rows.reduce((sum, row) => sum + row.capHit, 0);
-  const totalRax = rows.reduce((sum, row) => sum + row.totalRax, 0);
   const teamCount = new Set(rows.map((row) => row.team)).size;
   const highestCap = rows.reduce(
     (best, row) => (row.capHit > best.capHit ? row : best),
     { player: "—", team: "—", capHit: 0 }
   );
-  const highestRax = rows.reduce(
-    (best, row) => (row.totalRax > best.totalRax ? row : best),
-    { player: "—", team: "—", totalRax: 0 }
-  );
+  const sortedByCap = rows
+    .map((row) => row.capHit)
+    .filter((value) => Number.isFinite(value))
+    .sort((a, b) => a - b);
+  const lowestCap = sortedByCap.length ? sortedByCap[0] : 0;
+  const medianCap = sortedByCap.length
+    ? sortedByCap[Math.floor((sortedByCap.length - 1) / 2)]
+    : 0;
   const averageCap = rows.length ? totalCap / rows.length : 0;
-  const averageRax = rows.length ? totalRax / rows.length : 0;
 
   if (!els.playerSummary) return;
   els.playerSummary.innerHTML = `
@@ -346,39 +348,24 @@ function renderPlayerSummary(rows) {
       <span>Active player deals</span>
     </article>
     <article class="cap-summary-card">
-      <span class="dashboard-kicker">Players</span>
-      <strong>${formatNumber(rows.length)}</strong>
-      <span>Across ${formatNumber(teamCount)} teams</span>
-    </article>
-    <article class="cap-summary-card">
-      <span class="dashboard-kicker">Cap Hit</span>
-      <strong>${formatNumber(totalCap)}</strong>
-      <span>Total player cap hit</span>
-    </article>
-    <article class="cap-summary-card">
-      <span class="dashboard-kicker">Total Rax</span>
-      <strong>${formatNumber(totalRax)}</strong>
-      <span>Committed player value</span>
-    </article>
-    <article class="cap-summary-card">
       <span class="dashboard-kicker">Top Cap</span>
       <strong>${formatNumber(highestCap.capHit)}</strong>
       <span>${escapeHtml(highestCap.player)} • ${escapeHtml(highestCap.team)}</span>
     </article>
     <article class="cap-summary-card">
-      <span class="dashboard-kicker">Top Rax</span>
-      <strong>${formatNumber(highestRax.totalRax)}</strong>
-      <span>${escapeHtml(highestRax.player)} • ${escapeHtml(highestRax.team)}</span>
+      <span class="dashboard-kicker">Cap Floor</span>
+      <strong>${formatNumber(lowestCap)}</strong>
+      <span>Lowest player cap hit</span>
     </article>
     <article class="cap-summary-card">
       <span class="dashboard-kicker">Average Cap</span>
       <strong>${formatNumber(averageCap)}</strong>
-      <span>Per player</span>
+      <span>Across ${formatNumber(teamCount)} teams</span>
     </article>
     <article class="cap-summary-card">
-      <span class="dashboard-kicker">Average Rax</span>
-      <strong>${formatNumber(averageRax)}</strong>
-      <span>Per player</span>
+      <span class="dashboard-kicker">Median Cap</span>
+      <strong>${formatNumber(medianCap)}</strong>
+      <span>Middle contract cap hit</span>
     </article>
   `;
 }
