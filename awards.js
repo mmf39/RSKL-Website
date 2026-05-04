@@ -13,6 +13,7 @@ const AWARDS_CACHE_TIME_KEY = "awardsCsvCacheTime";
 const AWARDS_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 const AWARD_RANGES = {
+  c2s2: "O3:P29",
   c1s1: "B3:B15",
   c1s2: "C3:D24",
   c1s3: "E3:F28",
