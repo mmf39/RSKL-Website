@@ -212,6 +212,14 @@ function displayTeamName(value) {
   return team;
 }
 
+function canonicalTeamKey(value) {
+  const team = String(value || "").trim();
+  if (team === "Storm") return "Bullets";
+  if (team === "MayeDay") return "Yetis";
+  if (team === "Dream Team") return "The Future";
+  return team;
+}
+
 function normalizeName(value) {
   return String(value || "")
     .trim()
@@ -938,7 +946,7 @@ async function savePowerVoteToSheet(team, vote) {
 }
 
 function getTeamPlayers(team) {
-  return rosterByTeam.get(team) || [];
+  return rosterByTeam.get(team) || rosterByTeam.get(canonicalTeamKey(team)) || [];
 }
 
 function getTeamPicks(team) {
