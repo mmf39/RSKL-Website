@@ -32,6 +32,7 @@
     document.body.appendChild(overlay);
 
     let closeTimer = null;
+    const isMobileMenu = () => window.innerWidth <= 768;
 
     const setClosed = () => {
       panel.setAttribute("hidden", "");
@@ -48,12 +49,21 @@
         closeTimer = null;
       }
       panel.removeAttribute("hidden");
-      overlay.hidden = false;
       toggle.setAttribute("aria-expanded", "true");
-      document.body.classList.add("menu-open");
+      if (isMobileMenu()) {
+        overlay.hidden = false;
+        document.body.classList.add("menu-open");
+      } else {
+        overlay.hidden = true;
+        document.body.classList.remove("menu-open");
+      }
       window.requestAnimationFrame(() => {
         panel.setAttribute("data-open", "true");
-        overlay.setAttribute("data-open", "true");
+        if (isMobileMenu()) {
+          overlay.setAttribute("data-open", "true");
+        } else {
+          overlay.removeAttribute("data-open");
+        }
       });
     };
 
@@ -92,6 +102,20 @@
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape" && !panel.hasAttribute("hidden")) {
         closeMenu();
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      if (!panel.hasAttribute("hidden")) {
+        if (isMobileMenu()) {
+          overlay.hidden = false;
+          overlay.setAttribute("data-open", "true");
+          document.body.classList.add("menu-open");
+        } else {
+          overlay.hidden = true;
+          overlay.removeAttribute("data-open");
+          document.body.classList.remove("menu-open");
+        }
       }
     });
 
