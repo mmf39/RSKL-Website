@@ -3740,14 +3740,12 @@ input[type="text"] {
   min-width: 0;
 }
 
-.cap-team-link,
-.draft-link {
+.cap-team-link {
   display: flex;
   flex-wrap: wrap;
 }
 
 .cap-team-link span,
-.draft-link span,
 .draft-link {
   white-space: normal;
 }
@@ -3758,9 +3756,17 @@ input[type="text"] {
 }
 
 .cap-team-link span,
-.draft-link span {
+.draft-link {
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+#cap-table td:first-child .draft-link,
+.cap-team-table td:first-child .draft-link {
+  display: inline-block;
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.25;
 }
 
 @media (max-width: 720px) {
