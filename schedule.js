@@ -26,6 +26,7 @@ let teamLeadersMap = new Map();
 let scheduleGames = [];
 let gamesByDate = new Map();
 let selectedDateKey = "";
+let scheduleLoadToken = 0;
 
 const ARCHIVE_RANGES = {
   schedule_regular: "G31:I79",
@@ -998,66 +999,123 @@ function bindCalendarEvents() {
   });
 }
 
+function resetScheduleEnhancements() {
+  cachedBoxScoreRows = [];
+  liveScoreMap = new Map();
+  finalScoreMap = new Map();
+  teamLeadersMap = new Map();
+}
+
+function applyInitialScheduleRows(rows, season) {
+  if (!rows.length) {
+    throw new Error("No data found.");
+  }
+
+  scheduleGames = buildGames(rows, season);
+  scheduleGames.sort(compareGameDates);
+  rebuildGamesByDate();
+
+  if (!scheduleGames.length) {
+    throw new Error("No games found.");
+  }
+
+  const todayToken = getTodayToken();
+  const upcomingGames = getUpcomingGameDay().games;
+  selectedDateKey = gamesByDate.has(todayToken)
+    ? todayToken
+    : upcomingGames[0]
+    ? upcomingGames[0].dateToken
+    : scheduleGames[0].dateToken;
+  renderScheduleViews();
+  updateLastUpdated();
+}
+
+async function hydrateCurrentSeasonSchedule(loadToken) {
+  const [boxRes, liveRes, playerStatsRes] = await Promise.allSettled([
+    fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
+    fetch(LIVE_CSV_URL, { cache: "no-store" }),
+    fetch(PLAYER_STATS_URL, { cache: "no-store" }),
+  ]);
+
+  if (loadToken !== scheduleLoadToken) {
+    return;
+  }
+
+  if (boxRes.status === "fulfilled" && boxRes.value.ok) {
+    cachedBoxScoreRows = parseCSV(await boxRes.value.text()).slice(0, 1000);
+    finalScoreMap = buildFinalScoreMap(cachedBoxScoreRows);
+  }
+
+  if (liveRes.status === "fulfilled" && liveRes.value.ok) {
+    const liveRows = parseCSV(await liveRes.value.text());
+    liveScoreMap = buildLiveScoreMap(liveRows);
+  }
+
+  if (playerStatsRes.status === "fulfilled" && playerStatsRes.value.ok) {
+    const playerRows = parseCSV(await playerStatsRes.value.text());
+    teamLeadersMap = computeTeamLeaders(playerRows);
+  }
+
+  renderScheduleViews();
+}
+
+function hydrateEmbeddedScheduleData(regularRows, loadToken) {
+  setTimeout(() => {
+    if (loadToken !== scheduleLoadToken) {
+      return;
+    }
+    cachedBoxScoreRows = sliceRange(regularRows, C2S2_REGULAR_RANGES.boxscore);
+    finalScoreMap = buildFinalScoreMap(cachedBoxScoreRows);
+    const playerRows = sliceRange(regularRows, "A151:G1150");
+    teamLeadersMap = computeTeamLeaders(playerRows);
+    renderScheduleViews();
+  }, 0);
+}
+
+function hydrateArchiveScheduleData(archiveRows, loadToken) {
+  setTimeout(() => {
+    if (loadToken !== scheduleLoadToken) {
+      return;
+    }
+    cachedBoxScoreRows = sliceRange(archiveRows, ARCHIVE_RANGES.boxscore);
+    finalScoreMap = buildFinalScoreMap(cachedBoxScoreRows);
+    renderScheduleViews();
+  }, 0);
+}
+
 async function loadSchedule() {
+  const loadToken = ++scheduleLoadToken;
   try {
     const seasonRaw = getSeasonRaw();
     const season = getSeason();
     let rows = [];
+    resetScheduleEnhancements();
 
     if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s2-playoffs") {
-      const [scheduleRes, boxRes, liveRes, playerStatsRes] = await Promise.all([
-        fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
-        fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
-        fetch(LIVE_CSV_URL, { cache: "no-store" }),
-        fetch(PLAYER_STATS_URL, { cache: "no-store" }),
-      ]);
+      const scheduleRes = await fetch(SCHEDULE_CSV_URL, { cache: "no-store" });
       if (!scheduleRes.ok) throw new Error(`Fetch failed: ${scheduleRes.status}`);
       rows = getC2S2ScheduleRows(parseCSV(await scheduleRes.text()));
-      cachedBoxScoreRows = parseCSV(await boxRes.text()).slice(0, 1000);
-      finalScoreMap = buildFinalScoreMap(cachedBoxScoreRows);
-      const liveRows = liveRes.ok ? parseCSV(await liveRes.text()) : [];
-      liveScoreMap = buildLiveScoreMap(liveRows);
-      const playerRows = playerStatsRes.ok ? parseCSV(await playerStatsRes.text()) : [];
-      teamLeadersMap = computeTeamLeaders(playerRows);
     } else if (seasonRaw === "c2s2-regular") {
       const regularRes = await fetch(C2S2_REGULAR_URL, { cache: "no-store" });
       if (!regularRes.ok) throw new Error(`Fetch failed: ${regularRes.status}`);
       const regularRows = parseCSV(await regularRes.text());
       rows = getC2S2RegularScheduleRows(regularRows);
-      cachedBoxScoreRows = sliceRange(regularRows, C2S2_REGULAR_RANGES.boxscore);
-      finalScoreMap = buildFinalScoreMap(cachedBoxScoreRows);
-      liveScoreMap = new Map();
-      const playerRows = sliceRange(regularRows, "A151:G1150");
-      teamLeadersMap = computeTeamLeaders(playerRows);
+      applyInitialScheduleRows(rows, season);
+      hydrateEmbeddedScheduleData(regularRows, loadToken);
+      return;
     } else {
       const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
       if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
       const archive = parseCSV(await response.text());
       const range = season === "c2s1-post" ? ARCHIVE_RANGES.schedule_post : ARCHIVE_RANGES.schedule_regular;
       rows = sliceRange(archive, range);
-      cachedBoxScoreRows = sliceRange(archive, ARCHIVE_RANGES.boxscore);
-      finalScoreMap = buildFinalScoreMap(cachedBoxScoreRows);
-      liveScoreMap = new Map();
-      teamLeadersMap = new Map();
+      applyInitialScheduleRows(rows, season);
+      hydrateArchiveScheduleData(archive, loadToken);
+      return;
     }
 
-    if (!rows.length) throw new Error("No data found.");
-
-    scheduleGames = buildGames(rows, season);
-    scheduleGames.sort(compareGameDates);
-    rebuildGamesByDate();
-
-    if (!scheduleGames.length) throw new Error("No games found.");
-
-    const todayToken = getTodayToken();
-    const upcomingGames = getUpcomingGameDay().games;
-    selectedDateKey = gamesByDate.has(todayToken)
-      ? todayToken
-      : upcomingGames[0]
-      ? upcomingGames[0].dateToken
-      : scheduleGames[0].dateToken;
-    renderScheduleViews();
-    updateLastUpdated();
+    applyInitialScheduleRows(rows, season);
+    hydrateCurrentSeasonSchedule(loadToken);
   } catch (error) {
     renderGameSection(els.nextGames, [], error.message);
     renderGameSection(els.dayGames, [], error.message);
