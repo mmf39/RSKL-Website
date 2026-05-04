@@ -679,8 +679,8 @@ function getSeason() {
   }
 
   const playerSeason = localStorage.getItem(PLAYER_SEASON_KEY);
-  if (playerSeason === "career") {
-    return "career";
+  if (playerSeason) {
+    return normalizeSeason(playerSeason);
   }
 
   const season = localStorage.getItem(SEASON_KEY);
