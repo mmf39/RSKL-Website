@@ -339,6 +339,25 @@ function isPlayerCell(value) {
   return normalizePlayerCell(value).startsWith("@");
 }
 
+function isCaptainCell(value) {
+  const raw = String(value || "").trim();
+  return /\s+\(?c\)?$/i.test(raw);
+}
+
+function buildPlayerEntry(value, points, rank) {
+  return {
+    player: normalizePlayerCell(value),
+    isCaptain: isCaptainCell(value),
+    points: String(points || ""),
+    rank: String(rank || ""),
+  };
+}
+
+function formatPlayerDisplay(player) {
+  if (!player) return "";
+  return player.isCaptain ? `${player.player} (C)` : player.player;
+}
+
 function extractLeagueDay(rows) {
   const hit = rows.find(
     (row) =>
@@ -395,18 +414,10 @@ function buildLiveScoreMap(rows) {
 
     const team1Players = game.players
       .filter((r) => isPlayerCell(r[0]))
-      .map((r) => ({
-        player: normalizePlayerCell(r[0]),
-        points: String(r[1] || ""),
-        rank: String(r[2] || ""),
-      }));
+      .map((r) => buildPlayerEntry(r[0], r[1], r[2]));
     const team2Players = game.players
       .filter((r) => isPlayerCell(r[4]))
-      .map((r) => ({
-        player: normalizePlayerCell(r[4]),
-        points: String(r[5] || ""),
-        rank: String(r[6] || ""),
-      }));
+      .map((r) => buildPlayerEntry(r[4], r[5], r[6]));
 
     const payload = {
       status: "live",
@@ -746,8 +757,8 @@ function getBoxScorePayload(game) {
       .slice(1)
       .map((row) =>
         side === 1
-          ? { player: normalizePlayerCell(row[0]), points: row[1] || "", rank: row[2] || "" }
-          : { player: normalizePlayerCell(row[4]), points: row[5] || "", rank: row[6] || "" }
+          ? buildPlayerEntry(row[0], row[1], row[2])
+          : buildPlayerEntry(row[4], row[5], row[6])
       )
       .filter((row) => row.player);
 
@@ -767,7 +778,7 @@ function getBoxScorePayload(game) {
           .map(
             (p) => `
               <div class="boxscore-row">
-                <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(String(p.player || "").trim())}">${escapeHtml(p.player)}</a>
+                <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(String(p.player || "").trim())}">${escapeHtml(formatPlayerDisplay(p))}</a>
                 <span>${escapeHtml(p.points)}</span>
                 <span>${escapeHtml(p.rank)}</span>
               </div>
@@ -866,7 +877,7 @@ function buildLiveBoxMarkup(game, livePayload) {
     const rows = (players || [])
       .map(
         (p) => `<div class="boxscore-row">
-          <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(p.player)}">${escapeHtml(p.player)}</a>
+          <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(p.player)}">${escapeHtml(formatPlayerDisplay(p))}</a>
           <span>${escapeHtml(p.points || "")}</span>
           <span>${escapeHtml(p.rank || "")}</span>
         </div>`

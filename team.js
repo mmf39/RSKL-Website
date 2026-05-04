@@ -1883,6 +1883,25 @@ function isPlayerCell(value) {
   return normalizePlayerCell(value).startsWith("@");
 }
 
+function isCaptainCell(value) {
+  const raw = String(value || "").trim();
+  return /\s+\(?c\)?$/i.test(raw);
+}
+
+function buildPlayerEntry(value, points, rank) {
+  return {
+    player: normalizePlayerCell(value),
+    isCaptain: isCaptainCell(value),
+    points: String(points || ""),
+    rank: String(rank || ""),
+  };
+}
+
+function formatPlayerDisplay(player) {
+  if (!player) return "";
+  return player.isCaptain ? `${player.player} (C)` : player.player;
+}
+
 function extractLeagueDay(rows) {
   const row = rows.find(
     (r) =>
@@ -1929,18 +1948,10 @@ function buildLiveScoreMap(rows) {
       .filter((r) => String(r[0] || r[4] || "").trim() !== "");
     const team1Players = lines
       .filter((r) => isPlayerCell(r[0]))
-      .map((r) => ({
-        player: normalizePlayerCell(r[0]),
-        points: String(r[1] || ""),
-        rank: String(r[2] || ""),
-      }));
+      .map((r) => buildPlayerEntry(r[0], r[1], r[2]));
     const team2Players = lines
       .filter((r) => isPlayerCell(r[4]))
-      .map((r) => ({
-        player: normalizePlayerCell(r[4]),
-        points: String(r[5] || ""),
-        rank: String(r[6] || ""),
-      }));
+      .map((r) => buildPlayerEntry(r[4], r[5], r[6]));
 
     map.set(buildGameKey(day, team1.name, team2.name), {
       status: "live",
@@ -2119,7 +2130,7 @@ function buildLiveBoxMarkup(scoreState, scheduleRow) {
         (p) => `<div class="boxscore-row">
             <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(
               String(p.player || "").trim()
-            )}">${escapeHtml(p.player || "")}</a>
+            )}">${escapeHtml(formatPlayerDisplay(p))}</a>
             <span>${escapeHtml(p.points || "")}</span>
             <span>${escapeHtml(p.rank || "")}</span>
           </div>`
@@ -2348,19 +2359,11 @@ function buildBoxScore(teamName, scheduleRow, season) {
     team2Name: team2Header || team2Name,
     team1: team1Rows
       .slice(1)
-      .map((row) => ({
-        player: normalizePlayerCell(row[0]),
-        points: row[1] || "",
-        rank: row[2] || "",
-      }))
+      .map((row) => buildPlayerEntry(row[0], row[1], row[2]))
       .filter((row) => row.player),
     team2: team2Rows
       .slice(1)
-      .map((row) => ({
-        player: normalizePlayerCell(row[4]),
-        points: row[5] || "",
-        rank: row[6] || "",
-      }))
+      .map((row) => buildPlayerEntry(row[4], row[5], row[6]))
       .filter((row) => row.player),
   };
 }
@@ -2403,7 +2406,7 @@ function buildBoxScoreMarkup(boxScore) {
           <div class="boxscore-row">
             <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(
               String(row.player || "").trim()
-            )}">${escapeHtml(row.player)}</a>
+            )}">${escapeHtml(formatPlayerDisplay(row))}</a>
             <span>${escapeHtml(row.points)}</span>
             <span>${escapeHtml(row.rank)}</span>
           </div>

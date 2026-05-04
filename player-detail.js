@@ -2197,6 +2197,8 @@ function renderBoxScore(boxScore) {
   if (!boxScore) {
     return;
   }
+  const formatPlayerDisplay = (player) =>
+    player && player.isCaptain ? `${player.player} (C)` : String(player?.player || "");
   const cleanTeamLabel = (name) =>
     String(name || "").replace(/\([^)]*\)/g, "").trim();
   const renderTeamTable = (rows, header) => {
@@ -2222,7 +2224,7 @@ function renderBoxScore(boxScore) {
           <div class="boxscore-row">
             <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(
               String(row.player || "").trim()
-            )}">${escapeHtml(row.player)}</a>
+            )}">${escapeHtml(formatPlayerDisplay(row))}</a>
             <span>${escapeHtml(row.points)}</span>
             <span>${escapeHtml(row.rank)}</span>
           </div>
@@ -2258,6 +2260,13 @@ function buildBoxScore(dateToken, opponent) {
       .replace(/\s+/g, " ")
       .trim();
   };
+  const isCaptainCell = (value) => /\s+\(?c\)?$/i.test(String(value || "").trim());
+  const buildPlayerEntry = (value, points, rank) => ({
+    player: normalizePlayerCell(value),
+    isCaptain: isCaptainCell(value),
+    points: points || "",
+    rank: rank || "",
+  });
   const isDateRow = (row) => {
     const a = String(row[0] || "");
     const b = String(row[1] || "");
@@ -2311,19 +2320,11 @@ function buildBoxScore(dateToken, opponent) {
     team2Name: team2Header,
     team1: team1Rows
       .slice(1)
-      .map((row) => ({
-        player: normalizePlayerCell(row[0]),
-        points: row[1] || "",
-        rank: row[2] || "",
-      }))
+      .map((row) => buildPlayerEntry(row[0], row[1], row[2]))
       .filter((row) => row.player),
     team2: team2Rows
       .slice(1)
-      .map((row) => ({
-        player: normalizePlayerCell(row[4]),
-        points: row[5] || "",
-        rank: row[6] || "",
-      }))
+      .map((row) => buildPlayerEntry(row[4], row[5], row[6]))
       .filter((row) => row.player),
   };
 }

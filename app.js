@@ -542,6 +542,25 @@ function isLivePlayerCell(value) {
   return normalizeLivePlayerCell(value).startsWith("@");
 }
 
+function isLiveCaptainCell(value) {
+  const raw = String(value || "").trim();
+  return /\s+\(?c\)?$/i.test(raw);
+}
+
+function buildLivePlayerEntry(value, points, rank) {
+  return {
+    player: normalizeLivePlayerCell(value),
+    isCaptain: isLiveCaptainCell(value),
+    points: String(points || "").trim(),
+    rank: String(rank || "").trim(),
+  };
+}
+
+function formatLivePlayerDisplay(player) {
+  if (!player) return "";
+  return player.isCaptain ? `${player.player} (C)` : player.player;
+}
+
 function parseLiveGames(rows) {
   const games = [];
   LIVE_GAME_RANGES.forEach((range) => {
@@ -580,18 +599,10 @@ function parseLiveGames(rows) {
       team2Header: String(header[4] || "").trim(),
       team1Players: players
         .filter((row) => isLivePlayerCell(row[0]))
-        .map((row) => ({
-          player: normalizeLivePlayerCell(row[0]),
-          points: String(row[1] || "").trim(),
-          rank: String(row[2] || "").trim(),
-        })),
+        .map((row) => buildLivePlayerEntry(row[0], row[1], row[2])),
       team2Players: players
         .filter((row) => isLivePlayerCell(row[4]))
-        .map((row) => ({
-          player: normalizeLivePlayerCell(row[4]),
-          points: String(row[5] || "").trim(),
-          rank: String(row[6] || "").trim(),
-        })),
+        .map((row) => buildLivePlayerEntry(row[4], row[5], row[6])),
     });
   });
   return games;
@@ -1051,7 +1062,7 @@ function renderLiveModal(game) {
         .map(
           (player) => `
             <div class="boxscore-row">
-              <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(player.player)}">${escapeHtml(player.player)}</a>
+              <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(player.player)}">${escapeHtml(formatLivePlayerDisplay(player))}</a>
               <span>${escapeHtml(player.points || "")}</span>
               <span>${escapeHtml(player.rank || "")}</span>
             </div>
