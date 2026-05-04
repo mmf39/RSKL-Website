@@ -344,6 +344,22 @@ function prepareDashboardScheduleRows(rows, seasonRaw) {
   return rows;
 }
 
+function prepareDashboardPlayerRows(rows) {
+  if (!rows.length) return [];
+  const headerRowIndex = rows.findIndex((row) => {
+    const header = row.map((value) => String(value || "").trim().toLowerCase());
+    return (
+      header.includes("team") &&
+      header.includes("player") &&
+      (header.includes("score") || header.includes("points"))
+    );
+  });
+  if (headerRowIndex >= 0) {
+    return rows.slice(headerRowIndex);
+  }
+  return rows;
+}
+
 function updateLastUpdated() {
   const now = new Date();
   const formatted = now.toLocaleString(undefined, {
@@ -761,12 +777,65 @@ function normalizePlayerKey(value) {
   return String(value || "").trim().replace(/^@/, "").toLowerCase();
 }
 
+function stripCaptainMarker(value) {
+  return String(value || "")
+    .replace(/\s*\(c\)\s*$/i, "")
+    .replace(/\s+c\s*$/i, "")
+    .trim();
+}
+
+function isCaptainMarked(value) {
+  const text = String(value || "").trim();
+  return /\(c\)\s*$/i.test(text) || /\sc\s*$/i.test(text);
+}
+
+function median(numbers) {
+  if (!numbers.length) return null;
+  const sorted = [...numbers].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[mid - 1] + sorted[mid]) / 2
+    : sorted[mid];
+}
+
+function buildDailyBaselines(rows, playerColumns) {
+  const byDate = new Map();
+  rows.forEach((row) => {
+    const dateKey = String(row[playerColumns.date] || "").trim();
+    const score = parseNumber(row[playerColumns.score]);
+    if (!dateKey || score === null) return;
+    if (!byDate.has(dateKey)) {
+      byDate.set(dateKey, []);
+    }
+    byDate.get(dateKey).push(score);
+  });
+
+  const baselines = new Map();
+  byDate.forEach((scores, dateKey) => {
+    if (!scores.length) return;
+    const sum = scores.reduce((acc, n) => acc + n, 0);
+    baselines.set(dateKey, {
+      mean: scores.length ? sum / scores.length : null,
+      median: median(scores),
+    });
+  });
+  return baselines;
+}
+
 function buildLeaderboard(rows, playerColumns) {
+  const baselines = buildDailyBaselines(rows, playerColumns);
   const totals = new Map();
   rows.forEach((row) => {
-    const tag = String(row[playerColumns.player] || "").trim();
+    const rawNameWithMarker = String(row[playerColumns.player] || "").trim();
+    const tag = stripCaptainMarker(rawNameWithMarker);
     const team = displayTeamName(String(row[playerColumns.team] || "").trim());
-    const score = parseNumber(row[playerColumns.score]);
+    const baseScore = parseNumber(row[playerColumns.score]);
+    const score =
+      baseScore === null
+        ? null
+        : isCaptainMarked(rawNameWithMarker)
+        ? baseScore - 0.5
+        : baseScore;
     const rank = parseNumber(row[playerColumns.rank]);
     if (!tag || score === null) return;
     const key = normalizePlayerKey(tag);
@@ -782,12 +851,19 @@ function buildLeaderboard(rows, playerColumns) {
     };
     entry.total += score;
     entry.gp += 1;
+    const dateKey = String(row[playerColumns.date] || "").trim();
+    const baseline = baselines.get(dateKey);
+    if (baseline && baseline.median && baseline.median > 0) {
+      const replacementScore = 0.9 * baseline.median;
+      const avgMargin = 0.92 * baseline.median;
+      if (avgMargin > 0) {
+        entry.war += (score - replacementScore) / avgMargin;
+      }
+    }
     if (rank !== null) {
       entry.rankSum += rank;
       entry.rankGames += 1;
     }
-    const replacement = 7;
-    entry.war += (score - replacement) / 8;
     totals.set(key, entry);
   });
 
@@ -1017,8 +1093,9 @@ async function loadData() {
       renderFeaturedMatchups(featuredGames, seasonRaw);
 
       if (playerRows.length) {
-        const columns = detectPlayerColumns(playerRows[0] || []);
-        renderLeagueLeaders(buildLeaderboard(playerRows.slice(1), columns), seasonRaw);
+        const preparedPlayerRows = prepareDashboardPlayerRows(playerRows);
+        const columns = detectPlayerColumns(preparedPlayerRows[0] || []);
+        renderLeagueLeaders(buildLeaderboard(preparedPlayerRows.slice(1), columns), seasonRaw);
       } else {
         renderLeagueLeaders([], seasonRaw);
       }
