@@ -1800,13 +1800,13 @@ let teamLeadersMap = new Map();
 let leagueScheduleGames = [];
 
 function normalizeTeamLabel(value) {
-  const normalized = String(value || "")
+  const normalized = displayTeamName(String(value || ""))
     .replace(/\([^)]*\)/g, "")
     .replace(/\*/g, "")
     .trim()
     .toLowerCase()
     .replace(/\s+/g, " ");
-  return normalized === "bullets" ? "storm" : normalized;
+  return normalized;
 }
 
 function normalizeDateToken(value) {
