@@ -2857,6 +2857,76 @@ input[type="text"] {
   opacity: 0.7;
 }
 
+.player-contract-card {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 140, 26, 0.2);
+  background:
+    linear-gradient(180deg, rgba(255, 163, 71, 0.08), rgba(8, 15, 31, 0.9)),
+    rgba(8, 15, 31, 0.84);
+}
+
+.player-contract-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.player-contract-kicker {
+  color: rgba(255, 205, 153, 0.82);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.player-contract-team {
+  color: #fff7ed;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.player-contract-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.player-contract-metric {
+  display: grid;
+  gap: 6px;
+  padding: 14px 14px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 170, 86, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  text-align: left;
+}
+
+.player-contract-metric span {
+  color: rgba(255, 220, 187, 0.72);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 800;
+}
+
+.player-contract-metric strong {
+  color: #ffbf61;
+  font-size: 1.25rem;
+  line-height: 1.1;
+}
+
+.player-contract-notes {
+  color: rgba(255, 232, 201, 0.84);
+  line-height: 1.55;
+  text-align: left;
+}
+
 .player-detail-shell {
   max-width: 1240px;
 }
@@ -4506,6 +4576,10 @@ input[type="text"] {
   .player-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
+  }
+
+  .player-contract-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .dashboard-live-score {

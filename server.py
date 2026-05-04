@@ -42,6 +42,9 @@ C2S2_REGULAR_URL = (
 AWARDS_URL = (
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1527593475&single=true&output=csv"
 )
+CONTRACTS_URL = (
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTr6cIsrgXTBa6ndhiGle_qOOUWgzH3KDUgPTANYDG2O_9u3_zdhOUGdzgz9yzMnqs1dgv54qg0TudU/pub?gid=959105096&single=true&output=csv"
+)
 SHEET_UPDATE_URL = (
     "https://script.google.com/macros/s/AKfycbylZD-O7LCsznZpnRpYsAdbp7bCbknV-qta8PO0uv_k4Tnevf8Klkbfcg6Hh5DXC9GFvg/exec"
 )
@@ -58,6 +61,7 @@ CACHE = {}
 SHEETS = {
     "archive": ARCHIVE_URL,
     "awards": AWARDS_URL,
+    "contracts": CONTRACTS_URL,
     "boxscore": BOXSCORE_URL,
     "c2s2-regular": C2S2_REGULAR_URL,
     "draft": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=894447035&single=true&output=csv",

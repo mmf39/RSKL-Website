@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css?v=20260504e" />
+    <link rel="stylesheet" href="styles.css?v=20260504k" />
   </head>
   <body class="player-page player-detail-page">
     <div class="bg"></div>
@@ -49,6 +49,27 @@
         <div class="player-team-tab" id="player-team-tab">
           <div class="player-team-label">Team</div>
           <div class="player-team-value" id="player-team-value">—</div>
+        </div>
+        <div class="player-contract-card" id="player-contract-card" hidden>
+          <div class="player-contract-head">
+            <span class="player-contract-kicker">Contract</span>
+            <div class="player-contract-team" id="player-contract-team">—</div>
+          </div>
+          <div class="player-contract-grid">
+            <div class="player-contract-metric">
+              <span>Years</span>
+              <strong id="player-contract-years">—</strong>
+            </div>
+            <div class="player-contract-metric">
+              <span>Total Tax</span>
+              <strong id="player-contract-total">—</strong>
+            </div>
+            <div class="player-contract-metric">
+              <span>Cap Hit</span>
+              <strong id="player-contract-cap-hit">—</strong>
+            </div>
+          </div>
+          <div class="player-contract-notes" id="player-contract-notes" hidden></div>
         </div>
         <div class="panel-head">
           <div class="player-panel-heading">
@@ -179,7 +200,7 @@
       </div>
     </div>
 
-    <script src="player-detail.js?v=20260504b"></script>
+    <script src="player-detail.js?v=20260504c"></script>
       <script src="header-nav.js?v=20260504a"></script>
   </body>
 </html>

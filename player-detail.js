@@ -5,6 +5,7 @@ const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const AWARDS_URL = "/api/sheet?name=awards";
 const DRAFT_URL = "/api/sheet?name=draft";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
+const CONTRACTS_URL = "/api/sheet?name=contracts";
 const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
 const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 const PLAYER_SEASON_KEY = "playerSeason";
@@ -80,6 +81,12 @@ const els = {
   sumRelMedian: document.getElementById("sum-rel-median"),
   sumWar: document.getElementById("sum-war"),
   teamValue: document.getElementById("player-team-value"),
+  contractCard: document.getElementById("player-contract-card"),
+  contractTeam: document.getElementById("player-contract-team"),
+  contractYears: document.getElementById("player-contract-years"),
+  contractTotal: document.getElementById("player-contract-total"),
+  contractCapHit: document.getElementById("player-contract-cap-hit"),
+  contractNotes: document.getElementById("player-contract-notes"),
   awardsPanel: document.getElementById("player-awards-panel"),
   awards: document.getElementById("player-awards"),
   summaryCards: Array.from(document.querySelectorAll(".summary-card-link")),
@@ -106,6 +113,7 @@ let playerNameOverrides = new Map();
 let weeklyRowMap = new Map();
 let weeklyMetaMap = new Map();
 let activeWeekKey = "";
+let currentRenderedTeams = [];
 
 function parseCSV(text) {
   const rows = [];
@@ -375,6 +383,68 @@ function matchesAnyAliasStrict(cellValue, aliases) {
   const normalizedCell = normalizeName(cellValue);
   const tokens = extractNormalizedPlayerTokens(cellValue);
   return aliases.some((alias) => alias && (normalizedCell === alias || tokens.has(alias)));
+}
+
+function formatContractValue(value) {
+  const text = String(value || "").trim();
+  return text || "—";
+}
+
+function findPlayerContract(rows, playerName, preferredTeams = []) {
+  if (!rows || !rows.length || !playerName) {
+    return null;
+  }
+  const aliases = getPlayerAliases(playerName);
+  const preferred = new Set(
+    (preferredTeams || []).map((team) => displayTeamName(team)).filter(Boolean)
+  );
+
+  const matches = rows
+    .map((row) => ({
+      team: displayTeamName(row[0] || ""),
+      player: String(row[1] || "").trim(),
+      years: String(row[2] || "").trim(),
+      totalTax: String(row[3] || "").trim(),
+      capHit: String(row[4] || "").trim(),
+      notes: String(row[7] || "").trim(),
+    }))
+    .filter((entry) => matchesAnyAlias(entry.player, aliases));
+
+  if (!matches.length) {
+    return null;
+  }
+
+  const exactTeam = matches.find((entry) => preferred.has(entry.team));
+  return exactTeam || matches[0];
+}
+
+function renderPlayerContract(contract) {
+  if (!els.contractCard) {
+    return;
+  }
+  if (!contract) {
+    els.contractCard.hidden = true;
+    return;
+  }
+
+  els.contractCard.hidden = false;
+  if (els.contractTeam) {
+    els.contractTeam.textContent = contract.team || "—";
+  }
+  if (els.contractYears) {
+    els.contractYears.textContent = contract.years || "—";
+  }
+  if (els.contractTotal) {
+    els.contractTotal.textContent = formatContractValue(contract.totalTax);
+  }
+  if (els.contractCapHit) {
+    els.contractCapHit.textContent = formatContractValue(contract.capHit);
+  }
+  if (els.contractNotes) {
+    const notes = String(contract.notes || "").trim();
+    els.contractNotes.hidden = !notes;
+    els.contractNotes.textContent = notes;
+  }
 }
 
 async function findTeamForPlayer(season, playerName) {
@@ -788,6 +858,7 @@ function renderPlayerTeam(teamNameOrList) {
   if (!els.teamValue) {
     return;
   }
+  currentRenderedTeams = [];
   if (!teamNameOrList || (Array.isArray(teamNameOrList) && !teamNameOrList.length)) {
     els.teamValue.textContent = "—";
     return;
@@ -811,6 +882,7 @@ function renderPlayerTeam(teamNameOrList) {
     ? teamNameOrList.map((t) => displayTeamName(t)).filter(Boolean)
     : [displayTeamName(teamNameOrList)];
   const uniqueTeams = Array.from(new Set(teams));
+  currentRenderedTeams = uniqueTeams;
   const links = uniqueTeams
     .map(
       (team) =>
@@ -1860,10 +1932,12 @@ async function loadPlayer() {
     const season = getSeason();
     let dataRows = [];
     let boxRows = [];
+    let contractRows = [];
     if (season === "c2s3-regular") {
-      const [playerRes, boxRes] = await Promise.all([
+      const [playerRes, boxRes, contractRes] = await Promise.all([
         fetch(PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
+        fetch(CONTRACTS_URL, { cache: "no-store" }),
       ]);
       if (!playerRes.ok) {
         throw new Error(`Fetch failed: ${playerRes.status}`);
@@ -1871,6 +1945,7 @@ async function loadPlayer() {
       if (!boxRes.ok) {
         throw new Error(`Fetch failed: ${boxRes.status}`);
       }
+      contractRows = contractRes.ok ? parseCSV(await contractRes.text()) : [];
       const rows = parseCSV(await playerRes.text());
       if (!rows.length) {
         throw new Error("No data found.");
@@ -1879,9 +1954,10 @@ async function loadPlayer() {
       dataRows = rows.slice(1);
       boxRows = parseCSV(await boxRes.text());
     } else if (season === "c2s2-regular") {
-      const [playerRes, boxRes] = await Promise.all([
+      const [playerRes, boxRes, contractRes] = await Promise.all([
         fetch(C2S2_REGULAR_URL, { cache: "no-store" }),
         fetch(C2S2_REGULAR_URL, { cache: "no-store" }),
+        fetch(CONTRACTS_URL, { cache: "no-store" }),
       ]);
       if (!playerRes.ok) {
         throw new Error(`Fetch failed: ${playerRes.status}`);
@@ -1889,6 +1965,7 @@ async function loadPlayer() {
       if (!boxRes.ok) {
         throw new Error(`Fetch failed: ${boxRes.status}`);
       }
+      contractRows = contractRes.ok ? parseCSV(await contractRes.text()) : [];
       const rows = parseCSV(await playerRes.text());
       if (!rows.length) {
         throw new Error("No data found.");
@@ -1899,11 +1976,12 @@ async function loadPlayer() {
       const boxAllRows = parseCSV(await boxRes.text());
       boxRows = sliceRange(boxAllRows, C2S2_REGULAR_RANGES.boxscore);
     } else if (season === "career") {
-      const [currentPlayerRes, currentBoxRes, c2s2Res, archiveRes] = await Promise.all([
+      const [currentPlayerRes, currentBoxRes, c2s2Res, archiveRes, contractRes] = await Promise.all([
         fetch(PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
         fetch(C2S2_REGULAR_URL, { cache: "no-store" }),
         fetch(ARCHIVE_URL, { cache: "no-store" }),
+        fetch(CONTRACTS_URL, { cache: "no-store" }),
       ]);
       if (!currentPlayerRes.ok) {
         throw new Error(`Fetch failed: ${currentPlayerRes.status}`);
@@ -1917,6 +1995,7 @@ async function loadPlayer() {
       if (!archiveRes.ok) {
         throw new Error(`Fetch failed: ${archiveRes.status}`);
       }
+      contractRows = contractRes.ok ? parseCSV(await contractRes.text()) : [];
       const currentRows = parseCSV(await currentPlayerRes.text());
       const currentBox = parseCSV(await currentBoxRes.text());
       const c2s2SheetRows = parseCSV(await c2s2Res.text());
@@ -1947,10 +2026,14 @@ async function loadPlayer() {
       ];
       boxRows = [...currentBox, ...c2s2Box, ...c2s1PlayoffBox];
     } else if (season === "c2s1-playoffs") {
-      const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
+      const [response, contractRes] = await Promise.all([
+        fetch(ARCHIVE_URL, { cache: "no-store" }),
+        fetch(CONTRACTS_URL, { cache: "no-store" }),
+      ]);
       if (!response.ok) {
         throw new Error(`Fetch failed: ${response.status}`);
       }
+      contractRows = contractRes.ok ? parseCSV(await contractRes.text()) : [];
       const archive = parseCSV(await response.text());
       const sliced = sliceRange(archive, ARCHIVE_RANGES.player_stats);
       playerColumns = detectPlayerColumns(sliced[0] || []);
@@ -2016,6 +2099,7 @@ async function loadPlayer() {
         renderPlayerTeam(teamName);
       }
     }
+    renderPlayerContract(findPlayerContract(contractRows, playerName, currentRenderedTeams));
     window.__boxScoreRows = boxRows;
     await loadPlayerTransactions(playerName, season);
     updateLastUpdated();
