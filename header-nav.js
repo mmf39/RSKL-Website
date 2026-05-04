@@ -1,27 +1,8 @@
 (() => {
-  const ensureLink = (container, href, label) => {
-    if (!container) return;
-    const exists = Array.from(container.querySelectorAll("a")).some(
-      (a) => a.getAttribute("href") === href
-    );
-    if (exists) return;
-    const link = document.createElement("a");
-    link.className = "btn ghost";
-    link.href = href;
-    link.textContent = label;
-    container.appendChild(link);
-  };
-
   const nav = document.querySelector(".site-nav");
   const navMain = nav ? nav.querySelector(".site-nav-main") : null;
   const toggle = document.querySelector("[data-menu-toggle]");
   const panel = document.querySelector("[data-menu-panel]");
-
-  if (panel && navMain) {
-    Array.from(navMain.querySelectorAll("a.btn.ghost")).forEach((link) => {
-      ensureLink(panel, link.getAttribute("href"), link.textContent.trim());
-    });
-  }
 
   if (toggle && panel) {
     const setClosed = () => {
