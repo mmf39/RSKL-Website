@@ -4637,47 +4637,47 @@ input[type="text"] {
   }
 
   .site-nav {
-    min-height: 108px;
-    grid-template-columns: auto 1fr;
+    min-height: 0;
+    grid-template-columns: 1fr;
     align-items: start;
     row-gap: 12px;
   }
 
   .site-nav::before {
-    width: 42px;
-    height: 42px;
-    top: 3px;
+    width: 40px;
+    height: 40px;
+    top: 0;
     left: 50%;
   }
 
   .site-nav-main {
     display: flex;
-    grid-column: 1 / -1;
+    grid-column: 1;
     margin-top: 52px;
-    padding: 0 0 4px;
-    gap: 16px;
-    justify-content: flex-start;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .site-nav-main::-webkit-scrollbar {
-    display: none;
+    padding: 0;
+    gap: 10px 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+    overflow: visible;
   }
 
   .site-nav-main .btn.ghost {
-    font-size: 0.82rem;
+    font-size: 0.74rem;
     line-height: 1.1;
-    white-space: nowrap;
-    flex: 0 0 auto;
+    white-space: normal;
+    flex: 0 1 auto;
+    text-align: center;
+    min-height: 0;
+    padding: 4px 0;
   }
 
   .site-menu-btn {
     display: inline-flex;
-    top: 2px;
-    left: 0;
-    min-width: 48px;
-    width: 48px;
+    top: 0;
+    left: 8px;
+    min-width: 44px;
+    width: 44px;
+    height: 44px;
     padding: 0;
   }
 
@@ -4690,18 +4690,18 @@ input[type="text"] {
   }
 
   .season-select {
-    justify-self: stretch;
-    align-self: center;
-    grid-column: 2;
-    grid-row: 1;
-    width: 100%;
+    justify-self: center;
+    align-self: start;
+    grid-column: 1;
+    grid-row: auto;
+    width: min(100%, 320px);
     min-width: 0;
-    max-width: none;
-    margin-left: 56px;
-    padding: 12px 42px 12px 14px;
-    border-radius: 16px;
-    font-size: 0.76rem;
-    min-height: 46px;
+    max-width: 100%;
+    margin: 0;
+    padding: 10px 34px 10px 12px;
+    border-radius: 14px;
+    font-size: 0.72rem;
+    min-height: 42px;
   }
 
   .site-menu {
