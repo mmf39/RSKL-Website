@@ -6,6 +6,7 @@ const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const SEASON_KEY = "season";
+const SCHEDULE_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -38,6 +39,37 @@ const C2S2_REGULAR_RANGES = {
   schedule: "A71:E170",
   boxscore: "K60:R1059",
 };
+
+function getScheduleCacheKey(seasonRaw) {
+  return `schedule:rows:${seasonRaw}`;
+}
+
+function readCachedScheduleRows(seasonRaw) {
+  try {
+    const raw = localStorage.getItem(getScheduleCacheKey(seasonRaw));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.rows) || !parsed.savedAt) return [];
+    if (Date.now() - Number(parsed.savedAt) > SCHEDULE_CACHE_TTL_MS) return [];
+    return parsed.rows;
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeCachedScheduleRows(seasonRaw, rows) {
+  try {
+    localStorage.setItem(
+      getScheduleCacheKey(seasonRaw),
+      JSON.stringify({
+        savedAt: Date.now(),
+        rows,
+      })
+    );
+  } catch (error) {
+    // ignore cache failures
+  }
+}
 
 function getSeasonRaw() {
   const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
@@ -1089,7 +1121,16 @@ async function loadSchedule() {
     const seasonRaw = getSeasonRaw();
     const season = getSeason();
     let rows = [];
+    const cachedRows = readCachedScheduleRows(seasonRaw);
     resetScheduleEnhancements();
+
+    if (cachedRows.length) {
+      try {
+        applyInitialScheduleRows(cachedRows, season);
+      } catch (error) {
+        // ignore stale cache parse failures and continue with network fetch
+      }
+    }
 
     if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s2-playoffs") {
       const scheduleRes = await fetch(SCHEDULE_CSV_URL, { cache: "no-store" });
@@ -1100,6 +1141,7 @@ async function loadSchedule() {
       if (!regularRes.ok) throw new Error(`Fetch failed: ${regularRes.status}`);
       const regularRows = parseCSV(await regularRes.text());
       rows = getC2S2RegularScheduleRows(regularRows);
+      writeCachedScheduleRows(seasonRaw, rows);
       applyInitialScheduleRows(rows, season);
       hydrateEmbeddedScheduleData(regularRows, loadToken);
       return;
@@ -1109,11 +1151,13 @@ async function loadSchedule() {
       const archive = parseCSV(await response.text());
       const range = season === "c2s1-post" ? ARCHIVE_RANGES.schedule_post : ARCHIVE_RANGES.schedule_regular;
       rows = sliceRange(archive, range);
+      writeCachedScheduleRows(seasonRaw, rows);
       applyInitialScheduleRows(rows, season);
       hydrateArchiveScheduleData(archive, loadToken);
       return;
     }
 
+    writeCachedScheduleRows(seasonRaw, rows);
     applyInitialScheduleRows(rows, season);
     hydrateCurrentSeasonSchedule(loadToken);
   } catch (error) {
