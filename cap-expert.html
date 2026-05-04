@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>RSKL Expansion Draft</title>
+    <title>RSKL Cap Expert</title>
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
@@ -14,7 +14,7 @@
     <header class="hero">
       <div class="hero-inner">
         <div class="badge">Real Sports Karma League</div>
-        <h1>Expansion Draft</h1>
+        <h1>Cap Expert</h1>
         <div class="meta">
           <span id="last-updated">Last updated: —</span>
           <div class="site-nav">
@@ -46,9 +46,65 @@
     <main class="container">
       <section class="panel">
         <div class="panel-head">
-          <h2>Expansion Pools</h2>
+          <div>
+            <span class="dashboard-kicker">League View</span>
+            <h2>Cap Overview</h2>
+          </div>
         </div>
-        <div id="expansion-sections" class="draft-rounds">Loading…</div>
+        <div id="cap-summary" class="cap-summary-grid">
+          <div class="dashboard-state-card">Loading contract overview...</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <span class="dashboard-kicker">Team Breakdown</span>
+            <h2>Team Cap Sheets</h2>
+          </div>
+        </div>
+        <div id="cap-team-cards" class="cap-team-grid">
+          <div class="dashboard-state-card">Loading team cap sheets...</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <span class="dashboard-kicker">Selected Team</span>
+            <h2 id="cap-team-title">Team Breakdown</h2>
+          </div>
+          <div class="controls">
+            <label for="cap-team-select" class="label">Team</label>
+            <select id="cap-team-select"></select>
+          </div>
+        </div>
+        <div id="cap-team-breakdown" class="cap-breakdown-shell">
+          <div class="dashboard-state-card">Select a team to view its cap sheet.</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <span class="dashboard-kicker">Contracts</span>
+            <h2>League Cap Table</h2>
+          </div>
+          <div class="controls">
+            <label for="cap-team-filter" class="label">Team</label>
+            <select id="cap-team-filter">
+              <option value="all">All Teams</option>
+            </select>
+            <label for="cap-search" class="label">Search</label>
+            <input id="cap-search" type="text" placeholder="Search player or team" />
+          </div>
+        </div>
+        <div class="table-wrap cap-table-wrap">
+          <table id="cap-table">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </section>
     </main>
 
@@ -56,7 +112,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="expansion.js"></script>
-      <script src="header-nav.js?v=20260504e"></script>
+    <script src="cap-expert.js?v=20260504a"></script>
+    <script src="header-nav.js?v=20260504e"></script>
   </body>
 </html>
