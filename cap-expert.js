@@ -99,12 +99,16 @@ function formatNumber(value) {
 
 function getTeamLogo(team) {
   const clean = displayTeamName(team);
+  const raw = String(team || "").trim();
   if (clean === "Dream Team") {
     return "/assets/dream-team.jpg";
   }
   if (clean === "The Future") {
     return "/assets/the-future.png";
   }
+  if (clean === "The Lions" || raw === "Lions") return "/assets/the-lions.png";
+  if (clean === "The Snipers" || raw === "Snipers" || raw === "Sniper") return "/assets/the-snipers.png";
+  if (clean === "The Phantoms" || raw === "Phantoms" || raw === "Phantons") return "/assets/the-phantoms.png";
   if (clean === "The Lions") return "/assets/the-lions.png";
   if (clean === "The Snipers") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
