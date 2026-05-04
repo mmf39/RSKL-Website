@@ -454,6 +454,10 @@ function renderLeagueSnapshot(items) {
     .map((item) => {
       const team = displayTeamName(item.team);
       const record = item.wins !== null && item.losses !== null ? `${item.wins}-${item.losses}` : "—";
+      const recordMarkup =
+        item.wins !== null && item.losses !== null
+          ? `<span class="dashboard-record-value"><strong>${escapeHtml(String(item.wins))}</strong><em>-</em><strong>${escapeHtml(String(item.losses))}</strong></span>`
+          : `<strong>${escapeHtml(record)}</strong>`;
       const winPct = item.winPct !== null ? item.winPct.toFixed(3).replace(/^0/, ".") : "—";
       const gb = item.gb !== null ? item.gb : "—";
       return `
@@ -466,7 +470,7 @@ function renderLeagueSnapshot(items) {
           <div class="dashboard-team-metrics">
             <div class="team-record">
               <span>W-L</span>
-              <strong>${escapeHtml(record)}</strong>
+              ${recordMarkup}
             </div>
             <div class="team-record small">
               <span>GB</span>
@@ -717,7 +721,9 @@ function renderFeaturedMatchups(games, seasonRaw) {
     .map((game) => {
       const live = game.live;
       const status = live ? "LIVE" : game.gameType || (seasonRaw === "c2s3-regular" ? "Upcoming" : "Featured");
-      const scoreText = live ? `${live.team1Score || "—"} - ${live.team2Score || "—"}` : "Preview";
+      const middleMarkup = live
+        ? `<div class="dashboard-matchup-score">${escapeHtml(`${live.team1Score || "—"} - ${live.team2Score || "—"}`)}</div>`
+        : `<div class="dashboard-matchup-divider" aria-hidden="true"><span>vs</span></div>`;
       return `
         <article class="dashboard-matchup-card ${getTeamColorClass(game.team1)}">
           <div class="dashboard-matchup-head">
@@ -726,7 +732,7 @@ function renderFeaturedMatchups(games, seasonRaw) {
           </div>
           <div class="dashboard-matchup-body">
             <a class="dashboard-matchup-team" href="/team.html?team=${encodeURIComponent(game.team1)}">${renderSmallTeamLogo(game.team1)}<span>${escapeHtml(game.team1)}</span></a>
-            <div class="dashboard-matchup-score">${escapeHtml(scoreText)}</div>
+            ${middleMarkup}
             <a class="dashboard-matchup-team" href="/team.html?team=${encodeURIComponent(game.team2)}">${renderSmallTeamLogo(game.team2)}<span>${escapeHtml(game.team2)}</span></a>
           </div>
           <div class="dashboard-matchup-actions">
@@ -902,18 +908,6 @@ function renderRecentTransactions(items) {
 
   els.recentTransactions.innerHTML = items
     .map((item) => {
-      const teamPills = (item.teams || [])
-        .slice(0, 2)
-        .map(
-          (team) => `
-            <a class="dashboard-pill-link" href="/team.html?team=${encodeURIComponent(team)}">
-              ${renderSmallTeamLogo(team)}
-              <span>${escapeHtml(team)}</span>
-            </a>
-          `
-        )
-        .join("");
-
       const tradeSides =
         item.type === "Trade" && item.team1 && item.team2
           ? `
@@ -943,7 +937,6 @@ function renderRecentTransactions(items) {
             <span class="dashboard-transaction-date">${escapeHtml(item.date || "—")}</span>
           </div>
           ${tradeSides}
-          <div class="dashboard-transaction-meta">${teamPills}</div>
         </article>
       `;
     })
