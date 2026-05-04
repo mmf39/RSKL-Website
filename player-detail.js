@@ -442,8 +442,10 @@ function renderPlayerContract(contract) {
   }
   if (els.contractNotes) {
     const notes = String(contract.notes || "").trim();
-    els.contractNotes.hidden = !notes;
-    els.contractNotes.textContent = notes;
+    const capHit = String(contract.capHit || "").trim();
+    const showNotes = notes && notes !== capHit;
+    els.contractNotes.hidden = !showNotes;
+    els.contractNotes.textContent = showNotes ? notes : "";
   }
 }
 
