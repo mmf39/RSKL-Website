@@ -24,7 +24,7 @@ const AWARD_RANGES = {
 };
 
 const CHAMPION_RANGES = {
-  c2s2: "O13:P15",
+  c2s2: "O16:P29",
   c1s2: "C15:D24",
   c1s3: "E15:F28",
   c1s4: "G16:H27",
