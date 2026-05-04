@@ -528,6 +528,20 @@ function buildGameKey(dateToken, team1, team2) {
   return `${String(dateToken || "").trim()}|${normalizeTeamName(team1)}|${normalizeTeamName(team2)}`;
 }
 
+function normalizeLivePlayerCell(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/^c$/i.test(raw)) return "";
+  return raw
+    .replace(/\s+\(?c\)?$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isLivePlayerCell(value) {
+  return normalizeLivePlayerCell(value).startsWith("@");
+}
+
 function parseLiveGames(rows) {
   const games = [];
   LIVE_GAME_RANGES.forEach((range) => {
@@ -541,8 +555,8 @@ function parseLiveGames(rows) {
       if (
         left &&
         right &&
-        !left.startsWith("@") &&
-        !right.startsWith("@") &&
+        !isLivePlayerCell(left) &&
+        !isLivePlayerCell(right) &&
         !left.includes("League Day") &&
         !right.includes("League Day")
       ) {
@@ -565,16 +579,16 @@ function parseLiveGames(rows) {
       team1Header: String(header[0] || "").trim(),
       team2Header: String(header[4] || "").trim(),
       team1Players: players
-        .filter((row) => String(row[0] || "").trim() !== "")
+        .filter((row) => isLivePlayerCell(row[0]))
         .map((row) => ({
-          player: String(row[0] || "").trim(),
+          player: normalizeLivePlayerCell(row[0]),
           points: String(row[1] || "").trim(),
           rank: String(row[2] || "").trim(),
         })),
       team2Players: players
-        .filter((row) => String(row[4] || "").trim() !== "")
+        .filter((row) => isLivePlayerCell(row[4]))
         .map((row) => ({
-          player: String(row[4] || "").trim(),
+          player: normalizeLivePlayerCell(row[4]),
           points: String(row[5] || "").trim(),
           rank: String(row[6] || "").trim(),
         })),

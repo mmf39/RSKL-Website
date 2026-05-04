@@ -325,6 +325,20 @@ function parseTeamHeader(value) {
   return { name, score };
 }
 
+function normalizePlayerCell(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/^c$/i.test(raw)) return "";
+  return raw
+    .replace(/\s+\(?c\)?$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isPlayerCell(value) {
+  return normalizePlayerCell(value).startsWith("@");
+}
+
 function extractLeagueDay(rows) {
   const hit = rows.find(
     (row) =>
@@ -352,8 +366,8 @@ function buildLiveScoreMap(rows) {
   const looksLikeHeader = (left, right) =>
     left &&
     right &&
-    !left.startsWith("@") &&
-    !right.startsWith("@") &&
+    !isPlayerCell(left) &&
+    !isPlayerCell(right) &&
     (/\(\s*-?\d+\s*\)/.test(left) || /\(\s*-?\d+\s*\)/.test(right));
 
   const games = [];
@@ -380,16 +394,16 @@ function buildLiveScoreMap(rows) {
     if (!team1.name || !team2.name) return;
 
     const team1Players = game.players
-      .filter((r) => String(r[0] || "").trim() !== "")
+      .filter((r) => isPlayerCell(r[0]))
       .map((r) => ({
-        player: String(r[0] || "").trim(),
+        player: normalizePlayerCell(r[0]),
         points: String(r[1] || ""),
         rank: String(r[2] || ""),
       }));
     const team2Players = game.players
-      .filter((r) => String(r[4] || "").trim() !== "")
+      .filter((r) => isPlayerCell(r[4]))
       .map((r) => ({
-        player: String(r[4] || "").trim(),
+        player: normalizePlayerCell(r[4]),
         points: String(r[5] || ""),
         rank: String(r[6] || ""),
       }));
@@ -432,7 +446,7 @@ function buildFinalScoreMap(rows) {
     const left = String(row[0] || "").trim();
     const right = String(row[4] || "").trim();
     if (!day || !left || !right) continue;
-    if (left.startsWith("@") || right.startsWith("@")) continue;
+    if (isPlayerCell(left) || isPlayerCell(right)) continue;
     const t1 = parseTeamHeader(left);
     const t2 = parseTeamHeader(right);
     if (!t1.name || !t2.name || !t1.score || !t2.score) continue;
@@ -678,11 +692,11 @@ function findBoxScoreRowsForGame(game) {
     const isHeader =
       left &&
       right &&
-      !left.startsWith("@") &&
-      !right.startsWith("@") &&
+      !isPlayerCell(left) &&
+      !isPlayerCell(right) &&
       !left.includes("League Day") &&
       !right.includes("League Day");
-    const isPlayer = left.startsWith("@") || right.startsWith("@");
+    const isPlayer = isPlayerCell(left) || isPlayerCell(right);
     if (isHeader) {
       current = [row];
       blocks.push(current);
@@ -728,11 +742,14 @@ function getBoxScorePayload(game) {
   const team2Header = team2Rows.length ? team2Rows[0][4] : game.team2;
 
   const mapRows = (arr, side) =>
-    arr.slice(1).map((row) =>
-      side === 1
-        ? { player: row[0] || "", points: row[1] || "", rank: row[2] || "" }
-        : { player: row[4] || "", points: row[5] || "", rank: row[6] || "" }
-    );
+    arr
+      .slice(1)
+      .map((row) =>
+        side === 1
+          ? { player: normalizePlayerCell(row[0]), points: row[1] || "", rank: row[2] || "" }
+          : { player: normalizePlayerCell(row[4]), points: row[5] || "", rank: row[6] || "" }
+      )
+      .filter((row) => row.player);
 
   const team1 = mapRows(team1Rows, 1);
   const team2 = mapRows(team2Rows, 2);

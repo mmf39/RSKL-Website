@@ -1869,6 +1869,20 @@ function parseTeamHeader(value) {
   return { name, score };
 }
 
+function normalizePlayerCell(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/^c$/i.test(raw)) return "";
+  return raw
+    .replace(/\s+\(?c\)?$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isPlayerCell(value) {
+  return normalizePlayerCell(value).startsWith("@");
+}
+
 function extractLeagueDay(rows) {
   const row = rows.find(
     (r) =>
@@ -1914,16 +1928,16 @@ function buildLiveScoreMap(rows) {
       .slice(1)
       .filter((r) => String(r[0] || r[4] || "").trim() !== "");
     const team1Players = lines
-      .filter((r) => String(r[0] || "").trim().startsWith("@"))
+      .filter((r) => isPlayerCell(r[0]))
       .map((r) => ({
-        player: String(r[0] || "").trim(),
+        player: normalizePlayerCell(r[0]),
         points: String(r[1] || ""),
         rank: String(r[2] || ""),
       }));
     const team2Players = lines
-      .filter((r) => String(r[4] || "").trim().startsWith("@"))
+      .filter((r) => isPlayerCell(r[4]))
       .map((r) => ({
-        player: String(r[4] || "").trim(),
+        player: normalizePlayerCell(r[4]),
         points: String(r[5] || ""),
         rank: String(r[6] || ""),
       }));
@@ -2280,11 +2294,11 @@ function buildBoxScore(teamName, scheduleRow, season) {
     const isHeader =
       left &&
       right &&
-      !left.startsWith("@") &&
-      !right.startsWith("@") &&
+      !isPlayerCell(left) &&
+      !isPlayerCell(right) &&
       !left.includes("League Day") &&
       !right.includes("League Day");
-    const isPlayer = left.startsWith("@") || right.startsWith("@");
+    const isPlayer = isPlayerCell(left) || isPlayerCell(right);
     if (isHeader) {
       current = [row];
       blocks.push(current);
@@ -2332,16 +2346,22 @@ function buildBoxScore(teamName, scheduleRow, season) {
     dateLabel: `League Day: ${dateToken}`,
     team1Name: team1Header || team1Name,
     team2Name: team2Header || team2Name,
-    team1: team1Rows.slice(1).map((row) => ({
-      player: row[0] || "",
-      points: row[1] || "",
-      rank: row[2] || "",
-    })),
-    team2: team2Rows.slice(1).map((row) => ({
-      player: row[4] || "",
-      points: row[5] || "",
-      rank: row[6] || "",
-    })),
+    team1: team1Rows
+      .slice(1)
+      .map((row) => ({
+        player: normalizePlayerCell(row[0]),
+        points: row[1] || "",
+        rank: row[2] || "",
+      }))
+      .filter((row) => row.player),
+    team2: team2Rows
+      .slice(1)
+      .map((row) => ({
+        player: normalizePlayerCell(row[4]),
+        points: row[5] || "",
+        rank: row[6] || "",
+      }))
+      .filter((row) => row.player),
   };
 }
 

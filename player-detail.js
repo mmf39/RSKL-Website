@@ -2249,6 +2249,15 @@ function buildBoxScore(dateToken, opponent) {
   if (!rows.length) {
     return null;
   }
+  const normalizePlayerCell = (value) => {
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    if (/^c$/i.test(raw)) return "";
+    return raw
+      .replace(/\s+\(?c\)?$/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
   const isDateRow = (row) => {
     const a = String(row[0] || "");
     const b = String(row[1] || "");
@@ -2300,16 +2309,22 @@ function buildBoxScore(dateToken, opponent) {
     dateLabel: `League Day: ${dateToken}`,
     team1Name: team1Header,
     team2Name: team2Header,
-    team1: team1Rows.slice(1).map((row) => ({
-      player: row[0] || "",
-      points: row[1] || "",
-      rank: row[2] || "",
-    })),
-    team2: team2Rows.slice(1).map((row) => ({
-      player: row[4] || "",
-      points: row[5] || "",
-      rank: row[6] || "",
-    })),
+    team1: team1Rows
+      .slice(1)
+      .map((row) => ({
+        player: normalizePlayerCell(row[0]),
+        points: row[1] || "",
+        rank: row[2] || "",
+      }))
+      .filter((row) => row.player),
+    team2: team2Rows
+      .slice(1)
+      .map((row) => ({
+        player: normalizePlayerCell(row[4]),
+        points: row[5] || "",
+        rank: row[6] || "",
+      }))
+      .filter((row) => row.player),
   };
 }
 
