@@ -3772,3 +3772,175 @@ input[type="text"] {
     min-width: 480px;
   }
 }
+
+@media (max-width: 560px) {
+  .hero {
+    padding: 10px 10px 22px;
+  }
+
+  .container {
+    padding: 0 14px 40px;
+    gap: 16px;
+  }
+
+  .panel,
+  .team-page .panel {
+    padding: 18px 16px;
+    border-radius: 18px;
+  }
+
+  .meta {
+    padding: 6px 8px 10px;
+  }
+
+  .site-nav {
+    min-height: 108px;
+    row-gap: 10px;
+  }
+
+  .site-nav::before {
+    width: 52px;
+    height: 52px;
+    border-width: 2px;
+  }
+
+  .site-nav-main {
+    margin-top: 58px;
+    gap: 14px;
+    padding: 0 0 4px;
+  }
+
+  .site-nav-main .btn.ghost {
+    font-size: 0.76rem;
+    letter-spacing: 0.03em;
+  }
+
+  .season-select {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    justify-self: stretch;
+    align-self: stretch;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    margin-top: 4px;
+    padding: 10px 36px 10px 12px;
+    border-radius: 14px;
+    font-size: 0.8rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .site-menu {
+    top: 48px;
+  }
+
+  .panel-head {
+    gap: 14px;
+  }
+
+  .standings-scope-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    gap: 8px;
+  }
+
+  .standings-scope-tab {
+    font-size: 0.88rem;
+    padding: 10px 12px;
+  }
+
+  .live-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .player-controls {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 14px;
+  }
+
+  .player-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .summary-card {
+    padding: 14px;
+  }
+
+  .summary-card strong {
+    font-size: 1.3rem;
+  }
+
+  .team-page .stats-grid-top,
+  .team-page .stats-grid-bottom {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .team-page .stat-box {
+    min-height: 78px;
+  }
+
+  .team-page .stat-box strong {
+    font-size: 1.3rem;
+  }
+
+  .team-page #team-schedule {
+    min-width: 360px;
+  }
+
+  .player-detail-summary-panel .panel-head,
+  .player-detail-data-panel .panel-head {
+    align-items: stretch;
+  }
+
+  .player-detail-controls,
+  .player-detail-summary-panel .player-controls {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .tx-sides {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tx-sentence {
+    white-space: normal;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.35;
+  }
+
+  .gm-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .gm-tab {
+    width: 100%;
+    text-align: center;
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 400px) {
+  .site-nav-main .btn.ghost {
+    font-size: 0.72rem;
+  }
+
+  .standings-scope-tabs,
+  .gm-tabs,
+  .player-summary,
+  .team-page .stats-grid-top,
+  .team-page .stats-grid-bottom {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .summary-card strong {
+    font-size: 1.45rem;
+  }
+
+  .team-page #team-schedule {
+    min-width: 320px;
+  }
+}
