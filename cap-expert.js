@@ -414,6 +414,12 @@ function renderTeamCards(teamMap) {
       els.teamSelect.value = selectedTeam;
       renderTeamCards(teamMap);
       renderTeamBreakdown(teamMap);
+      if (els.teamBreakdownSection) {
+        els.teamBreakdownSection.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
     });
   });
 }
@@ -567,6 +573,12 @@ async function loadCapPage() {
       selectedTeam = els.teamSelect.value || selectedTeam;
       renderTeamCards(teamMap);
       renderTeamBreakdown(teamMap);
+      if (els.teamBreakdownSection) {
+        els.teamBreakdownSection.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
     });
     els.teamFilter.addEventListener("change", renderLeagueTable);
     els.search.addEventListener("input", renderLeagueTable);
