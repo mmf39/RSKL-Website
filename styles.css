@@ -1193,21 +1193,21 @@ body.menu-open {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 170, 86, 0.12);
 }
 
 .dashboard-team-logo-wrap .standings-logo {
-  width: 40px;
-  height: 40px;
+  width: 54px;
+  height: 54px;
 }
 
 .dashboard-team-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(112px, 1fr));
   gap: 10px;
   align-items: stretch;
 }
@@ -1235,28 +1235,29 @@ body.menu-open {
 
 .dashboard-team-card .team-record strong {
   color: #ffbf61;
-  font-size: clamp(2rem, 3vw, 2.65rem);
-  line-height: 0.95;
+  font-size: clamp(1.7rem, 2.2vw, 2.2rem);
+  line-height: 1;
   letter-spacing: -0.04em;
-  word-break: break-word;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .dashboard-team-card .team-record.small strong {
-  font-size: clamp(2rem, 2.8vw, 2.45rem);
+  font-size: clamp(1.65rem, 2vw, 2.05rem);
 }
 
 .dashboard-record-value {
   display: inline-flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: nowrap;
 }
 
 .dashboard-record-value em {
   color: #ffbf61;
   font-style: normal;
-  font-size: clamp(1.35rem, 2.1vw, 1.8rem);
+  font-size: clamp(1.1rem, 1.5vw, 1.35rem);
   font-weight: 800;
   line-height: 1;
 }
@@ -4511,6 +4512,17 @@ input[type="text"] {
   .dashboard-team-metrics,
   .dashboard-trade-sides {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-team-logo-wrap {
+    width: 62px;
+    height: 62px;
+    border-radius: 18px;
+  }
+
+  .dashboard-team-logo-wrap .standings-logo {
+    width: 46px;
+    height: 46px;
   }
 
   .dashboard-team-card .team-record strong {
