@@ -946,7 +946,7 @@ function renderWeeklyKarma(rows) {
 
   const grouped = Array.from(byBucket.values()).sort((a, b) => {
     if (a.seasonLabel !== b.seasonLabel) {
-      const order = ["C2S2 Regular Season", "C2S1 Playoffs", "C2S1 Regular Season"];
+      const order = ["C2S3 Regular Season", "C2S2 Regular Season", "C2S1 Playoffs", "C2S1 Regular Season"];
       const ai = order.indexOf(a.seasonLabel);
       const bi = order.indexOf(b.seasonLabel);
       if (ai !== -1 || bi !== -1) {
@@ -1179,7 +1179,7 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
     bySeason.get(seasonLabel).push(row);
   });
 
-  const seasonOrder = ["C2S2 Regular Season", "C2S1 Playoffs"];
+  const seasonOrder = ["C2S3 Regular Season", "C2S2 Regular Season", "C2S1 Playoffs"];
   const orderedSeasons = Array.from(bySeason.keys()).sort((a, b) => {
     const ai = seasonOrder.indexOf(a);
     const bi = seasonOrder.indexOf(b);
@@ -1880,30 +1880,38 @@ async function loadPlayer() {
       const boxAllRows = parseCSV(await boxRes.text());
       boxRows = sliceRange(boxAllRows, C2S2_REGULAR_RANGES.boxscore);
     } else if (season === "career") {
-      const [playerRes, boxRes, archiveRes] = await Promise.all([
+      const [currentPlayerRes, currentBoxRes, c2s2Res, archiveRes] = await Promise.all([
         fetch(PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
+        fetch(C2S2_REGULAR_URL, { cache: "no-store" }),
         fetch(ARCHIVE_URL, { cache: "no-store" }),
       ]);
-      if (!playerRes.ok) {
-        throw new Error(`Fetch failed: ${playerRes.status}`);
+      if (!currentPlayerRes.ok) {
+        throw new Error(`Fetch failed: ${currentPlayerRes.status}`);
       }
-      if (!boxRes.ok) {
-        throw new Error(`Fetch failed: ${boxRes.status}`);
+      if (!currentBoxRes.ok) {
+        throw new Error(`Fetch failed: ${currentBoxRes.status}`);
+      }
+      if (!c2s2Res.ok) {
+        throw new Error(`Fetch failed: ${c2s2Res.status}`);
       }
       if (!archiveRes.ok) {
         throw new Error(`Fetch failed: ${archiveRes.status}`);
       }
-      const c2s2Rows = parseCSV(await playerRes.text());
-      const c2s2Box = parseCSV(await boxRes.text());
+      const currentRows = parseCSV(await currentPlayerRes.text());
+      const currentBox = parseCSV(await currentBoxRes.text());
+      const c2s2SheetRows = parseCSV(await c2s2Res.text());
       const archive = parseCSV(await archiveRes.text());
+      const c2s2Rows = sliceRange(c2s2SheetRows, C2S2_REGULAR_RANGES.player_stats);
+      const c2s2Box = sliceRange(c2s2SheetRows, C2S2_REGULAR_RANGES.boxscore);
       const c2s1PlayoffRows = sliceRange(archive, ARCHIVE_RANGES.player_stats);
       const c2s1PlayoffBox = sliceRange(archive, ARCHIVE_RANGES.boxscore);
 
+      const currentHeader = currentRows[0] || [];
       const c2s2Header = c2s2Rows[0] || [];
       const c2s1Header = c2s1PlayoffRows[0] || [];
       playerColumns = detectPlayerColumns(
-        c2s2Header.length ? c2s2Header : c2s1Header
+        currentHeader.length ? currentHeader : c2s2Header.length ? c2s2Header : c2s1Header
       );
 
       const annotate = (rows, label) =>
@@ -1914,10 +1922,11 @@ async function loadPlayer() {
         });
 
       dataRows = [
+        ...annotate(currentRows.slice(1), "C2S3 Regular Season"),
         ...annotate(c2s2Rows.slice(1), "C2S2 Regular Season"),
         ...annotate(c2s1PlayoffRows.slice(1), "C2S1 Playoffs"),
       ];
-      boxRows = [...c2s2Box, ...c2s1PlayoffBox];
+      boxRows = [...currentBox, ...c2s2Box, ...c2s1PlayoffBox];
     } else if (season === "c2s1-playoffs") {
       const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
       if (!response.ok) {
