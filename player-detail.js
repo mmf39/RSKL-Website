@@ -1824,7 +1824,7 @@ async function loadPlayer() {
   els.name.textContent = displayName || "Player";
   if (els.sub) {
     els.sub.textContent = displayName
-      ? `Game-by-game stats for ${displayName}`
+      ? displayName
       : "Missing player name.";
   }
 
