@@ -99,14 +99,19 @@ function getTeamLogo(team) {
   if (clean === "Dream Team") {
     return "/assets/dream-team.jpg";
   }
+  if (clean === "The Future") {
+    return "/assets/the-future.png";
+  }
   if (clean === "The Lions") return "/assets/the-lions.png";
   if (clean === "The Snipers") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
   if (clean === "MayeDay") return "/assets/mayeday.jpg";
+  if (clean === "Yetis") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
   if (clean === "Cheerios") return "/assets/cheerios.png";
   if (clean === "Illegals") return "/assets/illegals.png";
   if (clean === "Storm") return "/assets/storm.png";
+  if (clean === "Bullets") return "/assets/bullets.png";
   if (clean === "Turkeys") return "/assets/turkeys.png";
   return "/assets/rskl-logo.png?v=4";
 }

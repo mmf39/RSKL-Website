@@ -3611,14 +3611,71 @@ input[type="text"] {
 #cap-table,
 .cap-team-table {
   width: 100%;
-  min-width: 820px;
+  min-width: 0;
+  table-layout: fixed;
 }
 
 #cap-table th,
 #cap-table td,
 .cap-team-table th,
 .cap-team-table td {
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  vertical-align: top;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+#cap-table th,
+.cap-team-table th {
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+}
+
+#cap-table th:nth-child(1),
+#cap-table td:nth-child(1),
+.cap-team-table th:nth-child(1),
+.cap-team-table td:nth-child(1) {
+  width: 26%;
+}
+
+#cap-table th:nth-child(2),
+#cap-table td:nth-child(2) {
+  width: 20%;
+}
+
+#cap-table th:nth-child(3),
+#cap-table td:nth-child(3),
+.cap-team-table th:nth-child(2),
+.cap-team-table td:nth-child(2) {
+  width: 12%;
+}
+
+#cap-table th:nth-child(4),
+#cap-table td:nth-child(4),
+.cap-team-table th:nth-child(3),
+.cap-team-table td:nth-child(3) {
+  width: 18%;
+}
+
+#cap-table th:nth-child(5),
+#cap-table td:nth-child(5),
+.cap-team-table th:nth-child(4),
+.cap-team-table td:nth-child(4) {
+  width: 16%;
+}
+
+.cap-team-link,
+.cap-breakdown-brand,
+.cap-team-head,
+.draft-link {
+  min-width: 0;
+}
+
+.cap-team-link span,
+.draft-link {
+  white-space: normal;
 }
 
 .cap-team-link {
