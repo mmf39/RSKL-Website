@@ -4637,9 +4637,10 @@ input[type="text"] {
   }
 
   .site-nav {
-    min-height: 56px;
+    min-height: 108px;
     grid-template-columns: auto 1fr;
-    align-items: center;
+    align-items: start;
+    row-gap: 12px;
   }
 
   .site-nav::before {
@@ -4650,7 +4651,25 @@ input[type="text"] {
   }
 
   .site-nav-main {
+    display: flex;
+    grid-column: 1 / -1;
+    margin-top: 52px;
+    padding: 0 0 4px;
+    gap: 16px;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .site-nav-main::-webkit-scrollbar {
     display: none;
+  }
+
+  .site-nav-main .btn.ghost {
+    font-size: 0.82rem;
+    line-height: 1.1;
+    white-space: nowrap;
+    flex: 0 0 auto;
   }
 
   .site-menu-btn {
@@ -4681,7 +4700,7 @@ input[type="text"] {
     margin-left: 56px;
     padding: 12px 42px 12px 14px;
     border-radius: 16px;
-    font-size: 0.82rem;
+    font-size: 0.76rem;
     min-height: 46px;
   }
 
