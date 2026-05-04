@@ -48,7 +48,8 @@
           <h2>GM Tools</h2>
           <div class="gm-tabs">
             <button class="gm-tab active" type="button" data-gm-tab="trade">Trade Block</button>
-                        <button class="gm-tab" type="button" data-gm-tab="lineup">Lineup Submit</button>
+            <button class="gm-tab" type="button" data-gm-tab="rename">Player Name Change</button>
+            <button class="gm-tab" type="button" data-gm-tab="lineup">Lineup Submit</button>
             <button class="gm-tab" type="button" data-gm-tab="power">Power Rankings Vote</button>
           </div>
         </div>
@@ -116,6 +117,40 @@
           <div class="gm-card">
             <div class="label">Other Teams (Read Only)</div>
             <div id="trade-view-list" class="gm-readonly-list"></div>
+          </div>
+        </div>
+
+        <div id="gm-tab-rename" class="gm-tab-panel" hidden>
+          <div class="gm-card">
+            <div class="label">Player Name Change</div>
+            <label class="label" for="rename-team-select">Team</label>
+            <select id="rename-team-select" class="text-input">
+              <option value="">Select team</option>
+              <option value="Gus N Em">Gus N Em</option>
+              <option value="Bullets">Storm</option>
+              <option value="Turkeys">Turkeys</option>
+              <option value="Cheerios">Cheerios</option>
+              <option value="Yetis">MayeDay</option>
+              <option value="Illegals">Illegals</option>
+              <option value="The Lions">The Lions</option>
+              <option value="The Future">Dream Team</option>
+              <option value="The Snipers">The Snipers</option>
+              <option value="The Phantoms">The Phantoms</option>
+            </select>
+
+            <label class="label" for="rename-player-select">Current Player</label>
+            <select id="rename-player-select" class="text-input">
+              <option value="">Select a player</option>
+            </select>
+
+            <label class="label" for="rename-new-name">New Name</label>
+            <input id="rename-new-name" class="text-input" type="text" placeholder="Enter the new player name" />
+
+            <label class="label" for="rename-code" data-code-label>Access Code</label>
+            <input id="rename-code" class="text-input" type="password" placeholder="Enter code to update" data-code-input />
+
+            <button id="rename-save" class="btn" type="button">Save Player Name Change</button>
+            <div id="rename-status" class="gm-status"></div>
           </div>
         </div>
 
@@ -191,7 +226,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="gm.js?v=20260424a"></script>
+    <script src="gm.js?v=20260503a"></script>
       <script src="header-nav.js"></script>
   </body>
 </html>
