@@ -783,8 +783,8 @@ h1 {
 
 .home-hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
-  gap: 24px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
   align-items: stretch;
 }
 
@@ -821,7 +821,7 @@ h1 {
 
 .home-subtitle {
   margin: 12px 0 0;
-  max-width: 580px;
+  max-width: 680px;
   color: rgba(255, 230, 201, 0.86);
   font-size: 1.08rem;
   line-height: 1.6;
@@ -846,29 +846,7 @@ h1 {
   background: rgba(9, 18, 38, 0.56) !important;
 }
 
-.home-feature-links {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.home-feature-card {
-  display: grid;
-  gap: 10px;
-  padding: 18px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 160, 67, 0.22);
-  background:
-    linear-gradient(180deg, rgba(255, 163, 71, 0.08), rgba(8, 15, 31, 0.92)),
-    rgba(8, 15, 31, 0.84);
-  color: #fff7ed;
-  text-decoration: none;
-  box-shadow: 0 20px 36px rgba(0, 0, 0, 0.18);
-  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
-}
-
 .home-hero-copy,
-.home-feature-card,
 .dashboard-live-card,
 .dashboard-matchup-card,
 .dashboard-team-card,
@@ -877,30 +855,34 @@ h1 {
   text-align: left;
 }
 
-.home-feature-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 182, 98, 0.5);
-  box-shadow: 0 24px 42px rgba(0, 0, 0, 0.24);
-}
-
-.home-feature-label {
-  color: rgba(255, 195, 126, 0.82);
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-size: 0.72rem;
-  font-weight: 800;
-}
-
-.home-feature-card strong {
-  font-size: 1.02rem;
-  line-height: 1.45;
-  font-weight: 700;
-}
-
 .dashboard-panel {
+  position: relative;
+  overflow: hidden;
+  padding-top: 28px;
   background:
-    radial-gradient(circle at top left, rgba(255, 140, 26, 0.12), transparent 30%),
+    radial-gradient(circle at top left, rgba(255, 140, 26, 0.16), transparent 30%),
     linear-gradient(180deg, rgba(20, 7, 1, 0.92), rgba(6, 12, 27, 0.98));
+  border-color: rgba(255, 160, 67, 0.26);
+}
+
+.dashboard-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255, 170, 86, 0), rgba(255, 170, 86, 0.8), rgba(255, 170, 86, 0));
+}
+
+.dashboard-panel .panel-head {
+  margin-bottom: 22px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 170, 86, 0.12);
+}
+
+.dashboard-panel .panel-head h2 {
+  margin-top: 6px;
+  font-size: clamp(1.55rem, 2.3vw, 2.2rem);
+  color: #fff7ed;
 }
 
 .dashboard-state-card {
@@ -935,18 +917,19 @@ h1 {
 .dashboard-live-list,
 .dashboard-feature-grid,
 .dashboard-leader-grid {
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .dashboard-live-card {
   width: 100%;
   text-align: left;
-  padding: 16px;
-  border-radius: 18px;
-  border: 1px solid rgba(255, 160, 67, 0.28);
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 160, 67, 0.34);
   background:
-    linear-gradient(180deg, rgba(255, 163, 71, 0.08), rgba(8, 15, 31, 0.9)),
+    linear-gradient(180deg, rgba(255, 163, 71, 0.12), rgba(8, 15, 31, 0.92)),
     rgba(8, 15, 31, 0.86);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.22);
 }
 
 .dashboard-live-head,
@@ -992,6 +975,7 @@ h1 {
   font-size: 1.75rem;
   font-weight: 900;
   letter-spacing: 0.02em;
+  margin-left: auto;
 }
 
 .dashboard-live-cta,
@@ -1007,11 +991,22 @@ h1 {
 .dashboard-team-card,
 .dashboard-leader-card {
   border-radius: 20px;
-  border: 1px solid rgba(255, 162, 73, 0.2);
+  border: 1px solid rgba(255, 162, 73, 0.24);
   background:
-    linear-gradient(180deg, rgba(255, 163, 71, 0.08), rgba(8, 15, 31, 0.88)),
+    linear-gradient(180deg, rgba(255, 163, 71, 0.12), rgba(8, 15, 31, 0.9)),
     rgba(8, 15, 31, 0.84);
-  box-shadow: 0 20px 38px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 20px 38px rgba(0, 0, 0, 0.22);
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.dashboard-matchup-card:hover,
+.dashboard-transaction-card:hover,
+.dashboard-team-card:hover,
+.dashboard-leader-card:hover,
+.dashboard-live-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 187, 108, 0.5);
+  box-shadow: 0 24px 42px rgba(0, 0, 0, 0.28);
 }
 
 .dashboard-matchup-card {
@@ -1029,13 +1024,14 @@ h1 {
   display: flex;
   align-items: center;
   gap: 10px;
+  justify-content: space-between;
   color: #fff7ed;
   text-decoration: none;
   font-weight: 700;
 }
 
 .dashboard-matchup-score {
-  justify-self: start;
+  justify-self: center;
   padding: 6px 10px;
   border-radius: 999px;
   background: rgba(255, 140, 26, 0.1);
