@@ -40,6 +40,10 @@ const C2S2_REGULAR_RANGES = {
   boxscore: "K60:R1059",
 };
 
+function getScheduleEnhancementCacheKey(seasonRaw) {
+  return `schedule:enhancements:${seasonRaw}`;
+}
+
 function getScheduleCacheKey(seasonRaw) {
   return `schedule:rows:${seasonRaw}`;
 }
@@ -69,6 +73,54 @@ function writeCachedScheduleRows(seasonRaw, rows) {
   } catch (error) {
     // ignore cache failures
   }
+}
+
+function readCachedScheduleEnhancements(seasonRaw) {
+  try {
+    const raw = localStorage.getItem(getScheduleEnhancementCacheKey(seasonRaw));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.savedAt) return null;
+    if (Date.now() - Number(parsed.savedAt) > SCHEDULE_CACHE_TTL_MS) return null;
+    return parsed;
+  } catch (error) {
+    return null;
+  }
+}
+
+function writeCachedScheduleEnhancements(seasonRaw, payload) {
+  try {
+    localStorage.setItem(
+      getScheduleEnhancementCacheKey(seasonRaw),
+      JSON.stringify({
+        savedAt: Date.now(),
+        ...payload,
+      })
+    );
+  } catch (error) {
+    // ignore cache failures
+  }
+}
+
+function hydrateCachedEnhancements(seasonRaw) {
+  const cached = readCachedScheduleEnhancements(seasonRaw);
+  if (!cached) return false;
+
+  if (Array.isArray(cached.boxScoreRows)) {
+    cachedBoxScoreRows = cached.boxScoreRows;
+    finalScoreMap = buildFinalScoreMap(cachedBoxScoreRows);
+  }
+
+  if (Array.isArray(cached.liveRows)) {
+    liveScoreMap = buildLiveScoreMap(cached.liveRows);
+  }
+
+  if (Array.isArray(cached.playerRows)) {
+    teamLeadersMap = computeTeamLeaders(cached.playerRows);
+  }
+
+  renderScheduleViews();
+  return true;
 }
 
 function getSeasonRaw() {
@@ -1078,20 +1130,28 @@ async function hydrateCurrentSeasonSchedule(loadToken) {
     finalScoreMap = buildFinalScoreMap(cachedBoxScoreRows);
   }
 
+  let liveRows = [];
   if (liveRes.status === "fulfilled" && liveRes.value.ok) {
-    const liveRows = parseCSV(await liveRes.value.text());
+    liveRows = parseCSV(await liveRes.value.text());
     liveScoreMap = buildLiveScoreMap(liveRows);
   }
 
+  let playerRows = [];
   if (playerStatsRes.status === "fulfilled" && playerStatsRes.value.ok) {
-    const playerRows = parseCSV(await playerStatsRes.value.text());
+    playerRows = parseCSV(await playerStatsRes.value.text());
     teamLeadersMap = computeTeamLeaders(playerRows);
   }
+
+  writeCachedScheduleEnhancements("c2s3-regular", {
+    boxScoreRows: cachedBoxScoreRows,
+    liveRows,
+    playerRows,
+  });
 
   renderScheduleViews();
 }
 
-function hydrateEmbeddedScheduleData(regularRows, loadToken) {
+function hydrateEmbeddedScheduleData(regularRows, loadToken, seasonRaw) {
   setTimeout(() => {
     if (loadToken !== scheduleLoadToken) {
       return;
@@ -1100,17 +1160,27 @@ function hydrateEmbeddedScheduleData(regularRows, loadToken) {
     finalScoreMap = buildFinalScoreMap(cachedBoxScoreRows);
     const playerRows = sliceRange(regularRows, "A151:G1150");
     teamLeadersMap = computeTeamLeaders(playerRows);
+    writeCachedScheduleEnhancements(seasonRaw, {
+      boxScoreRows: cachedBoxScoreRows,
+      liveRows: [],
+      playerRows,
+    });
     renderScheduleViews();
   }, 0);
 }
 
-function hydrateArchiveScheduleData(archiveRows, loadToken) {
+function hydrateArchiveScheduleData(archiveRows, loadToken, seasonRaw) {
   setTimeout(() => {
     if (loadToken !== scheduleLoadToken) {
       return;
     }
     cachedBoxScoreRows = sliceRange(archiveRows, ARCHIVE_RANGES.boxscore);
     finalScoreMap = buildFinalScoreMap(cachedBoxScoreRows);
+    writeCachedScheduleEnhancements(seasonRaw, {
+      boxScoreRows: cachedBoxScoreRows,
+      liveRows: [],
+      playerRows: [],
+    });
     renderScheduleViews();
   }, 0);
 }
@@ -1131,6 +1201,7 @@ async function loadSchedule() {
         // ignore stale cache parse failures and continue with network fetch
       }
     }
+    hydrateCachedEnhancements(seasonRaw);
 
     if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s2-playoffs") {
       const scheduleRes = await fetch(SCHEDULE_CSV_URL, { cache: "no-store" });
@@ -1143,7 +1214,7 @@ async function loadSchedule() {
       rows = getC2S2RegularScheduleRows(regularRows);
       writeCachedScheduleRows(seasonRaw, rows);
       applyInitialScheduleRows(rows, season);
-      hydrateEmbeddedScheduleData(regularRows, loadToken);
+      hydrateEmbeddedScheduleData(regularRows, loadToken, seasonRaw);
       return;
     } else {
       const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
@@ -1153,7 +1224,7 @@ async function loadSchedule() {
       rows = sliceRange(archive, range);
       writeCachedScheduleRows(seasonRaw, rows);
       applyInitialScheduleRows(rows, season);
-      hydrateArchiveScheduleData(archive, loadToken);
+      hydrateArchiveScheduleData(archive, loadToken, seasonRaw);
       return;
     }
 
