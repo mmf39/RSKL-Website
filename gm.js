@@ -179,6 +179,27 @@ function saveLocalGameLocks(nextMap) {
   localStorage.setItem(GM_LOCAL_LOCKS_KEY, JSON.stringify(localGameLocksByDate));
 }
 
+function normalizeGameLocks(value) {
+  if (!value) return {};
+  if (Array.isArray(value)) {
+    return value.reduce((acc, item) => {
+      const date = String(item?.date || item?.dateText || "").trim();
+      const lockAt = String(item?.lockAt || item?.value || "").trim();
+      if (date && lockAt) acc[date] = lockAt;
+      return acc;
+    }, {});
+  }
+  if (typeof value === "object") {
+    return Object.entries(value).reduce((acc, [date, lockAt]) => {
+      const dateText = String(date || "").trim();
+      const lockText = String(lockAt || "").trim();
+      if (dateText && lockText) acc[dateText] = lockText;
+      return acc;
+    }, {});
+  }
+  return {};
+}
+
 function setActiveTab(tab) {
   const active =
     tab === "rename"
@@ -792,15 +813,53 @@ async function saveTradeBlockToSheet(team, block) {
 }
 
 async function saveGameLocksToSheet(locks) {
+  const response = await fetch(TRADE_BLOCKS_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "saveGameLocks",
+      locks: Array.isArray(locks) ? locks : [],
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Game locks save failed: ${response.status}`);
+  }
+  const payload = await response.json();
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Invalid game locks save response.");
+  }
+  if (payload.ok === false) {
+    throw new Error(payload.message || "Unable to save lock times.");
+  }
   const nextMap = { ...localGameLocksByDate };
   (locks || []).forEach((lock) => {
     const date = String(lock?.date || "").trim();
     const lockAt = String(lock?.lockAt || "").trim();
-    if (!date || !lockAt) return;
-    nextMap[date] = lockAt;
+    if (date && lockAt) nextMap[date] = lockAt;
   });
   saveLocalGameLocks(nextMap);
-  return { ok: true, local: true };
+  return payload;
+}
+
+async function fetchGameLocksFromSheet() {
+  const response = await fetch(`${TRADE_BLOCKS_API}?action=getGameLocks`, {
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`Game locks fetch failed: ${response.status}`);
+  }
+  const payload = await response.json();
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Invalid game locks response.");
+  }
+  if (payload.ok === false) {
+    throw new Error(payload.message || "Unable to load lock times.");
+  }
+  const locks = normalizeGameLocks(
+    payload.gameLocks || payload.locks || payload.data || payload.items || {}
+  );
+  saveLocalGameLocks(locks);
+  return locks;
 }
 
 async function updatePlayerNameInSheet(team, oldTag, newName) {
@@ -2015,6 +2074,11 @@ async function init() {
   setActiveTab("trade");
   try {
     loadLocalGameLocks();
+    try {
+      await fetchGameLocksFromSheet();
+    } catch (_) {
+      // Keep local fallback if the sheet lock endpoint is unavailable.
+    }
     await loadSupabaseConfig();
     const savedToken = localStorage.getItem(GM_ACCESS_TOKEN_KEY) || "";
     const savedRefresh = localStorage.getItem(GM_REFRESH_TOKEN_KEY) || "";
