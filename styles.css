@@ -359,6 +359,7 @@ body {
   font-family: var(--font-body);
   min-height: 100vh;
   text-align: center;
+  overflow-x: hidden;
 }
 
 .hero,
@@ -595,6 +596,10 @@ h1 {
   overflow: visible;
 }
 
+body.menu-open {
+  overflow: hidden;
+}
+
 .meta > span[id="last-updated"] {
   display: none;
 }
@@ -654,7 +659,8 @@ h1 {
   background: transparent;
   box-shadow: none;
   color: var(--ink);
-  padding: 0;
+  min-height: 44px;
+  padding: 8px 0;
   font-weight: 700;
   font-size: clamp(0.95rem, 1.3vw, 1.6rem);
   letter-spacing: 0.02em;
@@ -668,13 +674,16 @@ h1 {
 }
 
 .site-menu-btn {
-  border: none;
-  background: transparent;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 153, 51, 0.28);
+  background: rgba(9, 18, 38, 0.72);
   color: var(--ink);
-  border-radius: 8px;
-  width: 38px;
-  height: 38px;
-  font-size: 32px;
+  border-radius: 14px;
+  width: 48px;
+  height: 48px;
+  font-size: 26px;
   line-height: 1;
   cursor: pointer;
   position: absolute;
@@ -682,16 +691,27 @@ h1 {
   left: 0;
   justify-self: start;
   z-index: 2;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.site-menu-btn:hover,
+.site-menu-btn:focus-visible {
+  border-color: rgba(255, 187, 108, 0.74);
+  background: rgba(16, 29, 58, 0.92);
+  transform: translateY(-1px);
+  outline: none;
 }
 
 .site-menu {
   position: absolute;
-  top: 56px;
-  left: 8px;
-  min-width: 280px;
+  top: 64px;
+  left: 0;
+  min-width: 300px;
+  max-width: min(360px, calc(100vw - 24px));
   display: grid;
-  gap: 8px;
-  padding: 10px;
+  gap: 10px;
+  padding: 14px;
   background:
     radial-gradient(circle at 20% 20%, rgba(255, 140, 26, 0.2), transparent 45%),
     radial-gradient(circle at 80% 15%, rgba(255, 179, 71, 0.16), transparent 48%),
@@ -703,14 +723,24 @@ h1 {
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(6px);
   z-index: 9999;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.98);
+  transform-origin: top left;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.site-menu[data-open="true"] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
 .site-menu .btn.ghost {
   justify-content: flex-start;
   border: 1px solid rgba(255, 140, 0, 0.22);
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 0.92rem;
+  border-radius: 14px;
+  min-height: 48px;
+  padding: 12px 14px;
+  font-size: 0.96rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   background: rgba(15, 23, 42, 0.55);
@@ -722,6 +752,22 @@ h1 {
   background: rgba(255, 140, 26, 0.14);
   border-color: rgba(255, 140, 0, 0.55);
   transform: translateX(2px);
+}
+
+.site-menu-overlay {
+  position: fixed;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.56);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  z-index: 9980;
+}
+
+.site-menu-overlay[data-open="true"] {
+  opacity: 1;
 }
 
 .season-select {
@@ -1357,6 +1403,7 @@ h1 {
   background: linear-gradient(120deg, var(--accent), #ffd166);
   color: #0b0f1a;
   padding: 10px 18px;
+  min-height: 44px;
   border-radius: 999px;
   font-weight: 700;
   cursor: pointer;
@@ -1365,6 +1412,7 @@ h1 {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
 }
 
 .btn:hover {
@@ -1408,6 +1456,7 @@ h1 {
   border: 1px solid var(--panel-border);
   box-shadow: var(--shadow);
   backdrop-filter: blur(12px);
+  overflow: hidden;
 }
 
 .panel.subtle {
@@ -1776,6 +1825,12 @@ input[type="text"] {
 .table-wrap {
   overflow-x: auto;
   border-radius: var(--radius-sm);
+  width: 100%;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  border: 1px solid rgba(255, 165, 84, 0.14);
+  background: rgba(8, 15, 31, 0.5);
 }
 
 #data-table {
@@ -1790,6 +1845,7 @@ input[type="text"] {
   padding: 12px 14px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.18);
   font-size: 0.95rem;
+  white-space: nowrap;
 }
 
 #player-games th,
@@ -1814,7 +1870,7 @@ input[type="text"] {
   padding: 14px 18px;
   text-align: center;
   border-bottom: 1px solid rgba(148, 163, 184, 0.18);
-  word-break: break-word;
+  white-space: nowrap;
 }
 
 #player-weekly .weekly-row {
@@ -1837,6 +1893,7 @@ input[type="text"] {
 #schedule-table td {
   padding: 16px 22px;
   color: var(--accent);
+  white-space: nowrap;
 }
 
 
@@ -1858,6 +1915,33 @@ input[type="text"] {
   letter-spacing: 0.04em;
   font-size: 0.75rem;
   color: var(--muted);
+}
+
+#data-table th:first-child,
+#data-table td:first-child,
+#standings-table th:first-child,
+#standings-table td:first-child,
+#schedule-table th:first-child,
+#schedule-table td:first-child,
+#player-games th:first-child,
+#player-games td:first-child,
+#player-weekly th:first-child,
+#player-weekly td:first-child,
+.career-breakdown-table th:first-child,
+.career-breakdown-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0.98), rgba(8, 15, 31, 0.98));
+}
+
+#data-table th:first-child,
+#standings-table th:first-child,
+#schedule-table th:first-child,
+#player-games th:first-child,
+#player-weekly th:first-child,
+.career-breakdown-table th:first-child {
+  z-index: 3;
 }
 
 #data-table tbody tr:hover {
@@ -4021,61 +4105,63 @@ input[type="text"] {
   }
 
   .hero {
-    padding: 12px 12px 28px;
+    padding: 10px 10px 24px;
   }
 
   .meta {
-    padding: 6px 8px 8px;
+    padding: 10px 12px 12px;
   }
 
   .site-nav {
-    min-height: 84px;
-    grid-template-columns: auto 1fr auto;
+    min-height: 56px;
+    grid-template-columns: auto 1fr;
+    align-items: center;
   }
 
   .site-nav::before {
-    width: 44px;
-    height: 44px;
-    top: 2px;
+    width: 42px;
+    height: 42px;
+    top: 3px;
+    left: 50%;
   }
 
   .site-nav-main {
-    margin-top: 48px;
-    gap: 10px;
-    justify-content: flex-start;
-    padding: 0 2px;
-    overflow-x: auto;
-    white-space: nowrap;
-    -webkit-overflow-scrolling: touch;
+    display: none;
   }
 
   .site-menu-btn {
-    top: 0;
+    display: inline-flex;
+    top: 2px;
     left: 0;
-    width: 30px;
-    height: 30px;
-    font-size: 26px;
-  }
-
-  .site-nav-main .btn.ghost {
-    font-size: 0.8rem;
-    flex: 0 0 auto;
   }
 
   .season-select {
-    max-width: 122px;
-    font-size: 0.68rem;
-    padding: 4px 8px;
+    justify-self: stretch;
+    align-self: center;
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    margin-left: 56px;
+    padding: 12px 42px 12px 14px;
+    border-radius: 16px;
+    font-size: 0.82rem;
+    min-height: 46px;
   }
 
   .site-menu {
-    left: 6px;
-    right: 6px;
+    position: fixed;
+    top: 16px;
+    left: 12px;
+    right: 12px;
     min-width: 0;
+    max-width: none;
+    transform-origin: top center;
   }
 
   .panel {
-    padding: 24px;
+    padding: 18px 16px;
   }
 
   .calendar-toolbar {
@@ -4126,7 +4212,7 @@ input[type="text"] {
   }
 
   .player-controls {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     padding: 16px;
   }
 
@@ -4159,9 +4245,9 @@ input[type="text"] {
   }
 
   .modal-card {
-    width: calc(100% - 32px);
-    margin: 16px auto;
-    max-height: calc(100vh - 32px);
+    width: calc(100% - 20px);
+    margin: 10px auto;
+    max-height: calc(100vh - 20px);
   }
 
   .tx-sides {
@@ -4244,6 +4330,15 @@ input[type="text"] {
   .team-page #team-schedule {
     min-width: 480px;
   }
+
+  #data-table,
+  #player-games,
+  #player-weekly,
+  #schedule-table,
+  #standings-table,
+  .career-breakdown-table {
+    min-width: 560px;
+  }
 }
 
 @media (max-width: 560px) {
@@ -4281,48 +4376,33 @@ input[type="text"] {
   }
 
   .meta {
-    padding: 6px 8px 10px;
+    padding: 10px 10px 12px;
   }
 
   .site-nav {
-    min-height: 108px;
-    row-gap: 10px;
+    min-height: 56px;
+    row-gap: 0;
   }
 
   .site-nav::before {
-    width: 52px;
-    height: 52px;
+    width: 40px;
+    height: 40px;
     border-width: 2px;
   }
 
-  .site-nav-main {
-    margin-top: 58px;
-    gap: 14px;
-    padding: 0 0 4px;
-  }
-
-  .site-nav-main .btn.ghost {
-    font-size: 0.76rem;
-    letter-spacing: 0.03em;
-  }
-
   .season-select {
-    grid-column: 1 / -1;
-    grid-row: auto;
-    justify-self: stretch;
-    align-self: stretch;
-    width: 100%;
-    min-width: 0;
-    max-width: none;
-    margin-top: 4px;
-    padding: 10px 36px 10px 12px;
+    margin-left: 52px;
+    padding: 11px 38px 11px 12px;
     border-radius: 14px;
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
   .site-menu {
-    top: 48px;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    padding: 12px;
   }
 
   .panel-head {
@@ -4449,13 +4529,25 @@ input[type="text"] {
     text-align: center;
     padding: 10px 12px;
   }
+
+  .site-menu .btn.ghost,
+  .btn,
+  .btn.ghost {
+    min-height: 46px;
+  }
+
+  #data-table,
+  #player-games,
+  #player-weekly,
+  #schedule-table,
+  #standings-table,
+  .career-breakdown-table,
+  .draft-round table {
+    min-width: 520px;
+  }
 }
 
 @media (max-width: 400px) {
-  .site-nav-main .btn.ghost {
-    font-size: 0.72rem;
-  }
-
   .standings-scope-tabs,
   .gm-tabs,
   .home-feature-links,
@@ -4472,5 +4564,15 @@ input[type="text"] {
 
   .team-page #team-schedule {
     min-width: 320px;
+  }
+
+  .season-select {
+    font-size: 0.74rem;
+    margin-left: 48px;
+  }
+
+  .site-menu-btn {
+    width: 44px;
+    height: 44px;
   }
 }

@@ -12,20 +12,72 @@
     container.appendChild(link);
   };
 
+  const nav = document.querySelector(".site-nav");
+  const navMain = nav ? nav.querySelector(".site-nav-main") : null;
   const toggle = document.querySelector("[data-menu-toggle]");
   const panel = document.querySelector("[data-menu-panel]");
 
+  if (panel && navMain) {
+    Array.from(navMain.querySelectorAll("a.btn.ghost")).forEach((link) => {
+      ensureLink(panel, link.getAttribute("href"), link.textContent.trim());
+    });
+  }
+
   if (toggle && panel) {
+    const overlay = document.createElement("button");
+    overlay.type = "button";
+    overlay.className = "site-menu-overlay";
+    overlay.hidden = true;
+    overlay.setAttribute("aria-label", "Close menu");
+    document.body.appendChild(overlay);
+
+    let closeTimer = null;
+
+    const setClosed = () => {
+      panel.setAttribute("hidden", "");
+      panel.removeAttribute("data-open");
+      overlay.hidden = true;
+      overlay.removeAttribute("data-open");
+      toggle.setAttribute("aria-expanded", "false");
+      document.body.classList.remove("menu-open");
+    };
+
+    const openMenu = () => {
+      if (closeTimer) {
+        window.clearTimeout(closeTimer);
+        closeTimer = null;
+      }
+      panel.removeAttribute("hidden");
+      overlay.hidden = false;
+      toggle.setAttribute("aria-expanded", "true");
+      document.body.classList.add("menu-open");
+      window.requestAnimationFrame(() => {
+        panel.setAttribute("data-open", "true");
+        overlay.setAttribute("data-open", "true");
+      });
+    };
+
+    const closeMenu = () => {
+      panel.removeAttribute("data-open");
+      overlay.removeAttribute("data-open");
+      toggle.setAttribute("aria-expanded", "false");
+      document.body.classList.remove("menu-open");
+      closeTimer = window.setTimeout(() => {
+        panel.setAttribute("hidden", "");
+        overlay.hidden = true;
+      }, 180);
+    };
+
     toggle.addEventListener("click", () => {
       const open = panel.hasAttribute("hidden");
       if (open) {
-        panel.removeAttribute("hidden");
-        toggle.setAttribute("aria-expanded", "true");
+        openMenu();
       } else {
-        panel.setAttribute("hidden", "");
-        toggle.setAttribute("aria-expanded", "false");
+        closeMenu();
       }
     });
+
+    overlay.addEventListener("click", closeMenu);
 
     document.addEventListener("click", (event) => {
       if (
@@ -33,10 +85,25 @@
         !panel.contains(event.target) &&
         !toggle.contains(event.target)
       ) {
-        panel.setAttribute("hidden", "");
-        toggle.setAttribute("aria-expanded", "false");
+        closeMenu();
       }
     });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !panel.hasAttribute("hidden")) {
+        closeMenu();
+      }
+    });
+
+    panel.querySelectorAll("a, button").forEach((item) => {
+      item.addEventListener("click", () => {
+        if (window.innerWidth <= 768) {
+          closeMenu();
+        }
+      });
+    });
+
+    setClosed();
   }
 
   const seasonSelect = document.getElementById("season-select");
