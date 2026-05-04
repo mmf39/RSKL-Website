@@ -24,57 +24,27 @@
   }
 
   if (toggle && panel) {
-    const overlay = document.createElement("button");
-    overlay.type = "button";
-    overlay.className = "site-menu-overlay";
-    overlay.hidden = true;
-    overlay.setAttribute("aria-label", "Close menu");
-    document.body.appendChild(overlay);
-
-    let closeTimer = null;
-    const isMobileMenu = () => window.innerWidth <= 768;
-
     const setClosed = () => {
       panel.setAttribute("hidden", "");
       panel.removeAttribute("data-open");
-      overlay.hidden = true;
-      overlay.removeAttribute("data-open");
       toggle.setAttribute("aria-expanded", "false");
-      document.body.classList.remove("menu-open");
     };
 
     const openMenu = () => {
-      if (closeTimer) {
-        window.clearTimeout(closeTimer);
-        closeTimer = null;
-      }
       panel.removeAttribute("hidden");
       toggle.setAttribute("aria-expanded", "true");
-      if (isMobileMenu()) {
-        overlay.hidden = false;
-        document.body.classList.add("menu-open");
-      } else {
-        overlay.hidden = true;
-        document.body.classList.remove("menu-open");
-      }
       window.requestAnimationFrame(() => {
         panel.setAttribute("data-open", "true");
-        if (isMobileMenu()) {
-          overlay.setAttribute("data-open", "true");
-        } else {
-          overlay.removeAttribute("data-open");
-        }
       });
     };
 
     const closeMenu = () => {
       panel.removeAttribute("data-open");
-      overlay.removeAttribute("data-open");
       toggle.setAttribute("aria-expanded", "false");
-      document.body.classList.remove("menu-open");
-      closeTimer = window.setTimeout(() => {
-        panel.setAttribute("hidden", "");
-        overlay.hidden = true;
+      window.setTimeout(() => {
+        if (toggle.getAttribute("aria-expanded") === "false") {
+          panel.setAttribute("hidden", "");
+        }
       }, 180);
     };
 
@@ -86,8 +56,6 @@
         closeMenu();
       }
     });
-
-    overlay.addEventListener("click", closeMenu);
 
     document.addEventListener("click", (event) => {
       if (
@@ -105,25 +73,9 @@
       }
     });
 
-    window.addEventListener("resize", () => {
-      if (!panel.hasAttribute("hidden")) {
-        if (isMobileMenu()) {
-          overlay.hidden = false;
-          overlay.setAttribute("data-open", "true");
-          document.body.classList.add("menu-open");
-        } else {
-          overlay.hidden = true;
-          overlay.removeAttribute("data-open");
-          document.body.classList.remove("menu-open");
-        }
-      }
-    });
-
     panel.querySelectorAll("a, button").forEach((item) => {
       item.addEventListener("click", () => {
-        if (window.innerWidth <= 768) {
-          closeMenu();
-        }
+        closeMenu();
       });
     });
 
