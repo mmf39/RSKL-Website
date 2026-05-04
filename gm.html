@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css?v=20260504v" />
+    <link rel="stylesheet" href="styles.css?v=20260504w" />
   </head>
   <body>
     <div class="bg"></div>
@@ -50,8 +50,12 @@
           <div class="gm-tabs">
             <button class="gm-tab active" type="button" data-gm-tab="trade">Trade Block</button>
             <button class="gm-tab" type="button" data-gm-tab="rename">Player Name Change</button>
-            <button class="gm-tab" type="button" data-gm-tab="lineup">Lineup Submit</button>
+            <button class="gm-tab" type="button" data-gm-tab="lineup">Lineup Submit <span id="gm-lineup-tab-meta" class="gm-tab-meta">Due —</span></button>
             <button class="gm-tab" type="button" data-gm-tab="power">Power Rankings Vote</button>
+          </div>
+          <div id="gm-session-meta" class="gm-session-meta" hidden>
+            <span id="gm-session-summary" class="gm-session-summary"></span>
+            <button id="gm-btn-signout-inline" class="btn ghost" type="button">Sign Out</button>
           </div>
         </div>
         <div class="gm-card" id="gm-auth-card">
@@ -227,7 +231,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="gm.js?v=20260503c"></script>
+    <script src="gm.js?v=20260504a"></script>
       <script src="header-nav.js?v=20260504e"></script>
   </body>
 </html>

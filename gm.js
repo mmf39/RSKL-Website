@@ -64,11 +64,15 @@ const els = {
   tabRenamePanel: document.getElementById("gm-tab-rename"),
   tabLineupPanel: document.getElementById("gm-tab-lineup"),
   tabPowerPanel: document.getElementById("gm-tab-power"),
+  lineupTabMeta: document.getElementById("gm-lineup-tab-meta"),
+  sessionMeta: document.getElementById("gm-session-meta"),
+  sessionSummary: document.getElementById("gm-session-summary"),
   authEmail: document.getElementById("gm-auth-email"),
   authPassword: document.getElementById("gm-auth-password"),
   authSignUp: document.getElementById("gm-btn-signup"),
   authSignIn: document.getElementById("gm-btn-signin"),
   authSignOut: document.getElementById("gm-btn-signout"),
+  authSignOutInline: document.getElementById("gm-btn-signout-inline"),
   authStatus: document.getElementById("gm-auth-status"),
   codeLabels: Array.from(document.querySelectorAll("[data-code-label]")),
   codeInputs: Array.from(document.querySelectorAll("[data-code-input]")),
@@ -580,8 +584,14 @@ function applyAuthUi() {
   if (els.authedShell) {
     els.authedShell.hidden = !signedIn;
   }
+  if (els.authCard) {
+    els.authCard.hidden = signedIn;
+  }
   if (els.commishCard) {
     els.commishCard.hidden = !(signedIn && isCommish());
+  }
+  if (els.sessionMeta) {
+    els.sessionMeta.hidden = !signedIn;
   }
   if (els.authEmail) {
     els.authEmail.hidden = signedIn;
@@ -610,8 +620,14 @@ function applyAuthUi() {
   if (signedIn) {
     const email = gmSession?.user?.email || "GM";
     const team = displayTeamName(getAuthorizedTeam()) || "No team assigned";
+    if (els.sessionSummary) {
+      els.sessionSummary.textContent = `${email} • ${team}`;
+    }
     setAuthStatus(`Signed in as ${email} • Team: ${team}`);
   } else {
+    if (els.sessionSummary) {
+      els.sessionSummary.textContent = "";
+    }
     setAuthStatus("Not signed in.");
   }
 }
@@ -1132,10 +1148,47 @@ function renderRenameTeam(team) {
 function renderLineupTeam(team) {
   renderLineupGameCards(team);
   renderLineupPlayers(team);
+  updateLineupTabMeta(team);
   if (els.lineupCode) {
     els.lineupCode.value = "";
   }
   setLineupStatus("");
+}
+
+function updateLineupTabMeta(team) {
+  if (!els.lineupTabMeta) return;
+  const selectedTeam = String(team || "").trim() || getAuthorizedTeam();
+  if (!selectedTeam) {
+    els.lineupTabMeta.textContent = "Due —";
+    return;
+  }
+  const matchups = getTeamUpcomingMatchups(selectedTeam);
+  if (!matchups.length) {
+    els.lineupTabMeta.textContent = "Due —";
+    return;
+  }
+  const first = matchups[0];
+  const lockAt = getLockDateTimeForDay(first.dateText);
+  if (!lockAt) {
+    els.lineupTabMeta.textContent = "Due —";
+    return;
+  }
+  els.lineupTabMeta.textContent = `Due ${lockAt.toLocaleString([], {
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/New_York",
+  })} ET`;
+}
+
+async function handleSignOut() {
+  await signOutAuth();
+  gmSession = null;
+  gmAssignment = null;
+  clearAuthState();
+  applyAuthUi();
+  setAuthStatus("Signed out.");
 }
 
 function getTimeZoneOffsetMs(date, timeZone) {
@@ -1298,11 +1351,9 @@ function renderLineupGameCards(team) {
       const statusText = isSubmitted ? "Lineup Submitted" : "Awaiting Deadline";
       const buttonText = canEdit ? "Edit Lineup" : "Awaiting Deadline";
       const dateText = item.dateText || "—";
-      const deadlineText = formatDeadlineText(dateText);
       return `
         <article class="gm-lineup-game-card${canEdit ? " active" : ""}">
           <div class="gm-lineup-game-title">vs ${escapeHtml(displayTeamName(item.opponent))} Date: ${escapeHtml(dateText)}</div>
-          <div class="gm-lineup-game-deadline">${escapeHtml(deadlineText)}</div>
           <div class="gm-lineup-game-status${statusClass}">${escapeHtml(statusText)}</div>
           <button
             class="gm-lineup-game-btn${canEdit ? "" : " disabled"}"
@@ -1773,12 +1824,12 @@ function bindEvents() {
   }
   if (els.authSignOut) {
     els.authSignOut.addEventListener("click", async () => {
-      await signOutAuth();
-      gmSession = null;
-      gmAssignment = null;
-      clearAuthState();
-      applyAuthUi();
-      setAuthStatus("Signed out.");
+      await handleSignOut();
+    });
+  }
+  if (els.authSignOutInline) {
+    els.authSignOutInline.addEventListener("click", async () => {
+      await handleSignOut();
     });
   }
 
