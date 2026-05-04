@@ -1514,7 +1514,7 @@ async function loadRoster() {
     : "Team Roster";
   if (els.sub) {
     els.sub.textContent = teamName
-      ? `Roster for ${displayTeamName(teamName)}`
+      ? displayTeamName(teamName)
       : "Missing team name.";
   }
 
