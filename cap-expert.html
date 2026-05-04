@@ -45,6 +45,13 @@
 
     <main class="container">
       <section class="panel">
+        <div class="standings-scope-tabs" id="cap-view-tabs" aria-label="Cap Expert view">
+          <button class="standings-scope-tab" type="button" data-cap-view="team">Team Info</button>
+          <button class="standings-scope-tab" type="button" data-cap-view="player">Player Info</button>
+        </div>
+      </section>
+
+      <section class="panel" id="cap-team-info-section">
         <div class="panel-head">
           <div>
             <span class="dashboard-kicker">League View</span>
@@ -56,7 +63,7 @@
         </div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="cap-team-cards-section">
         <div class="panel-head">
           <div>
             <span class="dashboard-kicker">Team Breakdown</span>
@@ -68,7 +75,7 @@
         </div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="cap-team-breakdown-section">
         <div class="panel-head">
           <div>
             <span class="dashboard-kicker">Selected Team</span>
@@ -84,7 +91,7 @@
         </div>
       </section>
 
-      <section class="panel">
+      <section class="panel" id="cap-player-info-section">
         <div class="panel-head">
           <div>
             <span class="dashboard-kicker">Contracts</span>
@@ -112,7 +119,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="cap-expert.js?v=20260504g"></script>
+    <script src="cap-expert.js?v=20260504h"></script>
     <script src="header-nav.js?v=20260504e"></script>
   </body>
 </html>

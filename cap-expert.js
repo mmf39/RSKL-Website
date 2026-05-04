@@ -17,7 +17,12 @@ const CAP_CHART_COLORS = [
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
+  viewTabs: document.getElementById("cap-view-tabs"),
   summary: document.getElementById("cap-summary"),
+  teamInfoSection: document.getElementById("cap-team-info-section"),
+  teamCardsSection: document.getElementById("cap-team-cards-section"),
+  teamBreakdownSection: document.getElementById("cap-team-breakdown-section"),
+  playerInfoSection: document.getElementById("cap-player-info-section"),
   teamCards: document.getElementById("cap-team-cards"),
   teamBreakdown: document.getElementById("cap-team-breakdown"),
   teamTitle: document.getElementById("cap-team-title"),
@@ -30,6 +35,7 @@ const els = {
 
 let contractRows = [];
 let selectedTeam = "All Teams";
+const CAP_VIEW_KEY = "capExpertView";
 
 function parseCSV(text) {
   const rows = [];
@@ -226,6 +232,40 @@ function updateLastUpdated() {
     hour: "numeric",
     minute: "2-digit",
   })}`;
+}
+
+function getCapView() {
+  const saved = String(localStorage.getItem(CAP_VIEW_KEY) || "team").toLowerCase();
+  return saved === "player" ? "player" : "team";
+}
+
+function renderCapView() {
+  const showTeam = getCapView() === "team";
+  if (els.teamInfoSection) els.teamInfoSection.hidden = !showTeam;
+  if (els.teamCardsSection) els.teamCardsSection.hidden = !showTeam;
+  if (els.teamBreakdownSection) els.teamBreakdownSection.hidden = !showTeam;
+  if (els.playerInfoSection) els.playerInfoSection.hidden = showTeam;
+}
+
+function initCapViewTabs() {
+  if (!els.viewTabs) return;
+  const activeView = getCapView();
+  Array.from(els.viewTabs.querySelectorAll("[data-cap-view]")).forEach((button) => {
+    const view = String(button.dataset.capView || "team").toLowerCase();
+    const isActive = view === activeView;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", isActive ? "true" : "false");
+    button.addEventListener("click", () => {
+      localStorage.setItem(CAP_VIEW_KEY, view);
+      Array.from(els.viewTabs.querySelectorAll("[data-cap-view]")).forEach((tab) => {
+        const tabActive = tab === button;
+        tab.classList.toggle("active", tabActive);
+        tab.setAttribute("aria-pressed", tabActive ? "true" : "false");
+      });
+      renderCapView();
+    });
+  });
+  renderCapView();
 }
 
 function renderSummary(rows) {
@@ -481,4 +521,5 @@ async function loadCapPage() {
   }
 }
 
+initCapViewTabs();
 loadCapPage();
