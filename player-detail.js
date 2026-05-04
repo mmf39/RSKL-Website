@@ -2104,7 +2104,11 @@ async function loadPlayer() {
         renderPlayerTeam(teamName);
       }
     }
-    renderPlayerContract(findPlayerContract(contractRows, playerName, currentRenderedTeams));
+    const playerContract = findPlayerContract(contractRows, playerName, currentRenderedTeams);
+    if (!currentRenderedTeams.length && playerContract && playerContract.team) {
+      renderPlayerTeam(playerContract.team);
+    }
+    renderPlayerContract(playerContract);
     window.__boxScoreRows = boxRows;
     await loadPlayerTransactions(playerName, season);
     updateLastUpdated();
