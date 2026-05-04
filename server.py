@@ -36,6 +36,9 @@ LIVE_SCORING_URL = (
 ARCHIVE_URL = (
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1077518539&single=true&output=csv"
 )
+C2S2_REGULAR_URL = (
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=346158705&single=true&output=csv"
+)
 AWARDS_URL = (
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1527593475&single=true&output=csv"
 )
@@ -52,6 +55,21 @@ MIME = {
 
 CACHE_TTL_SECONDS = 900
 CACHE = {}
+SHEETS = {
+    "archive": ARCHIVE_URL,
+    "awards": AWARDS_URL,
+    "boxscore": BOXSCORE_URL,
+    "c2s2-regular": C2S2_REGULAR_URL,
+    "draft": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=894447035&single=true&output=csv",
+    "live-scoring": LIVE_SCORING_URL,
+    "player-stats": PLAYER_STATS_URL,
+    "roster": ROSTER_URL,
+    "schedule": SCHEDULE_URL,
+    "standings": STANDINGS_URL,
+    "standings-dashboard": STANDINGS_DASHBOARD_URL,
+    "teams": TEAMS_URL,
+    "transactions": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=1782609175&single=true&output=csv",
+}
 
 
 def send(handler, status, body, content_type="text/plain; charset=utf-8"):
@@ -115,6 +133,15 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/awards":
             proxy_csv(self, AWARDS_URL)
+            return
+        if path == "/api/sheet":
+            params = parse_qs(parsed.query or "")
+            name = (params.get("name") or [""])[0]
+            target = SHEETS.get(str(name))
+            if not target:
+                send(self, 400, json.dumps({"ok": False, "message": "Invalid sheet name"}), "application/json; charset=utf-8")
+                return
+            proxy_csv(self, target)
             return
         if path == "/api/sheet-update":
             try:
