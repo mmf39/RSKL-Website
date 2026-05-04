@@ -1505,6 +1505,8 @@ input[type="text"] {
 
 .team-page .standings-panel {
   overflow: hidden;
+  width: 100%;
+  max-width: none;
 }
 
 .team-page .standings-panel .panel-head h2 {
@@ -1519,11 +1521,13 @@ input[type="text"] {
 
 .team-page .stats-grid-top {
   grid-template-columns: repeat(5, minmax(0, 1fr));
+  width: 100%;
 }
 
 .team-page .stats-grid-bottom {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 0;
+  width: 100%;
 }
 
 .team-page .stat-box {
@@ -1633,6 +1637,8 @@ input[type="text"] {
   .team-page .standings-panel {
     grid-column: 1 / -1;
     grid-row: 1;
+    width: 100%;
+    justify-self: stretch;
   }
 
   .team-page .roster-panel {
