@@ -122,7 +122,6 @@ function normalizeContracts(rows) {
       totalRaxRaw: String(row[3] || "").trim(),
       capHit: parseMoney(row[4]),
       capHitRaw: String(row[4] || "").trim(),
-      notes: String(row[7] || "").trim(),
     }))
     .filter(
       (row) =>
@@ -289,7 +288,6 @@ function renderTeamBreakdown(teamMap) {
             <th>Years</th>
             <th>Total Rax</th>
             <th>Cap Hit</th>
-            <th>Notes</th>
           </tr>
         </thead>
         <tbody>
@@ -302,7 +300,6 @@ function renderTeamBreakdown(teamMap) {
                   <td>${escapeHtml(row.years || "—")}</td>
                   <td>${formatNumber(row.totalRax)}</td>
                   <td>${formatNumber(row.capHit)}</td>
-                  <td>${escapeHtml(row.notes || "—")}</td>
                 </tr>
               `
             )
@@ -320,7 +317,7 @@ function renderLeagueTable() {
     .filter((row) => filterTeam === "all" || row.team === filterTeam)
     .filter((row) => {
       if (!query) return true;
-      return `${row.player} ${row.team} ${row.notes}`.toLowerCase().includes(query);
+      return `${row.player} ${row.team}`.toLowerCase().includes(query);
     })
     .sort((a, b) => b.capHit - a.capHit || b.totalRax - a.totalRax || a.player.localeCompare(b.player));
 
@@ -331,7 +328,6 @@ function renderLeagueTable() {
       <th>Years</th>
       <th>Total Rax</th>
       <th>Cap Hit</th>
-      <th>Notes</th>
     </tr>
   `;
 
@@ -350,12 +346,11 @@ function renderLeagueTable() {
               <td>${escapeHtml(row.years || "—")}</td>
               <td>${formatNumber(row.totalRax)}</td>
               <td>${formatNumber(row.capHit)}</td>
-              <td>${escapeHtml(row.notes || "—")}</td>
             </tr>
           `
         )
         .join("")
-    : `<tr><td colspan="6">No cap matches found.</td></tr>`;
+    : `<tr><td colspan="5">No cap matches found.</td></tr>`;
 }
 
 function hydrateTeamControls(teamMap) {
@@ -400,7 +395,7 @@ async function loadCapPage() {
     els.summary.innerHTML = `<div class="dashboard-state-card">${message}</div>`;
     els.teamCards.innerHTML = `<div class="dashboard-state-card">${message}</div>`;
     els.teamBreakdown.innerHTML = `<div class="dashboard-state-card">${message}</div>`;
-    els.tableBody.innerHTML = `<tr><td colspan="6">${message}</td></tr>`;
+    els.tableBody.innerHTML = `<tr><td colspan="5">${message}</td></tr>`;
   }
 }
 
