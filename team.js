@@ -7,8 +7,10 @@ const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
+const CONTRACTS_URL = "/api/sheet?name=contracts";
 const SEASON_KEY = "season";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
+const TEAM_CAP_LIMIT = 5000;
 const TRANSACTIONS_RANGE = "A3:E81";
 const RETIREMENT_RANGE = "G3:J70";
 const CUT_RANGE = "L3:O81";
@@ -110,6 +112,11 @@ function displayTeamName(value) {
   return name;
 }
 
+function parseMoney(value) {
+  const amount = Number(String(value || "").replace(/[^0-9.\-]/g, ""));
+  return Number.isFinite(amount) ? amount : 0;
+}
+
 function initSeasonSelect() {
   const select = document.getElementById("season-select");
   if (!select) {
@@ -151,6 +158,7 @@ const els = {
   statSos: document.getElementById("stat-sos"),
   statPam: document.getElementById("stat-pam"),
   statTRel: document.getElementById("stat-trel"),
+  statCapSpace: document.getElementById("stat-cap-space"),
   statTransactions: document.getElementById("stat-transactions"),
   statTeam: document.getElementById("stat-team"),
   standingsMetricSelect: document.getElementById("standings-metric-select"),
@@ -170,6 +178,24 @@ let isTeamPageRefreshing = false;
 
 let leagueStandingsMetrics = [];
 let leagueTransactionCounts = new Map();
+
+function updateTeamCapSpace(teamName, contractRows) {
+  if (!els.statCapSpace) {
+    return;
+  }
+  const shownTeam = displayTeamName(teamName);
+  const usedCap = (contractRows || [])
+    .slice(1)
+    .reduce((sum, row) => {
+      const rowTeam = displayTeamName(row[0] || "");
+      if (rowTeam !== shownTeam) {
+        return sum;
+      }
+      return sum + parseMoney(row[4]);
+    }, 0);
+  const remaining = Math.max(TEAM_CAP_LIMIT - usedCap, 0);
+  els.statCapSpace.textContent = remaining.toLocaleString();
+}
 
 function getMetricOrder(metric) {
   return metric === "gb" || metric === "loss" ? "asc" : "desc";
@@ -1493,6 +1519,9 @@ async function loadRoster() {
   if (els.statTransactions) {
     els.statTransactions.textContent = "—";
   }
+  if (els.statCapSpace) {
+    els.statCapSpace.textContent = "—";
+  }
   if (els.teamTransactions) {
     els.teamTransactions.innerHTML =
       '<div class="tx-card"><div class="tx-details">Loading transactions...</div></div>';
@@ -1743,6 +1772,16 @@ async function loadRoster() {
       if (els.teamTransactions) {
         els.teamTransactions.innerHTML =
           '<div class="tx-card"><div class="tx-details">Unable to load transactions.</div></div>';
+      }
+    }
+    try {
+      const contractsRes = await fetch(CONTRACTS_URL, { cache: "no-store" });
+      if (contractsRes.ok) {
+        updateTeamCapSpace(teamName, parseCSV(await contractsRes.text()));
+      }
+    } catch (error) {
+      if (els.statCapSpace) {
+        els.statCapSpace.textContent = "—";
       }
     }
   } catch (error) {
