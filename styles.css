@@ -3602,6 +3602,11 @@ input[type="text"] {
   align-items: center;
 }
 
+.cap-pie-layout.solo {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+}
+
 .cap-pie-chart {
   position: relative;
   width: min(100%, 280px);
@@ -3632,35 +3637,6 @@ input[type="text"] {
   color: var(--accent-2);
   font-size: 1.55rem;
   line-height: 1;
-}
-
-.cap-pie-legend {
-  display: grid;
-  gap: 10px;
-}
-
-.cap-pie-legend-item {
-  display: grid;
-  grid-template-columns: 12px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 140, 26, 0.16);
-  background: rgba(15, 23, 42, 0.46);
-}
-
-.cap-pie-swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
-}
-
-.cap-pie-legend-label {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  word-break: break-word;
 }
 
 .cap-pie-empty {

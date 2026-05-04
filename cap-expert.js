@@ -147,29 +147,14 @@ function buildCapPieChart(players, remainingCap) {
     })
     .join(", ");
 
-  const legend = slices
-    .map(
-      (slice) => `
-        <div class="cap-pie-legend-item">
-          <span class="cap-pie-swatch" style="background:${escapeHtml(slice.color)}"></span>
-          <span class="cap-pie-legend-label">${escapeHtml(slice.label)}</span>
-          <strong>${formatNumber(slice.value)}</strong>
-        </div>
-      `
-    )
-    .join("");
-
   return `
-    <div class="cap-pie-layout">
+    <div class="cap-pie-layout solo">
       <div class="cap-pie-chart" style="background: conic-gradient(${stops})">
         <div class="cap-pie-hole">
           <span>Usage</span>
           <strong>${formatNumber(total - remainingCap)}</strong>
           <small>of ${formatNumber(TEAM_CAP_LIMIT)}</small>
         </div>
-      </div>
-      <div class="cap-pie-legend">
-        ${legend}
       </div>
     </div>
   `;
