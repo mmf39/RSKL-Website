@@ -1760,6 +1760,7 @@ async function loadAwards(playerName) {
       { key: "C1S5", range: "I3:J28" },
       { key: "C1S6", range: "K3:L27" },
       { key: "C2S1", range: "M3:N29" },
+      { key: "C2S2", range: "O4:P15" },
     ];
     const championMap = [
       { key: "C1S2", range: "C15:D24" },
@@ -1768,6 +1769,7 @@ async function loadAwards(playerName) {
       { key: "C1S5", range: "I16:J28" },
       { key: "C1S6", range: "K16:L27" },
       { key: "C2S1", range: "M16:N29" },
+      { key: "C2S2", range: "O16:P29", rosterOnly: true },
     ];
     const target = normalizeName(playerName);
     const found = [];
@@ -1791,6 +1793,23 @@ async function loadAwards(playerName) {
       sliced.forEach((row) => {
         const label = String(row[0] || "").trim();
         const winner = String(row[1] || "").trim();
+        if (season.rosterOnly) {
+          if (
+            !label ||
+            /^C\d+S\d+/i.test(label) ||
+            /^GM\b/i.test(label)
+          ) {
+            return;
+          }
+          if (matchesName(label, target)) {
+            found.push({
+              player: playerName,
+              season: season.key,
+              award: "Champion",
+            });
+          }
+          return;
+        }
         if (!label) {
           return;
         }
