@@ -2062,6 +2062,9 @@ async function loadPlayer() {
       renderPlayerTeam(teamName);
     } else {
       renderTable(filtered);
+      if (season === "c2s3-regular" && !filtered.length) {
+        els.body.innerHTML = `<tr><td colspan="5">No games played.</td></tr>`;
+      }
       renderWeeklyKarma(filtered);
       updateSummary(filtered, baselines);
       renderCareerTeamBreakdown(filtered, baselines, season);
