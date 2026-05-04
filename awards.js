@@ -264,11 +264,15 @@ async function loadAwards() {
     const cachedTime = Number(localStorage.getItem(AWARDS_CACHE_TIME_KEY) || 0);
     const cachedCsv = localStorage.getItem(AWARDS_CACHE_KEY);
     let rows = [];
+    const hasFreshCache =
+      cachedCsv &&
+      cachedTime &&
+      Date.now() - cachedTime < AWARDS_CACHE_TTL;
 
-    if (cachedCsv) {
+    if (hasFreshCache) {
       rows = parseCSV(cachedCsv);
     } else {
-      const response = await fetch(AWARDS_URL, { cache: "force-cache" });
+      const response = await fetch(AWARDS_URL, { cache: "no-store" });
       if (!response.ok) {
         throw new Error(`Fetch failed: ${response.status}`);
       }
