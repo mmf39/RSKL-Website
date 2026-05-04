@@ -114,6 +114,8 @@ let weeklyRowMap = new Map();
 let weeklyMetaMap = new Map();
 let activeWeekKey = "";
 let currentRenderedTeams = [];
+let currentLoadedSeason = "";
+let contractRowsCache = [];
 
 function parseCSV(text) {
   const rows = [];
@@ -447,6 +449,76 @@ function renderPlayerContract(contract) {
     els.contractNotes.hidden = !showNotes;
     els.contractNotes.textContent = showNotes ? notes : "";
   }
+}
+
+async function fetchContractRows() {
+  try {
+    const response = await fetch(CONTRACTS_URL, { cache: "no-store" });
+    if (!response.ok) {
+      return [];
+    }
+    return parseCSV(await response.text());
+  } catch (error) {
+    return [];
+  }
+}
+
+async function ensureBoxScoreRows(season) {
+  if ((window.__boxScoreRows || []).length) {
+    return window.__boxScoreRows;
+  }
+
+  if (season === "c2s3-regular") {
+    const response = await fetch(BOXSCORE_CSV_URL, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Fetch failed: ${response.status}`);
+    }
+    window.__boxScoreRows = parseCSV(await response.text());
+    return window.__boxScoreRows;
+  }
+
+  if (season === "c2s2-regular") {
+    const response = await fetch(C2S2_REGULAR_URL, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Fetch failed: ${response.status}`);
+    }
+    const rows = parseCSV(await response.text());
+    window.__boxScoreRows = sliceRange(rows, C2S2_REGULAR_RANGES.boxscore);
+    return window.__boxScoreRows;
+  }
+
+  if (season === "c2s1-playoffs") {
+    const response = await fetch(ARCHIVE_URL, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Fetch failed: ${response.status}`);
+    }
+    const rows = parseCSV(await response.text());
+    window.__boxScoreRows = sliceRange(rows, ARCHIVE_RANGES.boxscore);
+    return window.__boxScoreRows;
+  }
+
+  if (season === "career") {
+    const [currentBoxRes, c2s2Res, archiveRes] = await Promise.all([
+      fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
+      fetch(C2S2_REGULAR_URL, { cache: "no-store" }),
+      fetch(ARCHIVE_URL, { cache: "no-store" }),
+    ]);
+    if (!currentBoxRes.ok || !c2s2Res.ok || !archiveRes.ok) {
+      throw new Error("Unable to load box scores.");
+    }
+    const currentBox = parseCSV(await currentBoxRes.text());
+    const c2s2SheetRows = parseCSV(await c2s2Res.text());
+    const archive = parseCSV(await archiveRes.text());
+    window.__boxScoreRows = [
+      ...currentBox,
+      ...sliceRange(c2s2SheetRows, C2S2_REGULAR_RANGES.boxscore),
+      ...sliceRange(archive, ARCHIVE_RANGES.boxscore),
+    ];
+    return window.__boxScoreRows;
+  }
+
+  window.__boxScoreRows = [];
+  return window.__boxScoreRows;
 }
 
 async function findTeamForPlayer(season, playerName) {
@@ -1911,7 +1983,26 @@ async function loadAwards(playerName) {
 
 async function loadPlayer() {
   const playerName = getPlayerName();
-  await loadPlayerOverrides();
+  currentLoadedSeason = getSeason();
+  window.__boxScoreRows = [];
+  const overridesPromise = loadPlayerOverrides();
+  const contractPromise = fetchContractRows();
+  const initialDisplayName = playerName || "Player";
+  els.name.textContent = initialDisplayName;
+  if (els.sub) {
+    els.sub.textContent = initialDisplayName
+      ? initialDisplayName
+      : "Missing player name.";
+  }
+
+  contractRowsCache = await contractPromise;
+  const earlyContract = findPlayerContract(contractRowsCache, playerName, []);
+  if (earlyContract && earlyContract.team) {
+    renderPlayerTeam(earlyContract.team);
+  }
+  renderPlayerContract(earlyContract);
+
+  await overridesPromise;
   const displayName =
     playerNameOverrides.get(normalizePlayerKey(playerName)) || playerName;
   els.name.textContent = displayName || "Player";
@@ -1932,42 +2023,35 @@ async function loadPlayer() {
 
   try {
     const season = getSeason();
+    currentLoadedSeason = season;
     let dataRows = [];
-    let boxRows = [];
-    let contractRows = [];
+    let contractRows = contractRowsCache;
     if (season === "c2s3-regular") {
-      const [playerRes, boxRes, contractRes] = await Promise.all([
+      const [playerRes, contractRes] = await Promise.all([
         fetch(PLAYER_STATS_URL, { cache: "no-store" }),
-        fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
         fetch(CONTRACTS_URL, { cache: "no-store" }),
       ]);
       if (!playerRes.ok) {
         throw new Error(`Fetch failed: ${playerRes.status}`);
       }
-      if (!boxRes.ok) {
-        throw new Error(`Fetch failed: ${boxRes.status}`);
-      }
       contractRows = contractRes.ok ? parseCSV(await contractRes.text()) : [];
+      contractRowsCache = contractRows;
       const rows = parseCSV(await playerRes.text());
       if (!rows.length) {
         throw new Error("No data found.");
       }
       playerColumns = detectPlayerColumns(rows[0] || []);
       dataRows = rows.slice(1);
-      boxRows = parseCSV(await boxRes.text());
     } else if (season === "c2s2-regular") {
-      const [playerRes, boxRes, contractRes] = await Promise.all([
-        fetch(C2S2_REGULAR_URL, { cache: "no-store" }),
+      const [playerRes, contractRes] = await Promise.all([
         fetch(C2S2_REGULAR_URL, { cache: "no-store" }),
         fetch(CONTRACTS_URL, { cache: "no-store" }),
       ]);
       if (!playerRes.ok) {
         throw new Error(`Fetch failed: ${playerRes.status}`);
       }
-      if (!boxRes.ok) {
-        throw new Error(`Fetch failed: ${boxRes.status}`);
-      }
       contractRows = contractRes.ok ? parseCSV(await contractRes.text()) : [];
+      contractRowsCache = contractRows;
       const rows = parseCSV(await playerRes.text());
       if (!rows.length) {
         throw new Error("No data found.");
@@ -1975,21 +2059,15 @@ async function loadPlayer() {
       const playerSlice = sliceRange(rows, C2S2_REGULAR_RANGES.player_stats);
       playerColumns = detectPlayerColumns(playerSlice[0] || []);
       dataRows = playerSlice.slice(1);
-      const boxAllRows = parseCSV(await boxRes.text());
-      boxRows = sliceRange(boxAllRows, C2S2_REGULAR_RANGES.boxscore);
     } else if (season === "career") {
-      const [currentPlayerRes, currentBoxRes, c2s2Res, archiveRes, contractRes] = await Promise.all([
+      const [currentPlayerRes, c2s2Res, archiveRes, contractRes] = await Promise.all([
         fetch(PLAYER_STATS_URL, { cache: "no-store" }),
-        fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
         fetch(C2S2_REGULAR_URL, { cache: "no-store" }),
         fetch(ARCHIVE_URL, { cache: "no-store" }),
         fetch(CONTRACTS_URL, { cache: "no-store" }),
       ]);
       if (!currentPlayerRes.ok) {
         throw new Error(`Fetch failed: ${currentPlayerRes.status}`);
-      }
-      if (!currentBoxRes.ok) {
-        throw new Error(`Fetch failed: ${currentBoxRes.status}`);
       }
       if (!c2s2Res.ok) {
         throw new Error(`Fetch failed: ${c2s2Res.status}`);
@@ -1998,14 +2076,12 @@ async function loadPlayer() {
         throw new Error(`Fetch failed: ${archiveRes.status}`);
       }
       contractRows = contractRes.ok ? parseCSV(await contractRes.text()) : [];
+      contractRowsCache = contractRows;
       const currentRows = parseCSV(await currentPlayerRes.text());
-      const currentBox = parseCSV(await currentBoxRes.text());
       const c2s2SheetRows = parseCSV(await c2s2Res.text());
       const archive = parseCSV(await archiveRes.text());
       const c2s2Rows = sliceRange(c2s2SheetRows, C2S2_REGULAR_RANGES.player_stats);
-      const c2s2Box = sliceRange(c2s2SheetRows, C2S2_REGULAR_RANGES.boxscore);
       const c2s1PlayoffRows = sliceRange(archive, ARCHIVE_RANGES.player_stats);
-      const c2s1PlayoffBox = sliceRange(archive, ARCHIVE_RANGES.boxscore);
 
       const currentHeader = currentRows[0] || [];
       const c2s2Header = c2s2Rows[0] || [];
@@ -2026,7 +2102,6 @@ async function loadPlayer() {
         ...annotate(c2s2Rows.slice(1), "C2S2 Regular Season"),
         ...annotate(c2s1PlayoffRows.slice(1), "C2S1 Playoffs"),
       ];
-      boxRows = [...currentBox, ...c2s2Box, ...c2s1PlayoffBox];
     } else if (season === "c2s1-playoffs") {
       const [response, contractRes] = await Promise.all([
         fetch(ARCHIVE_URL, { cache: "no-store" }),
@@ -2036,14 +2111,13 @@ async function loadPlayer() {
         throw new Error(`Fetch failed: ${response.status}`);
       }
       contractRows = contractRes.ok ? parseCSV(await contractRes.text()) : [];
+      contractRowsCache = contractRows;
       const archive = parseCSV(await response.text());
       const sliced = sliceRange(archive, ARCHIVE_RANGES.player_stats);
       playerColumns = detectPlayerColumns(sliced[0] || []);
       dataRows = sliced.slice(1);
-      boxRows = sliceRange(archive, ARCHIVE_RANGES.boxscore);
     } else {
       dataRows = [];
-      boxRows = [];
     }
     const aliases = getPlayerAliases(playerName);
     const filtered = playerName
@@ -2109,7 +2183,6 @@ async function loadPlayer() {
       renderPlayerTeam(playerContract.team);
     }
     renderPlayerContract(playerContract);
-    window.__boxScoreRows = boxRows;
     await loadPlayerTransactions(playerName, season);
     updateLastUpdated();
     loadAwards(playerName);
@@ -2240,7 +2313,7 @@ function buildBoxScore(dateToken, opponent) {
   };
 }
 
-els.body.addEventListener("click", (event) => {
+els.body.addEventListener("click", async (event) => {
   const rowEl = event.target.closest(".schedule-row");
   if (!rowEl) {
     return;
@@ -2256,6 +2329,13 @@ els.body.addEventListener("click", (event) => {
   const dateToken = dateValue.includes("•")
     ? dateValue.split("•").pop().trim()
     : dateValue;
+  try {
+    await ensureBoxScoreRows(currentLoadedSeason || getSeason());
+  } catch (error) {
+    els.boxDetails.innerHTML = `<div class=\"boxscore-empty\">No stats available.</div>`;
+    els.modal.hidden = false;
+    return;
+  }
   const boxScore = buildBoxScore(dateToken, opponent);
   if (!boxScore) {
     els.boxDetails.innerHTML = `<div class=\"boxscore-empty\">No stats available.</div>`;
@@ -2280,7 +2360,7 @@ if (els.weeklyBody) {
 }
 
 if (els.weeklyGamesBody) {
-  els.weeklyGamesBody.addEventListener("click", (event) => {
+  els.weeklyGamesBody.addEventListener("click", async (event) => {
     if (event.target.closest("[data-team-link=\"true\"]")) {
       return;
     }
@@ -2289,6 +2369,14 @@ if (els.weeklyGamesBody) {
     const dateToken = String(row.dataset.date || "").trim();
     const opponent = String(row.dataset.opponent || "").trim();
     if (!dateToken) return;
+    try {
+      await ensureBoxScoreRows(currentLoadedSeason || getSeason());
+    } catch (error) {
+      els.weeklyModal.hidden = true;
+      els.boxDetails.innerHTML = `<div class=\"boxscore-empty\">No stats available.</div>`;
+      els.modal.hidden = false;
+      return;
+    }
     const boxScore = buildBoxScore(dateToken, opponent);
     els.weeklyModal.hidden = true;
     if (!boxScore) {

@@ -674,25 +674,28 @@ body.menu-open {
 }
 
 .site-menu-btn {
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(255, 153, 51, 0.28);
   background: rgba(9, 18, 38, 0.72);
   color: var(--ink);
-  border-radius: 14px;
-  width: 48px;
+  border-radius: 999px;
+  min-width: 92px;
   height: 48px;
-  font-size: 26px;
+  padding: 0 18px;
+  font-size: 0.95rem;
+  font-weight: 700;
   line-height: 1;
   cursor: pointer;
   position: absolute;
-  top: 4px;
+  top: 6px;
   left: 0;
   justify-self: start;
   z-index: 2;
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.22);
-  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  gap: 8px;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
 }
 
 .site-menu-btn:hover,
@@ -701,6 +704,19 @@ body.menu-open {
   background: rgba(16, 29, 58, 0.92);
   transform: translateY(-1px);
   outline: none;
+}
+
+.site-menu-btn-label {
+  display: inline-flex;
+  align-items: center;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.site-menu-btn-icon {
+  display: none;
+  font-size: 26px;
+  line-height: 1;
 }
 
 .site-menu {
@@ -4318,6 +4334,17 @@ input[type="text"] {
     display: inline-flex;
     top: 2px;
     left: 0;
+    min-width: 48px;
+    width: 48px;
+    padding: 0;
+  }
+
+  .site-menu-btn-label {
+    display: none;
+  }
+
+  .site-menu-btn-icon {
+    display: inline-flex;
   }
 
   .season-select {
@@ -4772,6 +4799,7 @@ input[type="text"] {
   }
 
   .site-menu-btn {
+    min-width: 44px;
     width: 44px;
     height: 44px;
   }
