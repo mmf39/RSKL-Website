@@ -1,4 +1,5 @@
 const CONTRACTS_URL = "/api/sheet?name=contracts";
+const TEAM_CAP_LIMIT = 5000;
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -112,6 +113,7 @@ function getTeamLogo(team) {
 
 function normalizeContracts(rows) {
   return rows
+    .slice(1)
     .map((row) => ({
       team: displayTeamName(row[0] || ""),
       player: String(row[1] || "").trim(),
@@ -122,7 +124,13 @@ function normalizeContracts(rows) {
       capHitRaw: String(row[4] || "").trim(),
       notes: String(row[7] || "").trim(),
     }))
-    .filter((row) => row.team && row.player);
+    .filter(
+      (row) =>
+        row.team &&
+        row.player &&
+        row.team.toLowerCase() !== "team" &&
+        row.player.toLowerCase() !== "player"
+    );
 }
 
 function buildTeamMap(rows) {
@@ -149,6 +157,8 @@ function updateLastUpdated() {
 function renderSummary(rows) {
   const totalCap = rows.reduce((sum, row) => sum + row.capHit, 0);
   const totalRax = rows.reduce((sum, row) => sum + row.totalRax, 0);
+  const teamCount = new Set(rows.map((row) => row.team)).size;
+  const totalLeagueCap = TEAM_CAP_LIMIT * teamCount;
   const highestCap = rows.reduce(
     (best, row) => (row.capHit > best.capHit ? row : best),
     { player: "—", team: "—", capHit: 0 }
@@ -165,6 +175,11 @@ function renderSummary(rows) {
       <span class="dashboard-kicker">Cap Hit</span>
       <strong>${formatNumber(totalCap)}</strong>
       <span>League total</span>
+    </article>
+    <article class="cap-summary-card">
+      <span class="dashboard-kicker">Cap Space</span>
+      <strong>${formatNumber(Math.max(totalLeagueCap - totalCap, 0))}</strong>
+      <span>${formatNumber(totalLeagueCap)} total league cap</span>
     </article>
     <article class="cap-summary-card">
       <span class="dashboard-kicker">Total Rax</span>
@@ -190,7 +205,14 @@ function renderTeamCards(teamMap) {
       const totalCap = players.reduce((sum, row) => sum + row.capHit, 0);
       const totalRax = players.reduce((sum, row) => sum + row.totalRax, 0);
       const topCap = players.reduce((best, row) => (row.capHit > best.capHit ? row : best), players[0]);
-      return { team, players, totalCap, totalRax, topCap };
+      return {
+        team,
+        players,
+        totalCap,
+        totalRax,
+        topCap,
+        remainingCap: Math.max(TEAM_CAP_LIMIT - totalCap, 0),
+      };
     })
     .sort((a, b) => b.totalCap - a.totalCap);
 
@@ -206,10 +228,10 @@ function renderTeamCards(teamMap) {
             </span>
           </span>
           <span class="cap-team-metrics">
-            <span><label>Cap</label><strong>${formatNumber(entry.totalCap)}</strong></span>
-            <span><label>Rax</label><strong>${formatNumber(entry.totalRax)}</strong></span>
+            <span><label>Team Usage</label><strong>${formatNumber(entry.totalCap)}</strong></span>
+            <span><label>Cap Left</label><strong>${formatNumber(entry.remainingCap)}</strong></span>
           </span>
-          <span class="cap-team-top">Top cap: ${escapeHtml(entry.topCap.player)} • ${formatNumber(entry.topCap.capHit)}</span>
+          <span class="cap-team-top">${formatNumber(entry.totalCap)} of ${formatNumber(TEAM_CAP_LIMIT)} used</span>
         </button>
       `
     )
@@ -239,8 +261,9 @@ function renderTeamBreakdown(teamMap) {
   }
 
   const totalCap = players.reduce((sum, row) => sum + row.capHit, 0);
-  const totalRax = players.reduce((sum, row) => sum + row.totalRax, 0);
   const averageCap = players.length ? totalCap / players.length : 0;
+  const highestCap = players.reduce((best, row) => Math.max(best, row.capHit), 0);
+  const remainingCap = Math.max(TEAM_CAP_LIMIT - totalCap, 0);
 
   els.teamBreakdown.innerHTML = `
     <div class="cap-breakdown-top">
@@ -252,9 +275,10 @@ function renderTeamBreakdown(teamMap) {
         </div>
       </div>
       <div class="cap-breakdown-totals">
-        <span><label>Cap Hit</label><strong>${formatNumber(totalCap)}</strong></span>
-        <span><label>Total Rax</label><strong>${formatNumber(totalRax)}</strong></span>
+        <span><label>Team Usage</label><strong>${formatNumber(totalCap)}</strong></span>
+        <span><label>Cap Left</label><strong>${formatNumber(remainingCap)}</strong></span>
         <span><label>Average Cap</label><strong>${formatNumber(averageCap)}</strong></span>
+        <span><label>Highest Cap</label><strong>${formatNumber(highestCap)}</strong></span>
       </div>
     </div>
     <div class="table-wrap cap-table-wrap">
