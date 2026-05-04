@@ -3576,6 +3576,97 @@ input[type="text"] {
   gap: 16px;
 }
 
+.cap-pie-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 140, 26, 0.22);
+  background: linear-gradient(180deg, rgba(14, 20, 38, 0.9), rgba(8, 14, 29, 0.98));
+}
+
+.cap-pie-panel .panel-head {
+  margin: 0;
+  padding: 0;
+}
+
+.cap-pie-panel .panel-head h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.cap-pie-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: center;
+}
+
+.cap-pie-chart {
+  position: relative;
+  width: min(100%, 280px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  margin: 0 auto;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.cap-pie-hole {
+  position: absolute;
+  inset: 22%;
+  border-radius: 50%;
+  background: rgba(9, 15, 29, 0.94);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 12px;
+  box-shadow: inset 0 0 0 1px rgba(255, 140, 26, 0.16);
+}
+
+.cap-pie-hole span,
+.cap-pie-hole small {
+  color: var(--muted);
+}
+
+.cap-pie-hole strong {
+  color: var(--accent-2);
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.cap-pie-legend {
+  display: grid;
+  gap: 10px;
+}
+
+.cap-pie-legend-item {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 140, 26, 0.16);
+  background: rgba(15, 23, 42, 0.46);
+}
+
+.cap-pie-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.cap-pie-legend-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.cap-pie-empty {
+  color: var(--muted);
+}
+
 .cap-breakdown-top {
   display: flex;
   justify-content: space-between;
@@ -3694,6 +3785,12 @@ input[type="text"] {
 .draft-link span {
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+@media (max-width: 900px) {
+  .cap-pie-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .cap-team-link {

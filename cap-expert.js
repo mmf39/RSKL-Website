@@ -1,5 +1,19 @@
 const CONTRACTS_URL = "/api/sheet?name=contracts";
 const TEAM_CAP_LIMIT = 5000;
+const CAP_CHART_COLORS = [
+  "#ff9f43",
+  "#feca57",
+  "#54a0ff",
+  "#5fdbb0",
+  "#ff6b6b",
+  "#a29bfe",
+  "#48dbfb",
+  "#1dd1a1",
+  "#ff9ff3",
+  "#c8d6e5",
+  "#f6b93b",
+  "#e58e26",
+];
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -95,6 +109,70 @@ function formatNumber(value) {
     maximumFractionDigits: Number(value || 0) % 1 === 0 ? 0 : 2,
     minimumFractionDigits: Number(value || 0) % 1 === 0 ? 0 : 2,
   });
+}
+
+function buildCapPieChart(players, remainingCap) {
+  const slices = players
+    .slice()
+    .sort((a, b) => b.capHit - a.capHit)
+    .map((player, index) => ({
+      label: player.player,
+      value: player.capHit,
+      color: CAP_CHART_COLORS[index % CAP_CHART_COLORS.length],
+    }))
+    .filter((slice) => slice.value > 0);
+
+  if (remainingCap > 0) {
+    slices.push({
+      label: "Cap Left",
+      value: remainingCap,
+      color: "rgba(255, 255, 255, 0.16)",
+    });
+  }
+
+  const total = TEAM_CAP_LIMIT || slices.reduce((sum, slice) => sum + slice.value, 0);
+  if (!total) {
+    return `
+      <div class="cap-pie-empty">No cap usage to chart.</div>
+    `;
+  }
+
+  let cursor = 0;
+  const stops = slices
+    .map((slice) => {
+      const start = cursor;
+      const pct = (slice.value / total) * 100;
+      cursor += pct;
+      return `${slice.color} ${start.toFixed(2)}% ${cursor.toFixed(2)}%`;
+    })
+    .join(", ");
+
+  const legend = slices
+    .map(
+      (slice) => `
+        <div class="cap-pie-legend-item">
+          <span class="cap-pie-swatch" style="background:${escapeHtml(slice.color)}"></span>
+          <span class="cap-pie-legend-label">${escapeHtml(slice.label)}</span>
+          <strong>${formatNumber(slice.value)}</strong>
+        </div>
+      `
+    )
+    .join("");
+
+  return `
+    <div class="cap-pie-layout">
+      <div class="cap-pie-chart" style="background: conic-gradient(${stops})">
+        <div class="cap-pie-hole">
+          <span>Usage</span>
+          <strong>${formatNumber(total - remainingCap)}</strong>
+          <small>of ${formatNumber(TEAM_CAP_LIMIT)}</small>
+        </div>
+      </div>
+      <div class="cap-pie-legend">
+        ${legend}
+      </div>
+    </div>
+  `;
 }
 
 function getTeamLogo(team) {
@@ -275,6 +353,7 @@ function renderTeamBreakdown(teamMap) {
   const averageCap = players.length ? totalCap / players.length : 0;
   const highestCap = players.reduce((best, row) => Math.max(best, row.capHit), 0);
   const remainingCap = Math.max(TEAM_CAP_LIMIT - totalCap, 0);
+  const pieChart = buildCapPieChart(players, remainingCap);
 
   els.teamBreakdown.innerHTML = `
     <div class="cap-breakdown-top">
@@ -291,6 +370,12 @@ function renderTeamBreakdown(teamMap) {
         <span><label>Average Cap</label><strong>${formatNumber(averageCap)}</strong></span>
         <span><label>Highest Cap</label><strong>${formatNumber(highestCap)}</strong></span>
       </div>
+    </div>
+    <div class="cap-pie-panel">
+      <div class="panel-head">
+        <h3>Cap Allocation</h3>
+      </div>
+      ${pieChart}
     </div>
     <div class="table-wrap cap-table-wrap">
       <table class="cap-team-table">
