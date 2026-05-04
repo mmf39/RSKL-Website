@@ -18,7 +18,8 @@ const CAP_CHART_COLORS = [
 const els = {
   lastUpdated: document.getElementById("last-updated"),
   viewTabs: document.getElementById("cap-view-tabs"),
-  summary: document.getElementById("cap-summary"),
+  teamSummary: document.getElementById("cap-team-summary"),
+  playerSummary: document.getElementById("cap-player-summary"),
   teamInfoSection: document.getElementById("cap-team-info-section"),
   teamCardsSection: document.getElementById("cap-team-cards-section"),
   teamBreakdownSection: document.getElementById("cap-team-breakdown-section"),
@@ -268,37 +269,96 @@ function initCapViewTabs() {
   renderCapView();
 }
 
-function renderSummary(rows) {
+function renderTeamSummary(rows) {
+  const teamMap = buildTeamMap(rows);
+  const teamEntries = Array.from(teamMap.entries()).map(([team, players]) => {
+    const used = players.reduce((sum, row) => sum + row.capHit, 0);
+    return { team, used, left: Math.max(TEAM_CAP_LIMIT - used, 0), players: players.length };
+  });
+  const totalCap = teamEntries.reduce((sum, row) => sum + row.used, 0);
+  const totalLeagueCap = TEAM_CAP_LIMIT * teamEntries.length;
+  const totalCapLeft = Math.max(totalLeagueCap - totalCap, 0);
+  const highestUsage = teamEntries.reduce(
+    (best, row) => (row.used > best.used ? row : best),
+    { team: "—", used: 0 }
+  );
+  const mostSpace = teamEntries.reduce(
+    (best, row) => (row.left > best.left ? row : best),
+    { team: "—", left: 0 }
+  );
+  const averageUsage = teamEntries.length ? totalCap / teamEntries.length : 0;
+
+  if (!els.teamSummary) return;
+  els.teamSummary.innerHTML = `
+    <article class="cap-summary-card">
+      <span class="dashboard-kicker">Teams</span>
+      <strong>${formatNumber(teamEntries.length)}</strong>
+      <span>Tracked cap sheets</span>
+    </article>
+    <article class="cap-summary-card">
+      <span class="dashboard-kicker">Usage</span>
+      <strong>${formatNumber(totalCap)}</strong>
+      <span>League team usage</span>
+    </article>
+    <article class="cap-summary-card">
+      <span class="dashboard-kicker">Cap Left</span>
+      <strong>${formatNumber(totalCapLeft)}</strong>
+      <span>${formatNumber(totalLeagueCap)} total league cap</span>
+    </article>
+    <article class="cap-summary-card">
+      <span class="dashboard-kicker">Top Usage</span>
+      <strong>${formatNumber(highestUsage.used)}</strong>
+      <span>${escapeHtml(highestUsage.team)}</span>
+    </article>
+    <article class="cap-summary-card">
+      <span class="dashboard-kicker">Most Space</span>
+      <strong>${formatNumber(mostSpace.left)}</strong>
+      <span>${escapeHtml(mostSpace.team)}</span>
+    </article>
+    <article class="cap-summary-card">
+      <span class="dashboard-kicker">Average Team</span>
+      <strong>${formatNumber(averageUsage)}</strong>
+      <span>Average usage per team</span>
+    </article>
+  `;
+}
+
+function renderPlayerSummary(rows) {
   const totalCap = rows.reduce((sum, row) => sum + row.capHit, 0);
   const totalRax = rows.reduce((sum, row) => sum + row.totalRax, 0);
   const teamCount = new Set(rows.map((row) => row.team)).size;
-  const totalLeagueCap = TEAM_CAP_LIMIT * teamCount;
   const highestCap = rows.reduce(
     (best, row) => (row.capHit > best.capHit ? row : best),
     { player: "—", team: "—", capHit: 0 }
   );
+  const highestRax = rows.reduce(
+    (best, row) => (row.totalRax > best.totalRax ? row : best),
+    { player: "—", team: "—", totalRax: 0 }
+  );
   const averageCap = rows.length ? totalCap / rows.length : 0;
+  const averageRax = rows.length ? totalRax / rows.length : 0;
 
-  els.summary.innerHTML = `
+  if (!els.playerSummary) return;
+  els.playerSummary.innerHTML = `
     <article class="cap-summary-card">
       <span class="dashboard-kicker">Contracts</span>
       <strong>${formatNumber(rows.length)}</strong>
-      <span>Active deals</span>
+      <span>Active player deals</span>
+    </article>
+    <article class="cap-summary-card">
+      <span class="dashboard-kicker">Players</span>
+      <strong>${formatNumber(rows.length)}</strong>
+      <span>Across ${formatNumber(teamCount)} teams</span>
     </article>
     <article class="cap-summary-card">
       <span class="dashboard-kicker">Cap Hit</span>
       <strong>${formatNumber(totalCap)}</strong>
-      <span>League total</span>
-    </article>
-    <article class="cap-summary-card">
-      <span class="dashboard-kicker">Cap Space</span>
-      <strong>${formatNumber(Math.max(totalLeagueCap - totalCap, 0))}</strong>
-      <span>${formatNumber(totalLeagueCap)} total league cap</span>
+      <span>Total player cap hit</span>
     </article>
     <article class="cap-summary-card">
       <span class="dashboard-kicker">Total Rax</span>
       <strong>${formatNumber(totalRax)}</strong>
-      <span>Committed value</span>
+      <span>Committed player value</span>
     </article>
     <article class="cap-summary-card">
       <span class="dashboard-kicker">Top Cap</span>
@@ -306,9 +366,19 @@ function renderSummary(rows) {
       <span>${escapeHtml(highestCap.player)} • ${escapeHtml(highestCap.team)}</span>
     </article>
     <article class="cap-summary-card">
-      <span class="dashboard-kicker">Average</span>
+      <span class="dashboard-kicker">Top Rax</span>
+      <strong>${formatNumber(highestRax.totalRax)}</strong>
+      <span>${escapeHtml(highestRax.player)} • ${escapeHtml(highestRax.team)}</span>
+    </article>
+    <article class="cap-summary-card">
+      <span class="dashboard-kicker">Average Cap</span>
       <strong>${formatNumber(averageCap)}</strong>
-      <span>Cap hit per player</span>
+      <span>Per player</span>
+    </article>
+    <article class="cap-summary-card">
+      <span class="dashboard-kicker">Average Rax</span>
+      <strong>${formatNumber(averageRax)}</strong>
+      <span>Per player</span>
     </article>
   `;
 }
@@ -499,7 +569,8 @@ async function loadCapPage() {
     contractRows = normalizeContracts(parseCSV(await response.text()));
     const teamMap = buildTeamMap(contractRows);
     hydrateTeamControls(teamMap);
-    renderSummary(contractRows);
+    renderTeamSummary(contractRows);
+    renderPlayerSummary(contractRows);
     renderTeamCards(teamMap);
     renderTeamBreakdown(teamMap);
     renderLeagueTable();
@@ -514,7 +585,12 @@ async function loadCapPage() {
     els.search.addEventListener("input", renderLeagueTable);
   } catch (error) {
     const message = escapeHtml(error.message || "Unable to load cap sheet.");
-    els.summary.innerHTML = `<div class="dashboard-state-card">${message}</div>`;
+    if (els.teamSummary) {
+      els.teamSummary.innerHTML = `<div class="dashboard-state-card">${message}</div>`;
+    }
+    if (els.playerSummary) {
+      els.playerSummary.innerHTML = `<div class="dashboard-state-card">${message}</div>`;
+    }
     els.teamCards.innerHTML = `<div class="dashboard-state-card">${message}</div>`;
     els.teamBreakdown.innerHTML = `<div class="dashboard-state-card">${message}</div>`;
     els.tableBody.innerHTML = `<tr><td colspan="5">${message}</td></tr>`;
