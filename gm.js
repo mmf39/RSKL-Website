@@ -9,6 +9,7 @@ const GM_REFRESH_TOKEN_KEY = "rskl_gm_refresh_token";
 const GM_SESSION_USER_KEY = "rskl_gm_user";
 const GM_ASSIGNMENT_KEY = "rskl_gm_assignment";
 const GM_LOCAL_LOCKS_KEY = "rskl_local_game_locks";
+const GM_GAME_LOCKS_TABLE = "gm_game_locks";
 
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
@@ -823,66 +824,71 @@ async function saveTradeBlockToSheet(team, block) {
 }
 
 async function saveGameLocksToSheet(locks) {
-  const response = await fetch(TRADE_BLOCKS_API, {
+  requireSupabaseConfig();
+  const rows = (Array.isArray(locks) ? locks : [])
+    .map((lock) => ({
+      date_text: String(lock?.date || "").trim(),
+      lock_at: String(lock?.lockAt || "").trim(),
+      updated_at: new Date().toISOString(),
+      updated_by: String(gmSession?.user?.id || "").trim() || null,
+    }))
+    .filter((row) => row.date_text && row.lock_at);
+
+  if (!rows.length) {
+    throw new Error("No valid lock rows.");
+  }
+
+  const response = await fetch(`${supabaseUrl}/rest/v1/${GM_GAME_LOCKS_TABLE}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "saveGameLocks",
-      locks: Array.isArray(locks) ? locks : [],
-    }),
+    headers: {
+      ...authHeaders(true),
+      Prefer: "resolution=merge-duplicates,return=representation",
+    },
+    body: JSON.stringify(rows),
   });
   if (!response.ok) {
     throw new Error(`Game locks save failed: ${response.status}`);
   }
   const payload = await response.json();
-  if (!payload || typeof payload !== "object") {
+  if (!Array.isArray(payload)) {
     throw new Error("Invalid game locks save response.");
   }
-  if (
-    payload.ok === false &&
-    String(payload.message || "").trim() === "No valid action provided."
-  ) {
-    throw new Error(
-      "Apps Script is missing the saveGameLocks action. Update and redeploy the GM Apps Script first."
-    );
-  }
-  if (payload.ok === false) {
-    throw new Error(payload.message || "Unable to save lock times.");
-  }
-  const nextMap = { ...localGameLocksByDate };
-  (locks || []).forEach((lock) => {
-    const date = String(lock?.date || "").trim();
-    const lockAt = String(lock?.lockAt || "").trim();
-    if (date && lockAt) nextMap[date] = lockAt;
-  });
-  saveLocalGameLocks(nextMap);
+  saveLocalGameLocks(
+    payload.reduce((acc, row) => {
+      const date = String(row?.date_text || row?.date || "").trim();
+      const lockAt = String(row?.lock_at || row?.lockAt || "").trim();
+      if (date && lockAt) acc[date] = lockAt;
+      return acc;
+    }, {})
+  );
   return payload;
 }
 
 async function fetchGameLocksFromSheet() {
-  const response = await fetch(`${TRADE_BLOCKS_API}?action=getGameLocks`, {
-    cache: "no-store",
-  });
+  requireSupabaseConfig();
+  if (!gmSession?.access_token) {
+    return localGameLocksByDate;
+  }
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/${GM_GAME_LOCKS_TABLE}?select=date_text,lock_at,updated_at&order=date_text.asc`,
+    {
+      headers: authHeaders(true),
+      cache: "no-store",
+    }
+  );
   if (!response.ok) {
     throw new Error(`Game locks fetch failed: ${response.status}`);
   }
   const payload = await response.json();
-  if (!payload || typeof payload !== "object") {
+  if (!Array.isArray(payload)) {
     throw new Error("Invalid game locks response.");
   }
-  if (
-    payload.ok === false &&
-    String(payload.message || "").trim() === "No valid action provided."
-  ) {
-    throw new Error(
-      "Apps Script is missing the getGameLocks action. Update and redeploy the GM Apps Script first."
-    );
-  }
-  if (payload.ok === false) {
-    throw new Error(payload.message || "Unable to load lock times.");
-  }
   const locks = normalizeGameLocks(
-    payload.gameLocks || payload.locks || payload.data || payload.items || {}
+    payload.map((row) => ({
+      date: row?.date_text || "",
+      lockAt: row?.lock_at || "",
+      updatedAt: row?.updated_at || "",
+    }))
   );
   saveLocalGameLocks(locks);
   return locks;
@@ -1859,6 +1865,11 @@ function bindEvents() {
             gmAssignment = await fetchGmAssignment(user.id);
             if (!gmAssignment) gmAssignment = await fetchLegacyGmProfile(user.id);
             persistAuthState();
+            try {
+              await fetchGameLocksFromSheet();
+            } catch (_) {
+              // keep local fallback if the Supabase lock table is unavailable
+            }
             applyAuthUi();
             setAuthStatus("Account exists. Signed in.");
             return;
@@ -1892,6 +1903,11 @@ function bindEvents() {
           gmAssignment = await fetchLegacyGmProfile(user.id);
         }
         persistAuthState();
+        try {
+          await fetchGameLocksFromSheet();
+        } catch (_) {
+          // keep local fallback if the Supabase lock table is unavailable
+        }
         if (!gmAssignment) {
           setAuthStatus("No GM access found for this account.", true);
         } else {
@@ -2100,11 +2116,6 @@ async function init() {
   setActiveTab("trade");
   try {
     loadLocalGameLocks();
-    try {
-      await fetchGameLocksFromSheet();
-    } catch (_) {
-      // Keep local fallback if the sheet lock endpoint is unavailable.
-    }
     await loadSupabaseConfig();
     const savedToken = localStorage.getItem(GM_ACCESS_TOKEN_KEY) || "";
     const savedRefresh = localStorage.getItem(GM_REFRESH_TOKEN_KEY) || "";
@@ -2182,6 +2193,14 @@ async function init() {
         persistAuthState();
       } catch (_) {
         // keep cached signed-in state if refresh fails
+      }
+    }
+
+    if (gmSession?.access_token) {
+      try {
+        await fetchGameLocksFromSheet();
+      } catch (_) {
+        // Keep local fallback if the Supabase lock table is unavailable.
       }
     }
 
