@@ -615,6 +615,7 @@ function applyAuthUi() {
   }
   if (els.authCard) {
     els.authCard.hidden = signedIn;
+    els.authCard.style.display = signedIn ? "none" : "";
   }
   if (els.commishCard) {
     els.commishCard.hidden = !(signedIn && isCommish());
@@ -1436,12 +1437,18 @@ function renderLineupGameCards(team) {
   els.lineupGameCards.innerHTML = matchups
     .slice(0, 4)
     .map((item, idx) => {
-      const canEdit = idx === 0;
-      const isSubmitted = canEdit && submitted;
-      const statusClass = isSubmitted ? " submitted" : "";
-      const statusText = isSubmitted ? "Lineup Submitted" : "Awaiting Deadline";
-      const buttonText = canEdit ? "Edit Lineup" : "Awaiting Deadline";
       const dateText = item.dateText || "—";
+      const lockAt = getLockDateTimeForDay(dateText);
+      const isLocked = !!lockAt && Date.now() >= lockAt.getTime();
+      const canEdit = idx === 0 && !isLocked;
+      const isSubmitted = idx === 0 && submitted;
+      const statusClass = isSubmitted ? " submitted" : isLocked ? " locked" : "";
+      const statusText = isSubmitted
+        ? "Lineup Submitted"
+        : isLocked
+        ? "Locked"
+        : "Awaiting Deadline";
+      const buttonText = canEdit ? "Edit Lineup" : isLocked ? "Locked" : "Awaiting Deadline";
       return `
         <article class="gm-lineup-game-card${canEdit ? " active" : ""}">
           <div class="gm-lineup-game-title">vs ${escapeHtml(displayTeamName(item.opponent))} Date: ${escapeHtml(dateText)}</div>

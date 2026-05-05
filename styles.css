@@ -3850,6 +3850,10 @@ input[type="text"] {
   overflow: hidden;
 }
 
+#gm-auth-card[hidden] {
+  display: none !important;
+}
+
 #gm-auth-card::before,
 #gm-commish-card::before,
 #gm-tab-trade > .gm-card::before,
@@ -3885,7 +3889,7 @@ input[type="text"] {
 }
 
 .gm-rename-card {
-  max-width: 720px;
+  width: 100%;
   margin: 0;
   justify-items: stretch;
   text-align: left;
