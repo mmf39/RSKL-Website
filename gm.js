@@ -1448,7 +1448,7 @@ function renderLineupGameCards(team) {
         ? "Lineup Submitted"
         : isLocked
         ? "Locked"
-        : "Awaiting Deadline";
+        : formatDeadlineText(dateText);
       const buttonText = canEdit ? "Edit Lineup" : isLocked ? "Locked" : "Awaiting Deadline";
       return `
         <article class="gm-lineup-game-card${canEdit ? " active" : ""}">
