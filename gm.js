@@ -186,7 +186,7 @@ function normalizeGameLocks(value) {
   if (!value) return {};
   if (Array.isArray(value)) {
     return value.reduce((acc, item) => {
-      const date = String(item?.date || item?.dateText || "").trim();
+      const date = normalizeScheduleDateKey(item?.date || item?.dateText || "");
       const lockAt = String(item?.lockAt || item?.value || "").trim();
       if (date && lockAt) acc[date] = lockAt;
       return acc;
@@ -194,7 +194,7 @@ function normalizeGameLocks(value) {
   }
   if (typeof value === "object") {
     return Object.entries(value).reduce((acc, [date, lockAt]) => {
-      const dateText = String(date || "").trim();
+      const dateText = normalizeScheduleDateKey(date || "");
       const lockText = String(lockAt || "").trim();
       if (dateText && lockText) acc[dateText] = lockText;
       return acc;
@@ -828,7 +828,7 @@ async function saveGameLocksToSheet(locks) {
   requireSupabaseConfig();
   const rows = (Array.isArray(locks) ? locks : [])
     .map((lock) => ({
-      date_text: String(lock?.date || "").trim(),
+      date_text: normalizeScheduleDateKey(lock?.date || ""),
       lock_at: String(lock?.lockAt || "").trim(),
       updated_at: new Date().toISOString(),
       updated_by: String(gmSession?.user?.id || "").trim() || null,
@@ -856,7 +856,7 @@ async function saveGameLocksToSheet(locks) {
   }
   saveLocalGameLocks(
     payload.reduce((acc, row) => {
-      const date = String(row?.date_text || row?.date || "").trim();
+      const date = normalizeScheduleDateKey(row?.date_text || row?.date || "");
       const lockAt = String(row?.lock_at || row?.lockAt || "").trim();
       if (date && lockAt) acc[date] = lockAt;
       return acc;
@@ -1339,12 +1339,13 @@ function parseEasternDateTimeMs(value) {
 }
 
 function getLockDateTimeForDay(dateText) {
-  const custom = String(localGameLocksByDate?.[dateText] || "").trim();
+  const dateKey = normalizeScheduleDateKey(dateText);
+  const custom = String(localGameLocksByDate?.[dateKey] || "").trim();
   if (custom) {
     const customMs = parseEasternDateTimeMs(custom);
     if (Number.isFinite(customMs)) return new Date(customMs);
   }
-  const day = parseScheduleDateValue(dateText);
+  const day = parseScheduleDateValue(dateKey);
   if (!day) return null;
   const y = day.getFullYear();
   const mo = day.getMonth() + 1;
@@ -1476,6 +1477,14 @@ function parseScheduleDateValue(value) {
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
+function normalizeScheduleDateKey(value) {
+  const parsed = parseScheduleDateValue(value);
+  if (!parsed) {
+    return String(value || "").trim();
+  }
+  return `${parsed.getMonth() + 1}/${parsed.getDate()}`;
+}
+
 async function loadUpcomingScheduleGames() {
   const response = await fetch(SCHEDULE_URL, { cache: "no-store" });
   if (!response.ok) {
@@ -1499,7 +1508,9 @@ async function loadUpcomingScheduleGames() {
 
   const games = body
     .map((row) => {
-      const dateText = String(row[dateIdx >= 0 ? dateIdx : 0] || "").trim();
+      const dateText = normalizeScheduleDateKey(
+        row[dateIdx >= 0 ? dateIdx : 0] || ""
+      );
       const team1 = String(row[t1Idx >= 0 ? t1Idx : 1] || "").trim();
       const team2 = String(row[t2Idx >= 0 ? t2Idx : 2] || "").trim();
       const status = String(row[statusIdx] || "").trim();
