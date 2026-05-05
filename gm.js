@@ -838,6 +838,14 @@ async function saveGameLocksToSheet(locks) {
   if (!payload || typeof payload !== "object") {
     throw new Error("Invalid game locks save response.");
   }
+  if (
+    payload.ok === false &&
+    String(payload.message || "").trim() === "No valid action provided."
+  ) {
+    throw new Error(
+      "Apps Script is missing the saveGameLocks action. Update and redeploy the GM Apps Script first."
+    );
+  }
   if (payload.ok === false) {
     throw new Error(payload.message || "Unable to save lock times.");
   }
@@ -861,6 +869,14 @@ async function fetchGameLocksFromSheet() {
   const payload = await response.json();
   if (!payload || typeof payload !== "object") {
     throw new Error("Invalid game locks response.");
+  }
+  if (
+    payload.ok === false &&
+    String(payload.message || "").trim() === "No valid action provided."
+  ) {
+    throw new Error(
+      "Apps Script is missing the getGameLocks action. Update and redeploy the GM Apps Script first."
+    );
   }
   if (payload.ok === false) {
     throw new Error(payload.message || "Unable to load lock times.");
