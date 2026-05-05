@@ -57,6 +57,7 @@ const els = {
   authCard: document.getElementById("gm-auth-card"),
   authedShell: document.getElementById("gm-authed-shell"),
   commishCard: document.getElementById("gm-commish-card"),
+  commishTab: document.getElementById("gm-commish-tab"),
   lockGamesList: document.getElementById("gm-lock-games-list"),
   lockSave: document.getElementById("gm-lock-save"),
   lockStatus: document.getElementById("gm-lock-status"),
@@ -64,6 +65,7 @@ const els = {
   tabRenamePanel: document.getElementById("gm-tab-rename"),
   tabLineupPanel: document.getElementById("gm-tab-lineup"),
   tabPowerPanel: document.getElementById("gm-tab-power"),
+  tabCommishPanel: document.getElementById("gm-tab-commish"),
   lineupTabMeta: document.getElementById("gm-lineup-tab-meta"),
   sessionMeta: document.getElementById("gm-session-meta"),
   sessionSummary: document.getElementById("gm-session-summary"),
@@ -208,6 +210,8 @@ function setActiveTab(tab) {
       ? "lineup"
       : tab === "power"
       ? "power"
+      : tab === "commish"
+      ? "commish"
       : "trade";
   if (els.tabTradePanel) {
     els.tabTradePanel.hidden = active !== "trade";
@@ -220,6 +224,9 @@ function setActiveTab(tab) {
   }
   if (els.tabPowerPanel) {
     els.tabPowerPanel.hidden = active !== "power";
+  }
+  if (els.tabCommishPanel) {
+    els.tabCommishPanel.hidden = active !== "commish";
   }
   if (els.tabButtons && els.tabButtons.length) {
     els.tabButtons.forEach((button) => {
@@ -610,6 +617,9 @@ function applyAuthUi() {
   }
   if (els.commishCard) {
     els.commishCard.hidden = !(signedIn && isCommish());
+  }
+  if (els.commishTab) {
+    els.commishTab.hidden = !(signedIn && isCommish());
   }
   if (els.sessionMeta) {
     els.sessionMeta.hidden = !signedIn;
