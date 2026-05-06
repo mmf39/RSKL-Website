@@ -1926,30 +1926,49 @@ function buildLiveScoreMap(rows) {
     return map;
   }
 
-  LIVE_GAME_RANGES.forEach((range) => {
-    const block = sliceRange(rows, range);
-    if (!block.length) {
+  const startIndex = rows.findIndex(
+    (row) =>
+      String(row[0] || "").includes("League Day") ||
+      String(row[1] || "").includes("League Day")
+  );
+  const dataRows = rows.slice(startIndex >= 0 ? startIndex + 1 : 0);
+
+  const looksLikeHeader = (left, right) =>
+    left &&
+    right &&
+    !isPlayerCell(left) &&
+    !isPlayerCell(right) &&
+    (/\(\s*-?\d+\s*\)/.test(left) || /\(\s*-?\d+\s*\)/.test(right));
+
+  const games = [];
+  let current = null;
+  dataRows.forEach((row) => {
+    const left = String(row[0] || "").trim();
+    const right = String(row[4] || "").trim();
+    if (looksLikeHeader(left, right)) {
+      current = { header: row, players: [] };
+      games.push(current);
       return;
     }
-    const header = block[0] || [];
+    if (current && (left || right)) {
+      current.players.push(row);
+    }
+  });
+
+  games.forEach((game) => {
+    const header = game.header || [];
     const left = String(header[0] || "").trim();
     const right = String(header[4] || "").trim();
-    if (!left || !right) {
-      return;
-    }
     const team1 = parseTeamHeader(left);
     const team2 = parseTeamHeader(right);
     if (!team1.name || !team2.name) {
       return;
     }
 
-    const lines = block
-      .slice(1)
-      .filter((r) => String(r[0] || r[4] || "").trim() !== "");
-    const team1Players = lines
+    const team1Players = game.players
       .filter((r) => isPlayerCell(r[0]))
       .map((r) => buildPlayerEntry(r[0], r[1], r[2]));
-    const team2Players = lines
+    const team2Players = game.players
       .filter((r) => isPlayerCell(r[4]))
       .map((r) => buildPlayerEntry(r[4], r[5], r[6]));
 

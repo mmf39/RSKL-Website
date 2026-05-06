@@ -563,49 +563,63 @@ function formatLivePlayerDisplay(player) {
 
 function parseLiveGames(rows) {
   const games = [];
-  LIVE_GAME_RANGES.forEach((range) => {
-    const block = sliceRange(rows, range);
-    if (!block.length) return;
-    let header = null;
-    let headerIndex = 0;
-    for (let i = 0; i < block.length; i += 1) {
-      const left = String(block[i][0] || "").trim();
-      const right = String(block[i][4] || "").trim();
-      if (
-        left &&
-        right &&
-        !isLivePlayerCell(left) &&
-        !isLivePlayerCell(right) &&
-        !left.includes("League Day") &&
-        !right.includes("League Day")
-      ) {
-        header = block[i];
-        headerIndex = i;
-        break;
-      }
+  if (!rows.length) return games;
+  const dateToken = extractLeagueDay(rows);
+  if (!dateToken) return games;
+
+  const startIndex = rows.findIndex(
+    (row) =>
+      String(row[0] || "").includes("League Day") ||
+      String(row[1] || "").includes("League Day")
+  );
+  const dataRows = rows.slice(startIndex >= 0 ? startIndex + 1 : 0);
+
+  const looksLikeHeader = (left, right) =>
+    left &&
+    right &&
+    !isLivePlayerCell(left) &&
+    !isLivePlayerCell(right) &&
+    (/\(\s*-?\d+\s*\)/.test(left) || /\(\s*-?\d+\s*\)/.test(right));
+
+  let current = null;
+  dataRows.forEach((row) => {
+    const left = String(row[0] || "").trim();
+    const right = String(row[4] || "").trim();
+
+    if (looksLikeHeader(left, right)) {
+      current = { header: row, players: [] };
+      games.push(current);
+      return;
     }
-    if (!header) return;
-    const team1 = parseTeamHeader(header[0]);
-    const team2 = parseTeamHeader(header[4]);
-    if (!team1.name || !team2.name) return;
-    const players = block.slice(headerIndex + 1).filter((row) => String(row[0] || row[4] || "").trim() !== "");
-    games.push({
-      dateToken: extractLeagueDay(rows),
-      team1: team1.name,
-      team2: team2.name,
-      team1Score: team1.score || "",
-      team2Score: team2.score || "",
-      team1Header: String(header[0] || "").trim(),
-      team2Header: String(header[4] || "").trim(),
-      team1Players: players
-        .filter((row) => isLivePlayerCell(row[0]))
-        .map((row) => buildLivePlayerEntry(row[0], row[1], row[2])),
-      team2Players: players
-        .filter((row) => isLivePlayerCell(row[4]))
-        .map((row) => buildLivePlayerEntry(row[4], row[5], row[6])),
-    });
+
+    if (current && (left || right)) {
+      current.players.push(row);
+    }
   });
-  return games;
+
+  return games
+    .map((game) => {
+      const header = game.header || [];
+      const team1 = parseTeamHeader(header[0]);
+      const team2 = parseTeamHeader(header[4]);
+      if (!team1.name || !team2.name) return null;
+      return {
+        dateToken,
+        team1: team1.name,
+        team2: team2.name,
+        team1Score: team1.score || "",
+        team2Score: team2.score || "",
+        team1Header: String(header[0] || "").trim(),
+        team2Header: String(header[4] || "").trim(),
+        team1Players: game.players
+          .filter((row) => isLivePlayerCell(row[0]))
+          .map((row) => buildLivePlayerEntry(row[0], row[1], row[2])),
+        team2Players: game.players
+          .filter((row) => isLivePlayerCell(row[4]))
+          .map((row) => buildLivePlayerEntry(row[4], row[5], row[6])),
+      };
+    })
+    .filter(Boolean);
 }
 
 function renderLiveScoring(games, seasonRaw) {
