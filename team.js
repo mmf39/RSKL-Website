@@ -61,6 +61,9 @@ const LIVE_GAME_RANGES = [
   "A122:H129",
   "A131:H138",
 ];
+const LIVE_RIGHT_NAME_COL = 5;
+const LIVE_RIGHT_POINTS_COL = 6;
+const LIVE_RIGHT_RANK_COL = 7;
 
 const ARCHIVE_TEAM_ROSTERS = {
   "Gus N Em": "H1:I12",
@@ -1944,7 +1947,7 @@ function buildLiveScoreMap(rows) {
   let current = null;
   dataRows.forEach((row) => {
     const left = String(row[0] || "").trim();
-    const right = String(row[4] || "").trim();
+    const right = String(row[LIVE_RIGHT_NAME_COL] || "").trim();
     if (looksLikeHeader(left, right)) {
       current = { header: row, players: [] };
       games.push(current);
@@ -1958,7 +1961,7 @@ function buildLiveScoreMap(rows) {
   games.forEach((game) => {
     const header = game.header || [];
     const left = String(header[0] || "").trim();
-    const right = String(header[4] || "").trim();
+    const right = String(header[LIVE_RIGHT_NAME_COL] || "").trim();
     const team1 = parseTeamHeader(left);
     const team2 = parseTeamHeader(right);
     if (!team1.name || !team2.name) {
@@ -1969,8 +1972,14 @@ function buildLiveScoreMap(rows) {
       .filter((r) => isPlayerCell(r[0]))
       .map((r) => buildPlayerEntry(r[0], r[1], r[2]));
     const team2Players = game.players
-      .filter((r) => isPlayerCell(r[4]))
-      .map((r) => buildPlayerEntry(r[4], r[5], r[6]));
+      .filter((r) => isPlayerCell(r[LIVE_RIGHT_NAME_COL]))
+      .map((r) =>
+        buildPlayerEntry(
+          r[LIVE_RIGHT_NAME_COL],
+          r[LIVE_RIGHT_POINTS_COL],
+          r[LIVE_RIGHT_RANK_COL]
+        )
+      );
 
     map.set(buildGameKey(day, team1.name, team2.name), {
       status: "live",

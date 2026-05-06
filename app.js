@@ -75,6 +75,9 @@ const LIVE_GAME_RANGES = [
   "A122:H129",
   "A131:H138",
 ];
+const LIVE_RIGHT_NAME_COL = 5;
+const LIVE_RIGHT_POINTS_COL = 6;
+const LIVE_RIGHT_RANK_COL = 7;
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -584,7 +587,7 @@ function parseLiveGames(rows) {
   let current = null;
   dataRows.forEach((row) => {
     const left = String(row[0] || "").trim();
-    const right = String(row[4] || "").trim();
+    const right = String(row[LIVE_RIGHT_NAME_COL] || "").trim();
 
     if (looksLikeHeader(left, right)) {
       current = { header: row, players: [] };
@@ -601,7 +604,7 @@ function parseLiveGames(rows) {
     .map((game) => {
       const header = game.header || [];
       const team1 = parseTeamHeader(header[0]);
-      const team2 = parseTeamHeader(header[4]);
+      const team2 = parseTeamHeader(header[LIVE_RIGHT_NAME_COL]);
       if (!team1.name || !team2.name) return null;
       return {
         dateToken,
@@ -610,13 +613,19 @@ function parseLiveGames(rows) {
         team1Score: team1.score || "",
         team2Score: team2.score || "",
         team1Header: String(header[0] || "").trim(),
-        team2Header: String(header[4] || "").trim(),
+        team2Header: String(header[LIVE_RIGHT_NAME_COL] || "").trim(),
         team1Players: game.players
           .filter((row) => isLivePlayerCell(row[0]))
           .map((row) => buildLivePlayerEntry(row[0], row[1], row[2])),
         team2Players: game.players
-          .filter((row) => isLivePlayerCell(row[4]))
-          .map((row) => buildLivePlayerEntry(row[4], row[5], row[6])),
+          .filter((row) => isLivePlayerCell(row[LIVE_RIGHT_NAME_COL]))
+          .map((row) =>
+            buildLivePlayerEntry(
+              row[LIVE_RIGHT_NAME_COL],
+              row[LIVE_RIGHT_POINTS_COL],
+              row[LIVE_RIGHT_RANK_COL]
+            )
+          ),
       };
     })
     .filter(Boolean);
