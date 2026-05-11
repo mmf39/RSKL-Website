@@ -48,8 +48,22 @@ const EXCLUDED_STANDINGS_NAMES = new Set([
 ]);
 
 const DIVISIONS = {
-  North: new Set(["Turkeys", "The Lions", "The Phantoms", "Gus N Em", "Illegals"]),
-  South: new Set(["Cheerios", "The Snipers", "Storm", "MayeDay", "Dream Team"]),
+  current: {
+    primaryKey: "north",
+    secondaryKey: "south",
+    primaryLabel: "North",
+    secondaryLabel: "South",
+    primary: new Set(["Turkeys", "The Lions", "The Phantoms", "Gus N Em", "Illegals"]),
+    secondary: new Set(["Cheerios", "The Snipers", "Storm", "MayeDay", "Dream Team"]),
+  },
+  c1s2: {
+    primaryKey: "east",
+    secondaryKey: "west",
+    primaryLabel: "East",
+    secondaryLabel: "West",
+    primary: new Set(["Thunderhawks", "Whatsgrass", "Tigers", "Legends", "ALEK Manoahs", "Gamblers"]),
+    secondary: new Set(["Burritos", "Cobras", "Illegals", "Gus N Em", "Bees"]),
+  },
 };
 
 function getSeasonRaw() {
@@ -147,6 +161,14 @@ function displayTeamName(value) {
   if (name === "Yetis") return "MayeDay";
   if (name === "The Future") return "Dream Team";
   return name;
+}
+
+function getDivisionConfig() {
+  const seasonRaw = getSeasonRaw();
+  if (seasonRaw === "c1s2-regular" || seasonRaw === "c1s2-post") {
+    return DIVISIONS.c1s2;
+  }
+  return DIVISIONS.current;
 }
 
 function isStandingsTeamName(value) {
@@ -311,27 +333,45 @@ function sortStandingsRows(rows) {
 
 function getDivisionName(teamName) {
   const shown = displayTeamName(teamName);
-  if (DIVISIONS.North.has(shown)) return "North";
-  if (DIVISIONS.South.has(shown)) return "South";
+  const config = getDivisionConfig();
+  if (config.primary.has(shown)) return config.primaryLabel;
+  if (config.secondary.has(shown)) return config.secondaryLabel;
   return "Other";
 }
 
 function getStandingsScope() {
   const raw = String(localStorage.getItem(STANDINGS_SCOPE_KEY) || "league").toLowerCase();
-  return raw === "north" || raw === "south" ? raw : "league";
+  const config = getDivisionConfig();
+  return raw === config.primaryKey || raw === config.secondaryKey || raw === "north" || raw === "south"
+    ? raw
+    : "league";
 }
 
 function initStandingsScope() {
   if (!els.scopeTabs) return;
-  const activeScope = getStandingsScope();
-  Array.from(els.scopeTabs.querySelectorAll("[data-scope]")).forEach((button) => {
+  const config = getDivisionConfig();
+  const buttons = Array.from(els.scopeTabs.querySelectorAll("[data-scope]"));
+  buttons.forEach((button) => {
     const scope = String(button.dataset.scope || "league").toLowerCase();
-    const isActive = scope === activeScope;
+    if (scope === "north") {
+      button.textContent = config.primaryLabel;
+    } else if (scope === "south") {
+      button.textContent = config.secondaryLabel;
+    }
+  });
+  const activeScope = getStandingsScope();
+  buttons.forEach((button) => {
+    const scope = String(button.dataset.scope || "league").toLowerCase();
+    const normalizedScope =
+      scope === "north" ? config.primaryKey : scope === "south" ? config.secondaryKey : scope;
+    const normalizedActive =
+      activeScope === "north" ? config.primaryKey : activeScope === "south" ? config.secondaryKey : activeScope;
+    const isActive = normalizedScope === normalizedActive;
     button.classList.toggle("active", isActive);
     button.setAttribute("aria-pressed", isActive ? "true" : "false");
     button.addEventListener("click", () => {
-      localStorage.setItem(STANDINGS_SCOPE_KEY, scope);
-      Array.from(els.scopeTabs.querySelectorAll("[data-scope]")).forEach((tab) => {
+      localStorage.setItem(STANDINGS_SCOPE_KEY, normalizedScope);
+      buttons.forEach((tab) => {
         const tabActive = tab === button;
         tab.classList.toggle("active", tabActive);
         tab.setAttribute("aria-pressed", tabActive ? "true" : "false");
@@ -397,21 +437,22 @@ function renderStandings() {
     return;
   }
 
+  const config = getDivisionConfig();
   const scope = getStandingsScope();
   const leagueRows = sortStandingsRows(leagueStandingsMetrics);
-  const northRows = sortStandingsRows(
-    leagueStandingsMetrics.filter((row) => getDivisionName(row.team) === "North")
+  const primaryRows = sortStandingsRows(
+    leagueStandingsMetrics.filter((row) => getDivisionName(row.team) === config.primaryLabel)
   );
-  const southRows = sortStandingsRows(
-    leagueStandingsMetrics.filter((row) => getDivisionName(row.team) === "South")
+  const secondaryRows = sortStandingsRows(
+    leagueStandingsMetrics.filter((row) => getDivisionName(row.team) === config.secondaryLabel)
   );
 
-  if (scope === "north") {
-    els.leaderboard.innerHTML = renderStandingsSection("North Division", northRows);
+  if (scope === config.primaryKey || (scope === "north" && config.primaryKey === "north")) {
+    els.leaderboard.innerHTML = renderStandingsSection(`${config.primaryLabel} Division`, primaryRows);
     return;
   }
-  if (scope === "south") {
-    els.leaderboard.innerHTML = renderStandingsSection("South Division", southRows);
+  if (scope === config.secondaryKey || (scope === "south" && config.secondaryKey === "south")) {
+    els.leaderboard.innerHTML = renderStandingsSection(`${config.secondaryLabel} Division`, secondaryRows);
     return;
   }
   els.leaderboard.innerHTML = renderStandingsSection("League Standings", leagueRows);

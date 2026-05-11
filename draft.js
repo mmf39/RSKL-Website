@@ -56,6 +56,18 @@ const EXPANSION_RANGES = [
 ];
 
 const TEAM_NAMES = new Set([
+  "Thunderhawks",
+  "Whatsgrass",
+  "Tigers",
+  "Legends",
+  "ALEK Manoahs",
+  "Alek Manoahs",
+  "Gamblers",
+  "Burritos",
+  "Cobras",
+  "Rebels",
+  "Bees",
+  "Big bad club",
   "Gus N Em",
   "Storm",
   "Bullets",
@@ -265,6 +277,18 @@ function linkifyTeamsAndPlayers(text) {
   const source = String(text || "");
   const playerParts = source.split(/(@[A-Za-z0-9_.]+)/g);
   const teamMap = {
+    Thunderhawks: "Thunderhawks",
+    Whatsgrass: "Whatsgrass",
+    Tigers: "Tigers",
+    Legends: "Legends",
+    "ALEK Manoahs": "ALEK Manoahs",
+    "Alek Manoahs": "ALEK Manoahs",
+    Gamblers: "Gamblers",
+    Burritos: "Burritos",
+    Cobras: "Cobras",
+    Rebels: "Rebels",
+    Bees: "Bees",
+    "Big bad club": "Big bad club",
     "Gus N Em": "Gus N Em",
     Storm: "Storm",
     Bullets: "Storm",
