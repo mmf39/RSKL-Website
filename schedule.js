@@ -354,6 +354,11 @@ function getRightRankCol(row) {
   return getRightNameCol(row) + 2;
 }
 
+function isPlayerLabelRow(left, right) {
+  return String(left || "").trim().toLowerCase() === "player" &&
+    String(right || "").trim().toLowerCase() === "player";
+}
+
 function isPlayerCell(value) {
   return normalizePlayerCell(value).startsWith("@");
 }
@@ -731,6 +736,7 @@ function findBoxScoreRowsForGame(game) {
       right &&
       !isPlayerCell(left) &&
       !isPlayerCell(right) &&
+      !isPlayerLabelRow(left, right) &&
       !left.includes("League Day") &&
       !right.includes("League Day");
     const isPlayer = isPlayerCell(left) || isPlayerCell(right);

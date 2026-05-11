@@ -1878,6 +1878,11 @@ function buildGameKey(dateToken, team1, team2) {
   return `${normalizeDateToken(dateToken)}|${normalizeTeamLabel(team1)}|${normalizeTeamLabel(team2)}`;
 }
 
+function isPlayerLabelRow(left, right) {
+  return String(left || "").trim().toLowerCase() === "player" &&
+    String(right || "").trim().toLowerCase() === "player";
+}
+
 function parseTeamHeader(value) {
   const text = String(value || "").trim();
   if (!text) {
@@ -2352,6 +2357,7 @@ function buildBoxScore(teamName, scheduleRow, season) {
       right &&
       !isPlayerCell(left) &&
       !isPlayerCell(right) &&
+      !isPlayerLabelRow(left, right) &&
       !left.includes("League Day") &&
       !right.includes("League Day");
     const isPlayer = isPlayerCell(left) || isPlayerCell(right);
