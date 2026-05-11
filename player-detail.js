@@ -2255,8 +2255,19 @@ async function loadPlayer() {
       const teamName = await findTeamForPlayer(season, playerName);
       renderPlayerTeam(teamName);
     } else {
-      renderPlayoffSupplement([]);
-      renderTable(filtered);
+      if (season === "career") {
+        const playoffRows = filtered
+          .filter((row) => String(row.__seasonLabel || "") === "C2S1 Playoffs")
+          .map((row) => ({ ...row, __boxScoreSeason: "c2s1-playoffs" }));
+        const regularRows = filtered.filter(
+          (row) => String(row.__seasonLabel || "") !== "C2S1 Playoffs"
+        );
+        renderPlayoffSupplement(playoffRows);
+        renderTable(regularRows);
+      } else {
+        renderPlayoffSupplement([]);
+        renderTable(filtered);
+      }
       if (season === "c2s3-regular" && !filtered.length) {
         els.body.innerHTML = `<tr><td colspan="5">No games played.</td></tr>`;
       }
