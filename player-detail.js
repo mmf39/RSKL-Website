@@ -946,7 +946,11 @@ function initSeasonSelect() {
         ? "c2s2-regular"
         : "c2s3-regular"
     );
-    location.reload();
+    const params = new URLSearchParams(window.location.search);
+    params.set("season", value);
+    const nextQuery = params.toString();
+    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`;
+    window.location.assign(nextUrl);
   };
 
   if (panelSelect) {
