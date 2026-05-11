@@ -664,6 +664,11 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
   };
 
   els.results.innerHTML = `
+    ${
+      selectedSeason === "c1s2-regular" || selectedSeason === "c1s2-playoffs"
+        ? '<p><em>Partial C1S2 data only. Some stats were not recorded.</em></p>'
+        : ""
+    }
     <div class="leader-grid">
       ${visible
         .map(
@@ -765,8 +770,6 @@ async function loadPlayerStats() {
       els.results.innerHTML = "<p>No stats available for C2S1 Regular Season.</p>";
     } else if (season === "c1s3-regular" || season === "c1s3-playoffs") {
       els.results.innerHTML = "<p>No player stats are available yet for Chapter 1 S3.</p>";
-    } else if (season === "c1s2-regular" || season === "c1s2-playoffs") {
-      els.results.innerHTML = "<p>No player stats are available yet for Chapter 1 S2.</p>";
     } else {
       const query = els.search.value.trim().toLowerCase();
       renderLeaderboard(

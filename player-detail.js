@@ -1129,6 +1129,18 @@ function renderTableInto(headEl, bodyEl, rows, options = {}) {
     .join("");
 }
 
+function prependTableNotice(bodyEl, message, colspan) {
+  if (!bodyEl || !message) {
+    return;
+  }
+  bodyEl.insertAdjacentHTML(
+    "afterbegin",
+    `<tr class="table-note-row"><td colspan="${Number(colspan) || 5}"><em>${escapeHtml(
+      message
+    )}</em></td></tr>`
+  );
+}
+
 function renderPlayoffSupplement(rows) {
   supplementalPlayerRows = rows;
   if (!els.playoffStatsPanel || !els.playoffHead || !els.playoffBody) {
@@ -2341,13 +2353,6 @@ async function loadPlayer() {
       updateSummary([], baselines);
       renderCareerTeamBreakdown([], baselines, season);
       renderPlayerTeam("");
-    } else if (season === "c1s2-regular" || season === "c1s2-playoffs") {
-      els.body.innerHTML = `<tr><td colspan="5">No player stats available for Chapter 1 S2.</td></tr>`;
-      renderPlayoffSupplement([]);
-      renderWeeklyKarma([]);
-      updateSummary([], baselines);
-      renderCareerTeamBreakdown([], baselines, season);
-      renderPlayerTeam("");
     } else {
       if (season === "career") {
         const playoffRows = filtered
@@ -2368,8 +2373,21 @@ async function loadPlayer() {
       }
       if (season === "c2s3-regular" && !filtered.length) {
         els.body.innerHTML = `<tr><td colspan="5">No games played.</td></tr>`;
+      } else if (season === "c1s2-regular" || season === "c1s2-playoffs") {
+        if (!filtered.length) {
+          els.body.innerHTML =
+            '<tr><td colspan="5">No recorded C1S2 stats found for this player.</td></tr>';
+        } else {
+          prependTableNotice(
+            els.body,
+            "Partial C1S2 data only. Some stats were not recorded.",
+            5
+          );
+        }
       }
-      renderWeeklyKarma(filtered);
+      renderWeeklyKarma(
+        season === "c1s2-regular" || season === "c1s2-playoffs" ? [] : filtered
+      );
       updateSummary(filtered, baselines);
       renderCareerTeamBreakdown(filtered, baselines, season);
       const teamsFromStats = getTeamsFromRows(filtered);

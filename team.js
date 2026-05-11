@@ -9,6 +9,8 @@ const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const C1S2_STANDINGS_URL = "/assets/data/c1s2-standings.csv";
 const C1S2_REGULAR_SCHEDULE_URL = "/assets/data/c1s2-regular-schedule.csv";
 const C1S2_POST_SCHEDULE_URL = "/assets/data/c1s2-post-schedule.csv";
+const C1S2_ROSTERS_URL = "/assets/data/c1s2-rosters.csv";
+const C1S2_PLAYER_STATS_URL = "/assets/data/c1s2-player-stats.csv";
 const C1S3_STANDINGS_URL = "/assets/data/c1s3-standings.csv";
 const C1S3_REGULAR_SCHEDULE_URL = "/assets/data/c1s3-regular-schedule.csv";
 const C1S3_POST_SCHEDULE_URL = "/assets/data/c1s3-post-schedule.csv";
@@ -580,6 +582,23 @@ function renderTable(headers, dataRows, teamName) {
 function renderRosterMessage(message) {
   els.head.innerHTML = "<tr><th>Player</th></tr>";
   els.body.innerHTML = `<tr><td>${escapeHtml(message)}</td></tr>`;
+}
+
+function renderRosterTableWithNotice(players, notice) {
+  els.head.innerHTML = "<tr><th>Player</th></tr>";
+  const noticeRow = notice
+    ? `<tr><td><em>${escapeHtml(notice)}</em></td></tr>`
+    : "";
+  const playerRows = players
+    .map((player) => {
+      const nameText = String(player || "").trim();
+      const link = `player-detail.html?player=${encodeURIComponent(nameText)}`;
+      return `<tr><td><a class="roster-link" href="${link}">${escapeHtml(
+        nameText
+      )}</a></td></tr>`;
+    })
+    .join("");
+  els.body.innerHTML = `${noticeRow}${playerRows}`;
 }
 
 function renderSchedule(headers, dataRows) {
@@ -1757,12 +1776,14 @@ async function loadRoster() {
       updateTeamSchedule(teamName, scheduleRows, boxScoreData, "c2s2-regular");
       updateAdvancedTeamStats(computeAdvancedTeamStats(teamName, playerStatRows));
     } else if (season === "c1s2-regular" || season === "c1s2-post") {
-      const [standingsRes, scheduleRes] = await Promise.all([
+      const [standingsRes, scheduleRes, rosterRes, playerStatsRes] = await Promise.all([
         fetch(C1S2_STANDINGS_URL, { cache: "no-store" }),
         fetch(
           season === "c1s2-post" ? C1S2_POST_SCHEDULE_URL : C1S2_REGULAR_SCHEDULE_URL,
           { cache: "no-store" }
         ),
+        fetch(C1S2_ROSTERS_URL, { cache: "no-store" }),
+        fetch(C1S2_PLAYER_STATS_URL, { cache: "no-store" }),
       ]);
       if (!standingsRes.ok) {
         throw new Error(`Fetch failed: ${standingsRes.status}`);
@@ -1770,11 +1791,31 @@ async function loadRoster() {
       if (!scheduleRes.ok) {
         throw new Error(`Fetch failed: ${scheduleRes.status}`);
       }
-
-      renderRosterMessage("No roster data available for Chapter 1 S2.");
+      if (!rosterRes.ok) {
+        throw new Error(`Fetch failed: ${rosterRes.status}`);
+      }
+      if (!playerStatsRes.ok) {
+        throw new Error(`Fetch failed: ${playerStatsRes.status}`);
+      }
 
       const standingsRows = parseCSV(await standingsRes.text());
       const scheduleRows = parseCSV(await scheduleRes.text());
+      const rosterRows = parseCSV(await rosterRes.text());
+      const playerStatRows = parseCSV(await playerStatsRes.text());
+      const shownTeam = displayTeamName(teamName);
+      const rosterPlayers = rosterRows
+        .slice(1)
+        .filter((row) => displayTeamName(row[0] || "") === shownTeam)
+        .map((row) => String(row[1] || "").trim())
+        .filter(Boolean);
+
+      renderRosterTableWithNotice(
+        rosterPlayers,
+        "Partial C1S2 data only. Some stats were not recorded."
+      );
+      if (els.sub) {
+        els.sub.textContent = `${shownTeam} • partial C1S2 stats`;
+      }
 
       leagueStandingsMetrics = buildLeagueRowsFromC1S2(standingsRows);
       applyTransactionCountsToLeagueRows(
@@ -1789,6 +1830,7 @@ async function loadRoster() {
       finalScoreMap = new Map();
       teamLeadersMap = new Map();
       updateTeamSchedule(teamName, scheduleRows, [], season);
+      updateAdvancedTeamStats(computeAdvancedTeamStats(teamName, playerStatRows));
     } else if (season === "c1s3-regular" || season === "c1s3-post") {
       const [standingsRes, scheduleRes] = await Promise.all([
         fetch(C1S3_STANDINGS_URL, { cache: "no-store" }),
