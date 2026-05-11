@@ -25,19 +25,6 @@ const TEAM_ORDER = [
   "The Phantoms",
 ];
 
-const CURRENT_STANDINGS_RANGES = {
-  Turkeys: "B4:G4",
-  "The Phantoms": "B5:G5",
-  "Gus N Em": "B6:G6",
-  Illegals: "B7:G7",
-  "The Lions": "B8:G8",
-  "The Snipers": "B12:G12",
-  "Dream Team": "B13:G13",
-  MayeDay: "B14:G14",
-  Cheerios: "B15:G15",
-  Storm: "B16:G16",
-};
-
 const ARCHIVE_RANGES = {
   standings: "A1:F7",
   schedule_regular: "G31:I79",
@@ -408,18 +395,45 @@ function setDashboardLoading() {
 }
 
 function buildCurrentLeagueSnapshotRows(rows) {
-  const items = TEAM_ORDER.map((team) => {
-    const range = CURRENT_STANDINGS_RANGES[team];
-    const slice = range ? sliceRange(rows, range) : [];
-    const row = slice[0] || [];
-    return {
+  const itemsByTeam = new Map();
+  let activeIndexes = null;
+
+  rows.forEach((row) => {
+    const normalized = row.map((cell) => String(cell || "").trim().toLowerCase());
+    const teamIdx = normalized.findIndex((cell) => cell === "team");
+    const winsIdx = normalized.findIndex((cell) => cell === "wins" || cell === "win");
+    const lossesIdx = normalized.findIndex((cell) => cell === "loss" || cell === "losses" || cell === "l");
+    const gbIdx = normalized.findIndex((cell) => cell === "gb");
+    const pctIdx = normalized.findIndex((cell) => cell === "win %" || cell === "win%" || cell === "pct");
+
+    if (
+      teamIdx >= 0 &&
+      winsIdx >= 0 &&
+      lossesIdx >= 0 &&
+      gbIdx >= 0 &&
+      pctIdx >= 0
+    ) {
+      activeIndexes = { teamIdx, winsIdx, lossesIdx, gbIdx, pctIdx };
+      return;
+    }
+
+    if (!activeIndexes) return;
+
+    const teamRaw = String(row[activeIndexes.teamIdx] || "").trim();
+    const team = displayTeamName(teamRaw);
+    if (!team) return;
+    if (!TEAM_ORDER.includes(team)) return;
+
+    itemsByTeam.set(team, {
       team,
-      wins: parseNumber(row[2]) ?? 0,
-      losses: parseNumber(row[3]) ?? 0,
-      gb: parseNumber(row[4]) ?? 0,
-      winPct: parsePct(row[5]) ?? 0,
-    };
-  }).filter((item) => item.team);
+      wins: parseNumber(row[activeIndexes.winsIdx]) ?? 0,
+      losses: parseNumber(row[activeIndexes.lossesIdx]) ?? 0,
+      gb: parseNumber(row[activeIndexes.gbIdx]) ?? 0,
+      winPct: parsePct(row[activeIndexes.pctIdx]) ?? 0,
+    });
+  });
+
+  const items = TEAM_ORDER.map((team) => itemsByTeam.get(team)).filter(Boolean);
 
   items.sort((a, b) => {
     if ((b.winPct ?? -1) !== (a.winPct ?? -1)) return (b.winPct ?? -1) - (a.winPct ?? -1);
