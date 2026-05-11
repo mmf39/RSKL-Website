@@ -9,6 +9,7 @@ const CONTRACTS_URL = "/api/sheet?name=contracts";
 const C1S2_PLAYER_STATS_URL = "/assets/data/c1s2-player-stats.csv";
 const C1S3_PLAYER_STATS_URL = "/assets/data/c1s3-player-stats.csv";
 const C1S4_PLAYER_STATS_URL = "/assets/data/c1s4-player-stats.csv";
+const C1S5_PLAYER_STATS_URL = "/assets/data/c1s5-player-stats.csv";
 const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
 const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 const PLAYER_SEASON_KEY = "playerSeason";
@@ -861,6 +862,8 @@ function normalizeSeason(value) {
   }
   if (
     value === "career" ||
+    value === "c1s5-playoffs" ||
+    value === "c1s5-regular" ||
     value === "c1s4-playoffs" ||
     value === "c1s4-regular" ||
     value === "c1s3-playoffs" ||
@@ -890,6 +893,10 @@ function getSeason() {
         ? "c2s1-post"
         : normalized === "c2s2-playoffs"
         ? "c2s2-playoffs"
+        : normalized === "c1s5-playoffs"
+        ? "c1s5-post"
+        : normalized === "c1s5-regular"
+        ? "c1s5-regular"
         : normalized === "c1s4-playoffs"
         ? "c1s4-post"
         : normalized === "c1s4-regular"
@@ -926,6 +933,9 @@ function getSeason() {
   if (season === "c1s4-post") {
     return "c1s4-playoffs";
   }
+  if (season === "c1s5-post") {
+    return "c1s5-playoffs";
+  }
   if (season === "c1s2-post") {
     return "c1s2-playoffs";
   }
@@ -940,6 +950,9 @@ function getSeason() {
   }
   if (season === "c1s4-regular") {
     return "c1s4-regular";
+  }
+  if (season === "c1s5-regular") {
+    return "c1s5-regular";
   }
   if (season === "c2s3-regular" || season === "c2s2-playoffs") {
     return season;
@@ -966,6 +979,10 @@ function initSeasonSelect() {
         ? "c2s2-playoffs"
         : current === "c2s2-regular"
         ? "c2s2-regular"
+        : current === "c1s5-playoffs"
+        ? "c1s5-post"
+        : current === "c1s5-regular"
+        ? "c1s5-regular"
         : current === "c1s4-playoffs"
         ? "c1s4-post"
         : current === "c1s4-regular"
@@ -997,6 +1014,10 @@ function initSeasonSelect() {
         ? "c2s1-post"
         : value === "c2s2-playoffs"
         ? "c2s2-playoffs"
+        : value === "c1s5-playoffs"
+        ? "c1s5-post"
+        : value === "c1s5-regular"
+        ? "c1s5-regular"
         : value === "c1s4-playoffs"
         ? "c1s4-post"
         : value === "c1s4-regular"
@@ -1032,6 +1053,10 @@ function initSeasonSelect() {
           ? "c2s1-playoffs"
           : navSelect.value === "c2s2-playoffs"
           ? "c2s2-playoffs"
+          : navSelect.value === "c1s5-post"
+          ? "c1s5-playoffs"
+          : navSelect.value === "c1s5-regular"
+          ? "c1s5-regular"
           : navSelect.value === "c1s4-post"
           ? "c1s4-playoffs"
           : navSelect.value === "c1s4-regular"
@@ -1289,6 +1314,8 @@ function renderWeeklyKarma(rows) {
         "C2S2 Regular Season",
         "C2S1 Regular Season",
         "C2S1 Playoffs",
+        "C1S5 Regular Season",
+        "C1S5 Playoffs",
         "C1S4 Regular Season",
         "C1S4 Playoffs",
         "C1S3 Regular Season",
@@ -1544,6 +1571,8 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
     "C2S2 Regular Season",
     "C2S1 Regular Season",
     "C2S1 Playoffs",
+    "C1S5 Regular Season",
+    "C1S5 Playoffs",
     "C1S4 Regular Season",
     "C1S4 Playoffs",
     "C1S3 Regular Season",
@@ -1568,6 +1597,8 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
     if (text === "C2S2 Regular Season") return "C2S2";
     if (text === "C2S1 Regular Season") return "C2S1";
     if (text === "C2S1 Playoffs") return "C2S1 Post";
+    if (text === "C1S5 Regular Season") return "C1S5";
+    if (text === "C1S5 Playoffs") return "C1S5 Post";
     if (text === "C1S4 Regular Season") return "C1S4";
     if (text === "C1S4 Playoffs") return "C1S4 Post";
     if (text === "C1S3 Regular Season") return "C1S3";
@@ -2300,10 +2331,11 @@ async function loadPlayer() {
       if (!archiveRes.ok) {
         throw new Error(`Fetch failed: ${archiveRes.status}`);
       }
-      const [c1s2Res, c1s3Res, c1s4Res] = await Promise.all([
+      const [c1s2Res, c1s3Res, c1s4Res, c1s5Res] = await Promise.all([
         fetch(C1S2_PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(C1S3_PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(C1S4_PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(C1S5_PLAYER_STATS_URL, { cache: "no-store" }),
       ]);
       contractRows = contractRes.ok ? parseCSV(await contractRes.text()) : [];
       contractRowsCache = contractRows;
@@ -2313,6 +2345,7 @@ async function loadPlayer() {
       const c1s2Rows = c1s2Res.ok ? parseCSV(await c1s2Res.text()) : [];
       const c1s3Rows = c1s3Res.ok ? parseCSV(await c1s3Res.text()) : [];
       const c1s4Rows = c1s4Res.ok ? parseCSV(await c1s4Res.text()) : [];
+      const c1s5Rows = c1s5Res.ok ? parseCSV(await c1s5Res.text()) : [];
       const c2s2Rows = sliceRange(c2s2SheetRows, C2S2_REGULAR_RANGES.player_stats);
       const c2s1PlayoffRows = sliceRange(archive, ARCHIVE_RANGES.player_stats);
 
@@ -2322,11 +2355,14 @@ async function loadPlayer() {
       const c1s2Header = c1s2Rows[0] || [];
       const c1s3Header = c1s3Rows[0] || [];
       const c1s4Header = c1s4Rows[0] || [];
+      const c1s5Header = c1s5Rows[0] || [];
       playerColumns = detectPlayerColumns(
         currentHeader.length
           ? currentHeader
           : c2s2Header.length
           ? c2s2Header
+          : c1s5Header.length
+          ? c1s5Header
           : c1s4Header.length
           ? c1s4Header
           : c1s3Header.length
@@ -2346,6 +2382,7 @@ async function loadPlayer() {
       dataRows = [
         ...annotate(currentRows.slice(1), "C2S3 Regular Season"),
         ...annotate(c2s2Rows.slice(1), "C2S2 Regular Season"),
+        ...annotate(c1s5Rows.slice(1), "C1S5 Regular Season"),
         ...annotate(c1s4Rows.slice(1), "C1S4 Regular Season"),
         ...annotate(c1s3Rows.slice(1), "C1S3 Regular Season"),
         ...annotate(c1s2Rows.slice(1), "C1S2 Regular Season"),
@@ -2368,6 +2405,19 @@ async function loadPlayer() {
     } else if (season === "c1s2-regular" || season === "c1s2-playoffs") {
       const [response, contractRes] = await Promise.all([
         fetch(C1S2_PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(CONTRACTS_URL, { cache: "no-store" }),
+      ]);
+      if (!response.ok) {
+        throw new Error(`Fetch failed: ${response.status}`);
+      }
+      contractRows = contractRes.ok ? parseCSV(await contractRes.text()) : [];
+      contractRowsCache = contractRows;
+      const rows = parseCSV(await response.text());
+      playerColumns = detectPlayerColumns(rows[0] || []);
+      dataRows = rows.slice(1);
+    } else if (season === "c1s5-regular" || season === "c1s5-playoffs") {
+      const [response, contractRes] = await Promise.all([
+        fetch(C1S5_PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(CONTRACTS_URL, { cache: "no-store" }),
       ]);
       if (!response.ok) {
@@ -2464,6 +2514,9 @@ async function loadPlayer() {
       }
       if ((season === "c2s3-regular" || season === "c2s2-playoffs") && !filtered.length) {
         els.body.innerHTML = `<tr><td colspan="5">No games played.</td></tr>`;
+      } else if (season === "c1s5-regular" || season === "c1s5-playoffs") {
+        els.body.innerHTML =
+          '<tr><td colspan="5">No player stats are available yet for Chapter 1 S5.</td></tr>';
       } else if (season === "c1s4-regular" || season === "c1s4-playoffs") {
         els.body.innerHTML =
           '<tr><td colspan="5">No player stats are available yet for Chapter 1 S4.</td></tr>';
@@ -2493,6 +2546,8 @@ async function loadPlayer() {
       renderWeeklyKarma(
         season === "c1s2-regular" ||
           season === "c1s2-playoffs" ||
+          season === "c1s5-regular" ||
+          season === "c1s5-playoffs" ||
           season === "c1s4-regular" ||
           season === "c1s4-playoffs" ||
           season === "c1s3-regular" ||
