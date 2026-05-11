@@ -4,6 +4,7 @@ const STANDINGS_CSV_URL = "/api/sheet?name=standings";
 const DRAFT_CAPITAL_CSV_URL = "/api/sheet?name=draft-capital";
 const C1S2_DRAFT_URL = "/assets/data/c1s2-draft.csv";
 const C1S3_DRAFT_URL = "/assets/data/c1s3-draft.csv";
+const C1S4_DRAFT_URL = "/assets/data/c1s4-draft.csv";
 const DRAFT_YEAR_KEY = "draftYear";
 
 const els = {
@@ -20,6 +21,12 @@ const els = {
 };
 
 const ROUND_RANGES_BY_YEAR = {
+  c1s4: [
+    { id: "round-1", title: "Round 1", range: "" },
+    { id: "round-2", title: "Round 2", range: "" },
+    { id: "round-3", title: "Round 3", range: "" },
+    { id: "round-4", title: "Round 4", range: "" },
+  ],
   c1s2: [
     { id: "round-1", title: "Round 1", range: "" },
     { id: "round-2", title: "Round 2", range: "" },
@@ -65,8 +72,10 @@ const TEAM_NAMES = new Set([
   "Masdog N Em",
   "Richer N Em",
   "Chicken Nuggets",
+  "Doggy N Em",
   "Mafia",
   "Enforcers",
+  "Karma Avengers",
   "Thunderhawks",
   "Whatsgrass",
   "Tigers",
@@ -80,6 +89,8 @@ const TEAM_NAMES = new Set([
   "Bees",
   "Big bad club",
   "Gus N Em",
+  "The Bolts",
+  "The Currents",
   "Storm",
   "Bullets",
   "Turkeys",
@@ -762,7 +773,7 @@ function renderExpansion(rows) {
 
 function getSelectedDraftYear() {
   const saved = localStorage.getItem(DRAFT_YEAR_KEY);
-  if (saved === "c1s2" || saved === "c1s3" || saved === "c2s1" || saved === "c2s2" || saved === "c2s3") {
+  if (saved === "c1s2" || saved === "c1s3" || saved === "c1s4" || saved === "c2s1" || saved === "c2s2" || saved === "c2s3") {
     return saved;
   }
   return "c2s3";
@@ -789,9 +800,13 @@ async function loadDraft() {
       return;
     }
 
-    if ((selectedYear === "c1s2" || selectedYear === "c1s3") && selectedView === "teams") {
+    if ((selectedYear === "c1s2" || selectedYear === "c1s3" || selectedYear === "c1s4") && selectedView === "teams") {
       const response = await fetch(
-        selectedYear === "c1s3" ? C1S3_DRAFT_URL : C1S2_DRAFT_URL,
+        selectedYear === "c1s4"
+          ? C1S4_DRAFT_URL
+          : selectedYear === "c1s3"
+          ? C1S3_DRAFT_URL
+          : C1S2_DRAFT_URL,
         { cache: "no-store" }
       );
       if (!response.ok) {
@@ -804,10 +819,12 @@ async function loadDraft() {
       const roundOne = [header, ...body.filter((row) => String(row[0] || "").trim() === "1")];
       const roundTwo = [header, ...body.filter((row) => String(row[0] || "").trim() === "2")];
       const roundThree = [header, ...body.filter((row) => String(row[0] || "").trim() === "3")];
+      const roundFour = [header, ...body.filter((row) => String(row[0] || "").trim() === "4")];
       els.sections.innerHTML = [
         renderRound("round-1", "Round 1", roundOne),
         renderRound("round-2", "Round 2", roundTwo),
         roundThree.length > 1 ? renderRound("round-3", "Round 3", roundThree) : "",
+        roundFour.length > 1 ? renderRound("round-4", "Round 4", roundFour) : "",
       ].join("");
       updateLastUpdated();
       return;
