@@ -133,17 +133,19 @@ function initSeasonSelect() {
 }
 
 const STANDINGS_RANGES = {
-  Turkeys: "H3:M3",
-  "Gus N Em": "H4:M4",
-  Bullets: "H5:M5",
-  Storm: "H5:M5",
-  Cheerios: "H6:M6",
-  Yetis: "H7:M7",
-  Illegals: "H8:M8",
-  "The Lions": "H9:M9",
-  "The Future": "H10:M10",
-  "The Phantoms": "H11:M11",
-  "The Snipers": "H12:M12",
+  Turkeys: "B4:G4",
+  "The Phantoms": "B5:G5",
+  "Gus N Em": "B6:G6",
+  Illegals: "B7:G7",
+  "The Lions": "B8:G8",
+  "The Snipers": "B12:G12",
+  "The Future": "B13:G13",
+  "Dream Team": "B13:G13",
+  Yetis: "B14:G14",
+  MayeDay: "B14:G14",
+  Cheerios: "B15:G15",
+  Bullets: "B16:G16",
+  Storm: "B16:G16",
 };
 
 const els = {
