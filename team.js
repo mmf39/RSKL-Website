@@ -2376,7 +2376,9 @@ function buildBoxScore(teamName, scheduleRow, season) {
   const selectedBlock = blocks.find((block) => {
     const header = block[0] || [];
     const h1 = normalizeTeamLabel(parseTeamHeader(header[0]).name);
-    const h2 = normalizeTeamLabel(parseTeamHeader(header[4]).name);
+    const h2 = normalizeTeamLabel(
+      parseTeamHeader(header[getRightNameCol(header)]).name
+    );
     const exact =
       (h1 === normalizedTeam1 && h2 === normalizedTeam2) ||
       (h1 === normalizedTeam2 && h2 === normalizedTeam1);
@@ -2399,10 +2401,14 @@ function buildBoxScore(teamName, scheduleRow, season) {
   }
 
   const team1Rows = selectedBlock.filter((row) => String(row[0] || "").trim() !== "");
-  const team2Rows = selectedBlock.filter((row) => String(row[4] || "").trim() !== "");
+  const team2Rows = selectedBlock.filter(
+    (row) => String(row[getRightNameCol(row)] || "").trim() !== ""
+  );
 
   const team1Header = team1Rows.length ? team1Rows[0][0] : team1Name;
-  const team2Header = team2Rows.length ? team2Rows[0][4] : team2Name;
+  const team2Header = team2Rows.length
+    ? team2Rows[0][getRightNameCol(team2Rows[0])]
+    : team2Name;
 
   return {
     dateLabel: `League Day: ${dateToken}`,
@@ -2414,7 +2420,13 @@ function buildBoxScore(teamName, scheduleRow, season) {
       .filter((row) => row.player),
     team2: team2Rows
       .slice(1)
-      .map((row) => buildPlayerEntry(row[4], row[5], row[6]))
+      .map((row) =>
+        buildPlayerEntry(
+          row[getRightNameCol(row)],
+          row[getRightNameCol(row) + 1],
+          row[getRightNameCol(row) + 2]
+        )
+      )
       .filter((row) => row.player),
   };
 }
