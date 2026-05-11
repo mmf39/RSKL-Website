@@ -338,6 +338,22 @@ function normalizePlayerCell(value) {
     .trim();
 }
 
+function getRightNameCol(row) {
+  const rightF = String(row?.[5] || "").trim();
+  const rightE = String(row?.[4] || "").trim();
+  if (rightF) return 5;
+  if (rightE) return 4;
+  return LIVE_RIGHT_NAME_COL;
+}
+
+function getRightPointsCol(row) {
+  return getRightNameCol(row) + 1;
+}
+
+function getRightRankCol(row) {
+  return getRightNameCol(row) + 2;
+}
+
 function isPlayerCell(value) {
   return normalizePlayerCell(value).startsWith("@");
 }
@@ -396,7 +412,7 @@ function buildLiveScoreMap(rows) {
   let current = null;
   dataRows.forEach((row) => {
     const left = String(row[0] || "").trim();
-    const right = String(row[LIVE_RIGHT_NAME_COL] || "").trim();
+    const right = String(row[getRightNameCol(row)] || "").trim();
     if (looksLikeHeader(left, right)) {
       current = { header: row, players: [] };
       games.push(current);
@@ -410,7 +426,8 @@ function buildLiveScoreMap(rows) {
   games.forEach((game) => {
     const header = game.header || [];
     const left = String(header[0] || "").trim();
-    const right = String(header[LIVE_RIGHT_NAME_COL] || "").trim();
+    const rightCol = getRightNameCol(header);
+    const right = String(header[rightCol] || "").trim();
     const team1 = parseTeamHeader(left);
     const team2 = parseTeamHeader(right);
     if (!team1.name || !team2.name) return;
@@ -419,12 +436,12 @@ function buildLiveScoreMap(rows) {
       .filter((r) => isPlayerCell(r[0]))
       .map((r) => buildPlayerEntry(r[0], r[1], r[2]));
     const team2Players = game.players
-      .filter((r) => isPlayerCell(r[LIVE_RIGHT_NAME_COL]))
+      .filter((r) => isPlayerCell(r[getRightNameCol(r)]))
       .map((r) =>
         buildPlayerEntry(
-          r[LIVE_RIGHT_NAME_COL],
-          r[LIVE_RIGHT_POINTS_COL],
-          r[LIVE_RIGHT_RANK_COL]
+          r[getRightNameCol(r)],
+          r[getRightPointsCol(r)],
+          r[getRightRankCol(r)]
         )
       );
 
@@ -464,7 +481,7 @@ function buildFinalScoreMap(rows) {
       continue;
     }
     const left = String(row[0] || "").trim();
-    const right = String(row[LIVE_RIGHT_NAME_COL] || "").trim();
+    const right = String(row[getRightNameCol(row)] || "").trim();
     if (!day || !left || !right) continue;
     if (isPlayerCell(left) || isPlayerCell(right)) continue;
     const t1 = parseTeamHeader(left);
@@ -708,7 +725,7 @@ function findBoxScoreRowsForGame(game) {
 
   dayRows.forEach((row) => {
     const left = String(row[0] || "").trim();
-    const right = String(row[LIVE_RIGHT_NAME_COL] || "").trim();
+    const right = String(row[getRightNameCol(row)] || "").trim();
     const isHeader =
       left &&
       right &&
@@ -733,7 +750,9 @@ function findBoxScoreRowsForGame(game) {
   const match = blocks.find((block) => {
     const header = block[0] || [];
     const h1 = normalizeTeamName(parseTeamHeader(header[0]).name);
-    const h2 = normalizeTeamName(parseTeamHeader(header[LIVE_RIGHT_NAME_COL]).name);
+    const h2 = normalizeTeamName(
+      parseTeamHeader(header[getRightNameCol(header)]).name
+    );
     const exact = (h1 === target1 && h2 === target2) || (h1 === target2 && h2 === target1);
     const fuzzy =
       (h1.includes(target1) || target1.includes(h1)) &&
@@ -753,13 +772,15 @@ function getBoxScorePayload(game) {
     if (side === 1) {
       return rowsIn.filter((r) => String(r[0] || "").trim() !== "");
     }
-    return rowsIn.filter((r) => String(r[LIVE_RIGHT_NAME_COL] || "").trim() !== "");
+    return rowsIn.filter((r) => String(r[getRightNameCol(r)] || "").trim() !== "");
   };
 
   const team1Rows = toTeamRows(rows, 1);
   const team2Rows = toTeamRows(rows, 2);
   const team1Header = team1Rows.length ? team1Rows[0][0] : game.team1;
-  const team2Header = team2Rows.length ? team2Rows[0][LIVE_RIGHT_NAME_COL] : game.team2;
+  const team2Header = team2Rows.length
+    ? team2Rows[0][getRightNameCol(team2Rows[0])]
+    : game.team2;
 
   const mapRows = (arr, side) =>
     arr
@@ -768,9 +789,9 @@ function getBoxScorePayload(game) {
         side === 1
           ? buildPlayerEntry(row[0], row[1], row[2])
           : buildPlayerEntry(
-              row[LIVE_RIGHT_NAME_COL],
-              row[LIVE_RIGHT_POINTS_COL],
-              row[LIVE_RIGHT_RANK_COL]
+              row[getRightNameCol(row)],
+              row[getRightPointsCol(row)],
+              row[getRightRankCol(row)]
             )
       )
       .filter((row) => row.player);
