@@ -1,5 +1,5 @@
 const ROSTER_CSV_URL = "/api/sheet?name=roster";
-const STANDINGS_CSV_URL = "/api/sheet?name=standings";
+const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
 const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
@@ -2016,7 +2016,7 @@ function buildFinalScoreMap(rows) {
       continue;
     }
     const left = String(row[0] || "").trim();
-    const right = String(row[4] || "").trim();
+    const right = String(row[LIVE_RIGHT_NAME_COL] || "").trim();
     if (!day || !left || !right) continue;
     if (left.startsWith("@") || right.startsWith("@")) continue;
     const t1 = parseTeamHeader(left);

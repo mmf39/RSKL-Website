@@ -789,28 +789,33 @@ body.menu-open {
 .season-select {
   appearance: none;
   background:
-    linear-gradient(180deg, rgba(255, 163, 71, 0.12), rgba(6, 15, 35, 0.95)),
+    linear-gradient(180deg, rgba(255, 190, 110, 0.16), rgba(8, 18, 40, 0.96)),
+    linear-gradient(135deg, rgba(255, 153, 51, 0.08), rgba(255, 255, 255, 0.02)),
     rgba(3, 17, 43, 0.94);
   color: #fff7ed;
   border: 1px solid rgba(255, 166, 77, 0.72);
   border-radius: 999px;
-  padding: 8px 38px 8px 14px;
-  font-size: 0.78rem;
+  padding: 10px 44px 10px 16px;
+  font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.02em;
+  line-height: 1.2;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 10px 24px rgba(0, 0, 0, 0.18);
   background-image:
     linear-gradient(180deg, rgba(255, 163, 71, 0.12), rgba(6, 15, 35, 0.95)),
+    radial-gradient(circle at center, rgba(255, 184, 107, 0.16), rgba(255, 184, 107, 0) 68%),
     linear-gradient(45deg, transparent 50%, #ffcf9b 50%),
     linear-gradient(135deg, #ffcf9b 50%, transparent 50%);
   background-position:
     0 0,
+    calc(100% - 27px) 50%,
     calc(100% - 18px) calc(50% - 2px),
     calc(100% - 12px) calc(50% - 2px);
   background-size:
     auto,
+    24px 24px,
     6px 6px,
     6px 6px;
   background-repeat: no-repeat;
@@ -818,7 +823,15 @@ body.menu-open {
   align-self: start;
   grid-column: 3;
   grid-row: 1;
-  min-width: 180px;
+  min-width: 220px;
+  max-width: min(100%, 360px);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.18s ease,
+    background-color 0.2s ease,
+    background-position 0.18s ease;
 }
 
 .season-select:hover,
@@ -826,8 +839,24 @@ body.menu-open {
   border-color: rgba(255, 190, 110, 0.95);
   outline: none;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 14px 28px rgba(0, 0, 0, 0.22);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 14px 28px rgba(0, 0, 0, 0.22),
+    0 0 0 3px rgba(255, 166, 77, 0.14);
+  transform: translateY(-1px);
+  background-position:
+    0 0,
+    calc(100% - 25px) 50%,
+    calc(100% - 18px) calc(50% - 1px),
+    calc(100% - 12px) calc(50% - 1px);
+}
+
+.season-select:active {
+  transform: translateY(0);
+}
+
+.season-select option {
+  color: #f8fafc;
+  background: #0f172a;
 }
 
 .league-hero-logo {
@@ -4891,10 +4920,15 @@ input[type="text"] {
     min-width: 0;
     max-width: 100%;
     margin: 0;
-    padding: 10px 34px 10px 12px;
+    padding: 11px 40px 11px 14px;
     border-radius: 14px;
-    font-size: 0.72rem;
-    min-height: 42px;
+    font-size: 0.78rem;
+    min-height: 46px;
+    background-position:
+      0 0,
+      calc(100% - 24px) 50%,
+      calc(100% - 16px) calc(50% - 2px),
+      calc(100% - 10px) calc(50% - 2px);
   }
 
   .site-menu {
@@ -5139,9 +5173,9 @@ input[type="text"] {
 
   .season-select {
     margin-left: 52px;
-    padding: 11px 38px 11px 12px;
+    padding: 11px 40px 11px 14px;
     border-radius: 14px;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
@@ -5362,8 +5396,9 @@ input[type="text"] {
   }
 
   .season-select {
-    font-size: 0.74rem;
+    font-size: 0.78rem;
     margin-left: 48px;
+    width: min(100%, 300px);
   }
 
   .site-menu-btn {
