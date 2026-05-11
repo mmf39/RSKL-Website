@@ -10,20 +10,6 @@ const TRANSACTIONS_RANGE = "A3:E81";
 const RETIREMENT_RANGE = "G3:J70";
 const CUT_RANGE = "L3:O81";
 const SIGNING_RANGE = "Q3:T81";
-const STANDINGS_RANGES = {
-  Turkeys: "H3:M3",
-  "Gus N Em": "H4:M4",
-  Bullets: "H5:M5",
-  Storm: "H5:M5",
-  Cheerios: "H6:M6",
-  Yetis: "H7:M7",
-  Illegals: "H8:M8",
-  "The Lions": "H9:M9",
-  "The Future": "H10:M10",
-  "The Phantoms": "H11:M11",
-  "The Snipers": "H12:M12",
-};
-
 const els = {
   lastUpdated: document.getElementById("last-updated"),
   leaderboard: document.getElementById("leaderboard"),
@@ -438,38 +424,69 @@ function stripCaptainMarker(value) {
 }
 
 function buildLeagueRowsFromC2S2(standingsRows, scheduleRows, playerRows) {
-  const uniqueTeams = new Map();
-  Object.keys(STANDINGS_RANGES).forEach((team) => {
-    const shown = displayTeamName(team);
-    if (!uniqueTeams.has(shown)) {
-      uniqueTeams.set(shown, STANDINGS_RANGES[team]);
-    }
-  });
-
+  const currentRows = getCurrentStandingsRows(standingsRows);
   const winPctMap = buildWinPctMapFromStandingsRows(standingsRows);
-  return Array.from(uniqueTeams.entries())
-    .map(([team, range]) => {
-      const sliced = sliceRange(standingsRows, range);
-      const metricRow = sliced[0] || [];
-      if (!metricRow.length) {
-        return null;
-      }
-      const gp = parseNumber(metricRow[1]);
-      const advanced = computeAdvancedTeamStats(team, playerRows) || {};
+  return currentRows
+    .map((metricRow) => {
+      const gp = parseNumber(metricRow.gp);
+      const advanced = computeAdvancedTeamStats(metricRow.team, playerRows) || {};
       return {
-        team: displayTeamName(metricRow[0] || team),
+        team: metricRow.team,
         gp,
-        wins: parseNumber(metricRow[2]),
-        loss: parseNumber(metricRow[3]),
-        gb: parseNumber(metricRow[4]),
-        winpct: parsePct(metricRow[5]),
-        sos: computeTeamSOS(team, scheduleRows, winPctMap, "c2s2", gp),
+        wins: parseNumber(metricRow.wins),
+        loss: parseNumber(metricRow.losses),
+        gb: parseNumber(metricRow.gb),
+        winpct: parsePct(metricRow.winPct),
+        sos: computeTeamSOS(metricRow.team, scheduleRows, winPctMap, "c2s2", gp),
         pam: typeof advanced.pam === "number" ? advanced.pam : null,
         trel: typeof advanced.tRel === "number" ? advanced.tRel : null,
         transactions: 0,
       };
     })
     .filter((row) => row && isStandingsTeamName(row.team));
+}
+
+function getCurrentStandingsHeaderIndexes(row) {
+  const normalized = (row || []).map((cell) => String(cell || "").trim().toLowerCase());
+  const teamIdx = normalized.findIndex((cell) => cell === "team");
+  const gpIdx = normalized.findIndex((cell) => cell === "gp");
+  const winsIdx = normalized.findIndex((cell) => cell === "wins" || cell === "win");
+  const lossesIdx = normalized.findIndex((cell) => cell === "loss" || cell === "losses" || cell === "l");
+  const gbIdx = normalized.findIndex((cell) => cell === "gb");
+  const pctIdx = normalized.findIndex((cell) => cell === "win %" || cell === "win%" || cell === "pct");
+  if (teamIdx < 0 || gpIdx < 0 || winsIdx < 0 || lossesIdx < 0 || gbIdx < 0 || pctIdx < 0) {
+    return null;
+  }
+  return { teamIdx, gpIdx, winsIdx, lossesIdx, gbIdx, pctIdx };
+}
+
+function getCurrentStandingsRows(rows) {
+  const byTeam = new Map();
+  let indexes = null;
+
+  (rows || []).forEach((row) => {
+    const nextIndexes = getCurrentStandingsHeaderIndexes(row);
+    if (nextIndexes) {
+      indexes = nextIndexes;
+      return;
+    }
+    if (!indexes) return;
+
+    const rawTeam = String(row[indexes.teamIdx] || "").trim();
+    const team = displayTeamName(rawTeam);
+    if (!team || !isStandingsTeamName(team)) return;
+
+    byTeam.set(team, {
+      team,
+      gp: row[indexes.gpIdx],
+      wins: row[indexes.winsIdx],
+      losses: row[indexes.lossesIdx],
+      gb: row[indexes.gbIdx],
+      winPct: row[indexes.pctIdx],
+    });
+  });
+
+  return Array.from(byTeam.values());
 }
 
 function buildLeagueRowsFromArchive(standingsTable, scheduleTable, season) {
@@ -516,16 +533,10 @@ function applyTransactionCountsToLeagueRows(rows, counts) {
 
 function buildWinPctMapFromStandingsRows(standingsRows) {
   const map = new Map();
-  Object.keys(STANDINGS_RANGES).forEach((team) => {
-    const sliced = sliceRange(standingsRows, STANDINGS_RANGES[team]);
-    if (!sliced.length) {
-      return;
-    }
-    const values = sliced[0] || [];
-    const rowTeam = String(values[0] || team).trim();
-    const pct = parsePct(values[5]);
-    if (rowTeam && pct !== null) {
-      map.set(rowTeam, pct);
+  getCurrentStandingsRows(standingsRows).forEach((row) => {
+    const pct = parsePct(row.winPct);
+    if (row.team && pct !== null) {
+      map.set(row.team, pct);
     }
   });
   return map;

@@ -132,22 +132,6 @@ function initSeasonSelect() {
   });
 }
 
-const STANDINGS_RANGES = {
-  Turkeys: "B4:G4",
-  "The Phantoms": "B5:G5",
-  "Gus N Em": "B6:G6",
-  Illegals: "B7:G7",
-  "The Lions": "B8:G8",
-  "The Snipers": "B12:G12",
-  "The Future": "B13:G13",
-  "Dream Team": "B13:G13",
-  Yetis: "B14:G14",
-  MayeDay: "B14:G14",
-  Cheerios: "B15:G15",
-  Bullets: "B16:G16",
-  Storm: "B16:G16",
-};
-
 const els = {
   title: document.getElementById("team-title"),
   sub: document.getElementById("team-sub"),
@@ -247,38 +231,70 @@ function getSelectedStandingsMetric() {
 }
 
 function buildLeagueRowsFromC2S2(standingsRows, scheduleRows, playerRows) {
-  const uniqueTeams = new Map();
-  Object.keys(STANDINGS_RANGES).forEach((team) => {
-    const shown = displayTeamName(team);
-    if (!uniqueTeams.has(shown)) {
-      uniqueTeams.set(shown, STANDINGS_RANGES[team]);
-    }
-  });
-
+  const currentRows = getCurrentStandingsRows(standingsRows);
   const winPctMap = buildWinPctMapFromStandingsRows(standingsRows);
-  return Array.from(uniqueTeams.entries())
-    .map(([team, range]) => {
-      const sliced = sliceRange(standingsRows, range);
-      const row = sliced[0] || [];
-      if (!row.length) {
-        return null;
-      }
-      const gp = parseNumber(row[1]);
-      const advanced = computeAdvancedTeamStats(team, playerRows) || {};
+  return currentRows
+    .map((row) => {
+      const gp = parseNumber(row.gp);
+      const advanced = computeAdvancedTeamStats(row.team, playerRows) || {};
       return {
-        team: displayTeamName(row[0] || team),
+        team: row.team,
         gp,
-        wins: parseNumber(row[2]),
-        loss: parseNumber(row[3]),
-        gb: parseNumber(row[4]),
-        winpct: parsePct(row[5]),
-        sos: computeTeamSOS(team, scheduleRows, winPctMap, "c2s2", gp),
+        wins: parseNumber(row.wins),
+        loss: parseNumber(row.losses),
+        gb: parseNumber(row.gb),
+        winpct: parsePct(row.winPct),
+        sos: computeTeamSOS(row.team, scheduleRows, winPctMap, "c2s2", gp),
         pam: typeof advanced.pam === "number" ? advanced.pam : null,
         trel: typeof advanced.tRel === "number" ? advanced.tRel : null,
         transactions: 0,
       };
     })
     .filter(Boolean);
+}
+
+function getCurrentStandingsHeaderIndexes(row) {
+  const normalized = (row || []).map((cell) => String(cell || "").trim().toLowerCase());
+  const teamIdx = normalized.findIndex((cell) => cell === "team");
+  const gpIdx = normalized.findIndex((cell) => cell === "gp");
+  const winsIdx = normalized.findIndex((cell) => cell === "wins" || cell === "win");
+  const lossesIdx = normalized.findIndex((cell) => cell === "loss" || cell === "losses" || cell === "l");
+  const gbIdx = normalized.findIndex((cell) => cell === "gb");
+  const pctIdx = normalized.findIndex((cell) => cell === "win %" || cell === "win%" || cell === "pct");
+  if (teamIdx < 0 || gpIdx < 0 || winsIdx < 0 || lossesIdx < 0 || gbIdx < 0 || pctIdx < 0) {
+    return null;
+  }
+  return { teamIdx, gpIdx, winsIdx, lossesIdx, gbIdx, pctIdx };
+}
+
+function getCurrentStandingsRows(rows) {
+  const byTeam = new Map();
+  let indexes = null;
+
+  (rows || []).forEach((row) => {
+    const nextIndexes = getCurrentStandingsHeaderIndexes(row);
+    if (nextIndexes) {
+      indexes = nextIndexes;
+      return;
+    }
+    if (!indexes) return;
+
+    const rawTeam = String(row[indexes.teamIdx] || "").trim();
+    const team = displayTeamName(rawTeam);
+    if (!team) return;
+    if (!TEAM_ORDER.includes(team)) return;
+
+    byTeam.set(team, {
+      team,
+      gp: row[indexes.gpIdx],
+      wins: row[indexes.winsIdx],
+      losses: row[indexes.lossesIdx],
+      gb: row[indexes.gbIdx],
+      winPct: row[indexes.pctIdx],
+    });
+  });
+
+  return TEAM_ORDER.map((team) => byTeam.get(team)).filter(Boolean);
 }
 
 function buildLeagueRowsFromArchive(standingsTable, scheduleTable, season) {
@@ -849,16 +865,10 @@ function computeAdvancedTeamStats(teamName, allRows) {
 
 function buildWinPctMapFromStandingsRows(standingsRows) {
   const map = new Map();
-  Object.keys(STANDINGS_RANGES).forEach((team) => {
-    const sliced = sliceRange(standingsRows, STANDINGS_RANGES[team]);
-    if (!sliced.length) {
-      return;
-    }
-    const values = sliced[0] || [];
-    const rowTeam = String(values[0] || team).trim();
-    const pct = parsePct(values[5]);
-    if (rowTeam && pct !== null) {
-      map.set(rowTeam, pct);
+  getCurrentStandingsRows(standingsRows).forEach((row) => {
+    const pct = parsePct(row.winPct);
+    if (row.team && pct !== null) {
+      map.set(row.team, pct);
     }
   });
   return map;
@@ -963,15 +973,11 @@ function computeTeamSOS(teamName, scheduleRows, winPctMap, season, gpLimit = nul
 }
 
 function getTeamGpFromStandingsRows(teamName, standingsRows) {
-  const range = STANDINGS_RANGES[teamName];
-  if (!range || !standingsRows.length) {
-    return null;
-  }
-  const sliced = sliceRange(standingsRows, range);
-  if (!sliced.length) {
-    return null;
-  }
-  return parseNumber(sliced[0][1]);
+  const target = normalizeTeamLabel(teamName);
+  const row = getCurrentStandingsRows(standingsRows).find(
+    (entry) => normalizeTeamLabel(entry.team) === target
+  );
+  return row ? parseNumber(row.gp) : null;
 }
 
 function hasText(row) {
@@ -1797,23 +1803,20 @@ async function loadRoster() {
 }
 
 function updateStandingsFromRanges(teamName, standingsRows) {
-  const range = STANDINGS_RANGES[teamName];
-  if (!range || !standingsRows.length) {
+  const target = normalizeTeamLabel(teamName);
+  const row = getCurrentStandingsRows(standingsRows).find(
+    (entry) => normalizeTeamLabel(entry.team) === target
+  );
+  if (!row) {
     return;
   }
-  const sliced = sliceRange(standingsRows, range);
-  if (!sliced.length) {
-    return;
-  }
-  const values = sliced[0];
-  const [team, gp, wins, loss, gb, winPct] = values;
 
-  els.statTeam.textContent = displayTeamName(team || teamName || "—");
-  els.statGp.textContent = gp || "—";
-  els.statWins.textContent = wins || "—";
-  els.statLoss.textContent = loss || "—";
-  els.statGb.textContent = gb || "—";
-  els.statWinPct.textContent = winPct || "—";
+  els.statTeam.textContent = displayTeamName(row.team || teamName || "—");
+  els.statGp.textContent = row.gp || "—";
+  els.statWins.textContent = row.wins || "—";
+  els.statLoss.textContent = row.losses || "—";
+  els.statGb.textContent = row.gb || "—";
+  els.statWinPct.textContent = row.winPct || "—";
   if (els.statSos) {
     els.statSos.textContent = "—";
   }
