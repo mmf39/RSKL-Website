@@ -272,6 +272,68 @@ function isCaptainMarked(value) {
   return /\(c\)\s*$/i.test(text) || /\sc\s*$/i.test(text);
 }
 
+function normalizeDateToken(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  const match = text.match(/(\d{1,2})\s*\/\s*(\d{1,2})/);
+  if (!match) return text.replace(/\s+/g, "");
+  return `${Number(match[1])}/${Number(match[2])}`;
+}
+
+function parseTeamHeader(value) {
+  const text = String(value || "").trim();
+  if (!text) return { name: "", score: "" };
+  const match = text.match(/^(.*?)(?:\(([-+]?\d+)\))?\s*$/);
+  return {
+    name: displayTeamName(String(match ? match[1] : text).trim()),
+    score: match && match[2] ? String(match[2]).trim() : "",
+  };
+}
+
+function normalizeTeamLabel(value) {
+  return displayTeamName(String(value || "").replace(/\([^)]*\)/g, "").trim())
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function normalizePlayerCell(value) {
+  return stripCaptainMarker(value);
+}
+
+function isPlayerCell(value) {
+  return normalizePlayerCell(value).startsWith("@");
+}
+
+function getRightNameCol(row) {
+  const rightF = String(row?.[5] || "").trim();
+  const rightE = String(row?.[4] || "").trim();
+  if (rightF) return 5;
+  if (rightE) return 4;
+  return 5;
+}
+
+function getRightPointsCol(row) {
+  return getRightNameCol(row) + 1;
+}
+
+function getRightRankCol(row) {
+  return getRightNameCol(row) + 2;
+}
+
+function isPlayerLabelRow(left, right) {
+  return String(left || "").trim().toLowerCase() === "player" &&
+    String(right || "").trim().toLowerCase() === "player";
+}
+
+function buildBoxScorePlayerEntry(value, points, rank) {
+  return {
+    player: normalizePlayerCell(value),
+    isCaptain: isCaptainMarked(value),
+    points: String(points || ""),
+    rank: String(rank || ""),
+  };
+}
+
 async function loadPlayerOverrides() {
   try {
     const response = await fetch(SUPABASE_PLAYERS_URL, {
@@ -1153,6 +1215,7 @@ function summarizeRows(rows, baselines) {
       total: null,
       avgScore: null,
       avgRank: null,
+      medianRank: null,
       gp: 0,
       relMean: null,
       relMedian: null,
@@ -1168,6 +1231,7 @@ function summarizeRows(rows, baselines) {
   let relMedianSum = 0;
   let relMedianGames = 0;
   let warTotal = 0;
+  const rankValues = [];
 
   rows.forEach((row) => {
     const score = parseAdjustedScore(row);
@@ -1194,12 +1258,21 @@ function summarizeRows(rows, baselines) {
     if (rank !== null) {
       rankTotal += rank;
       rankGames += 1;
+      rankValues.push(rank);
     }
   });
+  const sortedRanks = rankValues.slice().sort((a, b) => a - b);
+  const mid = Math.floor(sortedRanks.length / 2);
+  const medianRank = !sortedRanks.length
+    ? null
+    : sortedRanks.length % 2
+      ? sortedRanks[mid]
+      : (sortedRanks[mid - 1] + sortedRanks[mid]) / 2;
   return {
     total,
     avgScore: scoreGames ? total / scoreGames : null,
     avgRank: rankGames ? rankTotal / rankGames : null,
+    medianRank,
     gp: scoreGames,
     relMean: relMeanGames ? relMeanSum / relMeanGames : null,
     relMedian: relMedianGames ? relMedianSum / relMedianGames : null,
@@ -1247,7 +1320,7 @@ function renderWeeklyModal(key) {
         ? dateValue.split("•").pop().trim()
         : dateValue.trim();
       return `
-        <tr class="weekly-game-row" data-date="${escapeHtml(dateToken)}" data-opponent="${escapeHtml(opponentName)}">
+        <tr class="weekly-game-row" data-date="${escapeHtml(dateToken)}" data-team="${escapeHtml(teamName)}" data-opponent="${escapeHtml(opponentName)}">
           ${includeSeason ? `<td>${escapeHtml(row.__seasonLabel || "")}</td>` : ""}
           <td>${escapeHtml(row[playerColumns.date] || "")}</td>
           <td><a data-team-link="true" href="team.html?team=${encodeURIComponent(teamName)}">${escapeHtml(teamName)}</a></td>
@@ -1337,8 +1410,16 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
 
   const renderStat = (value, digits = 2) =>
     value === null || value === undefined ? "—" : Number(value).toFixed(digits);
+  const shortSeasonLabel = (value) => {
+    const text = String(value || "");
+    if (text === "C2S3 Regular Season") return "C2S3";
+    if (text === "C2S2 Regular Season") return "C2S2";
+    if (text === "C2S1 Playoffs") return "C2S1 Post";
+    if (text === "C2S1 Regular Season") return "C2S1";
+    return text;
+  };
   const renderTeamCell = (team) =>
-    `<a class="leader-team-link player-team-chip" href="team.html?team=${encodeURIComponent(team)}">${getTeamLogoHtml(team)}<span>${escapeHtml(team)}</span></a>`;
+    `<a class="leader-team-link career-team-link" href="team.html?team=${encodeURIComponent(team)}">${getTeamLogoHtml(team)}<span>${escapeHtml(team)}</span></a>`;
 
   const rowsHtml = orderedSeasons
     .map((seasonLabel) => {
@@ -1358,15 +1439,14 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
       const teamRowsHtml = teamSummaries
         .map(
           ({ team, summary }) => `
-            <tr>
-              <td>${escapeHtml(seasonLabel)}</td>
+            <tr class="career-data-row">
+              <td class="career-season-cell">${escapeHtml(shortSeasonLabel(seasonLabel))}</td>
               <td>${renderTeamCell(team)}</td>
               <td>${escapeHtml(String(summary.gp || 0))}</td>
-              <td>${renderStat(summary.total, 0)}</td>
-              <td>${renderStat(summary.avgScore, 2)}</td>
-              <td>${renderStat(summary.avgRank, 2)}</td>
               <td>${renderStat(summary.relMedian, 3)}</td>
               <td>${renderStat(summary.war, 3)}</td>
+              <td>${renderStat(summary.medianRank, 0)}</td>
+              <td>${renderStat(summary.avgRank, 0)}</td>
             </tr>
           `
         )
@@ -1374,15 +1454,14 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
 
       return `
         ${teamRowsHtml}
-        <tr class="career-combined-row">
-          <td><strong>${escapeHtml(seasonLabel)}</strong></td>
+        <tr class="career-season-total-row">
+          <td>${escapeHtml(shortSeasonLabel(seasonLabel))}</td>
           <td><strong>Season Total</strong></td>
           <td>${escapeHtml(String(seasonTotal.gp || 0))}</td>
-          <td>${renderStat(seasonTotal.total, 0)}</td>
-          <td>${renderStat(seasonTotal.avgScore, 2)}</td>
-          <td>${renderStat(seasonTotal.avgRank, 2)}</td>
           <td>${renderStat(seasonTotal.relMedian, 3)}</td>
           <td>${renderStat(seasonTotal.war, 3)}</td>
+          <td>${renderStat(seasonTotal.medianRank, 0)}</td>
+          <td>${renderStat(seasonTotal.avgRank, 0)}</td>
         </tr>
       `;
     })
@@ -1392,7 +1471,7 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
 
   els.careerTeamBreakdown.hidden = false;
   els.careerTeamBreakdown.innerHTML = `
-    <div class="career-breakdown-title">Career Team Breakdown</div>
+    <div class="career-breakdown-title">Career Snapshot</div>
     <div class="table-wrap">
       <table class="career-breakdown-table">
         <thead>
@@ -1400,24 +1479,22 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
             <th>Season</th>
             <th>Team</th>
             <th>GP</th>
-            <th>Total</th>
-            <th>Avg</th>
-            <th>Rank</th>
             <th>REL</th>
             <th>WAR</th>
+            <th>Med Rank</th>
+            <th>Mean Rank</th>
           </tr>
         </thead>
         <tbody>
           ${rowsHtml}
           <tr class="career-combined-row">
+            <td><strong>${escapeHtml(String(orderedSeasons.length))} seasons</strong></td>
             <td><strong>Career</strong></td>
-            <td><strong>Combined</strong></td>
             <td>${escapeHtml(String(careerCombined.gp || 0))}</td>
-            <td>${renderStat(careerCombined.total, 0)}</td>
-            <td>${renderStat(careerCombined.avgScore, 2)}</td>
-            <td>${renderStat(careerCombined.avgRank, 2)}</td>
             <td>${renderStat(careerCombined.relMedian, 3)}</td>
             <td>${renderStat(careerCombined.war, 3)}</td>
+            <td>${renderStat(careerCombined.medianRank, 0)}</td>
+            <td>${renderStat(careerCombined.avgRank, 0)}</td>
           </tr>
         </tbody>
       </table>
@@ -2246,35 +2323,19 @@ function renderBoxScore(boxScore) {
   els.modal.hidden = false;
 }
 
-function buildBoxScore(dateToken, opponent) {
+function buildBoxScore(dateToken, teamName, opponent) {
   const rows = window.__boxScoreRows || [];
   if (!rows.length) {
     return null;
   }
-  const normalizePlayerCell = (value) => {
-    const raw = String(value || "").trim();
-    if (!raw) return "";
-    if (/^c$/i.test(raw)) return "";
-    return raw
-      .replace(/\s+\(?c\)?$/i, "")
-      .replace(/\s+/g, " ")
-      .trim();
-  };
-  const isCaptainCell = (value) => /\s+\(?c\)?$/i.test(String(value || "").trim());
-  const buildPlayerEntry = (value, points, rank) => ({
-    player: normalizePlayerCell(value),
-    isCaptain: isCaptainCell(value),
-    points: points || "",
-    rank: rank || "",
-  });
+  const opponentName = opponent;
+  const targetDate = normalizeDateToken(dateToken);
   const isDateRow = (row) => {
     const a = String(row[0] || "");
     const b = String(row[1] || "");
     return (
-      (a.includes("League Day") && dateToken && a.includes(dateToken)) ||
-      (b.includes("League Day") && dateToken && b.includes(dateToken)) ||
-      (dateToken && a.includes(dateToken)) ||
-      (dateToken && b.includes(dateToken))
+      normalizeDateToken(a).includes(targetDate) ||
+      normalizeDateToken(b).includes(targetDate)
     );
   };
 
@@ -2282,37 +2343,70 @@ function buildBoxScore(dateToken, opponent) {
   if (matchIndex === -1) {
     return null;
   }
-
-  const teamRows = [];
+  let dayEnd = rows.length;
   for (let i = matchIndex + 1; i < rows.length; i += 1) {
-    const row = rows[i];
-    if (!row) {
+    if (isDateRow(rows[i])) {
+      dayEnd = i;
       break;
     }
-    if (isDateRow(row)) {
-      break;
-    }
-    const hasTeam1 = String(row[0] || "").trim() !== "";
-    const hasTeam2 = String(row[4] || "").trim() !== "";
-    if (!hasTeam1 && !hasTeam2) {
-      if (teamRows.length) {
-        break;
-      }
-      continue;
-    }
-    teamRows.push(row);
   }
 
-  const team1Rows = teamRows.filter((row) => String(row[0] || "").trim() !== "");
-  const team2Rows = teamRows.filter((row) => String(row[4] || "").trim() !== "");
+  const dayRows = rows.slice(matchIndex + 1, dayEnd);
+  const blocks = [];
+  let current = null;
+  dayRows.forEach((row) => {
+    const left = String(row[0] || "").trim();
+    const right = String(row[getRightNameCol(row)] || "").trim();
+    const isHeader =
+      left &&
+      right &&
+      !isPlayerCell(left) &&
+      !isPlayerCell(right) &&
+      !isPlayerLabelRow(left, right) &&
+      !left.includes("League Day") &&
+      !right.includes("League Day");
+    const isPlayer = isPlayerCell(left) || isPlayerCell(right);
+    if (isHeader) {
+      current = [row];
+      blocks.push(current);
+      return;
+    }
+    if (isPlayer && current) {
+      current.push(row);
+    }
+  });
 
-  const team1Header = team1Rows.length ? team1Rows[0][0] : "";
-  const team2Header = team2Rows.length ? team2Rows[0][4] : "";
+  const normalizedTeam1 = normalizeTeamLabel(teamName);
+  const normalizedTeam2 = normalizeTeamLabel(opponentName);
+  const selectedBlock = blocks.find((block) => {
+    const header = block[0] || [];
+    const h1 = normalizeTeamLabel(parseTeamHeader(header[0]).name);
+    const h2 = normalizeTeamLabel(parseTeamHeader(header[getRightNameCol(header)]).name);
+    const exact =
+      normalizedTeam1 &&
+      normalizedTeam2 &&
+      ((h1 === normalizedTeam1 && h2 === normalizedTeam2) ||
+        (h1 === normalizedTeam2 && h2 === normalizedTeam1));
+    const fuzzy =
+      normalizedTeam2 &&
+      (`${h1} ${h2}`.includes(normalizedTeam2) ||
+        `${h2} ${h1}`.includes(normalizedTeam2));
+    return exact || fuzzy;
+  });
 
-  const matchup = `${team1Header} ${team2Header}`.toLowerCase();
-  if (opponent && !matchup.includes(opponent.toLowerCase())) {
+  if (!selectedBlock) {
     return null;
   }
+
+  const team1Rows = selectedBlock.filter((row) => String(row[0] || "").trim() !== "");
+  const team2Rows = selectedBlock.filter(
+    (row) => String(row[getRightNameCol(row)] || "").trim() !== ""
+  );
+
+  const team1Header = team1Rows.length ? team1Rows[0][0] : teamName;
+  const team2Header = team2Rows.length
+    ? team2Rows[0][getRightNameCol(team2Rows[0])]
+    : opponentName;
 
   return {
     dateLabel: `League Day: ${dateToken}`,
@@ -2320,11 +2414,17 @@ function buildBoxScore(dateToken, opponent) {
     team2Name: team2Header,
     team1: team1Rows
       .slice(1)
-      .map((row) => buildPlayerEntry(row[0], row[1], row[2]))
+      .map((row) => buildBoxScorePlayerEntry(row[0], row[1], row[2]))
       .filter((row) => row.player),
     team2: team2Rows
       .slice(1)
-      .map((row) => buildPlayerEntry(row[4], row[5], row[6]))
+      .map((row) =>
+        buildBoxScorePlayerEntry(
+          row[getRightNameCol(row)],
+          row[getRightPointsCol(row)],
+          row[getRightRankCol(row)]
+        )
+      )
       .filter((row) => row.player),
   };
 }
@@ -2341,6 +2441,7 @@ els.body.addEventListener("click", async (event) => {
     return;
   }
   const opponent = String(row[playerColumns.opponent] || "").trim();
+  const teamName = String(row[playerColumns.team] || "").trim();
   const dateValue = String(row[playerColumns.date] || "").trim();
   const dateToken = dateValue.includes("•")
     ? dateValue.split("•").pop().trim()
@@ -2352,7 +2453,7 @@ els.body.addEventListener("click", async (event) => {
     els.modal.hidden = false;
     return;
   }
-  const boxScore = buildBoxScore(dateToken, opponent);
+  const boxScore = buildBoxScore(dateToken, teamName, opponent);
   if (!boxScore) {
     els.boxDetails.innerHTML = `<div class=\"boxscore-empty\">No stats available.</div>`;
     els.modal.hidden = false;
@@ -2383,6 +2484,7 @@ if (els.weeklyGamesBody) {
     const row = event.target.closest(".weekly-game-row");
     if (!row) return;
     const dateToken = String(row.dataset.date || "").trim();
+    const teamName = String(row.dataset.team || "").trim();
     const opponent = String(row.dataset.opponent || "").trim();
     if (!dateToken) return;
     try {
@@ -2393,7 +2495,7 @@ if (els.weeklyGamesBody) {
       els.modal.hidden = false;
       return;
     }
-    const boxScore = buildBoxScore(dateToken, opponent);
+    const boxScore = buildBoxScore(dateToken, teamName, opponent);
     els.weeklyModal.hidden = true;
     if (!boxScore) {
       els.boxDetails.innerHTML = `<div class=\"boxscore-empty\">No stats available.</div>`;

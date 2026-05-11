@@ -3079,47 +3079,88 @@ input[type="text"] {
 }
 
 .career-team-breakdown {
-  margin-top: 22px;
-  padding: 18px 18px 8px;
-  border-radius: 22px;
-  border: 1px solid rgba(255, 140, 26, 0.18);
-  background: rgba(8, 15, 31, 0.74);
+  margin-top: 24px;
+  padding: 16px 0 0;
+  border-top: 1px solid rgba(255, 158, 73, 0.14);
 }
 
 .career-breakdown-title {
+  margin: 0 0 12px;
+  padding: 0 4px;
   font-weight: 800;
   color: #fff7ed;
-  margin-bottom: 12px;
-  text-align: left;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.88rem;
+  letter-spacing: 0.14em;
+  font-size: 0.76rem;
+  opacity: 0.82;
 }
 
-.career-season-title {
-  margin: 14px 0 8px;
-  font-weight: 700;
-  color: var(--accent);
-  text-align: center;
+.career-breakdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 163, 71, 0.06), rgba(8, 15, 31, 0.9) 16%),
+    rgba(8, 15, 31, 0.86);
+  border: 1px solid rgba(255, 166, 77, 0.16);
 }
 
 .career-breakdown-table th,
 .career-breakdown-table td {
-  text-align: left;
-  padding: 12px 12px;
-  color: #ffe6c7;
+  padding: 16px 18px;
+  color: #f6efe5;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  vertical-align: middle;
 }
 
 .career-breakdown-table th {
-  color: rgba(255, 211, 163, 0.82);
+  color: rgba(255, 236, 214, 0.92);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 0.74rem;
-  border-bottom: 1px solid rgba(255, 140, 26, 0.16);
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  font-weight: 900;
+  background: rgba(17, 27, 49, 0.84);
+  white-space: nowrap;
+}
+
+.career-data-row td {
+  font-size: 0.98rem;
+}
+
+.career-season-cell {
+  color: #9fc7ff !important;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+}
+
+.career-team-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #f7efe4;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.career-team-link .team-logo {
+  width: 34px;
+  height: 34px;
+}
+
+.career-season-total-row td {
+  background: rgba(22, 32, 56, 0.72);
+  color: rgba(255, 236, 214, 0.92);
+  font-weight: 700;
 }
 
 .career-combined-row td {
-  border-top: 1px solid rgba(255, 140, 26, 0.35);
+  background: rgba(14, 23, 42, 0.96);
+  border-top: 2px solid rgba(164, 191, 230, 0.24);
+  border-bottom: none;
+  color: #fff7ed;
+  font-size: 1rem;
+  font-weight: 800;
 }
 
 .summary-card {
