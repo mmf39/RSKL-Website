@@ -9,6 +9,9 @@ const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const C1S2_STANDINGS_URL = "/assets/data/c1s2-standings.csv";
 const C1S2_REGULAR_SCHEDULE_URL = "/assets/data/c1s2-regular-schedule.csv";
 const C1S2_POST_SCHEDULE_URL = "/assets/data/c1s2-post-schedule.csv";
+const C1S3_STANDINGS_URL = "/assets/data/c1s3-standings.csv";
+const C1S3_REGULAR_SCHEDULE_URL = "/assets/data/c1s3-regular-schedule.csv";
+const C1S3_POST_SCHEDULE_URL = "/assets/data/c1s3-post-schedule.csv";
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
 const CONTRACTS_URL = "/api/sheet?name=contracts";
 const SEASON_KEY = "season";
@@ -121,6 +124,8 @@ function getSeason() {
   if (raw === "c2s1-playoffs") return "c2s1-post";
   if (raw === "c1s2-post") return "c1s2-post";
   if (raw === "c1s2-regular") return "c1s2-regular";
+  if (raw === "c1s3-post") return "c1s3-post";
+  if (raw === "c1s3-regular") return "c1s3-regular";
   return raw;
 }
 
@@ -221,6 +226,7 @@ function getTeamLogoSrc(team) {
   if (clean === "The Snipers") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
   if (clean === "MayeDay") return "/assets/mayeday.jpg";
+  if (clean === "Masdog N Em" || clean === "Richer N Em") return "/assets/gus-n-em.png";
   if (clean === "Yetis") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
   if (clean === "Cheerios") return "/assets/cheerios.png";
@@ -1322,6 +1328,7 @@ function getTeamLogo(team) {
   if (clean === "The Snipers") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
   if (clean === "MayeDay") return "/assets/mayeday.jpg";
+  if (clean === "Masdog N Em" || clean === "Richer N Em") return "/assets/gus-n-em.png";
   if (clean === "Yetis") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
   if (clean === "Cheerios") return "/assets/cheerios.png";
@@ -1765,6 +1772,39 @@ async function loadRoster() {
       }
 
       renderRosterMessage("No roster data available for Chapter 1 S2.");
+
+      const standingsRows = parseCSV(await standingsRes.text());
+      const scheduleRows = parseCSV(await scheduleRes.text());
+
+      leagueStandingsMetrics = buildLeagueRowsFromC1S2(standingsRows);
+      applyTransactionCountsToLeagueRows(
+        leagueStandingsMetrics,
+        leagueTransactionCounts
+      );
+      renderLeagueMetricLeader();
+      updateStandingsFromC1S2(teamName, standingsRows);
+      clearAdvancedTeamStats();
+      liveScoreMap = new Map();
+      boxScoreRows = [];
+      finalScoreMap = new Map();
+      teamLeadersMap = new Map();
+      updateTeamSchedule(teamName, scheduleRows, [], season);
+    } else if (season === "c1s3-regular" || season === "c1s3-post") {
+      const [standingsRes, scheduleRes] = await Promise.all([
+        fetch(C1S3_STANDINGS_URL, { cache: "no-store" }),
+        fetch(
+          season === "c1s3-post" ? C1S3_POST_SCHEDULE_URL : C1S3_REGULAR_SCHEDULE_URL,
+          { cache: "no-store" }
+        ),
+      ]);
+      if (!standingsRes.ok) {
+        throw new Error(`Fetch failed: ${standingsRes.status}`);
+      }
+      if (!scheduleRes.ok) {
+        throw new Error(`Fetch failed: ${scheduleRes.status}`);
+      }
+
+      renderRosterMessage("No roster data available for Chapter 1 S3.");
 
       const standingsRows = parseCSV(await standingsRes.text());
       const scheduleRows = parseCSV(await scheduleRes.text());

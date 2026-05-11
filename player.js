@@ -2,6 +2,7 @@ const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const C1S2_PLAYER_STATS_URL = "/assets/data/c1s2-player-stats.csv";
+const C1S3_PLAYER_STATS_URL = "/assets/data/c1s3-player-stats.csv";
 const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
 const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
@@ -54,6 +55,12 @@ function getPlayerSeason() {
   if (season === "c1s2-regular") {
     return "c1s2-regular";
   }
+  if (season === "c1s3-post") {
+    return "c1s3-playoffs";
+  }
+  if (season === "c1s3-regular") {
+    return "c1s3-regular";
+  }
   const playerSeason = localStorage.getItem(PLAYER_SEASON_KEY);
   if (playerSeason) {
     return playerSeason;
@@ -83,6 +90,8 @@ function applyLeaderboardParams() {
   const allowedSeasons = new Set([
     "c2s3-regular",
     "c2s2-regular",
+    "c1s3-playoffs",
+    "c1s3-regular",
     "c1s2-playoffs",
     "c1s2-regular",
     "c2s1-playoffs",
@@ -100,6 +109,10 @@ function applyLeaderboardParams() {
       SEASON_KEY,
       season === "c2s3-regular"
         ? "c2s3-regular"
+        : season === "c1s3-playoffs"
+        ? "c1s3-post"
+        : season === "c1s3-regular"
+        ? "c1s3-regular"
         : season === "c1s2-playoffs"
         ? "c1s2-post"
         : season === "c1s2-regular"
@@ -125,6 +138,10 @@ function initPlayerSeasonSelect() {
     navSelect.value =
       current === "c2s3-regular"
         ? "c2s3-regular"
+        : current === "c1s3-playoffs"
+        ? "c1s3-post"
+        : current === "c1s3-regular"
+        ? "c1s3-regular"
         : current === "c1s2-playoffs"
         ? "c1s2-post"
         : current === "c1s2-regular"
@@ -144,6 +161,10 @@ function initPlayerSeasonSelect() {
       SEASON_KEY,
       current === "c2s3-regular"
         ? "c2s3-regular"
+        : current === "c1s3-playoffs"
+        ? "c1s3-post"
+        : current === "c1s3-regular"
+        ? "c1s3-regular"
         : current === "c1s2-playoffs"
         ? "c1s2-post"
         : current === "c1s2-regular"
@@ -162,6 +183,10 @@ function initPlayerSeasonSelect() {
       SEASON_KEY,
       value === "c2s3-regular"
         ? "c2s3-regular"
+        : value === "c1s3-playoffs"
+        ? "c1s3-post"
+        : value === "c1s3-regular"
+        ? "c1s3-regular"
         : value === "c1s2-playoffs"
         ? "c1s2-post"
         : value === "c1s2-regular"
@@ -183,6 +208,10 @@ function initPlayerSeasonSelect() {
       const mapped =
         navSelect.value === "c2s3-regular"
           ? "c2s3-regular"
+          : navSelect.value === "c1s3-post"
+          ? "c1s3-playoffs"
+          : navSelect.value === "c1s3-regular"
+          ? "c1s3-regular"
           : navSelect.value === "c1s2-post"
           ? "c1s2-playoffs"
           : navSelect.value === "c1s2-regular"
@@ -719,6 +748,14 @@ async function loadPlayerStats() {
       const rows = parseCSV(await response.text());
       playerColumns = detectPlayerColumns(rows[0] || []);
       playerRows = rows.slice(1);
+    } else if (season === "c1s3-regular" || season === "c1s3-playoffs") {
+      const response = await fetch(C1S3_PLAYER_STATS_URL, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Fetch failed: ${response.status}`);
+      }
+      const rows = parseCSV(await response.text());
+      playerColumns = detectPlayerColumns(rows[0] || []);
+      playerRows = rows.slice(1);
     } else {
       playerRows = [];
     }
@@ -726,6 +763,8 @@ async function loadPlayerStats() {
     leaderboardRows = buildLeaderboard(playerRows);
     if (season === "c2s1-regular") {
       els.results.innerHTML = "<p>No stats available for C2S1 Regular Season.</p>";
+    } else if (season === "c1s3-regular" || season === "c1s3-playoffs") {
+      els.results.innerHTML = "<p>No player stats are available yet for Chapter 1 S3.</p>";
     } else if (season === "c1s2-regular" || season === "c1s2-playoffs") {
       els.results.innerHTML = "<p>No player stats are available yet for Chapter 1 S2.</p>";
     } else {

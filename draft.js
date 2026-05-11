@@ -3,6 +3,7 @@ const ARCHIVE_CSV_URL = "/api/sheet?name=archive";
 const STANDINGS_CSV_URL = "/api/sheet?name=standings";
 const DRAFT_CAPITAL_CSV_URL = "/api/sheet?name=draft-capital";
 const C1S2_DRAFT_URL = "/assets/data/c1s2-draft.csv";
+const C1S3_DRAFT_URL = "/assets/data/c1s3-draft.csv";
 const DRAFT_YEAR_KEY = "draftYear";
 
 const els = {
@@ -22,6 +23,11 @@ const ROUND_RANGES_BY_YEAR = {
   c1s2: [
     { id: "round-1", title: "Round 1", range: "" },
     { id: "round-2", title: "Round 2", range: "" },
+  ],
+  c1s3: [
+    { id: "round-1", title: "Round 1", range: "" },
+    { id: "round-2", title: "Round 2", range: "" },
+    { id: "round-3", title: "Round 3", range: "" },
   ],
   c2s3: [
     { id: "round-1", title: "Round 1", range: "" },
@@ -56,6 +62,11 @@ const EXPANSION_RANGES = [
 ];
 
 const TEAM_NAMES = new Set([
+  "Masdog N Em",
+  "Richer N Em",
+  "Chicken Nuggets",
+  "Mafia",
+  "Enforcers",
   "Thunderhawks",
   "Whatsgrass",
   "Tigers",
@@ -231,6 +242,9 @@ function getTeamLogo(team) {
   if (clean === "MayeDay") {
     return '<img class="standings-logo" src="/assets/mayeday.jpg" alt="MayeDay logo" />';
   }
+  if (clean === "Masdog N Em" || clean === "Richer N Em") {
+    return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="N Em logo" />';
+  }
   if (clean === "Yetis") {
     return '<img class="standings-logo" src="/assets/yetis.png" alt="Yetis logo" />';
   }
@@ -277,6 +291,11 @@ function linkifyTeamsAndPlayers(text) {
   const source = String(text || "");
   const playerParts = source.split(/(@[A-Za-z0-9_.]+)/g);
   const teamMap = {
+    "Masdog N Em": "Masdog N Em",
+    "Richer N Em": "Richer N Em",
+    "Chicken Nuggets": "Chicken Nuggets",
+    Mafia: "Mafia",
+    Enforcers: "Enforcers",
     Thunderhawks: "Thunderhawks",
     Whatsgrass: "Whatsgrass",
     Tigers: "Tigers",
@@ -743,7 +762,7 @@ function renderExpansion(rows) {
 
 function getSelectedDraftYear() {
   const saved = localStorage.getItem(DRAFT_YEAR_KEY);
-  if (saved === "c1s2" || saved === "c2s1" || saved === "c2s2" || saved === "c2s3") {
+  if (saved === "c1s2" || saved === "c1s3" || saved === "c2s1" || saved === "c2s2" || saved === "c2s3") {
     return saved;
   }
   return "c2s3";
@@ -770,8 +789,11 @@ async function loadDraft() {
       return;
     }
 
-    if (selectedYear === "c1s2" && selectedView === "teams") {
-      const response = await fetch(C1S2_DRAFT_URL, { cache: "no-store" });
+    if ((selectedYear === "c1s2" || selectedYear === "c1s3") && selectedView === "teams") {
+      const response = await fetch(
+        selectedYear === "c1s3" ? C1S3_DRAFT_URL : C1S2_DRAFT_URL,
+        { cache: "no-store" }
+      );
       if (!response.ok) {
         throw new Error(`Fetch failed: ${response.status}`);
       }
@@ -781,9 +803,11 @@ async function loadDraft() {
       const body = rows.slice(1);
       const roundOne = [header, ...body.filter((row) => String(row[0] || "").trim() === "1")];
       const roundTwo = [header, ...body.filter((row) => String(row[0] || "").trim() === "2")];
+      const roundThree = [header, ...body.filter((row) => String(row[0] || "").trim() === "3")];
       els.sections.innerHTML = [
         renderRound("round-1", "Round 1", roundOne),
         renderRound("round-2", "Round 2", roundTwo),
+        roundThree.length > 1 ? renderRound("round-3", "Round 3", roundThree) : "",
       ].join("");
       updateLastUpdated();
       return;

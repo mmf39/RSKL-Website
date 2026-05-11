@@ -7,6 +7,8 @@ const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const C1S2_REGULAR_SCHEDULE_URL = "/assets/data/c1s2-regular-schedule.csv";
 const C1S2_POST_SCHEDULE_URL = "/assets/data/c1s2-post-schedule.csv";
+const C1S3_REGULAR_SCHEDULE_URL = "/assets/data/c1s3-regular-schedule.csv";
+const C1S3_POST_SCHEDULE_URL = "/assets/data/c1s3-post-schedule.csv";
 const SEASON_KEY = "season";
 const SCHEDULE_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -1289,6 +1291,16 @@ async function loadSchedule() {
     } else if (seasonRaw === "c1s2-regular" || seasonRaw === "c1s2-post") {
       const response = await fetch(
         seasonRaw === "c1s2-post" ? C1S2_POST_SCHEDULE_URL : C1S2_REGULAR_SCHEDULE_URL,
+        { cache: "no-store" }
+      );
+      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+      rows = parseCSV(await response.text());
+      writeCachedScheduleRows(seasonRaw, rows);
+      applyInitialScheduleRows(rows, seasonRaw);
+      return;
+    } else if (seasonRaw === "c1s3-regular" || seasonRaw === "c1s3-post") {
+      const response = await fetch(
+        seasonRaw === "c1s3-post" ? C1S3_POST_SCHEDULE_URL : C1S3_REGULAR_SCHEDULE_URL,
         { cache: "no-store" }
       );
       if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
