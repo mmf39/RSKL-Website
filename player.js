@@ -37,8 +37,11 @@ const C2S2_REGULAR_RANGES = {
 
 function getPlayerSeason() {
   const season = localStorage.getItem(SEASON_KEY);
-  if (season === "c2s3-regular" || season === "c2s2-playoffs") {
+  if (season === "c2s3-regular") {
     return "c2s3-regular";
+  }
+  if (season === "c2s2-playoffs") {
+    return "c2s2-playoffs";
   }
   if (season === "c2s2-regular" || season === "c2s2") {
     return "c2s2-regular";
@@ -89,6 +92,7 @@ function applyLeaderboardParams() {
   ]);
   const allowedSeasons = new Set([
     "c2s3-regular",
+    "c2s2-playoffs",
     "c2s2-regular",
     "c1s3-playoffs",
     "c1s3-regular",
@@ -109,6 +113,8 @@ function applyLeaderboardParams() {
       SEASON_KEY,
       season === "c2s3-regular"
         ? "c2s3-regular"
+        : season === "c2s2-playoffs"
+        ? "c2s2-playoffs"
         : season === "c1s3-playoffs"
         ? "c1s3-post"
         : season === "c1s3-regular"
@@ -138,6 +144,8 @@ function initPlayerSeasonSelect() {
     navSelect.value =
       current === "c2s3-regular"
         ? "c2s3-regular"
+        : current === "c2s2-playoffs"
+        ? "c2s2-playoffs"
         : current === "c1s3-playoffs"
         ? "c1s3-post"
         : current === "c1s3-regular"
@@ -161,6 +169,8 @@ function initPlayerSeasonSelect() {
       SEASON_KEY,
       current === "c2s3-regular"
         ? "c2s3-regular"
+        : current === "c2s2-playoffs"
+        ? "c2s2-playoffs"
         : current === "c1s3-playoffs"
         ? "c1s3-post"
         : current === "c1s3-regular"
@@ -183,6 +193,8 @@ function initPlayerSeasonSelect() {
       SEASON_KEY,
       value === "c2s3-regular"
         ? "c2s3-regular"
+        : value === "c2s2-playoffs"
+        ? "c2s2-playoffs"
         : value === "c1s3-playoffs"
         ? "c1s3-post"
         : value === "c1s3-regular"
@@ -208,6 +220,8 @@ function initPlayerSeasonSelect() {
       const mapped =
         navSelect.value === "c2s3-regular"
           ? "c2s3-regular"
+          : navSelect.value === "c2s2-playoffs"
+          ? "c2s2-playoffs"
           : navSelect.value === "c1s3-post"
           ? "c1s3-playoffs"
           : navSelect.value === "c1s3-regular"
@@ -667,6 +681,8 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
     ${
       selectedSeason === "c1s2-regular" || selectedSeason === "c1s2-playoffs"
         ? '<p><em>Partial C1S2 data only. Some stats were not recorded.</em></p>'
+        : selectedSeason === "c1s3-regular" || selectedSeason === "c1s3-playoffs"
+        ? '<p><em>Partial C1S3 data only. Some stats were not recorded.</em></p>'
         : ""
     }
     <div class="leader-grid">
@@ -710,7 +726,7 @@ async function loadPlayerStats() {
   try {
     await loadPlayerOverrides();
     const season = getPlayerSeason();
-    if (season === "c2s3-regular") {
+    if (season === "c2s3-regular" || season === "c2s2-playoffs") {
       const response = await fetch(PLAYER_STATS_URL, { cache: "no-store" });
       if (!response.ok) {
         throw new Error(`Fetch failed: ${response.status}`);
@@ -768,8 +784,6 @@ async function loadPlayerStats() {
     leaderboardRows = buildLeaderboard(playerRows);
     if (season === "c2s1-regular") {
       els.results.innerHTML = "<p>No stats available for C2S1 Regular Season.</p>";
-    } else if (season === "c1s3-regular" || season === "c1s3-playoffs") {
-      els.results.innerHTML = "<p>No player stats are available yet for Chapter 1 S3.</p>";
     } else {
       const query = els.search.value.trim().toLowerCase();
       renderLeaderboard(

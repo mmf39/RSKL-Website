@@ -249,7 +249,7 @@ function normalizeTeamName(name) {
 
 function getSeasonRaw() {
   const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
-  if (raw === "c2s2" || raw === "c2s2-playoffs") return "c2s3-regular";
+  if (raw === "c2s2") return "c2s3-regular";
   return raw;
 }
 

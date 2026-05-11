@@ -856,7 +856,7 @@ function getPlayerName() {
 
 function normalizeSeason(value) {
   if (value === "c2s3-regular" || value === "c2s2-playoffs") {
-    return "c2s3-regular";
+    return value;
   }
   if (
     value === "career" ||
@@ -885,6 +885,8 @@ function getSeason() {
       SEASON_KEY,
       normalized === "c2s1-playoffs"
         ? "c2s1-post"
+        : normalized === "c2s2-playoffs"
+        ? "c2s2-playoffs"
         : normalized === "c1s3-playoffs"
         ? "c1s3-post"
         : normalized === "c1s3-regular"
@@ -927,7 +929,7 @@ function getSeason() {
     return "c1s3-regular";
   }
   if (season === "c2s3-regular" || season === "c2s2-playoffs") {
-    return "c2s3-regular";
+    return season;
   }
   if (season === "c2s2-regular" || season === "c2s2") {
     return "c2s2-regular";
@@ -947,6 +949,8 @@ function initSeasonSelect() {
     navSelect.value =
       current === "career" || current === "c2s3-regular"
         ? "c2s3-regular"
+        : current === "c2s2-playoffs"
+        ? "c2s2-playoffs"
         : current === "c2s2-regular"
         ? "c2s2-regular"
         : current === "c1s3-playoffs"
@@ -974,6 +978,8 @@ function initSeasonSelect() {
       SEASON_KEY,
       value === "c2s1-playoffs"
         ? "c2s1-post"
+        : value === "c2s2-playoffs"
+        ? "c2s2-playoffs"
         : value === "c1s3-playoffs"
         ? "c1s3-post"
         : value === "c1s3-regular"
@@ -1003,6 +1009,8 @@ function initSeasonSelect() {
       const mapped =
         navSelect.value === "c2s1-post"
           ? "c2s1-playoffs"
+          : navSelect.value === "c2s2-playoffs"
+          ? "c2s2-playoffs"
           : navSelect.value === "c1s3-post"
           ? "c1s3-playoffs"
           : navSelect.value === "c1s3-regular"
@@ -1251,7 +1259,16 @@ function renderWeeklyKarma(rows) {
 
   const grouped = Array.from(byBucket.values()).sort((a, b) => {
     if (a.seasonLabel !== b.seasonLabel) {
-      const order = ["C2S3 Regular Season", "C2S2 Regular Season", "C2S1 Playoffs", "C2S1 Regular Season"];
+      const order = [
+        "C2S3 Regular Season",
+        "C2S2 Regular Season",
+        "C2S1 Regular Season",
+        "C2S1 Playoffs",
+        "C1S3 Regular Season",
+        "C1S3 Playoffs",
+        "C1S2 Regular Season",
+        "C1S2 Playoffs",
+      ];
       const ai = order.indexOf(a.seasonLabel);
       const bi = order.indexOf(b.seasonLabel);
       if (ai !== -1 || bi !== -1) {
@@ -1495,7 +1512,16 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
     bySeason.get(seasonLabel).push(row);
   });
 
-  const seasonOrder = ["C2S3 Regular Season", "C2S2 Regular Season", "C2S1 Playoffs"];
+  const seasonOrder = [
+    "C2S3 Regular Season",
+    "C2S2 Regular Season",
+    "C2S1 Regular Season",
+    "C2S1 Playoffs",
+    "C1S3 Regular Season",
+    "C1S3 Playoffs",
+    "C1S2 Regular Season",
+    "C1S2 Playoffs",
+  ];
   const orderedSeasons = Array.from(bySeason.keys()).sort((a, b) => {
     const ai = seasonOrder.indexOf(a);
     const bi = seasonOrder.indexOf(b);
@@ -1511,8 +1537,12 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
     const text = String(value || "");
     if (text === "C2S3 Regular Season") return "C2S3";
     if (text === "C2S2 Regular Season") return "C2S2";
-    if (text === "C2S1 Playoffs") return "C2S1 Post";
     if (text === "C2S1 Regular Season") return "C2S1";
+    if (text === "C2S1 Playoffs") return "C2S1 Post";
+    if (text === "C1S3 Regular Season") return "C1S3";
+    if (text === "C1S3 Playoffs") return "C1S3 Post";
+    if (text === "C1S2 Regular Season") return "C1S2";
+    if (text === "C1S2 Playoffs") return "C1S2 Post";
     return text;
   };
   const renderTeamCell = (team) =>
@@ -2190,7 +2220,7 @@ async function loadPlayer() {
     let dataRows = [];
     let supplementalRows = [];
     let contractRows = contractRowsCache;
-    if (season === "c2s3-regular") {
+    if (season === "c2s3-regular" || season === "c2s2-playoffs") {
       const [playerRes, contractRes] = await Promise.all([
         fetch(PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(CONTRACTS_URL, { cache: "no-store" }),
@@ -2239,19 +2269,35 @@ async function loadPlayer() {
       if (!archiveRes.ok) {
         throw new Error(`Fetch failed: ${archiveRes.status}`);
       }
+      const [c1s2Res, c1s3Res] = await Promise.all([
+        fetch(C1S2_PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(C1S3_PLAYER_STATS_URL, { cache: "no-store" }),
+      ]);
       contractRows = contractRes.ok ? parseCSV(await contractRes.text()) : [];
       contractRowsCache = contractRows;
       const currentRows = parseCSV(await currentPlayerRes.text());
       const c2s2SheetRows = parseCSV(await c2s2Res.text());
       const archive = parseCSV(await archiveRes.text());
+      const c1s2Rows = c1s2Res.ok ? parseCSV(await c1s2Res.text()) : [];
+      const c1s3Rows = c1s3Res.ok ? parseCSV(await c1s3Res.text()) : [];
       const c2s2Rows = sliceRange(c2s2SheetRows, C2S2_REGULAR_RANGES.player_stats);
       const c2s1PlayoffRows = sliceRange(archive, ARCHIVE_RANGES.player_stats);
 
       const currentHeader = currentRows[0] || [];
       const c2s2Header = c2s2Rows[0] || [];
       const c2s1Header = c2s1PlayoffRows[0] || [];
+      const c1s2Header = c1s2Rows[0] || [];
+      const c1s3Header = c1s3Rows[0] || [];
       playerColumns = detectPlayerColumns(
-        currentHeader.length ? currentHeader : c2s2Header.length ? c2s2Header : c2s1Header
+        currentHeader.length
+          ? currentHeader
+          : c2s2Header.length
+          ? c2s2Header
+          : c1s3Header.length
+          ? c1s3Header
+          : c1s2Header.length
+          ? c1s2Header
+          : c2s1Header
       );
 
       const annotate = (rows, label) =>
@@ -2264,6 +2310,8 @@ async function loadPlayer() {
       dataRows = [
         ...annotate(currentRows.slice(1), "C2S3 Regular Season"),
         ...annotate(c2s2Rows.slice(1), "C2S2 Regular Season"),
+        ...annotate(c1s3Rows.slice(1), "C1S3 Regular Season"),
+        ...annotate(c1s2Rows.slice(1), "C1S2 Regular Season"),
         ...annotate(c2s1PlayoffRows.slice(1), "C2S1 Playoffs"),
       ];
     } else if (season === "c2s1-playoffs") {
@@ -2346,13 +2394,6 @@ async function loadPlayer() {
       renderCareerTeamBreakdown([], baselines, season);
       const teamName = await findTeamForPlayer(season, playerName);
       renderPlayerTeam(teamName);
-    } else if (season === "c1s3-regular" || season === "c1s3-playoffs") {
-      els.body.innerHTML = `<tr><td colspan="5">No player stats available for Chapter 1 S3.</td></tr>`;
-      renderPlayoffSupplement([]);
-      renderWeeklyKarma([]);
-      updateSummary([], baselines);
-      renderCareerTeamBreakdown([], baselines, season);
-      renderPlayerTeam("");
     } else {
       if (season === "career") {
         const playoffRows = filtered
@@ -2371,8 +2412,19 @@ async function loadPlayer() {
         renderPlayoffSupplement([]);
         renderTable(filtered);
       }
-      if (season === "c2s3-regular" && !filtered.length) {
+      if ((season === "c2s3-regular" || season === "c2s2-playoffs") && !filtered.length) {
         els.body.innerHTML = `<tr><td colspan="5">No games played.</td></tr>`;
+      } else if (season === "c1s3-regular" || season === "c1s3-playoffs") {
+        if (!filtered.length) {
+          els.body.innerHTML =
+            '<tr><td colspan="5">No recorded C1S3 stats found for this player.</td></tr>';
+        } else {
+          prependTableNotice(
+            els.body,
+            "Partial C1S3 data only. Some stats were not recorded.",
+            5
+          );
+        }
       } else if (season === "c1s2-regular" || season === "c1s2-playoffs") {
         if (!filtered.length) {
           els.body.innerHTML =
@@ -2386,7 +2438,12 @@ async function loadPlayer() {
         }
       }
       renderWeeklyKarma(
-        season === "c1s2-regular" || season === "c1s2-playoffs" ? [] : filtered
+        season === "c1s2-regular" ||
+          season === "c1s2-playoffs" ||
+          season === "c1s3-regular" ||
+          season === "c1s3-playoffs"
+          ? []
+          : filtered
       );
       updateSummary(filtered, baselines);
       renderCareerTeamBreakdown(filtered, baselines, season);
@@ -2408,7 +2465,11 @@ async function loadPlayer() {
           const teamName = await findTeamForPlayer(season, playerName);
           renderPlayerTeam(teamName);
         }
-      } else if (season === "c2s3-regular" || season === "c2s2-regular") {
+      } else if (
+        season === "c2s3-regular" ||
+        season === "c2s2-playoffs" ||
+        season === "c2s2-regular"
+      ) {
         const currentTeam = await findTeamForPlayer(season, playerName);
         if (currentTeam) {
           renderPlayerTeam(currentTeam);
