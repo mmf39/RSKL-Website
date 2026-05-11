@@ -1434,8 +1434,6 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
       const teamSummaries = Array.from(byTeam.entries())
         .map(([team, teamRows]) => ({ team, summary: summarizeRows(teamRows, baselines) }))
         .sort((a, b) => (b.summary.gp || 0) - (a.summary.gp || 0));
-      const seasonTotal = summarizeRows(seasonRows, baselines);
-
       const teamRowsHtml = teamSummaries
         .map(
           ({ team, summary }) => `
@@ -1452,18 +1450,7 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
         )
         .join("");
 
-      return `
-        ${teamRowsHtml}
-        <tr class="career-season-total-row">
-          <td>${escapeHtml(shortSeasonLabel(seasonLabel))}</td>
-          <td><strong>Season Total</strong></td>
-          <td>${escapeHtml(String(seasonTotal.gp || 0))}</td>
-          <td>${renderStat(seasonTotal.relMedian, 3)}</td>
-          <td>${renderStat(seasonTotal.war, 3)}</td>
-          <td>${renderStat(seasonTotal.medianRank, 0)}</td>
-          <td>${renderStat(seasonTotal.avgRank, 0)}</td>
-        </tr>
-      `;
+      return teamRowsHtml;
     })
     .join("");
 
