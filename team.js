@@ -11,6 +11,18 @@ const CONTRACTS_URL = "/api/sheet?name=contracts";
 const SEASON_KEY = "season";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const TEAM_CAP_LIMIT = 5000;
+const TEAM_ORDER = [
+  "Turkeys",
+  "Gus N Em",
+  "Storm",
+  "Cheerios",
+  "MayeDay",
+  "Illegals",
+  "The Lions",
+  "Dream Team",
+  "The Snipers",
+  "The Phantoms",
+];
 const TRANSACTIONS_RANGE = "A3:E81";
 const RETIREMENT_RANGE = "G3:J70";
 const CUT_RANGE = "L3:O81";
