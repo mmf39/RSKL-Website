@@ -65,6 +65,9 @@ const els = {
   lastUpdated: document.getElementById("last-updated"),
   head: document.querySelector("#player-games thead"),
   body: document.querySelector("#player-games tbody"),
+  playoffStatsPanel: document.getElementById("player-playoff-stats-panel"),
+  playoffHead: document.querySelector("#player-playoff-games thead"),
+  playoffBody: document.querySelector("#player-playoff-games tbody"),
   weeklyHead: document.querySelector("#player-weekly thead"),
   weeklyBody: document.querySelector("#player-weekly tbody"),
   modal: document.getElementById("boxscore-modal"),
@@ -116,6 +119,7 @@ let activeWeekKey = "";
 let currentRenderedTeams = [];
 let currentLoadedSeason = "";
 let contractRowsCache = [];
+let supplementalPlayerRows = [];
 
 function parseCSV(text) {
   const rows = [];
@@ -1032,20 +1036,29 @@ function renderPlayerTeam(teamNameOrList) {
 
 function renderTable(rows) {
   window.__playerRows = rows;
+  renderTableInto(els.head, els.body, rows);
+}
+
+function renderTableInto(headEl, bodyEl, rows, options = {}) {
+  if (!headEl || !bodyEl) {
+    return;
+  }
+  const rowClass = options.rowClass || "schedule-row";
+  const dataKey = options.dataKey || "index";
   const includeSeason = rows.some((row) => row && row.__seasonLabel);
   const headers = includeSeason
     ? ["Season", "Date", "Team", "Score", "Rank", "Opponent"]
     : ["Date", "Team", "Score", "Rank", "Opponent"];
-  els.head.innerHTML = `
+  headEl.innerHTML = `
     <tr>
       ${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}
     </tr>
   `;
 
-  els.body.innerHTML = rows
+  bodyEl.innerHTML = rows
     .map(
       (row, index) => `
-        <tr class="schedule-row" data-index="${index}">
+        <tr class="${escapeHtml(rowClass)}" data-${escapeHtml(dataKey)}="${index}">
           ${
             includeSeason
               ? `<td>${escapeHtml(row.__seasonLabel || "")}</td>`
@@ -1060,6 +1073,24 @@ function renderTable(rows) {
       `
     )
     .join("");
+}
+
+function renderPlayoffSupplement(rows) {
+  supplementalPlayerRows = rows;
+  if (!els.playoffStatsPanel || !els.playoffHead || !els.playoffBody) {
+    return;
+  }
+  if (!rows.length) {
+    els.playoffStatsPanel.hidden = true;
+    els.playoffHead.innerHTML = "";
+    els.playoffBody.innerHTML = "";
+    return;
+  }
+  els.playoffStatsPanel.hidden = false;
+  renderTableInto(els.playoffHead, els.playoffBody, rows, {
+    rowClass: "playoff-log-row",
+    dataKey: "playoffIndex",
+  });
 }
 
 function dateFromRowValue(value) {
@@ -2049,6 +2080,8 @@ async function loadPlayer() {
   const playerName = getPlayerName();
   currentLoadedSeason = getSeason();
   window.__boxScoreRows = [];
+  supplementalPlayerRows = [];
+  renderPlayoffSupplement([]);
   const overridesPromise = loadPlayerOverrides();
   const contractPromise = fetchContractRows();
   const initialDisplayName = playerName || "Player";
@@ -2089,6 +2122,7 @@ async function loadPlayer() {
     const season = getSeason();
     currentLoadedSeason = season;
     let dataRows = [];
+    let supplementalRows = [];
     let contractRows = contractRowsCache;
     if (season === "c2s3-regular") {
       const [playerRes, contractRes] = await Promise.all([
@@ -2195,12 +2229,33 @@ async function loadPlayer() {
     renderLeagueRanks(dataRows, playerName);
     if (season === "c2s1-regular") {
       els.body.innerHTML = `<tr><td>No stats available for C2S1 Regular Season.</td></tr>`;
+      const [archiveRes] = await Promise.all([
+        fetch(ARCHIVE_URL, { cache: "no-store" }),
+      ]);
+      if (archiveRes.ok) {
+        const archiveRows = parseCSV(await archiveRes.text());
+        const playoffSlice = sliceRange(archiveRows, ARCHIVE_RANGES.player_stats);
+        const playoffColumns = detectPlayerColumns(playoffSlice[0] || []);
+        supplementalRows = playoffSlice.slice(1).map((row) => {
+          const copy = [...row];
+          copy.__boxScoreSeason = "c2s1-playoffs";
+          return copy;
+        });
+        const playoffFiltered = playerName
+          ? supplementalRows.filter((row) => matchesAnyAlias(row[playoffColumns.player], aliases))
+          : [];
+        playerColumns = playoffColumns;
+        renderPlayoffSupplement(playoffFiltered);
+      } else {
+        renderPlayoffSupplement([]);
+      }
       renderWeeklyKarma([]);
       updateSummary([], baselines);
       renderCareerTeamBreakdown([], baselines, season);
       const teamName = await findTeamForPlayer(season, playerName);
       renderPlayerTeam(teamName);
     } else {
+      renderPlayoffSupplement([]);
       renderTable(filtered);
       if (season === "c2s3-regular" && !filtered.length) {
         els.body.innerHTML = `<tr><td colspan="5">No games played.</td></tr>`;
@@ -2448,6 +2503,42 @@ els.body.addEventListener("click", async (event) => {
   }
   renderBoxScore(boxScore);
 });
+
+if (els.playoffBody) {
+  els.playoffBody.addEventListener("click", async (event) => {
+    const rowEl = event.target.closest(".playoff-log-row");
+    if (!rowEl) {
+      return;
+    }
+    const index = Number(rowEl.dataset.playoffIndex);
+    const row = supplementalPlayerRows[index];
+    if (!row) {
+      return;
+    }
+    const opponent = String(row[playerColumns.opponent] || "").trim();
+    const teamName = String(row[playerColumns.team] || "").trim();
+    const dateValue = String(row[playerColumns.date] || "").trim();
+    const dateToken = dateValue.includes("•")
+      ? dateValue.split("•").pop().trim()
+      : dateValue;
+    const boxScoreSeason = row.__boxScoreSeason || currentLoadedSeason || getSeason();
+    window.__boxScoreRows = [];
+    try {
+      await ensureBoxScoreRows(boxScoreSeason);
+    } catch (error) {
+      els.boxDetails.innerHTML = `<div class=\"boxscore-empty\">No stats available.</div>`;
+      els.modal.hidden = false;
+      return;
+    }
+    const boxScore = buildBoxScore(dateToken, teamName, opponent);
+    if (!boxScore) {
+      els.boxDetails.innerHTML = `<div class=\"boxscore-empty\">No stats available.</div>`;
+      els.modal.hidden = false;
+      return;
+    }
+    renderBoxScore(boxScore);
+  });
+}
 
 if (els.weeklyBody) {
   els.weeklyBody.addEventListener("click", (event) => {
