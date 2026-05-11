@@ -4,6 +4,7 @@ const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
+const C1S2_STANDINGS_URL = "/assets/data/c1s2-standings.csv";
 const SEASON_KEY = "season";
 const C2S2_SCHEDULE_RANGE = "A2:E77";
 const TRANSACTIONS_RANGE = "A3:E81";
@@ -1306,6 +1307,28 @@ async function loadStandings() {
         : new Map();
       leagueStandingsMetrics = buildLeagueRowsFromArchive(standingsTable, scheduleTable, season);
       applyTransactionCountsToLeagueRows(leagueStandingsMetrics, transactionsByTeam);
+      renderStandings();
+    } else if (seasonRaw === "c1s2-regular" || seasonRaw === "c1s2-post") {
+      const response = await fetch(C1S2_STANDINGS_URL, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Fetch failed: ${response.status}`);
+      }
+      const rows = parseCSV(await response.text());
+      standingsHeaders = rows[0] || [];
+      standingsRows = rows.slice(1);
+      transactionsByTeam = new Map();
+      leagueStandingsMetrics = standingsRows.map((row) => ({
+        team: String(row[1] || "").trim(),
+        gp: (parseNumber(row[2]) || 0) + (parseNumber(row[3]) || 0),
+        wins: parseNumber(row[2]),
+        loss: parseNumber(row[3]),
+        gb: parseNumber(row[4]),
+        winpct: parsePct(row[5]),
+        sos: null,
+        pam: null,
+        trel: null,
+        transactions: 0,
+      }));
       renderStandings();
     } else {
       const response = await fetch(ARCHIVE_URL, { cache: "no-store" });

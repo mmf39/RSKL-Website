@@ -6,6 +6,7 @@ const AWARDS_URL = "/api/sheet?name=awards";
 const DRAFT_URL = "/api/sheet?name=draft";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const CONTRACTS_URL = "/api/sheet?name=contracts";
+const C1S2_PLAYER_STATS_URL = "/assets/data/c1s2-player-stats.csv";
 const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
 const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 const PLAYER_SEASON_KEY = "playerSeason";
@@ -858,6 +859,8 @@ function normalizeSeason(value) {
   }
   if (
     value === "career" ||
+    value === "c1s2-playoffs" ||
+    value === "c1s2-regular" ||
     value === "c2s1-playoffs" ||
     value === "c2s1-regular"
   ) {
@@ -879,6 +882,10 @@ function getSeason() {
       SEASON_KEY,
       normalized === "c2s1-playoffs"
         ? "c2s1-post"
+        : normalized === "c1s2-playoffs"
+        ? "c1s2-post"
+        : normalized === "c1s2-regular"
+        ? "c1s2-regular"
         : normalized === "c2s1-regular"
         ? "c2s1-regular"
         : normalized === "c2s2-regular"
@@ -897,8 +904,14 @@ function getSeason() {
   if (season === "c2s1-post") {
     return "c2s1-playoffs";
   }
+  if (season === "c1s2-post") {
+    return "c1s2-playoffs";
+  }
   if (season === "c2s1-regular") {
     return "c2s1-regular";
+  }
+  if (season === "c1s2-regular") {
+    return "c1s2-regular";
   }
   if (season === "c2s3-regular" || season === "c2s2-playoffs") {
     return "c2s3-regular";
@@ -923,6 +936,10 @@ function initSeasonSelect() {
         ? "c2s3-regular"
         : current === "c2s2-regular"
         ? "c2s2-regular"
+        : current === "c1s2-playoffs"
+        ? "c1s2-post"
+        : current === "c1s2-regular"
+        ? "c1s2-regular"
         : current === "c2s1-playoffs"
         ? "c2s1-post"
         : current === "c2s1-regular"
@@ -940,6 +957,10 @@ function initSeasonSelect() {
       SEASON_KEY,
       value === "c2s1-playoffs"
         ? "c2s1-post"
+        : value === "c1s2-playoffs"
+        ? "c1s2-post"
+        : value === "c1s2-regular"
+        ? "c1s2-regular"
         : value === "c2s1-regular"
         ? "c2s1-regular"
         : value === "c2s2-regular"
@@ -961,6 +982,10 @@ function initSeasonSelect() {
       const mapped =
         navSelect.value === "c2s1-post"
           ? "c2s1-playoffs"
+          : navSelect.value === "c1s2-post"
+          ? "c1s2-playoffs"
+          : navSelect.value === "c1s2-regular"
+          ? "c1s2-regular"
           : navSelect.value === "c2s1-regular"
           ? "c2s1-regular"
           : navSelect.value === "c2s2-regular"
@@ -2218,6 +2243,19 @@ async function loadPlayer() {
       const sliced = sliceRange(archive, ARCHIVE_RANGES.player_stats);
       playerColumns = detectPlayerColumns(sliced[0] || []);
       dataRows = sliced.slice(1);
+    } else if (season === "c1s2-regular" || season === "c1s2-playoffs") {
+      const [response, contractRes] = await Promise.all([
+        fetch(C1S2_PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(CONTRACTS_URL, { cache: "no-store" }),
+      ]);
+      if (!response.ok) {
+        throw new Error(`Fetch failed: ${response.status}`);
+      }
+      contractRows = contractRes.ok ? parseCSV(await contractRes.text()) : [];
+      contractRowsCache = contractRows;
+      const rows = parseCSV(await response.text());
+      playerColumns = detectPlayerColumns(rows[0] || []);
+      dataRows = rows.slice(1);
     } else {
       dataRows = [];
     }
@@ -2258,6 +2296,13 @@ async function loadPlayer() {
       renderCareerTeamBreakdown([], baselines, season);
       const teamName = await findTeamForPlayer(season, playerName);
       renderPlayerTeam(teamName);
+    } else if (season === "c1s2-regular" || season === "c1s2-playoffs") {
+      els.body.innerHTML = `<tr><td colspan="5">No player stats available for Chapter 1 S2.</td></tr>`;
+      renderPlayoffSupplement([]);
+      renderWeeklyKarma([]);
+      updateSummary([], baselines);
+      renderCareerTeamBreakdown([], baselines, season);
+      renderPlayerTeam("");
     } else {
       if (season === "career") {
         const playoffRows = filtered

@@ -2,6 +2,7 @@ const DRAFT_CSV_URL = "/api/sheet?name=draft";
 const ARCHIVE_CSV_URL = "/api/sheet?name=archive";
 const STANDINGS_CSV_URL = "/api/sheet?name=standings";
 const DRAFT_CAPITAL_CSV_URL = "/api/sheet?name=draft-capital";
+const C1S2_DRAFT_URL = "/assets/data/c1s2-draft.csv";
 const DRAFT_YEAR_KEY = "draftYear";
 
 const els = {
@@ -18,6 +19,10 @@ const els = {
 };
 
 const ROUND_RANGES_BY_YEAR = {
+  c1s2: [
+    { id: "round-1", title: "Round 1", range: "" },
+    { id: "round-2", title: "Round 2", range: "" },
+  ],
   c2s3: [
     { id: "round-1", title: "Round 1", range: "" },
     { id: "round-2", title: "Round 2", range: "" },
@@ -714,7 +719,7 @@ function renderExpansion(rows) {
 
 function getSelectedDraftYear() {
   const saved = localStorage.getItem(DRAFT_YEAR_KEY);
-  if (saved === "c2s1" || saved === "c2s2" || saved === "c2s3") {
+  if (saved === "c1s2" || saved === "c2s1" || saved === "c2s2" || saved === "c2s3") {
     return saved;
   }
   return "c2s3";
@@ -737,6 +742,25 @@ async function loadDraft() {
         "C2S3 Draft Board",
         boardRows
       );
+      updateLastUpdated();
+      return;
+    }
+
+    if (selectedYear === "c1s2" && selectedView === "teams") {
+      const response = await fetch(C1S2_DRAFT_URL, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Fetch failed: ${response.status}`);
+      }
+      const rows = parseCSV(await response.text());
+      draftRowsCache = rows;
+      const header = rows[0] || [];
+      const body = rows.slice(1);
+      const roundOne = [header, ...body.filter((row) => String(row[0] || "").trim() === "1")];
+      const roundTwo = [header, ...body.filter((row) => String(row[0] || "").trim() === "2")];
+      els.sections.innerHTML = [
+        renderRound("round-1", "Round 1", roundOne),
+        renderRound("round-2", "Round 2", roundTwo),
+      ].join("");
       updateLastUpdated();
       return;
     }

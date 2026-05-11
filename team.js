@@ -6,6 +6,9 @@ const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
+const C1S2_STANDINGS_URL = "/assets/data/c1s2-standings.csv";
+const C1S2_REGULAR_SCHEDULE_URL = "/assets/data/c1s2-regular-schedule.csv";
+const C1S2_POST_SCHEDULE_URL = "/assets/data/c1s2-post-schedule.csv";
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
 const CONTRACTS_URL = "/api/sheet?name=contracts";
 const SEASON_KEY = "season";
@@ -116,6 +119,8 @@ function getSeason() {
   const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
   if (raw === "c2s2" || raw === "c2s2-playoffs") return "c2s3-regular";
   if (raw === "c2s1-playoffs") return "c2s1-post";
+  if (raw === "c1s2-post") return "c1s2-post";
+  if (raw === "c1s2-regular") return "c1s2-regular";
   return raw;
 }
 
@@ -349,6 +354,42 @@ function buildLeagueRowsFromArchive(standingsTable, scheduleTable, season) {
     .filter(Boolean);
 }
 
+function buildLeagueRowsFromC1S2(standingsRows) {
+  if (!standingsRows || standingsRows.length < 2) {
+    return [];
+  }
+  const headers = (standingsRows[0] || []).map((h) => String(h || "").trim().toLowerCase());
+  const teamIdx = headers.findIndex((h) => h === "team");
+  const winsIdx = headers.findIndex((h) => h === "wins" || h === "win");
+  const lossIdx = headers.findIndex((h) => h === "losses" || h === "loss");
+  const gbIdx = headers.findIndex((h) => h === "gb");
+  const pctIdx = headers.findIndex((h) => h === "win %" || h === "win%" || h === "pct");
+  if (teamIdx === -1 || winsIdx === -1 || lossIdx === -1 || gbIdx === -1 || pctIdx === -1) {
+    return [];
+  }
+
+  return standingsRows
+    .slice(1)
+    .map((row) => {
+      const team = displayTeamName(row[teamIdx] || "");
+      const wins = parseNumber(row[winsIdx]);
+      const loss = parseNumber(row[lossIdx]);
+      return {
+        team,
+        gp: wins !== null && loss !== null ? wins + loss : null,
+        wins,
+        loss,
+        gb: parseNumber(row[gbIdx]),
+        winpct: parsePct(row[pctIdx]),
+        sos: null,
+        pam: null,
+        trel: null,
+        transactions: 0,
+      };
+    })
+    .filter((row) => row.team);
+}
+
 function applyTransactionCountsToLeagueRows(rows, counts) {
   rows.forEach((row) => {
     const key = normalizeTeamLabel(row.team);
@@ -528,6 +569,11 @@ function renderTable(headers, dataRows, teamName) {
       `
     )
     .join("");
+}
+
+function renderRosterMessage(message) {
+  els.head.innerHTML = "<tr><th>Player</th></tr>";
+  els.body.innerHTML = `<tr><td>${escapeHtml(message)}</td></tr>`;
 }
 
 function renderSchedule(headers, dataRows) {
@@ -1703,6 +1749,39 @@ async function loadRoster() {
       liveScoreMap = new Map();
       updateTeamSchedule(teamName, scheduleRows, boxScoreData, "c2s2-regular");
       updateAdvancedTeamStats(computeAdvancedTeamStats(teamName, playerStatRows));
+    } else if (season === "c1s2-regular" || season === "c1s2-post") {
+      const [standingsRes, scheduleRes] = await Promise.all([
+        fetch(C1S2_STANDINGS_URL, { cache: "no-store" }),
+        fetch(
+          season === "c1s2-post" ? C1S2_POST_SCHEDULE_URL : C1S2_REGULAR_SCHEDULE_URL,
+          { cache: "no-store" }
+        ),
+      ]);
+      if (!standingsRes.ok) {
+        throw new Error(`Fetch failed: ${standingsRes.status}`);
+      }
+      if (!scheduleRes.ok) {
+        throw new Error(`Fetch failed: ${scheduleRes.status}`);
+      }
+
+      renderRosterMessage("No roster data available for Chapter 1 S2.");
+
+      const standingsRows = parseCSV(await standingsRes.text());
+      const scheduleRows = parseCSV(await scheduleRes.text());
+
+      leagueStandingsMetrics = buildLeagueRowsFromC1S2(standingsRows);
+      applyTransactionCountsToLeagueRows(
+        leagueStandingsMetrics,
+        leagueTransactionCounts
+      );
+      renderLeagueMetricLeader();
+      updateStandingsFromC1S2(teamName, standingsRows);
+      clearAdvancedTeamStats();
+      liveScoreMap = new Map();
+      boxScoreRows = [];
+      finalScoreMap = new Map();
+      teamLeadersMap = new Map();
+      updateTeamSchedule(teamName, scheduleRows, [], season);
     } else {
       const [archiveRes] = await Promise.all([
         fetch(ARCHIVE_URL, { cache: "no-store" }),
@@ -1829,6 +1908,42 @@ function updateStandingsFromRanges(teamName, standingsRows) {
   els.statLoss.textContent = row.losses || "—";
   els.statGb.textContent = row.gb || "—";
   els.statWinPct.textContent = row.winPct || "—";
+  if (els.statSos) {
+    els.statSos.textContent = "—";
+  }
+}
+
+function updateStandingsFromC1S2(teamName, standingsRows) {
+  if (!standingsRows || standingsRows.length < 2) {
+    return;
+  }
+  const headers = (standingsRows[0] || []).map((h) => String(h || "").trim().toLowerCase());
+  const teamIdx = headers.findIndex((h) => h === "team");
+  const winsIdx = headers.findIndex((h) => h === "wins" || h === "win");
+  const lossIdx = headers.findIndex((h) => h === "losses" || h === "loss");
+  const gbIdx = headers.findIndex((h) => h === "gb");
+  const pctIdx = headers.findIndex((h) => h === "win %" || h === "win%" || h === "pct");
+  if (teamIdx === -1 || winsIdx === -1 || lossIdx === -1 || gbIdx === -1 || pctIdx === -1) {
+    return;
+  }
+  const target = normalizeTeamLabel(teamName);
+  const row = standingsRows
+    .slice(1)
+    .find((entry) => normalizeTeamLabel(entry[teamIdx]) === target);
+  if (!row) {
+    return;
+  }
+
+  const wins = parseNumber(row[winsIdx]);
+  const loss = parseNumber(row[lossIdx]);
+  const gp = wins !== null && loss !== null ? wins + loss : null;
+
+  els.statTeam.textContent = displayTeamName(row[teamIdx] || teamName || "—");
+  els.statGp.textContent = gp !== null ? String(gp) : "—";
+  els.statWins.textContent = wins !== null ? String(wins) : "—";
+  els.statLoss.textContent = loss !== null ? String(loss) : "—";
+  els.statGb.textContent = row[gbIdx] || "—";
+  els.statWinPct.textContent = row[pctIdx] || "—";
   if (els.statSos) {
     els.statSos.textContent = "—";
   }
