@@ -6,6 +6,7 @@ const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
+const C2S1_ROSTERS_URL = "/assets/data/c2s1-rosters.csv";
 const C1S2_STANDINGS_URL = "/assets/data/c1s2-standings.csv";
 const C1S2_REGULAR_SCHEDULE_URL = "/assets/data/c1s2-regular-schedule.csv";
 const C1S2_POST_SCHEDULE_URL = "/assets/data/c1s2-post-schedule.csv";
@@ -229,9 +230,11 @@ const els = {
   statCapSpace: document.getElementById("stat-cap-space"),
   statTransactions: document.getElementById("stat-transactions"),
   statTeam: document.getElementById("stat-team"),
+  teamViewTabs: document.getElementById("team-view-tabs"),
   standingsMetricSelect: document.getElementById("standings-metric-select"),
   standingsMetricLeader: document.getElementById("standings-metric-leader"),
   standingsStatBoxes: Array.from(document.querySelectorAll(".stat-box[data-metric]")),
+  historyPanel: document.querySelector(".history-panel"),
   historyScopeTabs: document.getElementById("history-scope-tabs"),
   historyPanels: Array.from(document.querySelectorAll("[data-history-panel]")),
   draftCapital: document.getElementById("team-draft-capital"),
@@ -260,6 +263,43 @@ let isTeamPageRefreshing = false;
 
 let leagueStandingsMetrics = [];
 let leagueTransactionCounts = new Map();
+
+function applyTeamView(view) {
+  const nextView = view === "historical" ? "historical" : "season";
+  if (els.teamViewTabs) {
+    els.teamViewTabs.querySelectorAll("[data-team-view]").forEach((button) => {
+      const active = button.dataset.teamView === nextView;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+  }
+}
+
+function initTeamViewTabs() {
+  if (!els.teamViewTabs) {
+    return;
+  }
+  applyTeamView("season");
+  els.teamViewTabs.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-team-view]");
+    if (!button) {
+      return;
+    }
+    const view = button.dataset.teamView || "season";
+    applyTeamView(view);
+    if (view === "historical") {
+      applyHistoryScope("franchise");
+      if (els.historyPanel) {
+        els.historyPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      return;
+    }
+    const standingsPanel = event.currentTarget.closest(".standings-panel");
+    if (standingsPanel) {
+      standingsPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+}
 
 function getSelectedHistoryScope() {
   const raw = localStorage.getItem(HISTORY_SCOPE_KEY) || DEFAULT_HISTORY_SCOPE;
@@ -295,6 +335,7 @@ function initHistoryTabs() {
       return;
     }
     applyHistoryScope(button.dataset.historyScope || DEFAULT_HISTORY_SCOPE);
+    applyTeamView("historical");
   });
   applyHistoryScope(getSelectedHistoryScope());
 }
@@ -1092,7 +1133,7 @@ async function loadHistoricalData(teamName) {
   const playerSeasonConfigs = [
     { label: "C2S3", type: "rangeRoster", url: ROSTER_CSV_URL, range: TEAM_RANGES[teamName], teamName },
     { label: "C2S2", type: "rangeRoster", url: C2S2_REGULAR_URL, range: TEAM_RANGES[teamName], teamName },
-    { label: "C2S1", type: "archiveRoster", url: ARCHIVE_URL, range: ARCHIVE_TEAM_ROSTERS[teamName], teamName },
+    { label: "C2S1", type: "rosterCsv", url: C2S1_ROSTERS_URL },
     { label: "C1S6", type: "rosterCsv", url: C1S6_ROSTERS_URL },
     { label: "C1S5", type: "rosterCsv", url: C1S5_ROSTERS_URL },
     { label: "C1S4", type: "playerStats", url: C1S4_PLAYER_STATS_URL },
@@ -2820,8 +2861,9 @@ async function loadRoster() {
       updateTeamSchedule(teamName, scheduleRows, [], season);
       updateAdvancedTeamStats(computeAdvancedTeamStats(teamName, playerStatRows));
     } else {
-      const [archiveRes] = await Promise.all([
+      const [archiveRes, c2s1RosterRes] = await Promise.all([
         fetch(ARCHIVE_URL, { cache: "no-store" }),
+        fetch(C2S1_ROSTERS_URL, { cache: "no-store" }),
       ]);
       if (!archiveRes.ok) {
         throw new Error(`Fetch failed: ${archiveRes.status}`);
@@ -2836,12 +2878,22 @@ async function loadRoster() {
       const scheduleTable = sliceRange(archive, scheduleRange);
       const boxscoreTable = sliceRange(archive, ARCHIVE_RANGES.boxscore);
 
-      const rosterRange = ARCHIVE_TEAM_ROSTERS[teamName];
-      let rosterRows = rosterRange ? sliceRange(archive, rosterRange) : [];
-      if (rosterRows.length) {
-        rosterRows = rosterRows
-          .filter((row) => String(row[0] || "").trim() !== teamName)
-          .map((row) => [row[0], ""]);
+      let rosterRows = [];
+      if (c2s1RosterRes.ok) {
+        const c2s1RosterRows = parseCSV(await c2s1RosterRes.text());
+        rosterRows = c2s1RosterRows
+          .slice(1)
+          .filter((row) => teamMatches(row[0], teamName))
+          .map((row) => [row[1] || ""]);
+      }
+      if (!rosterRows.length) {
+        const rosterRange = ARCHIVE_TEAM_ROSTERS[teamName];
+        rosterRows = rosterRange ? sliceRange(archive, rosterRange) : [];
+        if (rosterRows.length) {
+          rosterRows = rosterRows
+            .filter((row) => String(row[0] || "").trim() !== teamName)
+            .map((row) => [row[0], ""]);
+        }
       }
       renderTable(["Player"], rosterRows.map((row) => [row[0]]), teamName);
 
@@ -3740,5 +3792,6 @@ document.addEventListener("click", (event) => {
 initSeasonSelect();
 initStandingsInteractions();
 initHistoryTabs();
+initTeamViewTabs();
 loadRoster();
 setInterval(loadRoster, AUTO_REFRESH_MS);

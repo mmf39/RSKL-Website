@@ -2,6 +2,7 @@ const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
+const C2S1_ROSTERS_URL = "/assets/data/c2s1-rosters.csv";
 const AWARDS_URL = "/api/sheet?name=awards";
 const DRAFT_URL = "/api/sheet?name=draft";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
@@ -631,6 +632,32 @@ async function findTeamForPlayer(season, playerName) {
       return matchedTeamsLoose[matchedTeamsLoose.length - 1];
     }
     return "";
+  }
+  if (season === "c2s1-regular" || season === "career") {
+    const rosterRes = await fetch(C2S1_ROSTERS_URL, { cache: "no-store" });
+    if (rosterRes.ok) {
+      const rosterRows = parseCSV(await rosterRes.text());
+      const matchedTeamsStrict = [];
+      const matchedTeamsLoose = [];
+      rosterRows.slice(1).forEach((row) => {
+        const team = String(row[0] || "").trim();
+        const player = String(row[1] || "").trim();
+        if (!team || !player) {
+          return;
+        }
+        if (matchesAnyAliasStrict(player, aliases)) {
+          matchedTeamsStrict.push(team);
+        } else if (matchesAnyAlias(player, aliases)) {
+          matchedTeamsLoose.push(team);
+        }
+      });
+      if (matchedTeamsStrict.length) {
+        return matchedTeamsStrict[matchedTeamsStrict.length - 1];
+      }
+      if (matchedTeamsLoose.length) {
+        return matchedTeamsLoose[matchedTeamsLoose.length - 1];
+      }
+    }
   }
   if (
     season === "c2s1-playoffs" ||
