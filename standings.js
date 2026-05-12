@@ -116,6 +116,10 @@ const CURRENT_TEAMS = [
   "The Phantoms",
 ];
 
+const CURRENT_FRANCHISE_NAMES = new Map(
+  CURRENT_TEAMS.map((team) => [getFranchiseKey(team), team])
+);
+
 function getSeasonRaw() {
   const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
   if (raw === ALL_TIME_SEASON) return ALL_TIME_SEASON;
@@ -774,8 +778,8 @@ async function buildAllTimeLeagueStandings() {
 
     seasonRows.forEach((row) => {
       const teamName = displayTeamName(row.team);
-      const teamKey = normalizeTeamLabel(teamName);
-      if (!teamKey) {
+      const franchiseKey = getFranchiseKey(teamName);
+      if (!franchiseKey) {
         return;
       }
       const wins = parseNumber(row.wins);
@@ -783,8 +787,8 @@ async function buildAllTimeLeagueStandings() {
       if (!Number.isFinite(wins) || !Number.isFinite(loss)) {
         return;
       }
-      const bucket = buckets.get(teamKey) || {
-        team: teamName,
+      const bucket = buckets.get(franchiseKey) || {
+        team: CURRENT_FRANCHISE_NAMES.get(franchiseKey) || teamName,
         gp: 0,
         wins: 0,
         loss: 0,
@@ -798,7 +802,7 @@ async function buildAllTimeLeagueStandings() {
       bucket.gp += wins + loss;
       bucket.wins += wins;
       bucket.loss += loss;
-      buckets.set(teamKey, bucket);
+      buckets.set(franchiseKey, bucket);
     });
   }
 
