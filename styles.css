@@ -5367,7 +5367,8 @@ input[type="text"] {
   }
 
   .team-page .team-view-tabs .standings-scope-tab {
-    width: auto;
+    width: 100%;
+    text-align: center;
   }
 
   .player-detail-page .player-team-tab {
@@ -5383,7 +5384,7 @@ input[type="text"] {
   .team-page #franchise-history-table,
   .team-page #playoff-history-table,
   .team-page #franchise-players-table {
-    min-width: 560px;
+    min-width: 480px;
   }
 
   #data-table,
@@ -5459,6 +5460,8 @@ input[type="text"] {
   }
 
   .team-page .team-view-tabs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
 
@@ -5697,6 +5700,20 @@ input[type="text"] {
 
   .team-page #team-schedule {
     min-width: 320px;
+  }
+
+  .team-page .team-view-tabs,
+  .team-history-page .history-scope-tabs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .team-page #franchise-history-table,
+  .team-page #playoff-history-table,
+  .team-page #franchise-players-table,
+  .team-history-page #franchise-history-table,
+  .team-history-page #playoff-history-table,
+  .team-history-page #franchise-players-table {
+    min-width: 420px;
   }
 
   .season-select {
