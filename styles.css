@@ -2357,6 +2357,17 @@ input[type="text"] {
   margin-bottom: 14px;
 }
 
+.team-page .team-view-season {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.team-page .team-view-season.active {
+  box-shadow: 0 10px 26px rgba(255, 140, 26, 0.22);
+}
+
 .team-page .season-select-inline {
   justify-self: start;
   align-self: center;

@@ -87,23 +87,25 @@
           <h2>Standings</h2>
         </div>
         <div class="standings-scope-tabs team-view-tabs" id="team-view-tabs" aria-label="Team data view">
-          <select id="team-season-select" class="season-select season-select-inline">
-            <option value="c2s3-regular">C2S3</option>
-            <option value="c2s2-regular">C2S2</option>
-            <option value="c2s2-playoffs">C2S2 Playoffs</option>
-            <option value="c2s1-regular">C2S1</option>
-            <option value="c2s1-post">C2S1 Playoffs</option>
-            <option value="c1s6-regular">C1S6</option>
-            <option value="c1s6-post">C1S6 Playoffs</option>
-            <option value="c1s5-regular">C1S5</option>
-            <option value="c1s5-post">C1S5 Playoffs</option>
-            <option value="c1s4-regular">C1S4</option>
-            <option value="c1s4-post">C1S4 Playoffs</option>
-            <option value="c1s3-regular">C1S3</option>
-            <option value="c1s3-post">C1S3 Playoffs</option>
-            <option value="c1s2-regular">C1S2</option>
-            <option value="c1s2-post">C1S2 Playoffs</option>
-          </select>
+          <div class="team-view-season" data-team-view="season">
+            <select id="team-season-select" class="season-select season-select-inline">
+              <option value="c2s3-regular">C2S3</option>
+              <option value="c2s2-regular">C2S2</option>
+              <option value="c2s2-playoffs">C2S2 Playoffs</option>
+              <option value="c2s1-regular">C2S1</option>
+              <option value="c2s1-post">C2S1 Playoffs</option>
+              <option value="c1s6-regular">C1S6</option>
+              <option value="c1s6-post">C1S6 Playoffs</option>
+              <option value="c1s5-regular">C1S5</option>
+              <option value="c1s5-post">C1S5 Playoffs</option>
+              <option value="c1s4-regular">C1S4</option>
+              <option value="c1s4-post">C1S4 Playoffs</option>
+              <option value="c1s3-regular">C1S3</option>
+              <option value="c1s3-post">C1S3 Playoffs</option>
+              <option value="c1s2-regular">C1S2</option>
+              <option value="c1s2-post">C1S2 Playoffs</option>
+            </select>
+          </div>
           <button class="standings-scope-tab" type="button" data-team-view="historical">Historical</button>
         </div>
         <span id="stat-team" hidden>—</span>

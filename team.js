@@ -280,10 +280,12 @@ function applyTeamView(view) {
     els.historyPanel.hidden = nextView !== "historical";
   }
   if (els.teamViewTabs) {
-    els.teamViewTabs.querySelectorAll("[data-team-view]").forEach((button) => {
-      const active = button.dataset.teamView === nextView;
-      button.classList.toggle("active", active);
-      button.setAttribute("aria-pressed", active ? "true" : "false");
+    els.teamViewTabs.querySelectorAll("[data-team-view]").forEach((control) => {
+      const active = control.dataset.teamView === nextView;
+      control.classList.toggle("active", active);
+      if (control.tagName === "BUTTON") {
+        control.setAttribute("aria-pressed", active ? "true" : "false");
+      }
     });
   }
 }
