@@ -630,26 +630,40 @@ function renderRosterTableWithNotice(players, notice) {
 function getFranchiseKey(value) {
   const team = displayTeamName(value);
   if (
-    team === "Richer N Em" ||
+    team === "Tigers" ||
     team === "Masdog N Em" ||
+    team === "Karma Avengers" ||
+    team === "Avengers"
+  ) {
+    return "tigers-avengers-lineage";
+  }
+  if (team === "Legends" || team === "Mafia") {
+    return "mafia-lineage";
+  }
+  if (
+    team === "Gamblers" ||
+    team === "Chicken Nuggets" ||
     team === "Doggy N Em" ||
     team === "Mambas"
   ) {
     return "doggy-lineage";
   }
-  if (team === "Avengers" || team === "Karma Avengers") {
-    return "karma-avengers";
-  }
   if (team === "Currents" || team === "The Currents") {
     return "the-currents";
   }
   if (team === "Bolts" || team === "The Bolts") {
-    return "the-bolts";
+    return "turkeys-lineage";
+  }
+  if (team === "Turkeys") {
+    return "turkeys-lineage";
+  }
+  if (team === "Enforcers" || team === "Wolves") {
+    return "wolves-lineage";
   }
   if (team === "Wrangler" || team === "Wranglers") {
     return "wranglers";
   }
-  if (team === "Storm" || team === "Bullets") {
+  if (team === "Storm" || team === "Bullets" || team === "Strom") {
     return "storm";
   }
   if (team === "MayeDay" || team === "Yetis") {
@@ -698,13 +712,34 @@ function renderFranchiseHistory(rows) {
 }
 
 function buildHistoryRowsFromCurrentStandings(rows) {
-  return getCurrentStandingsRows(rows).map((row) => ({
-    team: row.team,
-    wins: parseNumber(row.wins),
-    loss: parseNumber(row.losses),
-    winpct: parsePct(row.winPct),
-    league: "",
-  }));
+  const builtRows = [];
+  let indexes = null;
+
+  (rows || []).forEach((row) => {
+    const nextIndexes = getCurrentStandingsHeaderIndexes(row);
+    if (nextIndexes) {
+      indexes = nextIndexes;
+      return;
+    }
+    if (!indexes) {
+      return;
+    }
+
+    const team = displayTeamName(String(row[indexes.teamIdx] || "").trim());
+    if (!team) {
+      return;
+    }
+
+    builtRows.push({
+      team,
+      wins: parseNumber(row[indexes.winsIdx]),
+      loss: parseNumber(row[indexes.lossesIdx]),
+      winpct: parsePct(row[indexes.pctIdx]),
+      league: "",
+    });
+  });
+
+  return builtRows;
 }
 
 function buildHistoryRowsFromTable(tableRows) {

@@ -73,8 +73,8 @@ const DIVISIONS = {
     secondaryKey: "jr",
     primaryLabel: "Justin Jefferson",
     secondaryLabel: "Jrrdql",
-    primary: new Set(["Whatsgrass", "The Currents", "Turkeys", "Mafia", "Gus N Em", "Illegals", "Mambas", "ALEK Manoahs"]),
-    secondary: new Set(["Burritos", "Bees", "Wolves", "Avengers", "Thunderhawks", "Mets", "Cobras", "Wranglers"]),
+    primary: new Set(["Whatsgrass", "Wolves", "The Currents", "Mafia", "ALEK Manoahs", "Thunderhawks", "Phoenix"]),
+    secondary: new Set(["Bees", "Illegals", "Gus N Em", "Cobras", "Zombies", "Mets", "Turkeys", "Broncos"]),
   },
   c1s5: {
     primaryKey: "jj",
