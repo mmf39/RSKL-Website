@@ -40,6 +40,10 @@ const C2S2_REGULAR_RANGES = {
 
 function getPlayerSeason() {
   const season = localStorage.getItem(SEASON_KEY);
+  if (season === "all-time") {
+    const playerSeason = localStorage.getItem(PLAYER_SEASON_KEY);
+    return playerSeason || "c2s2-regular";
+  }
   if (season === "c2s3-regular") {
     return "c2s3-regular";
   }

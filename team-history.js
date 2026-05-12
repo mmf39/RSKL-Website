@@ -22,6 +22,7 @@ const SEASON_KEY = "season";
 const DEFAULT_SEASON = "c2s3-regular";
 const DEFAULT_HISTORY_SCOPE = "franchise";
 const HISTORY_SCOPE_KEY = "team_history_scope";
+const ALL_TIME_SEASON = "all-time";
 
 const C2S2_REGULAR_RANGES = {
   standings: "A59:F69",
@@ -99,6 +100,9 @@ const els = {
 
 function normalizeSeasonValue(raw) {
   const key = String(raw || "").trim().toLowerCase();
+  if (key === ALL_TIME_SEASON) {
+    return ALL_TIME_SEASON;
+  }
   return SEASON_ALIASES[key] || DEFAULT_SEASON;
 }
 

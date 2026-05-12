@@ -10,6 +10,7 @@ const C1S5_STANDINGS_URL = "/assets/data/c1s5-standings.csv";
 const C1S4_STANDINGS_URL = "/assets/data/c1s4-standings.csv";
 const C1S3_STANDINGS_URL = "/assets/data/c1s3-standings.csv";
 const SEASON_KEY = "season";
+const ALL_TIME_SEASON = "all-time";
 const C2S2_SCHEDULE_RANGE = "A2:E77";
 const TRANSACTIONS_RANGE = "A3:E81";
 const RETIREMENT_RANGE = "G3:J70";
@@ -102,14 +103,29 @@ const DIVISIONS = {
   },
 };
 
+const CURRENT_TEAMS = [
+  "Turkeys",
+  "Gus N Em",
+  "Storm",
+  "Cheerios",
+  "MayeDay",
+  "Illegals",
+  "The Lions",
+  "Dream Team",
+  "The Snipers",
+  "The Phantoms",
+];
+
 function getSeasonRaw() {
   const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
+  if (raw === ALL_TIME_SEASON) return ALL_TIME_SEASON;
   if (raw === "c2s2") return "c2s3-regular";
   return raw;
 }
 
 function getSeason() {
   const raw = getSeasonRaw();
+  if (raw === ALL_TIME_SEASON) return ALL_TIME_SEASON;
   if (raw === "c2s3-regular" || raw === "c2s2-playoffs" || raw === "c2s2-regular") return "c2s2";
   if (raw === "c2s1-playoffs") return "c2s1-post";
   return raw;
@@ -202,6 +218,72 @@ function displayTeamName(value) {
   if (name === "Doggy N em") return "Doggy N Em";
   if (name === "Wrangler") return "Wranglers";
   return name;
+}
+
+function getFranchiseKey(value) {
+  const team = displayTeamName(value);
+  if (
+    team === "Tigers" ||
+    team === "Masdog N Em" ||
+    team === "Karma Avengers" ||
+    team === "Avengers"
+  ) {
+    return "tigers-avengers-lineage";
+  }
+  if (team === "Legends" || team === "Mafia") {
+    return "mafia-lineage";
+  }
+  if (
+    team === "Gamblers" ||
+    team === "Chicken Nuggets" ||
+    team === "Doggy N Em" ||
+    team === "Mambas"
+  ) {
+    return "doggy-lineage";
+  }
+  if (team === "Currents" || team === "The Currents") {
+    return "the-currents";
+  }
+  if (team === "Bolts" || team === "The Bolts" || team === "Turkeys") {
+    return "turkeys-lineage";
+  }
+  if (team === "Enforcers" || team === "Wolves") {
+    return "wolves-lineage";
+  }
+  if (team === "Wrangler" || team === "Wranglers") {
+    return "wranglers";
+  }
+  if (team === "Storm" || team === "Bullets" || team === "Strom") {
+    return "storm";
+  }
+  if (team === "MayeDay" || team === "Yetis") {
+    return "mayeday";
+  }
+  if (team === "Dream Team" || team === "The Future") {
+    return "dream-team";
+  }
+  return normalizeTeamLabel(team);
+}
+
+const CURRENT_FRANCHISE_KEYS = new Set(CURRENT_TEAMS.map((team) => getFranchiseKey(team)));
+
+function getPreferredFranchiseTeamName(team) {
+  const franchiseKey = getFranchiseKey(team);
+  const preferred = CURRENT_TEAMS.find((name) => getFranchiseKey(name) === franchiseKey);
+  return preferred || displayTeamName(team);
+}
+
+function getFranchiseSeasonConfigs() {
+  return [
+    { key: "c2s3-regular", type: "current", url: STANDINGS_CSV_URL },
+    { key: "c2s2-regular", type: "range", url: C2S2_REGULAR_URL, range: C2S2_REGULAR_RANGES.standings },
+    { key: "c2s1-regular", type: "range", url: ARCHIVE_URL, range: ARCHIVE_RANGES.standings },
+    { key: "c1s6-regular", type: "csv", url: C1S6_STANDINGS_URL },
+    { key: "c1s5-regular", type: "csv", url: C1S5_STANDINGS_URL },
+    { key: "c1s4-regular", type: "csv", url: C1S4_STANDINGS_URL },
+    { key: "c1s3-regular", type: "csv", url: C1S3_STANDINGS_URL },
+    { key: "c1s2-regular", type: "csv", url: C1S2_STANDINGS_URL },
+  ];
 }
 
 function getDivisionConfig() {
@@ -511,7 +593,8 @@ function renderStandings() {
     els.leaderboard.innerHTML = renderStandingsSection(`${config.secondaryLabel} Division`, secondaryRows);
     return;
   }
-  els.leaderboard.innerHTML = renderStandingsSection("League Standings", leagueRows);
+  const leagueTitle = getSeasonRaw() === ALL_TIME_SEASON ? "All-Time Standings" : "League Standings";
+  els.leaderboard.innerHTML = renderStandingsSection(leagueTitle, leagueRows);
 }
 
 function stripCaptainMarker(value) {
@@ -621,6 +704,62 @@ function buildLeagueRowsFromArchive(standingsTable, scheduleTable, season) {
       };
     })
     .filter((row) => row && isStandingsTeamName(row.team));
+}
+
+async function buildAllTimeLeagueStandings() {
+  const seasonConfigs = getFranchiseSeasonConfigs();
+  const settled = await Promise.allSettled(
+    seasonConfigs.map((config) => fetch(config.url, { cache: "no-store" }))
+  );
+  const buckets = new Map();
+
+  for (let index = 0; index < seasonConfigs.length; index += 1) {
+    const config = seasonConfigs[index];
+    const response = settled[index];
+    if (response.status !== "fulfilled" || !response.value.ok) {
+      continue;
+    }
+    const parsed = parseCSV(await response.value.text());
+    const seasonRows =
+      config.type === "current"
+        ? buildHistoryRowsFromCurrentStandings(parsed)
+        : config.type === "range"
+        ? buildHistoryRowsFromTable(sliceRange(parsed, config.range))
+        : buildHistoryRowsFromTable(parsed);
+
+    seasonRows.forEach((row) => {
+      const franchiseKey = getFranchiseKey(row.team);
+      if (!CURRENT_FRANCHISE_KEYS.has(franchiseKey)) {
+        return;
+      }
+      const wins = parseNumber(row.wins);
+      const loss = parseNumber(row.loss);
+      if (!Number.isFinite(wins) || !Number.isFinite(loss)) {
+        return;
+      }
+      const bucket = buckets.get(franchiseKey) || {
+        team: getPreferredFranchiseTeamName(row.team),
+        gp: 0,
+        wins: 0,
+        loss: 0,
+        gb: null,
+        winpct: null,
+        sos: null,
+        pam: null,
+        trel: null,
+        transactions: null,
+      };
+      bucket.gp += wins + loss;
+      bucket.wins += wins;
+      bucket.loss += loss;
+      buckets.set(franchiseKey, bucket);
+    });
+  }
+
+  return Array.from(buckets.values()).map((row) => ({
+    ...row,
+    winpct: row.gp ? row.wins / row.gp : null,
+  }));
 }
 
 function applyTransactionCountsToLeagueRows(rows, counts) {
@@ -1355,7 +1494,16 @@ async function loadStandings() {
     const seasonRaw = getSeasonRaw();
     const season = getSeason();
 
-    if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s2-playoffs") {
+    if (seasonRaw === ALL_TIME_SEASON) {
+      standingsHeaders = [];
+      standingsRows = [];
+      transactionsByTeam = new Map();
+      leagueStandingsMetrics = await buildAllTimeLeagueStandings();
+      if (["gb", "sos", "pam", "trel", "transactions"].includes(requestedMetric)) {
+        requestedMetric = "wins";
+      }
+      renderStandings();
+    } else if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s2-playoffs") {
       const [standingsRes, scheduleRes, playerStatsRes, transactionsRes] = await Promise.all([
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
         fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),

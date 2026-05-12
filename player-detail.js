@@ -885,6 +885,9 @@ function getPlayerName() {
 }
 
 function normalizeSeason(value) {
+  if (value === "all-time") {
+    return "c2s3-regular";
+  }
   if (value === "c2s3-regular" || value === "c2s2-playoffs") {
     return value;
   }
