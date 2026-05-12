@@ -6,6 +6,7 @@ const C1S2_DRAFT_URL = "/assets/data/c1s2-draft.csv";
 const C1S3_DRAFT_URL = "/assets/data/c1s3-draft.csv";
 const C1S4_DRAFT_URL = "/assets/data/c1s4-draft.csv";
 const C1S5_DRAFT_URL = "/assets/data/c1s5-draft.csv";
+const C1S6_DRAFT_URL = "/assets/data/c1s6-draft.csv";
 const DRAFT_YEAR_KEY = "draftYear";
 
 const els = {
@@ -22,6 +23,12 @@ const els = {
 };
 
 const ROUND_RANGES_BY_YEAR = {
+  c1s6: [
+    { id: "round-1", title: "Round 1", range: "" },
+    { id: "round-2", title: "Round 2", range: "" },
+    { id: "round-3", title: "Round 3", range: "" },
+    { id: "round-4", title: "Round 4", range: "" },
+  ],
   c1s5: [
     { id: "round-1", title: "Round 1", range: "" },
     { id: "round-2", title: "Round 2", range: "" },
@@ -83,6 +90,9 @@ const TEAM_NAMES = new Set([
   "Mafia",
   "Enforcers",
   "Karma Avengers",
+  "Avengers",
+  "Mambas",
+  "Wranglers",
   "Wolves",
   "Phoenix",
   "Mets",
@@ -222,6 +232,7 @@ function displayTeamName(value) {
   if (name === "Currents") return "The Currents";
   if (name === "Bolts") return "The Bolts";
   if (name === "Doggy N em") return "Doggy N Em";
+  if (name === "Wrangler") return "Wranglers";
   return name;
 }
 
@@ -787,7 +798,7 @@ function renderExpansion(rows) {
 
 function getSelectedDraftYear() {
   const saved = localStorage.getItem(DRAFT_YEAR_KEY);
-  if (saved === "c1s2" || saved === "c1s3" || saved === "c1s4" || saved === "c1s5" || saved === "c2s1" || saved === "c2s2" || saved === "c2s3") {
+  if (saved === "c1s2" || saved === "c1s3" || saved === "c1s4" || saved === "c1s5" || saved === "c1s6" || saved === "c2s1" || saved === "c2s2" || saved === "c2s3") {
     return saved;
   }
   return "c2s3";
@@ -814,9 +825,11 @@ async function loadDraft() {
       return;
     }
 
-    if ((selectedYear === "c1s2" || selectedYear === "c1s3" || selectedYear === "c1s4" || selectedYear === "c1s5") && selectedView === "teams") {
+    if ((selectedYear === "c1s2" || selectedYear === "c1s3" || selectedYear === "c1s4" || selectedYear === "c1s5" || selectedYear === "c1s6") && selectedView === "teams") {
       const response = await fetch(
-        selectedYear === "c1s5"
+        selectedYear === "c1s6"
+          ? C1S6_DRAFT_URL
+          : selectedYear === "c1s5"
           ? C1S5_DRAFT_URL
           : selectedYear === "c1s4"
           ? C1S4_DRAFT_URL

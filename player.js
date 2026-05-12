@@ -5,6 +5,7 @@ const C1S2_PLAYER_STATS_URL = "/assets/data/c1s2-player-stats.csv";
 const C1S3_PLAYER_STATS_URL = "/assets/data/c1s3-player-stats.csv";
 const C1S4_PLAYER_STATS_URL = "/assets/data/c1s4-player-stats.csv";
 const C1S5_PLAYER_STATS_URL = "/assets/data/c1s5-player-stats.csv";
+const C1S6_PLAYER_STATS_URL = "/assets/data/c1s6-player-stats.csv";
 const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
 const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
@@ -78,6 +79,12 @@ function getPlayerSeason() {
   if (season === "c1s5-regular") {
     return "c1s5-regular";
   }
+  if (season === "c1s6-post") {
+    return "c1s6-playoffs";
+  }
+  if (season === "c1s6-regular") {
+    return "c1s6-regular";
+  }
   const playerSeason = localStorage.getItem(PLAYER_SEASON_KEY);
   if (playerSeason) {
     return playerSeason;
@@ -108,6 +115,8 @@ function applyLeaderboardParams() {
     "c2s3-regular",
     "c2s2-playoffs",
     "c2s2-regular",
+    "c1s6-playoffs",
+    "c1s6-regular",
     "c1s5-playoffs",
     "c1s5-regular",
     "c1s4-playoffs",
@@ -133,6 +142,10 @@ function applyLeaderboardParams() {
         ? "c2s3-regular"
         : season === "c2s2-playoffs"
         ? "c2s2-playoffs"
+        : season === "c1s6-playoffs"
+        ? "c1s6-post"
+        : season === "c1s6-regular"
+        ? "c1s6-regular"
         : season === "c1s5-playoffs"
         ? "c1s5-post"
         : season === "c1s5-regular"
@@ -172,6 +185,10 @@ function initPlayerSeasonSelect() {
         ? "c2s3-regular"
         : current === "c2s2-playoffs"
         ? "c2s2-playoffs"
+        : current === "c1s6-playoffs"
+        ? "c1s6-post"
+        : current === "c1s6-regular"
+        ? "c1s6-regular"
         : current === "c1s5-playoffs"
         ? "c1s5-post"
         : current === "c1s5-regular"
@@ -205,6 +222,10 @@ function initPlayerSeasonSelect() {
         ? "c2s3-regular"
         : current === "c2s2-playoffs"
         ? "c2s2-playoffs"
+        : current === "c1s6-playoffs"
+        ? "c1s6-post"
+        : current === "c1s6-regular"
+        ? "c1s6-regular"
         : current === "c1s5-playoffs"
         ? "c1s5-post"
         : current === "c1s5-regular"
@@ -237,6 +258,10 @@ function initPlayerSeasonSelect() {
         ? "c2s3-regular"
         : value === "c2s2-playoffs"
         ? "c2s2-playoffs"
+        : value === "c1s6-playoffs"
+        ? "c1s6-post"
+        : value === "c1s6-regular"
+        ? "c1s6-regular"
         : value === "c1s5-playoffs"
         ? "c1s5-post"
         : value === "c1s5-regular"
@@ -272,6 +297,10 @@ function initPlayerSeasonSelect() {
           ? "c2s3-regular"
           : navSelect.value === "c2s2-playoffs"
           ? "c2s2-playoffs"
+          : navSelect.value === "c1s6-post"
+          ? "c1s6-playoffs"
+          : navSelect.value === "c1s6-regular"
+          ? "c1s6-regular"
           : navSelect.value === "c1s5-post"
           ? "c1s5-playoffs"
           : navSelect.value === "c1s5-regular"
@@ -398,6 +427,11 @@ function displayTeamName(value) {
   if (name === "Bullets") return "Storm";
   if (name === "Yetis") return "MayeDay";
   if (name === "The Future") return "Dream Team";
+  if (name === "Avengers") return "Karma Avengers";
+  if (name === "Currents") return "The Currents";
+  if (name === "Bolts") return "The Bolts";
+  if (name === "Doggy N em") return "Doggy N Em";
+  if (name === "Wrangler") return "Wranglers";
   return name;
 }
 
@@ -739,6 +773,8 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
     ${
       selectedSeason === "c1s2-regular" || selectedSeason === "c1s2-playoffs"
         ? '<p><em>Partial C1S2 data only. Some stats were not recorded.</em></p>'
+        : selectedSeason === "c1s6-regular" || selectedSeason === "c1s6-playoffs"
+        ? '<p><em>No player stats are available yet for Chapter 1 S6.</em></p>'
         : selectedSeason === "c1s5-regular" || selectedSeason === "c1s5-playoffs"
         ? '<p><em>No player stats are available yet for Chapter 1 S5.</em></p>'
         : selectedSeason === "c1s4-regular" || selectedSeason === "c1s4-playoffs"
@@ -825,6 +861,14 @@ async function loadPlayerStats() {
       playerRows = sliced.slice(1);
     } else if (season === "c1s2-regular" || season === "c1s2-playoffs") {
       const response = await fetch(C1S2_PLAYER_STATS_URL, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Fetch failed: ${response.status}`);
+      }
+      const rows = parseCSV(await response.text());
+      playerColumns = detectPlayerColumns(rows[0] || []);
+      playerRows = rows.slice(1);
+    } else if (season === "c1s6-regular" || season === "c1s6-playoffs") {
+      const response = await fetch(C1S6_PLAYER_STATS_URL, { cache: "no-store" });
       if (!response.ok) {
         throw new Error(`Fetch failed: ${response.status}`);
       }

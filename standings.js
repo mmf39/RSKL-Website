@@ -5,6 +5,7 @@ const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const C1S2_STANDINGS_URL = "/assets/data/c1s2-standings.csv";
+const C1S6_STANDINGS_URL = "/assets/data/c1s6-standings.csv";
 const C1S5_STANDINGS_URL = "/assets/data/c1s5-standings.csv";
 const C1S4_STANDINGS_URL = "/assets/data/c1s4-standings.csv";
 const C1S3_STANDINGS_URL = "/assets/data/c1s3-standings.csv";
@@ -66,6 +67,14 @@ const DIVISIONS = {
     secondaryLabel: "West",
     primary: new Set(["Thunderhawks", "Whatsgrass", "Tigers", "Legends", "ALEK Manoahs", "Gamblers"]),
     secondary: new Set(["Burritos", "Cobras", "Illegals", "Gus N Em", "Bees"]),
+  },
+  c1s6: {
+    primaryKey: "jj",
+    secondaryKey: "jr",
+    primaryLabel: "Justin Jefferson",
+    secondaryLabel: "Jrrdql",
+    primary: new Set(["Whatsgrass", "The Currents", "Turkeys", "Mafia", "Gus N Em", "Illegals", "Mambas", "ALEK Manoahs"]),
+    secondary: new Set(["Burritos", "Bees", "Wolves", "Avengers", "Thunderhawks", "Mets", "Cobras", "Wranglers"]),
   },
   c1s5: {
     primaryKey: "jj",
@@ -191,11 +200,15 @@ function displayTeamName(value) {
   if (name === "Currents") return "The Currents";
   if (name === "Bolts") return "The Bolts";
   if (name === "Doggy N em") return "Doggy N Em";
+  if (name === "Wrangler") return "Wranglers";
   return name;
 }
 
 function getDivisionConfig() {
   const seasonRaw = getSeasonRaw();
+  if (seasonRaw === "c1s6-regular" || seasonRaw === "c1s6-post") {
+    return DIVISIONS.c1s6;
+  }
   if (seasonRaw === "c1s5-regular" || seasonRaw === "c1s5-post") {
     return DIVISIONS.c1s5;
   }
@@ -1394,6 +1407,28 @@ async function loadStandings() {
       renderStandings();
     } else if (seasonRaw === "c1s2-regular" || seasonRaw === "c1s2-post") {
       const response = await fetch(C1S2_STANDINGS_URL, { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Fetch failed: ${response.status}`);
+      }
+      const rows = parseCSV(await response.text());
+      standingsHeaders = rows[0] || [];
+      standingsRows = rows.slice(1);
+      transactionsByTeam = new Map();
+      leagueStandingsMetrics = standingsRows.map((row) => ({
+        team: String(row[1] || "").trim(),
+        gp: (parseNumber(row[2]) || 0) + (parseNumber(row[3]) || 0),
+        wins: parseNumber(row[2]),
+        loss: parseNumber(row[3]),
+        gb: parseNumber(row[4]),
+        winpct: parsePct(row[5]),
+        sos: null,
+        pam: null,
+        trel: null,
+        transactions: 0,
+      }));
+      renderStandings();
+    } else if (seasonRaw === "c1s6-regular" || seasonRaw === "c1s6-post") {
+      const response = await fetch(C1S6_STANDINGS_URL, { cache: "no-store" });
       if (!response.ok) {
         throw new Error(`Fetch failed: ${response.status}`);
       }

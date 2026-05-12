@@ -11,6 +11,10 @@ const C1S2_REGULAR_SCHEDULE_URL = "/assets/data/c1s2-regular-schedule.csv";
 const C1S2_POST_SCHEDULE_URL = "/assets/data/c1s2-post-schedule.csv";
 const C1S2_ROSTERS_URL = "/assets/data/c1s2-rosters.csv";
 const C1S2_PLAYER_STATS_URL = "/assets/data/c1s2-player-stats.csv";
+const C1S6_STANDINGS_URL = "/assets/data/c1s6-standings.csv";
+const C1S6_REGULAR_SCHEDULE_URL = "/assets/data/c1s6-regular-schedule.csv";
+const C1S6_POST_SCHEDULE_URL = "/assets/data/c1s6-post-schedule.csv";
+const C1S6_ROSTERS_URL = "/assets/data/c1s6-rosters.csv";
 const C1S3_STANDINGS_URL = "/assets/data/c1s3-standings.csv";
 const C1S3_REGULAR_SCHEDULE_URL = "/assets/data/c1s3-regular-schedule.csv";
 const C1S3_POST_SCHEDULE_URL = "/assets/data/c1s3-post-schedule.csv";
@@ -135,6 +139,8 @@ function getSeason() {
   if (raw === "c2s1-playoffs") return "c2s1-post";
   if (raw === "c1s2-post") return "c1s2-post";
   if (raw === "c1s2-regular") return "c1s2-regular";
+  if (raw === "c1s6-post") return "c1s6-post";
+  if (raw === "c1s6-regular") return "c1s6-regular";
   if (raw === "c1s5-post") return "c1s5-post";
   if (raw === "c1s5-regular") return "c1s5-regular";
   if (raw === "c1s3-post") return "c1s3-post";
@@ -153,6 +159,7 @@ function displayTeamName(value) {
   if (name === "Currents") return "The Currents";
   if (name === "Bolts") return "The Bolts";
   if (name === "Doggy N em") return "Doggy N Em";
+  if (name === "Wrangler") return "Wranglers";
   return name;
 }
 
@@ -1848,6 +1855,56 @@ async function loadRoster() {
       teamLeadersMap = new Map();
       updateTeamSchedule(teamName, scheduleRows, [], season);
       updateAdvancedTeamStats(computeAdvancedTeamStats(teamName, playerStatRows));
+    } else if (season === "c1s6-regular" || season === "c1s6-post") {
+      const [standingsRes, scheduleRes, rosterRes] = await Promise.all([
+        fetch(C1S6_STANDINGS_URL, { cache: "no-store" }),
+        fetch(
+          season === "c1s6-post" ? C1S6_POST_SCHEDULE_URL : C1S6_REGULAR_SCHEDULE_URL,
+          { cache: "no-store" }
+        ),
+        fetch(C1S6_ROSTERS_URL, { cache: "no-store" }),
+      ]);
+      if (!standingsRes.ok) {
+        throw new Error(`Fetch failed: ${standingsRes.status}`);
+      }
+      if (!scheduleRes.ok) {
+        throw new Error(`Fetch failed: ${scheduleRes.status}`);
+      }
+      if (!rosterRes.ok) {
+        throw new Error(`Fetch failed: ${rosterRes.status}`);
+      }
+
+      const standingsRows = parseCSV(await standingsRes.text());
+      const scheduleRows = parseCSV(await scheduleRes.text());
+      const rosterRows = parseCSV(await rosterRes.text());
+      const shownTeam = displayTeamName(teamName);
+      const rosterPlayers = rosterRows
+        .slice(1)
+        .filter((row) => displayTeamName(row[0] || "") === shownTeam)
+        .map((row) => String(row[1] || "").trim())
+        .filter(Boolean);
+
+      renderRosterTableWithNotice(
+        rosterPlayers,
+        "Partial C1S6 archive data only. Some stats were not recorded."
+      );
+      if (els.sub) {
+        els.sub.textContent = `${shownTeam} • partial C1S6 archive`;
+      }
+
+      leagueStandingsMetrics = buildLeagueRowsFromC1S2(standingsRows);
+      applyTransactionCountsToLeagueRows(
+        leagueStandingsMetrics,
+        leagueTransactionCounts
+      );
+      renderLeagueMetricLeader();
+      updateStandingsFromC1S2(teamName, standingsRows);
+      clearAdvancedTeamStats();
+      liveScoreMap = new Map();
+      boxScoreRows = [];
+      finalScoreMap = new Map();
+      teamLeadersMap = new Map();
+      updateTeamSchedule(teamName, scheduleRows, [], season);
     } else if (season === "c1s5-regular" || season === "c1s5-post") {
       const [standingsRes, scheduleRes, rosterRes] = await Promise.all([
         fetch(C1S5_STANDINGS_URL, { cache: "no-store" }),

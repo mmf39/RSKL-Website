@@ -10,6 +10,9 @@ const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const C1S2_REGULAR_SCHEDULE_URL = "/assets/data/c1s2-regular-schedule.csv";
 const C1S2_POST_SCHEDULE_URL = "/assets/data/c1s2-post-schedule.csv";
 const C1S2_STANDINGS_URL = "/assets/data/c1s2-standings.csv";
+const C1S6_REGULAR_SCHEDULE_URL = "/assets/data/c1s6-regular-schedule.csv";
+const C1S6_POST_SCHEDULE_URL = "/assets/data/c1s6-post-schedule.csv";
+const C1S6_STANDINGS_URL = "/assets/data/c1s6-standings.csv";
 const C1S5_REGULAR_SCHEDULE_URL = "/assets/data/c1s5-regular-schedule.csv";
 const C1S5_POST_SCHEDULE_URL = "/assets/data/c1s5-post-schedule.csv";
 const C1S5_STANDINGS_URL = "/assets/data/c1s5-standings.csv";
@@ -282,6 +285,7 @@ function displayTeamName(value) {
   if (name === "Currents") return "The Currents";
   if (name === "Bolts") return "The Bolts";
   if (name === "Doggy N em") return "Doggy N Em";
+  if (name === "Wrangler") return "Wranglers";
   return name;
 }
 
@@ -330,6 +334,8 @@ function getSeasonLabel(seasonRaw) {
   if (seasonRaw === "c2s1-post") return "C2S1 Postseason";
   if (seasonRaw === "c1s2-regular") return "C1S2 Regular Season";
   if (seasonRaw === "c1s2-post") return "C1S2 Postseason";
+  if (seasonRaw === "c1s6-regular") return "C1S6 Regular Season";
+  if (seasonRaw === "c1s6-post") return "C1S6 Postseason";
   if (seasonRaw === "c1s5-regular") return "C1S5 Regular Season";
   if (seasonRaw === "c1s5-post") return "C1S5 Postseason";
   if (seasonRaw === "c1s4-regular") return "C1S4 Regular Season";
@@ -1153,6 +1159,8 @@ async function loadData() {
         ? C2S2_REGULAR_URL
         : seasonRaw === "c1s2-regular" || seasonRaw === "c1s2-post"
         ? C1S2_STANDINGS_URL
+        : seasonRaw === "c1s6-regular" || seasonRaw === "c1s6-post"
+        ? C1S6_STANDINGS_URL
         : seasonRaw === "c1s5-regular" || seasonRaw === "c1s5-post"
         ? C1S5_STANDINGS_URL
         : seasonRaw === "c1s4-regular" || seasonRaw === "c1s4-post"
@@ -1171,6 +1179,10 @@ async function loadData() {
         ? C1S2_POST_SCHEDULE_URL
         : seasonRaw === "c1s2-regular"
         ? C1S2_REGULAR_SCHEDULE_URL
+        : seasonRaw === "c1s6-post"
+        ? C1S6_POST_SCHEDULE_URL
+        : seasonRaw === "c1s6-regular"
+        ? C1S6_REGULAR_SCHEDULE_URL
         : seasonRaw === "c1s5-post"
         ? C1S5_POST_SCHEDULE_URL
         : seasonRaw === "c1s5-regular"
@@ -1276,6 +1288,21 @@ async function loadData() {
         fetchSheet(C1S2_STANDINGS_URL),
         fetchSheet(
           seasonRaw === "c1s2-post" ? C1S2_POST_SCHEDULE_URL : C1S2_REGULAR_SCHEDULE_URL
+        ),
+      ]);
+      renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(standingsRows));
+      renderFeaturedMatchups(
+        getFeaturedGames(buildScheduleGames(scheduleRows, seasonRaw), []),
+        seasonRaw
+      );
+      renderLiveScoring([], seasonRaw);
+      renderLeagueLeaders([], seasonRaw);
+      renderRecentTransactions([]);
+    } else if (seasonRaw === "c1s6-regular" || seasonRaw === "c1s6-post") {
+      const [standingsRows, scheduleRows] = await Promise.all([
+        fetchSheet(C1S6_STANDINGS_URL),
+        fetchSheet(
+          seasonRaw === "c1s6-post" ? C1S6_POST_SCHEDULE_URL : C1S6_REGULAR_SCHEDULE_URL
         ),
       ]);
       renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(standingsRows));
