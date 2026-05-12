@@ -706,6 +706,59 @@ function buildLeagueRowsFromArchive(standingsTable, scheduleTable, season) {
     .filter((row) => row && isStandingsTeamName(row.team));
 }
 
+function buildHistoryRowsFromCurrentStandings(rows) {
+  const builtRows = [];
+  let indexes = null;
+
+  (rows || []).forEach((row) => {
+    const nextIndexes = getCurrentStandingsHeaderIndexes(row);
+    if (nextIndexes) {
+      indexes = nextIndexes;
+      return;
+    }
+    if (!indexes) {
+      return;
+    }
+
+    const team = displayTeamName(String(row[indexes.teamIdx] || "").trim());
+    if (!team || !isStandingsTeamName(team)) {
+      return;
+    }
+
+    builtRows.push({
+      team,
+      wins: parseNumber(row[indexes.winsIdx]),
+      loss: parseNumber(row[indexes.lossesIdx]),
+      winpct: parsePct(row[indexes.pctIdx]),
+    });
+  });
+
+  return builtRows;
+}
+
+function buildHistoryRowsFromTable(tableRows) {
+  if (!tableRows || tableRows.length < 2) {
+    return [];
+  }
+  const headers = (tableRows[0] || []).map((h) => String(h || "").trim().toLowerCase());
+  const teamIdx = headers.findIndex((h) => h === "team");
+  const winsIdx = headers.findIndex((h) => h === "wins" || h === "win");
+  const lossIdx = headers.findIndex((h) => h === "losses" || h === "loss" || h === "l");
+  const pctIdx = headers.findIndex((h) => h === "win %" || h === "win%" || h === "pct");
+  if (teamIdx === -1 || winsIdx === -1 || lossIdx === -1) {
+    return [];
+  }
+  return tableRows
+    .slice(1)
+    .map((row) => ({
+      team: displayTeamName(row[teamIdx] || ""),
+      wins: parseNumber(row[winsIdx]),
+      loss: parseNumber(row[lossIdx]),
+      winpct: pctIdx >= 0 ? parsePct(row[pctIdx]) : null,
+    }))
+    .filter((row) => row.team && isStandingsTeamName(row.team));
+}
+
 async function buildAllTimeLeagueStandings() {
   const seasonConfigs = getFranchiseSeasonConfigs();
   const settled = await Promise.allSettled(
