@@ -795,8 +795,8 @@ body.menu-open {
   color: #fff7ed;
   border: 1px solid rgba(255, 166, 77, 0.72);
   border-radius: 999px;
-  padding: 10px 44px 10px 16px;
-  font-size: 0.82rem;
+  padding: 8px 38px 8px 14px;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1.2;
@@ -823,8 +823,8 @@ body.menu-open {
   align-self: start;
   grid-column: 3;
   grid-row: 1;
-  min-width: 220px;
-  max-width: min(100%, 360px);
+  min-width: 160px;
+  max-width: min(100%, 240px);
   cursor: pointer;
   transition:
     border-color 0.2s ease,
@@ -2345,6 +2345,19 @@ input[type="text"] {
   margin-bottom: 16px;
 }
 
+.team-page .history-scope-tabs {
+  width: fit-content;
+  margin-bottom: 18px;
+}
+
+.team-page .history-tab-panel[hidden] {
+  display: none;
+}
+
+.team-page .history-tab-panel {
+  display: block;
+}
+
 .team-page .history-summary-card {
   padding: 14px 16px;
   border-radius: 16px;
@@ -2449,7 +2462,9 @@ input[type="text"] {
 
 .team-page #roster-table,
 .team-page #team-schedule,
-.team-page #franchise-history-table {
+.team-page #franchise-history-table,
+.team-page #playoff-history-table,
+.team-page #franchise-players-table {
   width: 100%;
   margin: 0;
   border-collapse: separate;
@@ -2461,7 +2476,11 @@ input[type="text"] {
 .team-page #team-schedule th,
 .team-page #team-schedule td,
 .team-page #franchise-history-table th,
-.team-page #franchise-history-table td {
+.team-page #franchise-history-table td,
+.team-page #playoff-history-table th,
+.team-page #playoff-history-table td,
+.team-page #franchise-players-table th,
+.team-page #franchise-players-table td {
   text-align: left;
   vertical-align: middle;
   padding: 10px 12px;
@@ -2470,7 +2489,9 @@ input[type="text"] {
 
 .team-page #roster-table thead th,
 .team-page #team-schedule thead th,
-.team-page #franchise-history-table thead th {
+.team-page #franchise-history-table thead th,
+.team-page #playoff-history-table thead th,
+.team-page #franchise-players-table thead th {
   color: rgba(255, 211, 163, 0.84);
   font-size: 0.76rem;
   text-transform: uppercase;
@@ -2481,7 +2502,9 @@ input[type="text"] {
 
 .team-page #roster-table tbody tr:not(:last-child) td,
 .team-page #team-schedule tbody tr:not(:last-child) td,
-.team-page #franchise-history-table tbody tr:not(:last-child) td {
+.team-page #franchise-history-table tbody tr:not(:last-child) td,
+.team-page #playoff-history-table tbody tr:not(:last-child) td,
+.team-page #franchise-players-table tbody tr:not(:last-child) td {
   border-bottom: 1px solid rgba(255, 140, 26, 0.09);
 }
 
@@ -2503,11 +2526,15 @@ input[type="text"] {
   border-color: rgba(255, 168, 83, 0.22);
 }
 
-.team-page #franchise-history-table {
+.team-page #franchise-history-table,
+.team-page #playoff-history-table,
+.team-page #franchise-players-table {
   min-width: 760px;
 }
 
-.team-page #franchise-history-table thead th {
+.team-page #franchise-history-table thead th,
+.team-page #playoff-history-table thead th,
+.team-page #franchise-players-table thead th {
   position: sticky;
   top: 0;
   z-index: 1;
@@ -5288,6 +5315,10 @@ input[type="text"] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .team-page .history-scope-tabs {
+    width: 100%;
+  }
+
   .player-detail-page .player-team-tab {
     flex-direction: column;
     align-items: center;
@@ -5298,7 +5329,9 @@ input[type="text"] {
     min-width: 480px;
   }
 
-  .team-page #franchise-history-table {
+  .team-page #franchise-history-table,
+  .team-page #playoff-history-table,
+  .team-page #franchise-players-table {
     min-width: 640px;
   }
 

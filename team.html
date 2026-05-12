@@ -107,27 +107,74 @@
         <div class="panel-head panel-head-stack">
           <div>
             <p class="panel-kicker">Franchise archive</p>
-            <h2>Franchise History</h2>
+            <h2>Historical Data</h2>
           </div>
-          <p class="panel-meta">Click any active season to jump straight to that roster snapshot.</p>
+          <p class="panel-meta">Track the franchise across every season, postseason run, and roster era.</p>
         </div>
-        <div id="franchise-history-summary" class="history-summary">
-          <div class="history-summary-card">
-            <span>Total Record</span>
-            <strong id="history-total-record">—</strong>
+        <div class="standings-scope-tabs history-scope-tabs" id="history-scope-tabs" aria-label="Historical data view">
+          <button class="standings-scope-tab" type="button" data-history-scope="franchise">Franchise</button>
+          <button class="standings-scope-tab" type="button" data-history-scope="playoffs">Playoffs</button>
+          <button class="standings-scope-tab" type="button" data-history-scope="players">Players</button>
+        </div>
+        <div class="history-tab-panel" data-history-panel="franchise">
+          <div id="franchise-history-summary" class="history-summary">
+            <div class="history-summary-card">
+              <span>Total Record</span>
+              <strong id="history-total-record">—</strong>
+            </div>
+            <div class="history-summary-card">
+              <span>Avg Win %</span>
+              <strong id="history-avg-winpct">—</strong>
+            </div>
           </div>
-          <div class="history-summary-card">
-            <span>Avg Win %</span>
-            <strong id="history-avg-winpct">—</strong>
+          <div class="table-wrap">
+            <table id="franchise-history-table">
+              <thead></thead>
+              <tbody>
+                <tr><td>Loading franchise history...</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
-        <div class="table-wrap">
-          <table id="franchise-history-table">
-            <thead></thead>
-            <tbody>
-              <tr><td>Loading franchise history...</td></tr>
-            </tbody>
-          </table>
+        <div class="history-tab-panel" data-history-panel="playoffs" hidden>
+          <div class="history-summary">
+            <div class="history-summary-card">
+              <span>Playoff Trips</span>
+              <strong id="history-playoff-appearances">—</strong>
+            </div>
+            <div class="history-summary-card">
+              <span>Titles</span>
+              <strong id="history-playoff-titles">—</strong>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="playoff-history-table">
+              <thead></thead>
+              <tbody>
+                <tr><td>Loading playoff history...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="history-tab-panel" data-history-panel="players" hidden>
+          <div class="history-summary">
+            <div class="history-summary-card">
+              <span>All-Time Players</span>
+              <strong id="history-player-total">—</strong>
+            </div>
+            <div class="history-summary-card">
+              <span>Tracked Seasons</span>
+              <strong id="history-player-seasons">—</strong>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="franchise-players-table">
+              <thead></thead>
+              <tbody>
+                <tr><td>Loading all-time players...</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
