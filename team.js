@@ -225,6 +225,8 @@ const els = {
   scheduleBody: document.querySelector("#team-schedule tbody"),
   franchiseHistoryHead: document.querySelector("#franchise-history-table thead"),
   franchiseHistoryBody: document.querySelector("#franchise-history-table tbody"),
+  historyTotalRecord: document.getElementById("history-total-record"),
+  historyAvgWinPct: document.getElementById("history-avg-winpct"),
   modal: document.getElementById("boxscore-modal"),
   modalClose: document.querySelector(".modal-close"),
   boxDetails: document.getElementById("boxscore-details"),
@@ -697,13 +699,38 @@ function renderFranchiseHistoryMessage(message) {
   if (!els.franchiseHistoryHead || !els.franchiseHistoryBody) {
     return;
   }
-  els.franchiseHistoryHead.innerHTML = "<tr><th>Season</th><th>Team</th><th>Record</th><th>Win %</th><th>League</th></tr>";
-  els.franchiseHistoryBody.innerHTML = `<tr><td colspan="5">${escapeHtml(message)}</td></tr>`;
+  els.franchiseHistoryHead.innerHTML = "<tr><th>Season</th><th>Team</th><th>Record</th><th>Win %</th></tr>";
+  els.franchiseHistoryBody.innerHTML = `<tr><td colspan="4">${escapeHtml(message)}</td></tr>`;
+  if (els.historyTotalRecord) {
+    els.historyTotalRecord.textContent = "—";
+  }
+  if (els.historyAvgWinPct) {
+    els.historyAvgWinPct.textContent = "—";
+  }
 }
 
 function renderFranchiseHistory(rows) {
   if (!els.franchiseHistoryHead || !els.franchiseHistoryBody) {
     return;
+  }
+  const activeRows = rows.filter(
+    (row) =>
+      row.isActive &&
+      Number.isFinite(row.wins) &&
+      Number.isFinite(row.loss) &&
+      typeof row.winpctValue === "number"
+  );
+  const totalWins = activeRows.reduce((sum, row) => sum + row.wins, 0);
+  const totalLosses = activeRows.reduce((sum, row) => sum + row.loss, 0);
+  const avgWinPct = activeRows.length
+    ? activeRows.reduce((sum, row) => sum + row.winpctValue, 0) / activeRows.length
+    : null;
+  if (els.historyTotalRecord) {
+    els.historyTotalRecord.textContent = activeRows.length ? `${totalWins}-${totalLosses}` : "—";
+  }
+  if (els.historyAvgWinPct) {
+    els.historyAvgWinPct.textContent =
+      avgWinPct !== null ? avgWinPct.toFixed(3).replace(/^0/, ".") : "—";
   }
   els.franchiseHistoryHead.innerHTML = `
     <tr>
@@ -711,7 +738,6 @@ function renderFranchiseHistory(rows) {
       <th>Team</th>
       <th>Record</th>
       <th>Win %</th>
-      <th>League</th>
     </tr>
   `;
   els.franchiseHistoryBody.innerHTML = rows
@@ -730,7 +756,6 @@ function renderFranchiseHistory(rows) {
           }</td>
           <td>${escapeHtml(row.record || "—")}</td>
           <td>${escapeHtml(row.winpct || "—")}</td>
-          <td>${escapeHtml(row.league || "—")}</td>
         </tr>
       `
     )
@@ -826,7 +851,9 @@ async function loadFranchiseHistory(teamName) {
           team: "Not active",
           record: "—",
           winpct: "—",
-          league: "—",
+          wins: null,
+          loss: null,
+          winpctValue: null,
           link: "",
           isActive: false,
         };
@@ -847,7 +874,9 @@ async function loadFranchiseHistory(teamName) {
           team: "Not active",
           record: "—",
           winpct: "—",
-          league: "—",
+          wins: null,
+          loss: null,
+          winpctValue: null,
           link: "",
           isActive: false,
         };
@@ -857,11 +886,13 @@ async function loadFranchiseHistory(teamName) {
         season: config.label,
         seasonKey: config.key,
         team: displayTeamName(match.team),
+        wins: match.wins,
+        loss: match.loss,
         record:
           match.wins !== null && match.loss !== null ? `${match.wins}-${match.loss}` : "—",
+        winpctValue: typeof match.winpct === "number" ? match.winpct : null,
         winpct:
           typeof match.winpct === "number" ? match.winpct.toFixed(3).replace(/^0/, ".") : "—",
-        league: match.league || "—",
         link: buildTeamPageHref(match.team, config.key),
         isActive: true,
       };

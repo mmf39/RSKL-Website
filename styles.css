@@ -2338,6 +2338,38 @@ input[type="text"] {
   text-align: right;
 }
 
+.team-page .history-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 220px));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.team-page .history-summary-card {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 165, 84, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 169, 91, 0.08), rgba(8, 15, 31, 0.82)),
+    rgba(8, 15, 31, 0.82);
+}
+
+.team-page .history-summary-card span {
+  display: block;
+  margin-bottom: 6px;
+  color: rgba(255, 220, 187, 0.68);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.team-page .history-summary-card strong {
+  color: #fff7ed;
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+
 .team-page .stats-grid {
   display: grid;
   gap: 12px;
@@ -2460,13 +2492,11 @@ input[type="text"] {
 
 .team-page .history-panel {
   grid-column: 1 / -1;
-  min-height: min(72vh, 760px);
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .team-page .history-panel .table-wrap {
-  height: 100%;
   background:
     linear-gradient(180deg, rgba(255, 170, 95, 0.12), rgba(8, 15, 31, 0.72) 18%, rgba(8, 15, 31, 0.92)),
     rgba(8, 15, 31, 0.92);
@@ -5252,6 +5282,10 @@ input[type="text"] {
   .team-page .panel-meta {
     max-width: none;
     text-align: left;
+  }
+
+  .team-page .history-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .player-detail-page .player-team-tab {
