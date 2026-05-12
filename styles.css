@@ -2152,6 +2152,10 @@ input[type="text"] {
   gap: 14px;
 }
 
+.team-page .hero-inner {
+  max-width: 1480px;
+}
+
 .team-hero-sub {
   margin: -4px 0 0;
   text-align: center;
@@ -2242,15 +2246,21 @@ input[type="text"] {
 
 /* Team page density tuning */
 .team-shell {
-  max-width: 1280px;
+  max-width: 1480px;
+}
+
+.team-page .container {
+  max-width: 1480px;
+  padding: 0 18px 72px;
 }
 
 .team-page .roster-layout {
-  gap: 18px;
+  gap: 20px;
 }
 
 .team-page .compact-panel {
-  padding: 20px;
+  max-width: none;
+  padding: 22px;
 }
 
 .team-page .panel {
@@ -2274,6 +2284,7 @@ input[type="text"] {
 }
 
 .team-page .roster-panel,
+.team-page .history-panel,
 .team-page .schedule-panel,
 .team-page .draft-panel,
 .team-page .transactions-panel {
@@ -2281,6 +2292,7 @@ input[type="text"] {
 }
 
 .team-page .roster-panel::before,
+.team-page .history-panel::before,
 .team-page .schedule-panel::before,
 .team-page .draft-panel::before,
 .team-page .transactions-panel::before,
@@ -2301,6 +2313,29 @@ input[type="text"] {
 
 .team-page .standings-panel .panel-head h2 {
   font-size: clamp(1.45rem, 2.8vw, 2.2rem);
+}
+
+.team-page .panel-head-stack {
+  align-items: start;
+  gap: 14px;
+}
+
+.team-page .panel-kicker {
+  margin: 0 0 8px;
+  color: rgba(255, 196, 139, 0.72);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.team-page .panel-meta {
+  margin: 0;
+  max-width: 32rem;
+  color: rgba(255, 230, 199, 0.76);
+  font-size: 0.95rem;
+  line-height: 1.45;
+  text-align: right;
 }
 
 .team-page .stats-grid {
@@ -2381,7 +2416,8 @@ input[type="text"] {
 }
 
 .team-page #roster-table,
-.team-page #team-schedule {
+.team-page #team-schedule,
+.team-page #franchise-history-table {
   width: 100%;
   margin: 0;
   border-collapse: separate;
@@ -2391,7 +2427,9 @@ input[type="text"] {
 .team-page #roster-table th,
 .team-page #roster-table td,
 .team-page #team-schedule th,
-.team-page #team-schedule td {
+.team-page #team-schedule td,
+.team-page #franchise-history-table th,
+.team-page #franchise-history-table td {
   text-align: left;
   vertical-align: middle;
   padding: 10px 12px;
@@ -2399,7 +2437,8 @@ input[type="text"] {
 }
 
 .team-page #roster-table thead th,
-.team-page #team-schedule thead th {
+.team-page #team-schedule thead th,
+.team-page #franchise-history-table thead th {
   color: rgba(255, 211, 163, 0.84);
   font-size: 0.76rem;
   text-transform: uppercase;
@@ -2409,7 +2448,8 @@ input[type="text"] {
 }
 
 .team-page #roster-table tbody tr:not(:last-child) td,
-.team-page #team-schedule tbody tr:not(:last-child) td {
+.team-page #team-schedule tbody tr:not(:last-child) td,
+.team-page #franchise-history-table tbody tr:not(:last-child) td {
   border-bottom: 1px solid rgba(255, 140, 26, 0.09);
 }
 
@@ -2418,9 +2458,65 @@ input[type="text"] {
   justify-content: flex-start;
 }
 
+.team-page .history-panel {
+  grid-column: 1 / -1;
+  min-height: min(72vh, 760px);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.team-page .history-panel .table-wrap {
+  height: 100%;
+  background:
+    linear-gradient(180deg, rgba(255, 170, 95, 0.12), rgba(8, 15, 31, 0.72) 18%, rgba(8, 15, 31, 0.92)),
+    rgba(8, 15, 31, 0.92);
+  border-color: rgba(255, 168, 83, 0.22);
+}
+
+.team-page #franchise-history-table {
+  min-width: 760px;
+}
+
+.team-page #franchise-history-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(13, 20, 37, 0.98);
+  backdrop-filter: blur(10px);
+}
+
+.team-page .franchise-history-row {
+  transition: background 0.16s ease, transform 0.16s ease;
+}
+
+.team-page .franchise-history-row.is-active:hover {
+  background: rgba(255, 165, 84, 0.08);
+}
+
+.team-page .franchise-history-row.is-inactive td {
+  color: rgba(255, 230, 199, 0.5);
+}
+
+.team-page .history-season-link,
+.team-page .history-team-link {
+  color: #fff7ed;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.team-page .history-season-link {
+  color: var(--accent-2);
+  letter-spacing: 0.08em;
+}
+
+.team-page .history-season-link:hover,
+.team-page .history-team-link:hover {
+  color: #ffd49f;
+}
+
 @media (min-width: 721px) {
   .team-page .roster-layout {
-    grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.55fr);
+    grid-template-columns: minmax(260px, 0.92fr) minmax(0, 1.48fr);
     align-items: start;
   }
 
@@ -2447,9 +2543,14 @@ input[type="text"] {
     grid-row: 3;
   }
 
-  .team-page .transactions-panel {
+  .team-page .history-panel {
     grid-column: 1 / -1;
     grid-row: 4;
+  }
+
+  .team-page .transactions-panel {
+    grid-column: 1 / -1;
+    grid-row: 5;
   }
 }
 
@@ -5093,6 +5194,7 @@ input[type="text"] {
 
   .team-page .standings-panel,
   .team-page .roster-panel,
+  .team-page .history-panel,
   .team-page .schedule-panel,
   .team-page .draft-panel,
   .team-page .transactions-panel {
@@ -5143,6 +5245,15 @@ input[type="text"] {
     margin-right: 0;
   }
 
+  .team-page .history-panel {
+    min-height: 0;
+  }
+
+  .team-page .panel-meta {
+    max-width: none;
+    text-align: left;
+  }
+
   .player-detail-page .player-team-tab {
     flex-direction: column;
     align-items: center;
@@ -5151,6 +5262,10 @@ input[type="text"] {
 
   .team-page #team-schedule {
     min-width: 480px;
+  }
+
+  .team-page #franchise-history-table {
+    min-width: 640px;
   }
 
   #data-table,

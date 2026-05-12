@@ -132,22 +132,36 @@ const DRAFT_CAPITAL_COLUMNS = {
   Illegals: "J",
 };
 const TEAM_STANDINGS_METRIC_KEY = "team_standings_metric";
+const DEFAULT_SEASON = "c2s3-regular";
+const SEASON_ALIASES = {
+  c2s2: "c2s3-regular",
+  "c2s1-playoffs": "c2s1-post",
+  "c2s2-playoffs": "c2s2-playoffs",
+  "c2s2-regular": "c2s2-regular",
+  "c2s1-regular": "c2s1-regular",
+  "c2s1-post": "c2s1-post",
+  "c1s6-regular": "c1s6-regular",
+  "c1s6-post": "c1s6-post",
+  "c1s5-regular": "c1s5-regular",
+  "c1s5-post": "c1s5-post",
+  "c1s4-regular": "c1s4-regular",
+  "c1s4-post": "c1s4-post",
+  "c1s3-regular": "c1s3-regular",
+  "c1s3-post": "c1s3-post",
+  "c1s2-regular": "c1s2-regular",
+  "c1s2-post": "c1s2-post",
+};
+
+function normalizeSeasonValue(raw) {
+  const key = String(raw || "").trim().toLowerCase();
+  return SEASON_ALIASES[key] || DEFAULT_SEASON;
+}
 
 function getSeason() {
-  const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
-  if (raw === "c2s2") return "c2s3-regular";
-  if (raw === "c2s1-playoffs") return "c2s1-post";
-  if (raw === "c1s2-post") return "c1s2-post";
-  if (raw === "c1s2-regular") return "c1s2-regular";
-  if (raw === "c1s6-post") return "c1s6-post";
-  if (raw === "c1s6-regular") return "c1s6-regular";
-  if (raw === "c1s5-post") return "c1s5-post";
-  if (raw === "c1s5-regular") return "c1s5-regular";
-  if (raw === "c1s3-post") return "c1s3-post";
-  if (raw === "c1s3-regular") return "c1s3-regular";
-  if (raw === "c1s4-post") return "c1s4-post";
-  if (raw === "c1s4-regular") return "c1s4-regular";
-  return raw;
+  const params = new URLSearchParams(window.location.search);
+  const fromQuery = params.get("season");
+  const raw = fromQuery || localStorage.getItem(SEASON_KEY) || DEFAULT_SEASON;
+  return normalizeSeasonValue(raw);
 }
 
 function displayTeamName(value) {
@@ -173,10 +187,14 @@ function initSeasonSelect() {
   if (!select) {
     return;
   }
-  select.value = getSeason();
+  const currentSeason = getSeason();
+  select.value = currentSeason;
+  localStorage.setItem(SEASON_KEY, currentSeason);
   select.addEventListener("change", () => {
     localStorage.setItem(SEASON_KEY, select.value);
-    location.reload();
+    const params = new URLSearchParams(window.location.search);
+    params.set("season", select.value);
+    window.location.assign(`${window.location.pathname}?${params.toString()}`);
   });
 }
 
@@ -699,9 +717,17 @@ function renderFranchiseHistory(rows) {
   els.franchiseHistoryBody.innerHTML = rows
     .map(
       (row) => `
-        <tr>
-          <td>${escapeHtml(row.season || "—")}</td>
-          <td>${escapeHtml(row.team || "Not active")}</td>
+        <tr class="franchise-history-row${row.isActive ? " is-active" : " is-inactive"}">
+          <td>${
+            row.link
+              ? `<a class="history-season-link" href="${row.link}">${escapeHtml(row.season || "—")}</a>`
+              : escapeHtml(row.season || "—")
+          }</td>
+          <td>${
+            row.link
+              ? `<a class="history-team-link" href="${row.link}">${escapeHtml(row.team || "Not active")}</a>`
+              : escapeHtml(row.team || "Not active")
+          }</td>
           <td>${escapeHtml(row.record || "—")}</td>
           <td>${escapeHtml(row.winpct || "—")}</td>
           <td>${escapeHtml(row.league || "—")}</td>
@@ -709,6 +735,15 @@ function renderFranchiseHistory(rows) {
       `
     )
     .join("");
+}
+
+function buildTeamPageHref(team, seasonKey) {
+  const params = new URLSearchParams();
+  params.set("team", displayTeamName(team));
+  if (seasonKey) {
+    params.set("season", normalizeSeasonValue(seasonKey));
+  }
+  return `/team.html?${params.toString()}`;
 }
 
 function buildHistoryRowsFromCurrentStandings(rows) {
@@ -767,14 +802,14 @@ function buildHistoryRowsFromTable(tableRows) {
 async function loadFranchiseHistory(teamName) {
   const franchiseKey = getFranchiseKey(teamName);
   const seasonConfigs = [
-    { label: "C2S3", type: "current", url: STANDINGS_CSV_URL },
-    { label: "C2S2", type: "range", url: C2S2_REGULAR_URL, range: C2S2_REGULAR_RANGES.standings },
-    { label: "C2S1", type: "range", url: ARCHIVE_URL, range: ARCHIVE_RANGES.standings },
-    { label: "C1S6", type: "csv", url: C1S6_STANDINGS_URL },
-    { label: "C1S5", type: "csv", url: C1S5_STANDINGS_URL },
-    { label: "C1S4", type: "csv", url: C1S4_STANDINGS_URL },
-    { label: "C1S3", type: "csv", url: C1S3_STANDINGS_URL },
-    { label: "C1S2", type: "csv", url: C1S2_STANDINGS_URL },
+    { label: "C2S3", key: "c2s3-regular", type: "current", url: STANDINGS_CSV_URL },
+    { label: "C2S2", key: "c2s2-regular", type: "range", url: C2S2_REGULAR_URL, range: C2S2_REGULAR_RANGES.standings },
+    { label: "C2S1", key: "c2s1-regular", type: "range", url: ARCHIVE_URL, range: ARCHIVE_RANGES.standings },
+    { label: "C1S6", key: "c1s6-regular", type: "csv", url: C1S6_STANDINGS_URL },
+    { label: "C1S5", key: "c1s5-regular", type: "csv", url: C1S5_STANDINGS_URL },
+    { label: "C1S4", key: "c1s4-regular", type: "csv", url: C1S4_STANDINGS_URL },
+    { label: "C1S3", key: "c1s3-regular", type: "csv", url: C1S3_STANDINGS_URL },
+    { label: "C1S2", key: "c1s2-regular", type: "csv", url: C1S2_STANDINGS_URL },
   ];
 
   const settled = await Promise.allSettled(
@@ -785,7 +820,16 @@ async function loadFranchiseHistory(teamName) {
     seasonConfigs.map(async (config, index) => {
       const response = settled[index];
       if (response.status !== "fulfilled" || !response.value.ok) {
-        return { season: config.label, team: "Not active", record: "—", winpct: "—", league: "—" };
+        return {
+          season: config.label,
+          seasonKey: config.key,
+          team: "Not active",
+          record: "—",
+          winpct: "—",
+          league: "—",
+          link: "",
+          isActive: false,
+        };
       }
 
       const parsed = parseCSV(await response.value.text());
@@ -797,17 +841,29 @@ async function loadFranchiseHistory(teamName) {
           : buildHistoryRowsFromTable(parsed);
       const match = candidateRows.find((row) => getFranchiseKey(row.team) === franchiseKey);
       if (!match) {
-        return { season: config.label, team: "Not active", record: "—", winpct: "—", league: "—" };
+        return {
+          season: config.label,
+          seasonKey: config.key,
+          team: "Not active",
+          record: "—",
+          winpct: "—",
+          league: "—",
+          link: "",
+          isActive: false,
+        };
       }
 
       return {
         season: config.label,
+        seasonKey: config.key,
         team: displayTeamName(match.team),
         record:
           match.wins !== null && match.loss !== null ? `${match.wins}-${match.loss}` : "—",
         winpct:
           typeof match.winpct === "number" ? match.winpct.toFixed(3).replace(/^0/, ".") : "—",
         league: match.league || "—",
+        link: buildTeamPageHref(match.team, config.key),
+        isActive: true,
       };
     })
   );
