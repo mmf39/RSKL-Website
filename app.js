@@ -94,7 +94,27 @@ const els = {
   liveDetails: document.getElementById("live-details"),
 };
 
+els.livePanel = els.liveRow ? els.liveRow.closest(".panel") : null;
+els.featuredPanel = els.featuredMatchups ? els.featuredMatchups.closest(".panel") : null;
+
 let currentLiveGames = [];
+
+function isArchiveSeason(seasonRaw) {
+  return seasonRaw !== "c2s3-regular";
+}
+
+function syncDashboardPanels(seasonRaw) {
+  const hideArchiveOnly = isArchiveSeason(seasonRaw);
+  if (els.livePanel) {
+    els.livePanel.hidden = hideArchiveOnly;
+  }
+  if (els.featuredPanel) {
+    els.featuredPanel.hidden = hideArchiveOnly;
+  }
+  if (hideArchiveOnly && els.liveModal) {
+    els.liveModal.hidden = true;
+  }
+}
 
 if (els.standingsLink) {
   els.standingsLink.href = STANDINGS_CSV_URL;
@@ -1152,6 +1172,7 @@ function renderLiveModal(game) {
 async function loadData() {
   setDashboardLoading();
   const seasonRaw = getSeasonRaw();
+  syncDashboardPanels(seasonRaw);
 
   if (els.standingsLink) {
     els.standingsLink.href =
@@ -1255,20 +1276,13 @@ async function loadData() {
 
       if (regularRows.length) {
         renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(sliceRange(regularRows, C2S2_REGULAR_RANGES.standings)));
-        renderFeaturedMatchups(
-          getFeaturedGames(buildScheduleGames(sliceRange(regularRows, C2S2_REGULAR_RANGES.schedule), seasonRaw), []),
-          seasonRaw
-        );
         const playerTable = sliceRange(regularRows, C2S2_REGULAR_RANGES.player_stats);
         const columns = detectPlayerColumns(playerTable[0] || []);
         renderLeagueLeaders(buildLeaderboard(playerTable.slice(1), columns), seasonRaw);
       } else {
         renderLeagueSnapshot([]);
-        renderFeaturedMatchups([], seasonRaw);
         renderLeagueLeaders([], seasonRaw);
       }
-
-      renderLiveScoring([], seasonRaw);
 
       if (transactionRows.length) {
         const events = [
@@ -1291,11 +1305,6 @@ async function loadData() {
         ),
       ]);
       renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(standingsRows));
-      renderFeaturedMatchups(
-        getFeaturedGames(buildScheduleGames(scheduleRows, seasonRaw), []),
-        seasonRaw
-      );
-      renderLiveScoring([], seasonRaw);
       renderLeagueLeaders([], seasonRaw);
       renderRecentTransactions([]);
     } else if (seasonRaw === "c1s6-regular" || seasonRaw === "c1s6-post") {
@@ -1306,11 +1315,6 @@ async function loadData() {
         ),
       ]);
       renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(standingsRows));
-      renderFeaturedMatchups(
-        getFeaturedGames(buildScheduleGames(scheduleRows, seasonRaw), []),
-        seasonRaw
-      );
-      renderLiveScoring([], seasonRaw);
       renderLeagueLeaders([], seasonRaw);
       renderRecentTransactions([]);
     } else if (seasonRaw === "c1s5-regular" || seasonRaw === "c1s5-post") {
@@ -1321,11 +1325,6 @@ async function loadData() {
         ),
       ]);
       renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(standingsRows));
-      renderFeaturedMatchups(
-        getFeaturedGames(buildScheduleGames(scheduleRows, seasonRaw), []),
-        seasonRaw
-      );
-      renderLiveScoring([], seasonRaw);
       renderLeagueLeaders([], seasonRaw);
       renderRecentTransactions([]);
     } else if (seasonRaw === "c1s3-regular" || seasonRaw === "c1s3-post") {
@@ -1336,11 +1335,6 @@ async function loadData() {
         ),
       ]);
       renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(standingsRows));
-      renderFeaturedMatchups(
-        getFeaturedGames(buildScheduleGames(scheduleRows, seasonRaw), []),
-        seasonRaw
-      );
-      renderLiveScoring([], seasonRaw);
       renderLeagueLeaders([], seasonRaw);
       renderRecentTransactions([]);
     } else if (seasonRaw === "c1s4-regular" || seasonRaw === "c1s4-post") {
@@ -1351,11 +1345,6 @@ async function loadData() {
         ),
       ]);
       renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(standingsRows));
-      renderFeaturedMatchups(
-        getFeaturedGames(buildScheduleGames(scheduleRows, seasonRaw), []),
-        seasonRaw
-      );
-      renderLiveScoring([], seasonRaw);
       renderLeagueLeaders([], seasonRaw);
       renderRecentTransactions([]);
     } else {
@@ -1369,10 +1358,6 @@ async function loadData() {
 
       if (archiveRows.length) {
         renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(sliceRange(archiveRows, ARCHIVE_RANGES.standings)));
-        renderFeaturedMatchups(
-          getFeaturedGames(buildScheduleGames(sliceRange(archiveRows, scheduleRange), seasonRaw), []),
-          seasonRaw
-        );
         if (seasonRaw === "c2s1-post") {
           const playerTable = sliceRange(archiveRows, ARCHIVE_RANGES.player_stats);
           const columns = detectPlayerColumns(playerTable[0] || []);
@@ -1385,8 +1370,6 @@ async function loadData() {
         renderFeaturedMatchups([], seasonRaw);
         renderLeagueLeaders([], seasonRaw);
       }
-
-      renderLiveScoring([], seasonRaw);
 
       if (transactionRows.length) {
         const events = [

@@ -205,6 +205,8 @@ const els = {
   teamTransactions: document.getElementById("team-transactions"),
   scheduleHead: document.querySelector("#team-schedule thead"),
   scheduleBody: document.querySelector("#team-schedule tbody"),
+  franchiseHistoryHead: document.querySelector("#franchise-history-table thead"),
+  franchiseHistoryBody: document.querySelector("#franchise-history-table tbody"),
   modal: document.getElementById("boxscore-modal"),
   modalClose: document.querySelector(".modal-close"),
   boxDetails: document.getElementById("boxscore-details"),
@@ -623,6 +625,159 @@ function renderRosterTableWithNotice(players, notice) {
     })
     .join("");
   els.body.innerHTML = `${noticeRow}${playerRows}`;
+}
+
+function getFranchiseKey(value) {
+  const team = displayTeamName(value);
+  if (
+    team === "Richer N Em" ||
+    team === "Masdog N Em" ||
+    team === "Doggy N Em" ||
+    team === "Mambas"
+  ) {
+    return "doggy-lineage";
+  }
+  if (team === "Avengers" || team === "Karma Avengers") {
+    return "karma-avengers";
+  }
+  if (team === "Currents" || team === "The Currents") {
+    return "the-currents";
+  }
+  if (team === "Bolts" || team === "The Bolts") {
+    return "the-bolts";
+  }
+  if (team === "Wrangler" || team === "Wranglers") {
+    return "wranglers";
+  }
+  if (team === "Storm" || team === "Bullets") {
+    return "storm";
+  }
+  if (team === "MayeDay" || team === "Yetis") {
+    return "mayeday";
+  }
+  if (team === "Dream Team" || team === "The Future") {
+    return "dream-team";
+  }
+  return normalizeTeamLabel(team);
+}
+
+function renderFranchiseHistoryMessage(message) {
+  if (!els.franchiseHistoryHead || !els.franchiseHistoryBody) {
+    return;
+  }
+  els.franchiseHistoryHead.innerHTML = "<tr><th>Season</th><th>Team</th><th>Record</th><th>Win %</th><th>League</th></tr>";
+  els.franchiseHistoryBody.innerHTML = `<tr><td colspan="5">${escapeHtml(message)}</td></tr>`;
+}
+
+function renderFranchiseHistory(rows) {
+  if (!els.franchiseHistoryHead || !els.franchiseHistoryBody) {
+    return;
+  }
+  els.franchiseHistoryHead.innerHTML = `
+    <tr>
+      <th>Season</th>
+      <th>Team</th>
+      <th>Record</th>
+      <th>Win %</th>
+      <th>League</th>
+    </tr>
+  `;
+  els.franchiseHistoryBody.innerHTML = rows
+    .map(
+      (row) => `
+        <tr>
+          <td>${escapeHtml(row.season || "—")}</td>
+          <td>${escapeHtml(row.team || "Not active")}</td>
+          <td>${escapeHtml(row.record || "—")}</td>
+          <td>${escapeHtml(row.winpct || "—")}</td>
+          <td>${escapeHtml(row.league || "—")}</td>
+        </tr>
+      `
+    )
+    .join("");
+}
+
+function buildHistoryRowsFromCurrentStandings(rows) {
+  return getCurrentStandingsRows(rows).map((row) => ({
+    team: row.team,
+    wins: parseNumber(row.wins),
+    loss: parseNumber(row.losses),
+    winpct: parsePct(row.winPct),
+    league: "",
+  }));
+}
+
+function buildHistoryRowsFromTable(tableRows) {
+  if (!tableRows || tableRows.length < 2) {
+    return [];
+  }
+  const headers = (tableRows[0] || []).map((h) => String(h || "").trim().toLowerCase());
+  const leagueIdx = headers.findIndex((h) => h === "league" || h === "division");
+  const teamIdx = headers.findIndex((h) => h === "team");
+  const winsIdx = headers.findIndex((h) => h === "wins" || h === "win");
+  const lossIdx = headers.findIndex((h) => h === "losses" || h === "loss" || h === "l");
+  const pctIdx = headers.findIndex((h) => h === "win %" || h === "win%" || h === "pct");
+  if (teamIdx === -1 || winsIdx === -1 || lossIdx === -1) {
+    return [];
+  }
+  return tableRows.slice(1).map((row) => ({
+    team: displayTeamName(row[teamIdx] || ""),
+    wins: parseNumber(row[winsIdx]),
+    loss: parseNumber(row[lossIdx]),
+    winpct: pctIdx >= 0 ? parsePct(row[pctIdx]) : null,
+    league: leagueIdx >= 0 ? String(row[leagueIdx] || "").trim() : "",
+  }));
+}
+
+async function loadFranchiseHistory(teamName) {
+  const franchiseKey = getFranchiseKey(teamName);
+  const seasonConfigs = [
+    { label: "C2S3", type: "current", url: STANDINGS_CSV_URL },
+    { label: "C2S2", type: "range", url: C2S2_REGULAR_URL, range: C2S2_REGULAR_RANGES.standings },
+    { label: "C2S1", type: "range", url: ARCHIVE_URL, range: ARCHIVE_RANGES.standings },
+    { label: "C1S6", type: "csv", url: C1S6_STANDINGS_URL },
+    { label: "C1S5", type: "csv", url: C1S5_STANDINGS_URL },
+    { label: "C1S4", type: "csv", url: C1S4_STANDINGS_URL },
+    { label: "C1S3", type: "csv", url: C1S3_STANDINGS_URL },
+    { label: "C1S2", type: "csv", url: C1S2_STANDINGS_URL },
+  ];
+
+  const settled = await Promise.allSettled(
+    seasonConfigs.map((config) => fetch(config.url, { cache: "no-store" }))
+  );
+
+  const seasonRows = await Promise.all(
+    seasonConfigs.map(async (config, index) => {
+      const response = settled[index];
+      if (response.status !== "fulfilled" || !response.value.ok) {
+        return { season: config.label, team: "Not active", record: "—", winpct: "—", league: "—" };
+      }
+
+      const parsed = parseCSV(await response.value.text());
+      const candidateRows =
+        config.type === "current"
+          ? buildHistoryRowsFromCurrentStandings(parsed)
+          : config.type === "range"
+          ? buildHistoryRowsFromTable(sliceRange(parsed, config.range))
+          : buildHistoryRowsFromTable(parsed);
+      const match = candidateRows.find((row) => getFranchiseKey(row.team) === franchiseKey);
+      if (!match) {
+        return { season: config.label, team: "Not active", record: "—", winpct: "—", league: "—" };
+      }
+
+      return {
+        season: config.label,
+        team: displayTeamName(match.team),
+        record:
+          match.wins !== null && match.loss !== null ? `${match.wins}-${match.loss}` : "—",
+        winpct:
+          typeof match.winpct === "number" ? match.winpct.toFixed(3).replace(/^0/, ".") : "—",
+        league: match.league || "—",
+      };
+    })
+  );
+
+  renderFranchiseHistory(seasonRows);
 }
 
 function renderSchedule(headers, dataRows) {
@@ -1665,6 +1820,10 @@ async function loadRoster() {
       ? displayTeamName(teamName)
       : "Missing team name.";
   }
+  renderFranchiseHistoryMessage("Loading franchise history...");
+  loadFranchiseHistory(teamName).catch(() => {
+    renderFranchiseHistoryMessage("Unable to load franchise history.");
+  });
 
   try {
     const season = getSeason();
