@@ -317,6 +317,11 @@ function getTeamLogoSrc(name) {
   if (shown === "The Snipers") return "/assets/the-snipers.png";
   if (shown === "The Phantoms") return "/assets/the-phantoms.png";
   if (shown === "MayeDay") return "/assets/mayeday.jpg";
+  if (shown === "ALEK Manoahs") return "/assets/alek-manoahs.jpg";
+  if (shown === "Bees") return "/assets/bees.jpg";
+  if (shown === "Broncos") return "/assets/broncos.jpg";
+  if (shown === "Burritos") return "/assets/burritos.jpg";
+  if (shown === "Chicken Nuggets") return "/assets/chicken-nuggets.jpg";
   if (shown === "Masdog N Em") return "/assets/gus-n-em.png";
   if (shown === "Richer N Em") return "/assets/gus-n-em.png";
   if (shown === "Gus N Em") return "/assets/gus-n-em.png";

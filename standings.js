@@ -396,6 +396,21 @@ function getTeamLogoHtml(teamName) {
   if (teamName === "MayeDay") {
     return '<img class="standings-logo" src="/assets/mayeday.jpg" alt="MayeDay logo" />';
   }
+  if (teamName === "ALEK Manoahs") {
+    return '<img class="standings-logo" src="/assets/alek-manoahs.jpg" alt="ALEK Manoahs logo" />';
+  }
+  if (teamName === "Bees") {
+    return '<img class="standings-logo" src="/assets/bees.jpg" alt="Bees logo" />';
+  }
+  if (teamName === "Broncos") {
+    return '<img class="standings-logo" src="/assets/broncos.jpg" alt="Broncos logo" />';
+  }
+  if (teamName === "Burritos") {
+    return '<img class="standings-logo" src="/assets/burritos.jpg" alt="Burritos logo" />';
+  }
+  if (teamName === "Chicken Nuggets") {
+    return '<img class="standings-logo" src="/assets/chicken-nuggets.jpg" alt="Chicken Nuggets logo" />';
+  }
   if (teamName === "Gus N Em") {
     return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />';
   }

@@ -1146,6 +1146,16 @@ function getTeamLogoHtml(teamName) {
     ? '<img class="player-team-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />'
     : shownTeam === "MayeDay"
     ? '<img class="player-team-logo" src="/assets/mayeday.jpg" alt="MayeDay logo" />'
+    : shownTeam === "ALEK Manoahs"
+    ? '<img class="player-team-logo" src="/assets/alek-manoahs.jpg" alt="ALEK Manoahs logo" />'
+    : shownTeam === "Bees"
+    ? '<img class="player-team-logo" src="/assets/bees.jpg" alt="Bees logo" />'
+    : shownTeam === "Broncos"
+    ? '<img class="player-team-logo" src="/assets/broncos.jpg" alt="Broncos logo" />'
+    : shownTeam === "Burritos"
+    ? '<img class="player-team-logo" src="/assets/burritos.jpg" alt="Burritos logo" />'
+    : shownTeam === "Chicken Nuggets"
+    ? '<img class="player-team-logo" src="/assets/chicken-nuggets.jpg" alt="Chicken Nuggets logo" />'
     : shownTeam === "Yetis"
     ? '<img class="player-team-logo" src="/assets/yetis.png" alt="Yetis logo" />'
     : shownTeam === "Gus N Em"
