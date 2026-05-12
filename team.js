@@ -197,18 +197,27 @@ function parseMoney(value) {
 }
 
 function initSeasonSelect() {
-  const select = document.getElementById("season-select");
-  if (!select) {
+  const selects = Array.from(
+    document.querySelectorAll("#season-select, #team-season-select")
+  );
+  if (!selects.length) {
     return;
   }
   const currentSeason = getSeason();
-  select.value = currentSeason;
+  selects.forEach((select) => {
+    select.value = currentSeason;
+  });
   localStorage.setItem(SEASON_KEY, currentSeason);
-  select.addEventListener("change", () => {
-    localStorage.setItem(SEASON_KEY, select.value);
-    const params = new URLSearchParams(window.location.search);
-    params.set("season", select.value);
-    window.location.assign(`${window.location.pathname}?${params.toString()}`);
+  selects.forEach((select) => {
+    select.addEventListener("change", () => {
+      selects.forEach((other) => {
+        other.value = select.value;
+      });
+      localStorage.setItem(SEASON_KEY, select.value);
+      const params = new URLSearchParams(window.location.search);
+      params.set("season", select.value);
+      window.location.assign(`${window.location.pathname}?${params.toString()}`);
+    });
   });
 }
 
@@ -231,6 +240,7 @@ const els = {
   statTransactions: document.getElementById("stat-transactions"),
   statTeam: document.getElementById("stat-team"),
   teamViewTabs: document.getElementById("team-view-tabs"),
+  inlineSeasonSelect: document.getElementById("team-season-select"),
   standingsMetricSelect: document.getElementById("standings-metric-select"),
   standingsMetricLeader: document.getElementById("standings-metric-leader"),
   standingsStatBoxes: Array.from(document.querySelectorAll(".stat-box[data-metric]")),
@@ -266,6 +276,9 @@ let leagueTransactionCounts = new Map();
 
 function applyTeamView(view) {
   const nextView = view === "historical" ? "historical" : "season";
+  if (els.historyPanel) {
+    els.historyPanel.hidden = nextView !== "historical";
+  }
   if (els.teamViewTabs) {
     els.teamViewTabs.querySelectorAll("[data-team-view]").forEach((button) => {
       const active = button.dataset.teamView === nextView;
@@ -293,10 +306,6 @@ function initTeamViewTabs() {
         els.historyPanel.scrollIntoView({ behavior: "smooth", block: "start" });
       }
       return;
-    }
-    const standingsPanel = event.currentTarget.closest(".standings-panel");
-    if (standingsPanel) {
-      standingsPanel.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   });
 }

@@ -2351,7 +2351,20 @@ input[type="text"] {
 }
 
 .team-page .team-view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 14px;
+}
+
+.team-page .season-select-inline {
+  justify-self: start;
+  align-self: center;
+  grid-column: auto;
+  grid-row: auto;
+  min-width: 190px;
+  max-width: 250px;
+  margin: 0;
 }
 
 .team-page .team-view-tabs .standings-scope-tab {
