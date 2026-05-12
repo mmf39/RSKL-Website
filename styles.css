@@ -16,6 +16,18 @@
   --font-body: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
 }
 
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+iframe {
+  max-width: 100%;
+}
+
 .madness-bracket {
   display: block;
 }
@@ -1567,6 +1579,17 @@ body.menu-open {
   gap: 24px;
 }
 
+.container > *,
+.panel > *,
+.site-nav-main > *,
+.dashboard-live-card > *,
+.dashboard-matchup-card > *,
+.dashboard-team-card > *,
+.dashboard-transaction-card > *,
+.dashboard-leader-card > * {
+  min-width: 0;
+}
+
 .panel {
   background: var(--panel);
   border-radius: var(--radius);
@@ -1942,11 +1965,13 @@ input[type="text"] {
 
 .table-wrap {
   overflow-x: auto;
+  overflow-y: hidden;
   border-radius: var(--radius-sm);
   width: 100%;
   max-width: 100%;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
+  overscroll-behavior-x: contain;
   border: 1px solid rgba(255, 165, 84, 0.14);
   background: rgba(8, 15, 31, 0.5);
 }
@@ -5109,24 +5134,30 @@ input[type="text"] {
   }
 
   .site-nav-main {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-column: 1;
     margin-top: 52px;
+    width: 100%;
     padding: 0;
-    gap: 10px 14px;
-    justify-content: center;
-    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: stretch;
     overflow: visible;
   }
 
   .site-nav-main .btn.ghost {
-    font-size: 0.74rem;
-    line-height: 1.1;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.76rem;
+    line-height: 1.15;
     white-space: normal;
-    flex: 0 1 auto;
     text-align: center;
-    min-height: 0;
-    padding: 4px 0;
+    min-height: 48px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 140, 26, 0.24);
+    border-radius: 14px;
+    background: rgba(8, 15, 31, 0.62);
   }
 
   .site-menu-btn {
@@ -5148,11 +5179,11 @@ input[type="text"] {
   }
 
   .season-select {
+    grid-column: 1 / -1;
     justify-self: center;
     align-self: start;
-    grid-column: 1;
     grid-row: auto;
-    width: min(100%, 320px);
+    width: 100%;
     min-width: 0;
     max-width: 100%;
     margin: 0;
@@ -5378,13 +5409,13 @@ input[type="text"] {
   }
 
   .team-page #team-schedule {
-    min-width: 480px;
+    min-width: 440px;
   }
 
   .team-page #franchise-history-table,
   .team-page #playoff-history-table,
   .team-page #franchise-players-table {
-    min-width: 480px;
+    min-width: 440px;
   }
 
   #data-table,
@@ -5393,7 +5424,7 @@ input[type="text"] {
   #schedule-table,
   #standings-table,
   .career-breakdown-table {
-    min-width: 560px;
+    min-width: 500px;
   }
 }
 
@@ -5447,7 +5478,7 @@ input[type="text"] {
   }
 
   .season-select {
-    margin-left: 52px;
+    margin-left: 0;
     padding: 11px 40px 11px 14px;
     border-radius: 14px;
     font-size: 0.8rem;
@@ -5593,6 +5624,19 @@ input[type="text"] {
     min-width: 360px;
   }
 
+  .team-page #franchise-history-table,
+  .team-page #playoff-history-table,
+  .team-page #franchise-players-table,
+  #data-table,
+  #player-games,
+  #player-weekly,
+  #schedule-table,
+  #standings-table,
+  .career-breakdown-table,
+  .draft-round table {
+    min-width: 460px;
+  }
+
   .dashboard-transaction-head,
   .dashboard-matchup-head,
   .dashboard-team-top,
@@ -5672,15 +5716,6 @@ input[type="text"] {
     min-height: 46px;
   }
 
-  #data-table,
-  #player-games,
-  #player-weekly,
-  #schedule-table,
-  #standings-table,
-  .career-breakdown-table,
-  .draft-round table {
-    min-width: 520px;
-  }
 }
 
 @media (max-width: 400px) {
@@ -5713,18 +5748,152 @@ input[type="text"] {
   .team-history-page #franchise-history-table,
   .team-history-page #playoff-history-table,
   .team-history-page #franchise-players-table {
-    min-width: 420px;
+    min-width: 380px;
   }
 
   .season-select {
     font-size: 0.78rem;
-    margin-left: 48px;
-    width: min(100%, 300px);
+    margin-left: 0;
+    width: 100%;
   }
 
   .site-menu-btn {
     min-width: 44px;
     width: 44px;
     height: 44px;
+  }
+
+  #data-table,
+  #player-games,
+  #player-weekly,
+  #schedule-table,
+  #standings-table,
+  .career-breakdown-table,
+  .draft-round table {
+    min-width: 380px;
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 0 12px 34px;
+    gap: 14px;
+  }
+
+  .panel,
+  .team-page .panel,
+  .dashboard-panel,
+  .gm-card,
+  .summary-card {
+    border-radius: 18px;
+  }
+
+  .panel-head,
+  .dashboard-panel .panel-head,
+  .team-page .panel-head {
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  h2,
+  .dashboard-panel .panel-head h2 {
+    font-size: 1.18rem;
+  }
+
+  .standings-scope-tab,
+  .gm-tab,
+  .btn,
+  .btn.ghost {
+    min-height: 48px;
+  }
+
+  .dashboard-live-card,
+  .dashboard-matchup-card,
+  .dashboard-team-card,
+  .dashboard-transaction-card,
+  .dashboard-leader-card {
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .dashboard-matchup-body,
+  .dashboard-trade-sides,
+  .dashboard-team-metrics,
+  .player-summary,
+  .fa-controls,
+  .controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard-matchup-actions,
+  .gm-session-meta,
+  .controls {
+    align-items: stretch;
+  }
+
+  .dashboard-pill-link,
+  .dashboard-inline-link,
+  .controls .btn,
+  .controls .btn.ghost {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+  .container {
+    padding: 0 18px 52px;
+    gap: 20px;
+  }
+
+  .site-nav {
+    min-height: 92px;
+  }
+
+  .site-nav::before {
+    width: 58px;
+    height: 58px;
+  }
+
+  .site-nav-main {
+    margin-top: 68px;
+    gap: 12px 18px;
+    flex-wrap: wrap;
+    justify-content: center;
+    overflow: visible;
+  }
+
+  .site-nav-main .btn.ghost {
+    font-size: 0.86rem;
+    padding: 8px 10px;
+  }
+
+  .season-select {
+    min-width: 170px;
+    max-width: 220px;
+  }
+
+  .dashboard-live-list,
+  .dashboard-feature-grid,
+  .dashboard-leader-grid,
+  .dashboard-transactions-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .team-page .stats-grid-top,
+  .team-page .stats-grid-bottom {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 901px) {
+  .site-nav-main {
+    flex-wrap: nowrap;
+  }
+
+  .site-menu .btn.ghost,
+  .btn,
+  .btn.ghost {
+    min-height: 44px;
   }
 }
