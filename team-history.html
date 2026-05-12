@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RSKL Team Historical Data</title>
+    <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
+    <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
+    <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
+    <link rel="stylesheet" href="styles.css?v=20260510a" />
+  </head>
+  <body class="team-page team-history-page">
+    <div class="bg"></div>
+    <header class="hero">
+      <div class="hero-inner team-hero">
+        <div class="badge">Real Sports Karma League</div>
+        <img id="team-logo" class="team-hero-logo" alt="" />
+        <h1 id="team-title">Historical Data</h1>
+        <p id="team-sub" class="team-hero-sub">Franchise history, playoff history, and all-time player archive.</p>
+
+        <div class="meta">
+          <span id="last-updated">Last updated: —</span>
+          <div class="site-nav">
+            <div class="site-nav-main">
+              <a class="btn ghost" href="/">Dashboard</a>
+              <a class="btn ghost" href="/schedule.html">Schedule</a>
+              <a class="btn ghost" href="/standings.html">Standings</a>
+              <a class="btn ghost" href="/player.html">Player Stats</a>
+              <a class="btn ghost" href="/cap-expert.html">Cap Expert</a>
+              <select id="season-select" class="season-select">
+                <option value="c2s3-regular">C2S3</option>
+                <option value="c2s2-regular">C2S2</option>
+                <option value="c2s2-playoffs">C2S2 Playoffs</option>
+                <option value="c2s1-regular">C2S1</option>
+                <option value="c2s1-post">C2S1 Playoffs</option>
+                <option value="c1s6-regular">C1S6</option>
+                <option value="c1s6-post">C1S6 Playoffs</option>
+                <option value="c1s5-regular">C1S5</option>
+                <option value="c1s5-post">C1S5 Playoffs</option>
+                <option value="c1s4-regular">C1S4</option>
+                <option value="c1s4-post">C1S4 Playoffs</option>
+                <option value="c1s3-regular">C1S3</option>
+                <option value="c1s3-post">C1S3 Playoffs</option>
+                <option value="c1s2-regular">C1S2</option>
+                <option value="c1s2-post">C1S2 Playoffs</option>
+              </select>
+            </div>
+            <button class="site-menu-btn" type="button" aria-expanded="false" aria-label="Open menu" data-menu-toggle><span class="site-menu-btn-label">More</span><span class="site-menu-btn-icon" aria-hidden="true">☰</span></button>
+          </div>
+          <div class="site-menu" hidden data-menu-panel>
+            <a class="btn ghost" href="/transactions.html">Transactions</a>
+            <a class="btn ghost" href="/draft.html">Draft</a>
+            <a class="btn ghost" href="/awards.html">Awards</a>
+            <a class="btn ghost" href="/gm.html">GM Admin</a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container team-shell history-only-shell">
+      <section class="panel compact-panel history-panel">
+        <div class="panel-head panel-head-stack">
+          <div>
+            <h2>HISTORICAL DATA</h2>
+          </div>
+        </div>
+        <div class="standings-scope-tabs history-scope-tabs" id="history-scope-tabs" aria-label="Historical data view">
+          <a id="history-back-link" class="standings-scope-tab" href="/team.html">Go Back</a>
+          <button class="standings-scope-tab" type="button" data-history-scope="franchise">Franchise</button>
+          <button class="standings-scope-tab" type="button" data-history-scope="playoffs">Playoffs</button>
+          <button class="standings-scope-tab" type="button" data-history-scope="players">Players</button>
+        </div>
+        <div class="history-tab-panel" data-history-panel="franchise">
+          <div id="franchise-history-summary" class="history-summary">
+            <div class="history-summary-card">
+              <span>Total Record</span>
+              <strong id="history-total-record">—</strong>
+            </div>
+            <div class="history-summary-card">
+              <span>Avg Win %</span>
+              <strong id="history-avg-winpct">—</strong>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="franchise-history-table">
+              <thead></thead>
+              <tbody>
+                <tr><td>Loading franchise history...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="history-tab-panel" data-history-panel="playoffs" hidden>
+          <div class="history-summary">
+            <div class="history-summary-card">
+              <span>Playoff Trips</span>
+              <strong id="history-playoff-appearances">—</strong>
+            </div>
+            <div class="history-summary-card">
+              <span>Titles</span>
+              <strong id="history-playoff-titles">—</strong>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="playoff-history-table">
+              <thead></thead>
+              <tbody>
+                <tr><td>Loading playoff history...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="history-tab-panel" data-history-panel="players" hidden>
+          <div class="history-summary">
+            <div class="history-summary-card">
+              <span>All-Time Players</span>
+              <strong id="history-player-total">—</strong>
+            </div>
+            <div class="history-summary-card">
+              <span>Tracked Seasons</span>
+              <strong id="history-player-seasons">—</strong>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="franchise-players-table">
+              <thead></thead>
+              <tbody>
+                <tr><td>Loading all-time players...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
+    </footer>
+
+    <script src="team-history.js?v=20260512a"></script>
+    <script src="header-nav.js?v=20260504e"></script>
+  </body>
+</html>

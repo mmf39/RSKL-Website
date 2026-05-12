@@ -197,9 +197,7 @@ function parseMoney(value) {
 }
 
 function initSeasonSelect() {
-  const selects = Array.from(
-    document.querySelectorAll("#season-select, #team-season-select")
-  );
+  const selects = Array.from(document.querySelectorAll("#season-select"));
   if (!selects.length) {
     return;
   }
@@ -221,6 +219,15 @@ function initSeasonSelect() {
   });
 }
 
+function buildTeamHistoryHref(team, seasonKey) {
+  const params = new URLSearchParams();
+  params.set("team", displayTeamName(team));
+  if (seasonKey) {
+    params.set("season", normalizeSeasonValue(seasonKey));
+  }
+  return `/team-history.html?${params.toString()}`;
+}
+
 const els = {
   title: document.getElementById("team-title"),
   sub: document.getElementById("team-sub"),
@@ -240,7 +247,7 @@ const els = {
   statTransactions: document.getElementById("stat-transactions"),
   statTeam: document.getElementById("stat-team"),
   teamViewTabs: document.getElementById("team-view-tabs"),
-  inlineSeasonSelect: document.getElementById("team-season-select"),
+  historicalLink: document.getElementById("historical-link"),
   standingsMetricSelect: document.getElementById("standings-metric-select"),
   standingsMetricLeader: document.getElementById("standings-metric-leader"),
   standingsStatBoxes: Array.from(document.querySelectorAll(".stat-box[data-metric]")),
@@ -295,29 +302,6 @@ function initTeamViewTabs() {
     return;
   }
   applyTeamView("season");
-  if (els.inlineSeasonSelect) {
-    els.inlineSeasonSelect.addEventListener("focus", () => {
-      applyTeamView("season");
-    });
-    els.inlineSeasonSelect.addEventListener("click", () => {
-      applyTeamView("season");
-    });
-    els.inlineSeasonSelect.addEventListener("change", () => {
-      applyTeamView("season");
-    });
-  }
-  els.teamViewTabs.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-team-view]");
-    if (!button) {
-      return;
-    }
-    const view = button.dataset.teamView || "season";
-    applyTeamView(view);
-    if (view === "historical") {
-      applyHistoryScope("franchise");
-      return;
-    }
-  });
 }
 
 function getSelectedHistoryScope() {
@@ -2496,7 +2480,9 @@ async function loadRoster() {
       ? displayTeamName(teamName)
       : "Missing team name.";
   }
-  loadHistoricalData(teamName);
+  if (els.historicalLink) {
+    els.historicalLink.href = buildTeamHistoryHref(teamName, getSeason());
+  }
 
   try {
     const season = getSeason();

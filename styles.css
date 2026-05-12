@@ -2254,6 +2254,10 @@ input[type="text"] {
   padding: 0 18px 72px;
 }
 
+.team-history-page .history-only-shell {
+  display: block;
+}
+
 .team-page .roster-layout {
   gap: 20px;
 }
