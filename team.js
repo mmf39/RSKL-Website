@@ -293,6 +293,17 @@ function initTeamViewTabs() {
     return;
   }
   applyTeamView("season");
+  if (els.inlineSeasonSelect) {
+    els.inlineSeasonSelect.addEventListener("focus", () => {
+      applyTeamView("season");
+    });
+    els.inlineSeasonSelect.addEventListener("click", () => {
+      applyTeamView("season");
+    });
+    els.inlineSeasonSelect.addEventListener("change", () => {
+      applyTeamView("season");
+    });
+  }
   els.teamViewTabs.addEventListener("click", (event) => {
     const button = event.target.closest("[data-team-view]");
     if (!button) {
@@ -302,9 +313,6 @@ function initTeamViewTabs() {
     applyTeamView(view);
     if (view === "historical") {
       applyHistoryScope("franchise");
-      if (els.historyPanel) {
-        els.historyPanel.scrollIntoView({ behavior: "smooth", block: "start" });
-      }
       return;
     }
   });
