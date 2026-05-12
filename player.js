@@ -752,6 +752,9 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
     if (team === "MayeDay") {
       return '<img class="standings-logo" src="/assets/mayeday.jpg" alt="MayeDay logo" />';
     }
+    if (team === "Cobras") {
+      return '<img class="standings-logo" src="/assets/cobras.jpg" alt="Cobras logo" />';
+    }
     if (team === "Yetis") {
       return '<img class="standings-logo" src="/assets/yetis.png" alt="Yetis logo" />';
     }

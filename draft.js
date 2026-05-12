@@ -278,6 +278,9 @@ function getTeamLogo(team) {
   if (clean === "MayeDay") {
     return '<img class="standings-logo" src="/assets/mayeday.jpg" alt="MayeDay logo" />';
   }
+  if (clean === "Cobras") {
+    return '<img class="standings-logo" src="/assets/cobras.jpg" alt="Cobras logo" />';
+  }
   if (clean === "Masdog N Em" || clean === "Richer N Em") {
     return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="N Em logo" />';
   }
