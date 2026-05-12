@@ -265,14 +265,6 @@ function getFranchiseKey(value) {
   return normalizeTeamLabel(team);
 }
 
-const CURRENT_FRANCHISE_KEYS = new Set(CURRENT_TEAMS.map((team) => getFranchiseKey(team)));
-
-function getPreferredFranchiseTeamName(team) {
-  const franchiseKey = getFranchiseKey(team);
-  const preferred = CURRENT_TEAMS.find((name) => getFranchiseKey(name) === franchiseKey);
-  return preferred || displayTeamName(team);
-}
-
 function getFranchiseSeasonConfigs() {
   return [
     { key: "c2s3-regular", type: "current", url: STANDINGS_CSV_URL },
@@ -781,8 +773,9 @@ async function buildAllTimeLeagueStandings() {
         : buildHistoryRowsFromTable(parsed);
 
     seasonRows.forEach((row) => {
-      const franchiseKey = getFranchiseKey(row.team);
-      if (!CURRENT_FRANCHISE_KEYS.has(franchiseKey)) {
+      const teamName = displayTeamName(row.team);
+      const teamKey = normalizeTeamLabel(teamName);
+      if (!teamKey) {
         return;
       }
       const wins = parseNumber(row.wins);
@@ -790,8 +783,8 @@ async function buildAllTimeLeagueStandings() {
       if (!Number.isFinite(wins) || !Number.isFinite(loss)) {
         return;
       }
-      const bucket = buckets.get(franchiseKey) || {
-        team: getPreferredFranchiseTeamName(row.team),
+      const bucket = buckets.get(teamKey) || {
+        team: teamName,
         gp: 0,
         wins: 0,
         loss: 0,
@@ -805,7 +798,7 @@ async function buildAllTimeLeagueStandings() {
       bucket.gp += wins + loss;
       bucket.wins += wins;
       bucket.loss += loss;
-      buckets.set(franchiseKey, bucket);
+      buckets.set(teamKey, bucket);
     });
   }
 
