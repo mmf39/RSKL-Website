@@ -1107,7 +1107,6 @@ function renderLeagueNews(items) {
 
   els.leagueNews.innerHTML = visibleItems
     .map((item) => {
-      const bullets = Array.isArray(item.bullets) ? item.bullets.slice(0, 1) : [];
       const teams = Array.isArray(item.teams) ? item.teams.filter(Boolean) : [];
       const teamLinks = teams.length
         ? `<div class="dashboard-news-teams">${teams
@@ -1119,26 +1118,16 @@ function renderLeagueNews(items) {
         : "";
 
       return `
-        <article class="dashboard-news-card dashboard-news-card-compact news-kind-${escapeHtml(item.kind || "news")}" tabindex="0" role="button" aria-expanded="false">
+        <article class="dashboard-news-card dashboard-news-card-compact news-kind-${escapeHtml(item.kind || "news")}" tabindex="0" role="link" data-news-id="${escapeHtml(item.id || "")}">
           <div class="dashboard-news-head">
             <span class="dashboard-news-kind">${escapeHtml(formatNewsKind(item.kind))}</span>
             <span class="dashboard-news-time">${escapeHtml(formatNewsTimestamp(item.publishedAt))}</span>
           </div>
           <h3 class="dashboard-news-title">${escapeHtml(item.title || "League News")}</h3>
-          <div class="dashboard-news-expanded">
-            <p class="dashboard-news-summary">${escapeHtml(item.summary || item.dek || "Fresh coverage from around the league.")}</p>
-            ${
-              bullets.length
-                ? `<div class="dashboard-news-bullets">${bullets
-                    .map((bullet) => `<div class="dashboard-news-bullet">${escapeHtml(bullet)}</div>`)
-                    .join("")}</div>`
-                : ""
-            }
-          </div>
           ${
             teamLinks
-              ? `<div class="dashboard-news-footer">${teamLinks}<span class="dashboard-news-cta">Click for breakdown</span></div>`
-              : `<div class="dashboard-news-footer"><span class="dashboard-news-cta">Click for breakdown</span></div>`
+              ? `<div class="dashboard-news-footer">${teamLinks}</div>`
+              : `<div class="dashboard-news-footer"></div>`
           }
         </article>
       `;
@@ -1531,10 +1520,10 @@ if (els.liveRow) {
 }
 
 if (els.leagueNews) {
-  const toggleNewsCard = (card) => {
-    if (!card) return;
-    const isOpen = card.classList.toggle("open");
-    card.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  const openNewsCard = (card) => {
+    const newsId = String(card?.dataset.newsId || "").trim();
+    if (!newsId) return;
+    window.location.href = `/news-detail.html?id=${encodeURIComponent(newsId)}`;
   };
 
   els.leagueNews.addEventListener("click", (event) => {
@@ -1542,7 +1531,7 @@ if (els.leagueNews) {
     if (!card) return;
     const link = event.target.closest("a");
     if (link) return;
-    toggleNewsCard(card);
+    openNewsCard(card);
   });
 
   els.leagueNews.addEventListener("keydown", (event) => {
@@ -1550,7 +1539,7 @@ if (els.leagueNews) {
     if (!card) return;
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      toggleNewsCard(card);
+      openNewsCard(card);
     }
   });
 }

@@ -6061,20 +6061,6 @@ input[type="text"] {
   color: rgba(244, 237, 226, 0.8);
 }
 
-.dashboard-news-expanded {
-  order: 2;
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-height 180ms ease, opacity 180ms ease, margin 180ms ease;
-}
-
-.dashboard-news-card-compact.open .dashboard-news-expanded {
-  max-height: 220px;
-  opacity: 1;
-  margin-bottom: 12px;
-}
-
 .dashboard-news-teams {
   display: flex;
   flex-wrap: wrap;
@@ -6151,23 +6137,86 @@ input[type="text"] {
   order: 3;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 10px;
   margin-top: auto;
   padding-top: 14px;
   border-top: 1px solid rgba(255, 179, 71, 0.1);
 }
 
-.dashboard-news-cta {
-  font-size: 0.74rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: rgba(255, 220, 170, 0.68);
-  white-space: nowrap;
+.news-card-link {
+  color: inherit;
+  text-decoration: none;
 }
 
-.dashboard-news-card-compact.open .dashboard-news-cta {
-  color: rgba(255, 220, 170, 0.45);
+.news-card-link:hover {
+  color: #ffcf8d;
+}
+
+.news-story {
+  max-width: 900px;
+  margin: 0 auto;
+  border: 1px solid rgba(255, 140, 26, 0.18);
+  border-radius: 22px;
+  padding: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 179, 71, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(16, 16, 16, 0.98), rgba(8, 8, 8, 0.98));
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.28);
+}
+
+.news-story-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.news-story-title {
+  margin: 0 0 18px;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 0.98;
+}
+
+.news-story-summary {
+  margin: 0;
+  font-size: 1.08rem;
+  line-height: 1.72;
+  color: rgba(244, 237, 226, 0.86);
+}
+
+.news-story-bullets {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.news-story-teams {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 179, 71, 0.1);
+}
+
+.news-story-actions {
+  margin-top: 24px;
+}
+
+@media (max-width: 720px) {
+  .news-story {
+    padding: 20px;
+  }
+
+  .news-story-title {
+    font-size: clamp(1.6rem, 8vw, 2.25rem);
+  }
+
+  .news-story-summary {
+    font-size: 1rem;
+  }
 }
 
 .news-filter-wrap {

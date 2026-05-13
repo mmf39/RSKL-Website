@@ -2,8 +2,7 @@ const NEWS_FEED_URL = "/assets/data/news.json";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
-  filter: document.getElementById("news-filter"),
-  feed: document.getElementById("news-feed"),
+  detail: document.getElementById("news-detail"),
 };
 
 function escapeHtml(value) {
@@ -82,77 +81,67 @@ function formatKind(value) {
   return "League News";
 }
 
-let allItems = [];
-
-function renderFeed() {
-  if (!els.feed) return;
-  const filter = String(els.filter?.value || "all");
-  const items = filter === "all" ? allItems : allItems.filter((item) => item.kind === filter);
-  if (!items.length) {
-    els.feed.innerHTML = buildStateCard("No Stories", "No stories match that filter yet.");
+async function loadStory() {
+  if (!els.detail) return;
+  const storyId = new URLSearchParams(window.location.search).get("id");
+  if (!storyId) {
+    els.detail.innerHTML = buildStateCard("Story Missing", "This news story does not have a valid id.");
     return;
   }
 
-  els.feed.innerHTML = items
-    .map((item) => {
-      const teams = Array.isArray(item.teams) ? item.teams.filter(Boolean) : [];
-      const bullets = Array.isArray(item.bullets) ? item.bullets : [];
-      return `
-        <article class="news-card news-kind-${escapeHtml(item.kind || "news")}">
-          <div class="news-card-head">
-            <span class="dashboard-news-kind">${escapeHtml(formatKind(item.kind))}</span>
-            <span class="dashboard-news-time">${escapeHtml(formatTimestamp(item.publishedAt))}</span>
-          </div>
-          <h2 class="news-card-title"><a class="news-card-link" href="/news-detail.html?id=${encodeURIComponent(item.id || "")}">${escapeHtml(item.title || "League News")}</a></h2>
-          <p class="news-card-summary">${escapeHtml(item.summary || item.dek || "")}</p>
-          ${
-            teams.length
-              ? `<div class="dashboard-news-teams">${teams
-                  .map(
-                    (team) =>
-                      `<a class="dashboard-news-team" href="/team.html?team=${encodeURIComponent(team)}">${renderSmallTeamLogo(team)}<span>${escapeHtml(team)}</span></a>`
-                  )
-                  .join("")}</div>`
-              : ""
-          }
-          ${
-            bullets.length
-              ? `<div class="dashboard-news-bullets">${bullets
-                  .map((bullet) => `<div class="dashboard-news-bullet">${escapeHtml(bullet)}</div>`)
-                  .join("")}</div>`
-              : ""
-          }
-        </article>
-      `;
-    })
-    .join("");
-}
-
-async function loadNewsFeed() {
-  if (els.feed) {
-    els.feed.innerHTML = buildStateCard("Loading News", "Pulling the latest AI-written league coverage.");
-  }
   try {
     const response = await fetch(`${NEWS_FEED_URL}?v=${Date.now()}`, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`Fetch failed: ${response.status}`);
     }
     const payload = await response.json();
-    allItems = Array.isArray(payload?.items) ? payload.items : [];
+    const items = Array.isArray(payload?.items) ? payload.items : [];
+    const story = items.find((item) => String(item.id || "") === storyId);
+    if (!story) {
+      els.detail.innerHTML = buildStateCard("Story Not Found", "That news story is no longer available in the feed.");
+      return;
+    }
+
     if (els.lastUpdated) {
-      const stamp = payload?.updatedAt ? formatTimestamp(payload.updatedAt) : formatTimestamp(new Date().toISOString());
-      els.lastUpdated.textContent = `Last updated: ${stamp}`;
+      els.lastUpdated.textContent = `Last updated: ${formatTimestamp(payload?.updatedAt || story.publishedAt)}`;
     }
-    renderFeed();
+
+    const teams = Array.isArray(story.teams) ? story.teams.filter(Boolean) : [];
+    const bullets = Array.isArray(story.bullets) ? story.bullets : [];
+
+    els.detail.innerHTML = `
+      <article class="news-story news-kind-${escapeHtml(story.kind || "news")}">
+        <div class="news-story-head">
+          <span class="dashboard-news-kind">${escapeHtml(formatKind(story.kind))}</span>
+          <span class="dashboard-news-time">${escapeHtml(formatTimestamp(story.publishedAt))}</span>
+        </div>
+        <h1 class="news-story-title">${escapeHtml(story.title || "League News")}</h1>
+        <p class="news-story-summary">${escapeHtml(story.summary || "")}</p>
+        ${
+          bullets.length
+            ? `<div class="news-story-bullets">${bullets
+                .map((bullet) => `<div class="dashboard-news-bullet">${escapeHtml(bullet)}</div>`)
+                .join("")}</div>`
+            : ""
+        }
+        ${
+          teams.length
+            ? `<div class="news-story-teams">${teams
+                .map(
+                  (team) =>
+                    `<a class="dashboard-news-team" href="/team.html?team=${encodeURIComponent(team)}">${renderSmallTeamLogo(team)}<span>${escapeHtml(team)}</span></a>`
+                )
+                .join("")}</div>`
+            : ""
+        }
+        <div class="news-story-actions">
+          <a class="btn ghost" href="/news.html">Back to News</a>
+        </div>
+      </article>
+    `;
   } catch (error) {
-    if (els.feed) {
-      els.feed.innerHTML = buildStateCard("News Unavailable", "The news feed could not be loaded right now.");
-    }
+    els.detail.innerHTML = buildStateCard("Story Unavailable", "The news story could not be loaded right now.");
   }
 }
 
-if (els.filter) {
-  els.filter.addEventListener("change", renderFeed);
-}
-
-loadNewsFeed();
+loadStory();
