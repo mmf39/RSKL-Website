@@ -28,12 +28,12 @@ const C2S2_REGULAR_RANGES = {
   standings: "A59:F69",
 };
 const C2S2_PLAYOFF_HISTORY_ROWS = [
-  ["Date", "Team 1", "Team 2", "Info", "Game Type", "Games", "Winner"],
-  ["C2S2 Game 1", "The Phantoms", "Cheerios", "Wild Card Round", "Playoffs", "1", "Cheerios"],
-  ["C2S2 Game 2", "Gus N Em", "Illegals", "Wild Card Round", "Playoffs", "1", "Gus N Em"],
-  ["C2S2 Game 3", "Turkeys", "Cheerios", "Semi Finals", "Playoffs", "2", "Turkeys"],
-  ["C2S2 Game 4", "The Lions", "Gus N Em", "Semi Finals", "Playoffs", "3", "Gus N Em"],
-  ["C2S2 Game 5", "Turkeys", "Gus N Em", "Finals", "Playoffs", "3", "Gus N Em"],
+  ["Date", "Team 1", "Team 2", "Info", "Game Type", "Games", "Winner", "Winner Wins"],
+  ["C2S2 Game 1", "The Phantoms", "Cheerios", "Wild Card Round", "Playoffs", "1", "Cheerios", "1"],
+  ["C2S2 Game 2", "Gus N Em", "Illegals", "Wild Card Round", "Playoffs", "1", "Gus N Em", "1"],
+  ["C2S2 Game 3", "Turkeys", "Cheerios", "Semi Finals", "Playoffs", "2", "Turkeys", "2"],
+  ["C2S2 Game 4", "The Lions", "Gus N Em", "Semi Finals", "Playoffs", "3", "Gus N Em", "2"],
+  ["C2S2 Game 5", "Turkeys", "Gus N Em", "Finals", "Playoffs", "3", "Gus N Em", "3"],
 ];
 
 const ARCHIVE_RANGES = {
@@ -494,6 +494,7 @@ function buildPlayoffHistoryRows(scheduleRows, seasonLabel, seasonKey, franchise
   const lowerHeaders = headers.map((header) => String(header || "").trim().toLowerCase());
   const gamesIdx = lowerHeaders.findIndex((header) => header === "games");
   const winnerIdx = lowerHeaders.findIndex((header) => header === "winner");
+  const winnerWinsIdx = lowerHeaders.findIndex((header) => header === "winner wins");
   const teamRows = scheduleRows.slice(1).filter((row) => {
     const team1 = displayTeamName(row[idx.team1] || "");
     const team2 = displayTeamName(row[idx.team2] || "");
@@ -513,14 +514,33 @@ function buildPlayoffHistoryRows(scheduleRows, seasonLabel, seasonKey, franchise
       if (team1 && !opponents.includes(team1)) opponents.push(team1);
     }
   });
-  const inlineChampion =
-    winnerIdx === -1
-      ? ""
-      : displayTeamName(
-          teamRows.find((row) =>
-            String(row[idx.date] || "").trim().toLowerCase().includes("final")
-          )?.[winnerIdx] || ""
-        );
+  let inlineChampion = "";
+  if (winnerIdx !== -1) {
+    if (winnerWinsIdx !== -1) {
+      const winsByTeam = new Map();
+      scheduleRows.slice(1).forEach((row) => {
+        const winner = displayTeamName(row[winnerIdx] || "");
+        if (!winner) return;
+        const wins = Number(String(row[winnerWinsIdx] || "").trim());
+        const total = Number.isFinite(wins) && wins > 0 ? wins : 0;
+        winsByTeam.set(winner, (winsByTeam.get(winner) || 0) + total);
+      });
+      let bestWins = -1;
+      winsByTeam.forEach((wins, team) => {
+        if (wins > bestWins) {
+          bestWins = wins;
+          inlineChampion = team;
+        }
+      });
+    }
+    if (!inlineChampion) {
+      inlineChampion = displayTeamName(
+        teamRows.find((row) =>
+          String(row[idx.date] || "").trim().toLowerCase().includes("final")
+        )?.[winnerIdx] || ""
+      );
+    }
+  }
   const champion = inlineChampion || championMap.get(seasonKeyToChampionRangeKey(seasonKey)) || "";
   const totalGames = teamRows.reduce((sum, row) => {
     if (gamesIdx === -1) return sum + 1;
