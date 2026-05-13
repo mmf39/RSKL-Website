@@ -409,7 +409,7 @@ function getTeamLogoHtml(teamName) {
     return '<img class="standings-logo" src="/assets/burritos.jpg" alt="Burritos logo" />';
   }
   if (teamName === "Cobras") {
-    return '<img class="standings-logo" src="/assets/cobras.jpg" alt="Cobras logo" />';
+    return '<img class="standings-logo" src="/assets/cobras.png" alt="Cobras logo" />';
   }
   if (teamName === "Chicken Nuggets") {
     return '<img class="standings-logo" src="/assets/chicken-nuggets.jpg" alt="Chicken Nuggets logo" />';

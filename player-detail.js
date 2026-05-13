@@ -1155,7 +1155,7 @@ function getTeamLogoHtml(teamName) {
     : shownTeam === "Burritos"
     ? '<img class="player-team-logo" src="/assets/burritos.jpg" alt="Burritos logo" />'
     : shownTeam === "Cobras"
-    ? '<img class="player-team-logo" src="/assets/cobras.jpg" alt="Cobras logo" />'
+    ? '<img class="player-team-logo" src="/assets/cobras.png" alt="Cobras logo" />'
     : shownTeam === "Chicken Nuggets"
     ? '<img class="player-team-logo" src="/assets/chicken-nuggets.jpg" alt="Chicken Nuggets logo" />'
     : shownTeam === "Yetis"

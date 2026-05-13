@@ -321,7 +321,7 @@ function getTeamLogoSrc(name) {
   if (shown === "Bees") return "/assets/bees.jpg";
   if (shown === "Broncos") return "/assets/broncos.jpg";
   if (shown === "Burritos") return "/assets/burritos.jpg";
-  if (shown === "Cobras") return "/assets/cobras.jpg";
+  if (shown === "Cobras") return "/assets/cobras.png";
   if (shown === "Chicken Nuggets") return "/assets/chicken-nuggets.jpg";
   if (shown === "Masdog N Em") return "/assets/gus-n-em.png";
   if (shown === "Richer N Em") return "/assets/gus-n-em.png";
