@@ -761,14 +761,26 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
     if (team === "Mafia") {
       return '<img class="standings-logo" src="/assets/mafia.png" alt="Mafia logo" />';
     }
+    if (team === "Mets" || team === "The Mets") {
+      return '<img class="standings-logo" src="/assets/mets.png" alt="Mets logo" />';
+    }
+    if (team === "Phoenix" || team === "The Phoenix") {
+      return '<img class="standings-logo" src="/assets/phoenix.png" alt="Phoenix logo" />';
+    }
     if (team === "Thunderhawks") {
       return '<img class="standings-logo" src="/assets/thunderhawks.png" alt="Thunderhawks logo" />';
+    }
+    if (team === "The Currents" || team === "Currents") {
+      return '<img class="standings-logo" src="/assets/the-currents.png" alt="The Currents logo" />';
     }
     if (team === "Whatsgrass") {
       return '<img class="standings-logo" src="/assets/whatsgrass.png" alt="Whatsgrass logo" />';
     }
     if (team === "Wolves") {
       return '<img class="standings-logo" src="/assets/wolves.png" alt="Wolves logo" />';
+    }
+    if (team === "Zombies") {
+      return '<img class="standings-logo" src="/assets/zombies.png" alt="Zombies logo" />';
     }
     if (team === "Yetis") {
       return '<img class="standings-logo" src="/assets/yetis.png" alt="Yetis logo" />';

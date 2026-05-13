@@ -388,9 +388,13 @@ function getTeamLogoSrc(team) {
   if (clean === "Cobras") return "/assets/cobras.png";
   if (clean === "Karma Avengers") return "/assets/karma-avengers.png";
   if (clean === "Mafia") return "/assets/mafia.png";
+  if (clean === "Mets" || clean === "The Mets") return "/assets/mets.png";
+  if (clean === "Phoenix" || clean === "The Phoenix") return "/assets/phoenix.png";
   if (clean === "Thunderhawks") return "/assets/thunderhawks.png";
+  if (clean === "The Currents" || clean === "Currents") return "/assets/the-currents.png";
   if (clean === "Whatsgrass") return "/assets/whatsgrass.png";
   if (clean === "Wolves") return "/assets/wolves.png";
+  if (clean === "Zombies") return "/assets/zombies.png";
   if (clean === "Chicken Nuggets") return "/assets/chicken-nuggets.jpg";
   if (clean === "Masdog N Em" || clean === "Richer N Em" || clean === "Doggy N Em") return "/assets/gus-n-em.png";
   if (clean === "Yetis") return "/assets/yetis.png";
@@ -2335,10 +2339,14 @@ function getTeamLogo(team) {
   if (clean === "Cobras") return "/assets/cobras.png";
   if (clean === "Karma Avengers") return "/assets/karma-avengers.png";
   if (clean === "Mafia") return "/assets/mafia.png";
+  if (clean === "Mets" || clean === "The Mets") return "/assets/mets.png";
+  if (clean === "Phoenix" || clean === "The Phoenix") return "/assets/phoenix.png";
   if (clean === "Masdog N Em" || clean === "Richer N Em") return "/assets/gus-n-em.png";
   if (clean === "Thunderhawks") return "/assets/thunderhawks.png";
+  if (clean === "The Currents" || clean === "Currents") return "/assets/the-currents.png";
   if (clean === "Whatsgrass") return "/assets/whatsgrass.png";
   if (clean === "Wolves") return "/assets/wolves.png";
+  if (clean === "Zombies") return "/assets/zombies.png";
   if (clean === "Yetis") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
   if (clean === "Cheerios") return "/assets/cheerios.png";

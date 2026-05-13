@@ -417,14 +417,26 @@ function getTeamLogoHtml(teamName) {
   if (teamName === "Mafia") {
     return '<img class="standings-logo" src="/assets/mafia.png" alt="Mafia logo" />';
   }
+  if (teamName === "Mets" || teamName === "The Mets") {
+    return '<img class="standings-logo" src="/assets/mets.png" alt="Mets logo" />';
+  }
+  if (teamName === "Phoenix" || teamName === "The Phoenix") {
+    return '<img class="standings-logo" src="/assets/phoenix.png" alt="Phoenix logo" />';
+  }
   if (teamName === "Thunderhawks") {
     return '<img class="standings-logo" src="/assets/thunderhawks.png" alt="Thunderhawks logo" />';
+  }
+  if (teamName === "The Currents" || teamName === "Currents") {
+    return '<img class="standings-logo" src="/assets/the-currents.png" alt="The Currents logo" />';
   }
   if (teamName === "Whatsgrass") {
     return '<img class="standings-logo" src="/assets/whatsgrass.png" alt="Whatsgrass logo" />';
   }
   if (teamName === "Wolves") {
     return '<img class="standings-logo" src="/assets/wolves.png" alt="Wolves logo" />';
+  }
+  if (teamName === "Zombies") {
+    return '<img class="standings-logo" src="/assets/zombies.png" alt="Zombies logo" />';
   }
   if (teamName === "Chicken Nuggets") {
     return '<img class="standings-logo" src="/assets/chicken-nuggets.jpg" alt="Chicken Nuggets logo" />';

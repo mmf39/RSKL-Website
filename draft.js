@@ -287,17 +287,29 @@ function getTeamLogo(team) {
   if (clean === "Mafia") {
     return '<img class="standings-logo" src="/assets/mafia.png" alt="Mafia logo" />';
   }
+  if (clean === "Mets" || clean === "The Mets") {
+    return '<img class="standings-logo" src="/assets/mets.png" alt="Mets logo" />';
+  }
   if (clean === "Masdog N Em" || clean === "Richer N Em") {
     return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="N Em logo" />';
   }
+  if (clean === "Phoenix" || clean === "The Phoenix") {
+    return '<img class="standings-logo" src="/assets/phoenix.png" alt="Phoenix logo" />';
+  }
   if (clean === "Thunderhawks") {
     return '<img class="standings-logo" src="/assets/thunderhawks.png" alt="Thunderhawks logo" />';
+  }
+  if (clean === "The Currents" || clean === "Currents") {
+    return '<img class="standings-logo" src="/assets/the-currents.png" alt="The Currents logo" />';
   }
   if (clean === "Whatsgrass") {
     return '<img class="standings-logo" src="/assets/whatsgrass.png" alt="Whatsgrass logo" />';
   }
   if (clean === "Wolves") {
     return '<img class="standings-logo" src="/assets/wolves.png" alt="Wolves logo" />';
+  }
+  if (clean === "Zombies") {
+    return '<img class="standings-logo" src="/assets/zombies.png" alt="Zombies logo" />';
   }
   if (clean === "Yetis") {
     return '<img class="standings-logo" src="/assets/yetis.png" alt="Yetis logo" />';

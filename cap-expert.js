@@ -190,9 +190,13 @@ function getTeamLogo(team) {
   if (clean === "Broncos") return "/assets/broncos.jpg";
   if (clean === "Burritos") return "/assets/burritos.jpg";
   if (clean === "Mafia") return "/assets/mafia.png";
+  if (clean === "Mets" || clean === "The Mets") return "/assets/mets.png";
+  if (clean === "Phoenix" || clean === "The Phoenix") return "/assets/phoenix.png";
   if (clean === "Thunderhawks") return "/assets/thunderhawks.png";
+  if (clean === "The Currents" || clean === "Currents") return "/assets/the-currents.png";
   if (clean === "Whatsgrass") return "/assets/whatsgrass.png";
   if (clean === "Wolves") return "/assets/wolves.png";
+  if (clean === "Zombies") return "/assets/zombies.png";
   if (clean === "Chicken Nuggets") return "/assets/chicken-nuggets.jpg";
   if (clean === "Yetis") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
