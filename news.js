@@ -76,9 +76,9 @@ function formatTimestamp(value) {
 }
 
 function formatKind(value) {
-  if (value === "preview") return "Game Day Preview";
-  if (value === "recap") return "Game Recap";
-  if (value === "transaction") return "Transaction Wire";
+  if (value === "preview") return "Preview";
+  if (value === "recap") return "Recap";
+  if (value === "transaction") return "Transactions";
   return "League News";
 }
 

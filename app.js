@@ -401,9 +401,9 @@ function formatNewsTimestamp(value) {
 }
 
 function formatNewsKind(value) {
-  if (value === "preview") return "Game Day Preview";
-  if (value === "recap") return "Game Recap";
-  if (value === "transaction") return "Transaction Wire";
+  if (value === "preview") return "Preview";
+  if (value === "recap") return "Recap";
+  if (value === "transaction") return "Transactions";
   return "League News";
 }
 
@@ -1119,20 +1119,26 @@ function renderLeagueNews(items) {
         : "";
 
       return `
-        <article class="dashboard-news-card dashboard-news-card-compact news-kind-${escapeHtml(item.kind || "news")}">
+        <article class="dashboard-news-card dashboard-news-card-compact news-kind-${escapeHtml(item.kind || "news")}" tabindex="0" role="button" aria-expanded="false">
           <div class="dashboard-news-head">
-            <span class="dashboard-news-kind">AI ${escapeHtml(formatNewsKind(item.kind))}</span>
+            <span class="dashboard-news-kind">${escapeHtml(formatNewsKind(item.kind))}</span>
             <span class="dashboard-news-time">${escapeHtml(formatNewsTimestamp(item.publishedAt))}</span>
           </div>
           <h3 class="dashboard-news-title">${escapeHtml(item.title || "League News")}</h3>
-          <p class="dashboard-news-summary">${escapeHtml(item.summary || item.dek || "Fresh coverage from around the league.")}</p>
-          ${teamLinks}
+          <div class="dashboard-news-expanded">
+            <p class="dashboard-news-summary">${escapeHtml(item.summary || item.dek || "Fresh coverage from around the league.")}</p>
+            ${
+              bullets.length
+                ? `<div class="dashboard-news-bullets">${bullets
+                    .map((bullet) => `<div class="dashboard-news-bullet">${escapeHtml(bullet)}</div>`)
+                    .join("")}</div>`
+                : ""
+            }
+          </div>
           ${
-            bullets.length
-              ? `<div class="dashboard-news-bullets">${bullets
-                  .map((bullet) => `<div class="dashboard-news-bullet">${escapeHtml(bullet)}</div>`)
-                  .join("")}</div>`
-              : ""
+            teamLinks
+              ? `<div class="dashboard-news-footer">${teamLinks}<span class="dashboard-news-cta">Click for breakdown</span></div>`
+              : `<div class="dashboard-news-footer"><span class="dashboard-news-cta">Click for breakdown</span></div>`
           }
         </article>
       `;
@@ -1521,6 +1527,31 @@ if (els.liveRow) {
     const game = currentLiveGames[index];
     if (!game) return;
     renderLiveModal(game);
+  });
+}
+
+if (els.leagueNews) {
+  const toggleNewsCard = (card) => {
+    if (!card) return;
+    const isOpen = card.classList.toggle("open");
+    card.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  };
+
+  els.leagueNews.addEventListener("click", (event) => {
+    const card = event.target.closest(".dashboard-news-card-compact");
+    if (!card) return;
+    const link = event.target.closest("a");
+    if (link) return;
+    toggleNewsCard(card);
+  });
+
+  els.leagueNews.addEventListener("keydown", (event) => {
+    const card = event.target.closest(".dashboard-news-card-compact");
+    if (!card) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      toggleNewsCard(card);
+    }
   });
 }
 

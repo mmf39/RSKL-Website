@@ -592,7 +592,7 @@ function buildPreviewItems({ todayIso, scheduleGames, standingsMap, leaderMap, c
       id: `preview-${todayIso}-${slugify(game.team1)}-${slugify(game.team2)}`,
       kind: "preview",
       season: "c2s3-regular",
-      title: `AI Preview: ${game.team1} vs ${game.team2}`,
+      title: `${game.team1} vs ${game.team2}: 3 things to watch`,
       summary: `Three quick angles to watch before ${game.team1} and ${game.team2} hit the ${dateToken} slate.`,
       bullets: bullets.slice(0, 3),
       teams: [game.team1, game.team2],
@@ -639,7 +639,7 @@ function buildRecapItems({ todayIso, scheduleGames, completedGames }) {
         id: `recap-${yesterdayIso}-${slugify(game.team1)}-${slugify(game.team2)}`,
         kind: "recap",
         season: "c2s3-regular",
-        title: `AI Recap: ${winner} over ${loser}, ${winnerScore}-${loserScore}`,
+        title: `${winner} beat ${loser}, ${winnerScore}-${loserScore}`,
         summary: `${winner} took care of business on ${dateToken}. Here is the fast read on the margin, the star turns, and what decided it.`,
         bullets,
         teams: [game.team1, game.team2],
@@ -709,8 +709,8 @@ function buildTransactionItems(transactionRows) {
   return items.map((item) => {
     const title =
       item.type === "Trade"
-        ? `AI Trade Breakdown: ${item.team1 || "Team 1"} and ${item.team2 || "Team 2"}`
-        : `AI Transaction Breakdown: ${item.players?.[0] || "Roster move"}`;
+        ? `Trade Breakdown: ${item.team1 || "Team 1"} and ${item.team2 || "Team 2"}`
+        : `Transaction Breakdown: ${item.players?.[0] || "Roster move"}`;
     const bullets =
       item.type === "Trade"
         ? [
