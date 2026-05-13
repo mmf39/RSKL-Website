@@ -1095,7 +1095,8 @@ function renderLeagueLeaders(rows, seasonRaw) {
 
 function renderLeagueNews(items) {
   if (!els.leagueNews) return;
-  const visibleItems = (items || []).slice(0, 3);
+  const recapItems = (items || []).filter((item) => item.kind === "recap");
+  const visibleItems = (recapItems.length ? recapItems : items || []).slice(0, 3);
   if (!visibleItems.length) {
     els.leagueNews.innerHTML = buildStateCard(
       "No News Yet",
