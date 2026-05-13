@@ -3390,6 +3390,82 @@ function extractLeagueDay(rows) {
   return normalizeDateToken(parts.length > 1 ? parts[1].trim() : raw.trim());
 }
 
+function parseRecapPoints(value) {
+  const num = Number(String(value || "").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(num) ? num : null;
+}
+
+function getTopPerformer(players) {
+  return (players || [])
+    .map((player) => ({ ...player, numericPoints: parseRecapPoints(player.points) }))
+    .filter((player) => player.player && player.numericPoints !== null)
+    .sort((a, b) => b.numericPoints - a.numericPoints)[0] || null;
+}
+
+function buildGameRecapMarkup({
+  dateLabel,
+  team1Name,
+  team2Name,
+  team1Score,
+  team2Score,
+  team1Players,
+  team2Players,
+  status,
+}) {
+  const cleanTeam1 = displayTeamName(team1Name);
+  const cleanTeam2 = displayTeamName(team2Name);
+  const score1 = parseRecapPoints(team1Score);
+  const score2 = parseRecapPoints(team2Score);
+  if (score1 === null || score2 === null) {
+    return "";
+  }
+
+  const isLive = status === "live";
+  const winnerName = score1 >= score2 ? cleanTeam1 : cleanTeam2;
+  const loserName = winnerName === cleanTeam1 ? cleanTeam2 : cleanTeam1;
+  const winnerScore = winnerName === cleanTeam1 ? score1 : score2;
+  const loserScore = winnerName === cleanTeam1 ? score2 : score1;
+  const margin = Math.abs(score1 - score2);
+  const top1 = getTopPerformer(team1Players);
+  const top2 = getTopPerformer(team2Players);
+  const overallTop = [top1, top2].filter(Boolean).sort((a, b) => b.numericPoints - a.numericPoints)[0] || null;
+  const losingTop = winnerName === cleanTeam1 ? top2 : top1;
+  const leadVerb = isLive ? "lead" : "beat";
+  const tone =
+    margin <= 250
+      ? isLive
+        ? "It is still tight heading toward the finish."
+        : "It came down to a tight finish."
+      : margin >= 1500
+      ? isLive
+        ? "They have created real separation."
+        : "They controlled the game comfortably."
+      : isLive
+      ? "They have the edge right now."
+      : "They gradually pulled away.";
+
+  const bullets = [];
+  if (overallTop) {
+    bullets.push(`${overallTop.player} led all scorers with ${overallTop.numericPoints.toFixed(0)} points.`);
+  }
+  if (losingTop && (!overallTop || losingTop.player !== overallTop.player)) {
+    bullets.push(`${loserName} still got a strong outing from ${losingTop.player}, who finished with ${losingTop.numericPoints.toFixed(0)}.`);
+  }
+  if (!bullets.length) {
+    bullets.push(`${winnerName} ${isLive ? "have the stronger box score so far." : "finished with the stronger box score overall."}`);
+  }
+
+  return `
+    <section class="game-recap-card ${escapeHtml(isLive ? "live" : "final")}">
+      <div class="game-recap-eyebrow">${escapeHtml(isLive ? "AI Live Recap" : "AI Game Recap")}</div>
+      <p class="game-recap-lede">${escapeHtml(`${winnerName} ${leadVerb} ${loserName} ${winnerScore}-${loserScore}${dateLabel ? ` on ${dateLabel}` : ""}. ${tone}`)}</p>
+      <div class="game-recap-notes">
+        ${bullets.map((bullet) => `<div class="game-recap-note">${escapeHtml(bullet)}</div>`).join("")}
+      </div>
+    </section>
+  `;
+}
+
 function buildLiveScoreMap(rows) {
   const map = new Map();
   if (!rows.length) {
@@ -3612,6 +3688,8 @@ function buildLiveBoxMarkup(scoreState, scheduleRow) {
   if (!payload) {
     return '<div class="boxscore-empty">No live stats available.</div>';
   }
+  const parsed1 = parseTeamHeader(payload.team1Header);
+  const parsed2 = parseTeamHeader(payload.team2Header);
 
   const renderTeam = (header, players) => {
     const parsed = parseTeamHeader(header);
@@ -3644,6 +3722,16 @@ function buildLiveBoxMarkup(scoreState, scheduleRow) {
 
   const dateLabel = String(scheduleRow[scheduleIndexes.date] || "").trim();
   return `
+    ${buildGameRecapMarkup({
+      dateLabel,
+      team1Name: parsed1.name || "",
+      team2Name: parsed2.name || "",
+      team1Score: payload.team1Score || "",
+      team2Score: payload.team2Score || "",
+      team1Players: payload.team1Players || [],
+      team2Players: payload.team2Players || [],
+      status: "live",
+    })}
     <div class="boxscore-meta">League Day: ${escapeHtml(dateLabel)}</div>
     <div class="boxscore-card">${renderTeam(payload.team1Header, payload.team1Players)}</div>
     <div class="boxscore-card">${renderTeam(payload.team2Header, payload.team2Players)}</div>
@@ -3884,6 +3972,8 @@ function buildBoxScoreMarkup(boxScore) {
   if (!boxScore) {
     return '<div class="boxscore-empty">No stats available.</div>';
   }
+  const parsedTeam1 = parseTeamHeader(boxScore.team1Name);
+  const parsedTeam2 = parseTeamHeader(boxScore.team2Name);
   const cleanTeamLabel = (name) =>
     String(name || "").replace(/\([^)]*\)/g, "").trim();
   const renderTeamTable = (rows, header) => {
@@ -3929,6 +4019,16 @@ function buildBoxScoreMarkup(boxScore) {
   };
 
   return `
+    ${buildGameRecapMarkup({
+      dateLabel: boxScore.dateLabel || "",
+      team1Name: parsedTeam1.name || boxScore.team1Name,
+      team2Name: parsedTeam2.name || boxScore.team2Name,
+      team1Score: parsedTeam1.score || "",
+      team2Score: parsedTeam2.score || "",
+      team1Players: boxScore.team1 || [],
+      team2Players: boxScore.team2 || [],
+      status: "final",
+    })}
     <div class="boxscore-meta">${escapeHtml(boxScore.dateLabel || "")}</div>
     <div class="boxscore-card">
       ${renderTeamTable(boxScore.team1, boxScore.team1Name)}

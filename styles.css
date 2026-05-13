@@ -2916,6 +2916,46 @@ input[type="text"] {
   gap: 8px;
 }
 
+.game-recap-card {
+  margin-bottom: 12px;
+  border: 1px solid rgba(255, 186, 102, 0.35);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(24, 40, 78, 0.96), rgba(10, 22, 52, 0.92));
+  padding: 14px;
+}
+
+.game-recap-card.live {
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+.game-recap-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffb347;
+  margin-bottom: 8px;
+}
+
+.game-recap-lede {
+  margin: 0;
+  color: #f8fafc;
+  line-height: 1.55;
+  font-weight: 600;
+}
+
+.game-recap-notes {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.game-recap-note {
+  color: #dbeafe;
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+
 .boxscore-team {
   font-size: 1.2rem;
   font-weight: 700;
