@@ -1095,7 +1095,7 @@ function renderLeagueLeaders(rows, seasonRaw) {
 
 function renderLeagueNews(items) {
   if (!els.leagueNews) return;
-  const visibleItems = (items || []).slice(0, 5);
+  const visibleItems = (items || []).slice(0, 3);
   if (!visibleItems.length) {
     els.leagueNews.innerHTML = buildStateCard(
       "No News Yet",
@@ -1106,7 +1106,7 @@ function renderLeagueNews(items) {
 
   els.leagueNews.innerHTML = visibleItems
     .map((item) => {
-      const bullets = Array.isArray(item.bullets) ? item.bullets.slice(0, 2) : [];
+      const bullets = Array.isArray(item.bullets) ? item.bullets.slice(0, 1) : [];
       const teams = Array.isArray(item.teams) ? item.teams.filter(Boolean) : [];
       const teamLinks = teams.length
         ? `<div class="dashboard-news-teams">${teams
@@ -1118,9 +1118,9 @@ function renderLeagueNews(items) {
         : "";
 
       return `
-        <article class="dashboard-news-card news-kind-${escapeHtml(item.kind || "news")}">
+        <article class="dashboard-news-card dashboard-news-card-compact news-kind-${escapeHtml(item.kind || "news")}">
           <div class="dashboard-news-head">
-            <span class="dashboard-news-kind">${escapeHtml(formatNewsKind(item.kind))}</span>
+            <span class="dashboard-news-kind">AI ${escapeHtml(formatNewsKind(item.kind))}</span>
             <span class="dashboard-news-time">${escapeHtml(formatNewsTimestamp(item.publishedAt))}</span>
           </div>
           <h3 class="dashboard-news-title">${escapeHtml(item.title || "League News")}</h3>

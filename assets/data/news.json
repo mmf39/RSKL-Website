@@ -1,16 +1,17 @@
 {
-  "updatedAt": "2026-05-13T20:32:58.173Z",
+  "updatedAt": "2026-05-13T20:42:53.395Z",
   "timezone": "America/New_York",
   "items": [
     {
       "id": "transaction-trade-5-11-mayeday-gets-trickyy-burden-10-2nd-round-pick-dream-team-gets-killyouridol-uno-first-round-pick",
       "kind": "transaction",
       "season": "c2s3-regular",
-      "title": "MayeDay and Dream Team complete a trade",
-      "summary": "MayeDay gets @trickyy @burden_10 2nd round pick • Dream Team gets @killyouridol @uno first round pick",
+      "title": "AI Trade Breakdown: MayeDay and Dream Team",
+      "summary": "MayeDay and Dream Team swapped pieces, and this one deserves a closer look than a normal transaction line.",
       "bullets": [
-        "MayeDay brought in @trickyy @burden_10 2nd round pick.",
-        "Dream Team answered by adding @killyouridol @uno first round pick."
+        "MayeDay added @trickyy @burden_10 2nd round pick, which could reshape their rotation right away.",
+        "Dream Team answered with @killyouridol @uno first round pick, so both sides clearly had a specific need in mind.",
+        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
       ],
       "teams": [
         "MayeDay",
@@ -23,11 +24,12 @@
       "id": "transaction-trade-5-6-the-lions-gets-rifting-snowy-arachnid-dream-team-gets-trickyy-1st-and-2nd-swap-if-lions-are-worse-the-dream-team",
       "kind": "transaction",
       "season": "c2s3-regular",
-      "title": "The Lions and Dream Team complete a trade",
-      "summary": "The Lions gets @rifting @snowy @arachnid • Dream Team gets @trickyy 1st and 2nd swap if lions are worse the dream team",
+      "title": "AI Trade Breakdown: The Lions and Dream Team",
+      "summary": "The Lions and Dream Team swapped pieces, and this one deserves a closer look than a normal transaction line.",
       "bullets": [
-        "The Lions brought in @rifting @snowy @arachnid.",
-        "Dream Team answered by adding @trickyy 1st and 2nd swap if lions are worse the dream team."
+        "The Lions added @rifting @snowy @arachnid, which could reshape their rotation right away.",
+        "Dream Team answered with @trickyy 1st and 2nd swap if lions are worse the dream team, so both sides clearly had a specific need in mind.",
+        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
       ],
       "teams": [
         "The Lions",
@@ -40,10 +42,11 @@
       "id": "transaction-signing-5-5-timeless-signed-the-phantoms",
       "kind": "transaction",
       "season": "c2s3-regular",
-      "title": "Signing: @timeless",
-      "summary": "@timeless signed • The Phantoms",
+      "title": "AI Transaction Breakdown: @timeless",
+      "summary": "@timeless signed • The Phantoms. This is the quick AI read on what the move could mean.",
       "bullets": [
-        "@timeless signed • The Phantoms."
+        "@timeless signed • The Phantoms.",
+        "The Phantoms now have a little more roster pressure around that spot."
       ],
       "teams": [
         "The Phantoms"
@@ -55,10 +58,11 @@
       "id": "transaction-cut-5-5-vice16-cut-the-phantoms",
       "kind": "transaction",
       "season": "c2s3-regular",
-      "title": "Cut: @vice16",
-      "summary": "@vice16 cut • The Phantoms",
+      "title": "AI Transaction Breakdown: @vice16",
+      "summary": "@vice16 cut • The Phantoms. This is the quick AI read on what the move could mean.",
       "bullets": [
-        "@vice16 cut • The Phantoms."
+        "@vice16 cut • The Phantoms.",
+        "The Phantoms now have a little more roster pressure around that spot."
       ],
       "teams": [
         "The Phantoms"
@@ -70,10 +74,11 @@
       "id": "transaction-cut-5-4-togyk04-cut-turkeys",
       "kind": "transaction",
       "season": "c2s3-regular",
-      "title": "Cut: @togyk04",
-      "summary": "@togyk04 cut • Turkeys",
+      "title": "AI Transaction Breakdown: @togyk04",
+      "summary": "@togyk04 cut • Turkeys. This is the quick AI read on what the move could mean.",
       "bullets": [
-        "@togyk04 cut • Turkeys."
+        "@togyk04 cut • Turkeys.",
+        "Turkeys now have a little more roster pressure around that spot."
       ],
       "teams": [
         "Turkeys"
@@ -85,10 +90,11 @@
       "id": "transaction-cut-5-4-don-chalant-cut-gus-n-em",
       "kind": "transaction",
       "season": "c2s3-regular",
-      "title": "Cut: @don_chalant",
-      "summary": "@don_chalant cut • Gus N Em",
+      "title": "AI Transaction Breakdown: @don_chalant",
+      "summary": "@don_chalant cut • Gus N Em. This is the quick AI read on what the move could mean.",
       "bullets": [
-        "@don_chalant cut • Gus N Em."
+        "@don_chalant cut • Gus N Em.",
+        "Gus N Em now have a little more roster pressure around that spot."
       ],
       "teams": [
         "Gus N Em"
@@ -100,11 +106,12 @@
       "id": "transaction-trade-5-3-cheerios-gets-bojack-and-playexplainer-the-phantoms-gets-c2s3-1st-round-pick",
       "kind": "transaction",
       "season": "c2s3-regular",
-      "title": "Cheerios and The Phantoms complete a trade",
-      "summary": "Cheerios gets @bojack and @playexplainer • The Phantoms gets C2S3 1st round pick",
+      "title": "AI Trade Breakdown: Cheerios and The Phantoms",
+      "summary": "Cheerios and The Phantoms swapped pieces, and this one deserves a closer look than a normal transaction line.",
       "bullets": [
-        "Cheerios brought in @bojack and @playexplainer.",
-        "The Phantoms answered by adding C2S3 1st round pick."
+        "Cheerios added @bojack and @playexplainer, which could reshape their rotation right away.",
+        "The Phantoms answered with C2S3 1st round pick, so both sides clearly had a specific need in mind.",
+        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
       ],
       "teams": [
         "Cheerios",
@@ -117,11 +124,12 @@
       "id": "transaction-trade-5-3-dream-team-gets-c2s3-1st-round-pick-gaston-rifting-c2s3-2nd-round-pick-mayeday-gets-c2s3-1st-round-pick-dos-gtlover-c2s3-2nd-c2s4-3rd-via-dream-team",
       "kind": "transaction",
       "season": "c2s3-regular",
-      "title": "Dream Team and MayeDay complete a trade",
-      "summary": "Dream Team gets C2S3 1st round pick, @gaston @rifting C2S3 2nd round pick • MayeDay gets C2S3 1st round pick, @dos @gtlover C2S3 2nd C2S4 3rd via Dream Team",
+      "title": "AI Trade Breakdown: Dream Team and MayeDay",
+      "summary": "Dream Team and MayeDay swapped pieces, and this one deserves a closer look than a normal transaction line.",
       "bullets": [
-        "Dream Team brought in C2S3 1st round pick, @gaston @rifting C2S3 2nd round pick.",
-        "MayeDay answered by adding C2S3 1st round pick, @dos @gtlover C2S3 2nd C2S4 3rd via Dream Team."
+        "Dream Team added C2S3 1st round pick, @gaston @rifting C2S3 2nd round pick, which could reshape their rotation right away.",
+        "MayeDay answered with C2S3 1st round pick, @dos @gtlover C2S3 2nd C2S4 3rd via Dream Team, so both sides clearly had a specific need in mind.",
+        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
       ],
       "teams": [
         "Dream Team",
@@ -134,11 +142,12 @@
       "id": "transaction-trade-5-3-storm-gets-na-te-and-c2s3-2nd-the-snipers-gets-c2s3-1st",
       "kind": "transaction",
       "season": "c2s3-regular",
-      "title": "Storm and The Snipers complete a trade",
-      "summary": "Storm gets @na_te and C2S3 2nd • The Snipers gets C2S3 1st",
+      "title": "AI Trade Breakdown: Storm and The Snipers",
+      "summary": "Storm and The Snipers swapped pieces, and this one deserves a closer look than a normal transaction line.",
       "bullets": [
-        "Storm brought in @na_te and C2S3 2nd.",
-        "The Snipers answered by adding C2S3 1st."
+        "Storm added @na_te and C2S3 2nd, which could reshape their rotation right away.",
+        "The Snipers answered with C2S3 1st, so both sides clearly had a specific need in mind.",
+        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
       ],
       "teams": [
         "Storm",
@@ -151,11 +160,12 @@
       "id": "transaction-trade-5-3-mayeday-gets-c2s3-2nd-round-pick-dream-team-gets-jamesthebot888",
       "kind": "transaction",
       "season": "c2s3-regular",
-      "title": "MayeDay and Dream Team complete a trade",
-      "summary": "MayeDay gets C2S3 2nd round pick • Dream Team gets @jamesthebot888",
+      "title": "AI Trade Breakdown: MayeDay and Dream Team",
+      "summary": "MayeDay and Dream Team swapped pieces, and this one deserves a closer look than a normal transaction line.",
       "bullets": [
-        "MayeDay brought in C2S3 2nd round pick.",
-        "Dream Team answered by adding @jamesthebot888."
+        "MayeDay added C2S3 2nd round pick, which could reshape their rotation right away.",
+        "Dream Team answered with @jamesthebot888, so both sides clearly had a specific need in mind.",
+        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
       ],
       "teams": [
         "MayeDay",
@@ -168,10 +178,11 @@
       "id": "transaction-cut-5-3-na-te-cut-storm",
       "kind": "transaction",
       "season": "c2s3-regular",
-      "title": "Cut: @na_te",
-      "summary": "@na_te cut • Storm",
+      "title": "AI Transaction Breakdown: @na_te",
+      "summary": "@na_te cut • Storm. This is the quick AI read on what the move could mean.",
       "bullets": [
-        "@na_te cut • Storm."
+        "@na_te cut • Storm.",
+        "Storm now have a little more roster pressure around that spot."
       ],
       "teams": [
         "Storm"
@@ -183,10 +194,11 @@
       "id": "transaction-cut-5-13-concretejungle-cut-the-lions",
       "kind": "transaction",
       "season": "c2s3-regular",
-      "title": "Cut: @concretejungle",
-      "summary": "@concretejungle cut • The Lions",
+      "title": "AI Transaction Breakdown: @concretejungle",
+      "summary": "@concretejungle cut • The Lions. This is the quick AI read on what the move could mean.",
       "bullets": [
-        "@concretejungle cut • The Lions."
+        "@concretejungle cut • The Lions.",
+        "The Lions now have a little more roster pressure around that spot."
       ],
       "teams": [
         "The Lions"
@@ -198,8 +210,8 @@
       "id": "preview-2026-05-13-illegals-the-lions",
       "kind": "preview",
       "season": "c2s3-regular",
-      "title": "Illegals vs The Lions: 3 things to watch",
-      "summary": "Illegals and The Lions headline the 5/13 slate, with form, star power, and standings pressure all in play.",
+      "title": "AI Preview: Illegals vs The Lions",
+      "summary": "Three quick angles to watch before Illegals and The Lions hit the 5/13 slate.",
       "bullets": [
         "Illegals bring the stronger record into this one at 1-2, so the early tone of the matchup matters.",
         "Illegals will lean on @dbook C (6746.0 avg) while The Lions answer with @osboti (9444.0 avg).",
@@ -216,8 +228,8 @@
       "id": "preview-2026-05-13-dream-team-gus-n-em",
       "kind": "preview",
       "season": "c2s3-regular",
-      "title": "Dream Team vs Gus N Em: 3 things to watch",
-      "summary": "Dream Team and Gus N Em headline the 5/13 slate, with form, star power, and standings pressure all in play.",
+      "title": "AI Preview: Dream Team vs Gus N Em",
+      "summary": "Three quick angles to watch before Dream Team and Gus N Em hit the 5/13 slate.",
       "bullets": [
         "Dream Team bring the stronger record into this one at 2-1, so the early tone of the matchup matters.",
         "Dream Team will lean on @fullofopps (12589.5 avg) while Gus N Em answer with @juan69 (6239.7 avg).",
@@ -234,8 +246,8 @@
       "id": "recap-2026-05-12-turkeys-the-phantoms",
       "kind": "recap",
       "season": "c2s3-regular",
-      "title": "The Phantoms beat Turkeys 42114-39944",
-      "summary": "The Phantoms handled Turkeys on 5/12, and the box score gives a clean read on where the edge came from.",
+      "title": "AI Recap: The Phantoms over Turkeys, 42114-39944",
+      "summary": "The Phantoms took care of business on 5/12. Here is the fast read on the margin, the star turns, and what decided it.",
       "bullets": [
         "The Phantoms created enough separation to close this out by 2170 points."
       ],
@@ -250,8 +262,8 @@
       "id": "recap-2026-05-12-mayeday-the-snipers",
       "kind": "recap",
       "season": "c2s3-regular",
-      "title": "The Snipers beat MayeDay 41357-34011",
-      "summary": "The Snipers handled MayeDay on 5/12, and the box score gives a clean read on where the edge came from.",
+      "title": "AI Recap: The Snipers over MayeDay, 41357-34011",
+      "summary": "The Snipers took care of business on 5/12. Here is the fast read on the margin, the star turns, and what decided it.",
       "bullets": [
         "The Snipers created enough separation to close this out by 7346 points."
       ],
@@ -266,8 +278,8 @@
       "id": "recap-2026-05-12-storm-cheerios",
       "kind": "recap",
       "season": "c2s3-regular",
-      "title": "Storm beat Cheerios 34230-19951",
-      "summary": "Storm handled Cheerios on 5/12, and the box score gives a clean read on where the edge came from.",
+      "title": "AI Recap: Storm over Cheerios, 34230-19951",
+      "summary": "Storm took care of business on 5/12. Here is the fast read on the margin, the star turns, and what decided it.",
       "bullets": [
         "Storm created enough separation to close this out by 14279 points."
       ],

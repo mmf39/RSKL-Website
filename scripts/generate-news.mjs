@@ -592,8 +592,8 @@ function buildPreviewItems({ todayIso, scheduleGames, standingsMap, leaderMap, c
       id: `preview-${todayIso}-${slugify(game.team1)}-${slugify(game.team2)}`,
       kind: "preview",
       season: "c2s3-regular",
-      title: `${game.team1} vs ${game.team2}: 3 things to watch`,
-      summary: `${game.team1} and ${game.team2} headline the ${dateToken} slate, with form, star power, and standings pressure all in play.`,
+      title: `AI Preview: ${game.team1} vs ${game.team2}`,
+      summary: `Three quick angles to watch before ${game.team1} and ${game.team2} hit the ${dateToken} slate.`,
       bullets: bullets.slice(0, 3),
       teams: [game.team1, game.team2],
       gameDate: dateToken,
@@ -639,8 +639,8 @@ function buildRecapItems({ todayIso, scheduleGames, completedGames }) {
         id: `recap-${yesterdayIso}-${slugify(game.team1)}-${slugify(game.team2)}`,
         kind: "recap",
         season: "c2s3-regular",
-        title: `${winner} beat ${loser} ${winnerScore}-${loserScore}`,
-        summary: `${winner} handled ${loser} on ${dateToken}, and the box score gives a clean read on where the edge came from.`,
+        title: `AI Recap: ${winner} over ${loser}, ${winnerScore}-${loserScore}`,
+        summary: `${winner} took care of business on ${dateToken}. Here is the fast read on the margin, the star turns, and what decided it.`,
         bullets,
         teams: [game.team1, game.team2],
         gameDate: dateToken,
@@ -709,22 +709,30 @@ function buildTransactionItems(transactionRows) {
   return items.map((item) => {
     const title =
       item.type === "Trade"
-        ? `${item.team1 || "Team 1"} and ${item.team2 || "Team 2"} complete a trade`
-        : `${item.type}: ${item.players?.[0] || "Roster move"}`;
+        ? `AI Trade Breakdown: ${item.team1 || "Team 1"} and ${item.team2 || "Team 2"}`
+        : `AI Transaction Breakdown: ${item.players?.[0] || "Roster move"}`;
     const bullets =
       item.type === "Trade"
         ? [
-            `${item.team1 || "Team 1"} brought in ${item.team1Gets || "new pieces"}.`,
-            `${item.team2 || "Team 2"} answered by adding ${item.team2Gets || "new pieces"}.`,
+            `${item.team1 || "Team 1"} added ${item.team1Gets || "new pieces"}, which could reshape their rotation right away.`,
+            `${item.team2 || "Team 2"} answered with ${item.team2Gets || "new pieces"}, so both sides clearly had a specific need in mind.`,
+            `This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage.`,
           ]
-        : [`${item.summary}.`];
+        : [
+            `${item.summary}.`,
+            `${item.team ? `${item.team} now have a little more roster pressure around that spot.` : "This move is worth tracking for the next round of lineup decisions."}`,
+          ];
+    const summary =
+      item.type === "Trade"
+        ? `${item.team1 || "Team 1"} and ${item.team2 || "Team 2"} swapped pieces, and this one deserves a closer look than a normal transaction line.`
+        : `${item.summary}. This is the quick AI read on what the move could mean.`;
 
     return {
       id: `transaction-${slugify(item.type)}-${slugify(item.date)}-${slugify(item.summary)}`,
       kind: "transaction",
       season: "c2s3-regular",
       title,
-      summary: item.summary,
+      summary,
       bullets,
       teams: item.teams || [],
       publishedAt: new Date().toISOString(),

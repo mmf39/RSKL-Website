@@ -5944,6 +5944,11 @@ input[type="text"] {
   gap: 16px;
 }
 
+.dashboard-news-list {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  align-items: start;
+}
+
 .dashboard-news-card,
 .news-card {
   border: 1px solid rgba(255, 140, 26, 0.24);
@@ -5953,6 +5958,14 @@ input[type="text"] {
     rgba(7, 7, 7, 0.92);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.24);
   padding: 18px;
+}
+
+.dashboard-news-card-compact {
+  padding: 14px 14px 13px;
+  min-height: 100%;
+  background:
+    linear-gradient(160deg, rgba(255, 140, 26, 0.1), rgba(12, 12, 12, 0.96)),
+    rgba(7, 7, 7, 0.92);
 }
 
 .dashboard-news-card.news-kind-preview,
@@ -5987,6 +6000,11 @@ input[type="text"] {
   color: rgba(255, 244, 225, 0.82);
 }
 
+.dashboard-news-card-compact .dashboard-news-kind,
+.dashboard-news-card-compact .dashboard-news-time {
+  font-size: 0.68rem;
+}
+
 .dashboard-news-title,
 .news-card-title {
   margin: 0 0 10px;
@@ -6001,11 +6019,27 @@ input[type="text"] {
   line-height: 1.55;
 }
 
+.dashboard-news-card-compact .dashboard-news-title {
+  margin-bottom: 8px;
+  font-size: clamp(1rem, 1.5vw, 1.18rem);
+  line-height: 1.12;
+}
+
+.dashboard-news-card-compact .dashboard-news-summary {
+  font-size: 0.92rem;
+  line-height: 1.42;
+}
+
 .dashboard-news-teams {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 14px;
+}
+
+.dashboard-news-card-compact .dashboard-news-teams {
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .dashboard-news-team {
@@ -6023,6 +6057,12 @@ input[type="text"] {
   background: rgba(255, 140, 26, 0.18);
 }
 
+.dashboard-news-card-compact .dashboard-news-team {
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 0.84rem;
+}
+
 .dashboard-news-team .standings-logo {
   width: 24px;
   height: 24px;
@@ -6035,11 +6075,23 @@ input[type="text"] {
   margin-top: 14px;
 }
 
+.dashboard-news-card-compact .dashboard-news-bullets {
+  margin-top: 12px;
+  gap: 8px;
+}
+
 .dashboard-news-bullet {
   border-left: 3px solid rgba(255, 140, 26, 0.55);
   padding-left: 12px;
   color: rgba(248, 248, 242, 0.92);
   line-height: 1.5;
+}
+
+.dashboard-news-card-compact .dashboard-news-bullet {
+  border-left-width: 2px;
+  padding-left: 10px;
+  font-size: 0.88rem;
+  line-height: 1.38;
 }
 
 .news-filter-wrap {
@@ -6049,6 +6101,10 @@ input[type="text"] {
 }
 
 @media (max-width: 720px) {
+  .dashboard-news-list {
+    grid-template-columns: 1fr;
+  }
+
   .news-filter-wrap {
     width: 100%;
     justify-content: space-between;
