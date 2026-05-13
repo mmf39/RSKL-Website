@@ -4,6 +4,22 @@
   const toggle = document.querySelector("[data-menu-toggle]");
   const panel = document.querySelector("[data-menu-panel]");
 
+  const ensureNavLink = (container, href, label) => {
+    if (!container) return;
+    const exists = Array.from(container.querySelectorAll("a")).some(
+      (link) => link.getAttribute("href") === href
+    );
+    if (exists) return;
+    const link = document.createElement("a");
+    link.className = "btn ghost";
+    link.href = href;
+    link.textContent = label;
+    container.appendChild(link);
+  };
+
+  ensureNavLink(navMain, "/news.html", "News");
+  ensureNavLink(panel, "/news.html", "News");
+
   if (toggle && panel) {
     const setClosed = () => {
       panel.setAttribute("hidden", "");

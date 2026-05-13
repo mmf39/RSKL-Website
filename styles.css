@@ -5937,3 +5937,124 @@ input[type="text"] {
     min-height: 44px;
   }
 }
+
+.dashboard-news-list,
+.news-feed {
+  display: grid;
+  gap: 16px;
+}
+
+.dashboard-news-card,
+.news-card {
+  border: 1px solid rgba(255, 140, 26, 0.24);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(255, 140, 26, 0.14), rgba(16, 16, 16, 0.96)),
+    rgba(7, 7, 7, 0.92);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.24);
+  padding: 18px;
+}
+
+.dashboard-news-card.news-kind-preview,
+.news-card.news-kind-preview {
+  border-color: rgba(88, 202, 255, 0.38);
+}
+
+.dashboard-news-card.news-kind-recap,
+.news-card.news-kind-recap {
+  border-color: rgba(255, 190, 92, 0.38);
+}
+
+.dashboard-news-card.news-kind-transaction,
+.news-card.news-kind-transaction {
+  border-color: rgba(120, 255, 180, 0.32);
+}
+
+.dashboard-news-head,
+.news-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.dashboard-news-kind,
+.dashboard-news-time {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 244, 225, 0.82);
+}
+
+.dashboard-news-title,
+.news-card-title {
+  margin: 0 0 10px;
+  font-size: clamp(1.15rem, 2vw, 1.6rem);
+  line-height: 1.08;
+}
+
+.dashboard-news-summary,
+.news-card-summary {
+  margin: 0;
+  color: rgba(248, 248, 242, 0.86);
+  line-height: 1.55;
+}
+
+.dashboard-news-teams {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.dashboard-news-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  text-decoration: none;
+}
+
+.dashboard-news-team:hover {
+  background: rgba(255, 140, 26, 0.18);
+}
+
+.dashboard-news-team .standings-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: cover;
+}
+
+.dashboard-news-bullets {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.dashboard-news-bullet {
+  border-left: 3px solid rgba(255, 140, 26, 0.55);
+  padding-left: 12px;
+  color: rgba(248, 248, 242, 0.92);
+  line-height: 1.5;
+}
+
+.news-filter-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+  .news-filter-wrap {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .news-filter-wrap .season-select {
+    width: min(100%, 220px);
+  }
+}
