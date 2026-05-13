@@ -27,6 +27,14 @@ const ALL_TIME_SEASON = "all-time";
 const C2S2_REGULAR_RANGES = {
   standings: "A59:F69",
 };
+const C2S2_PLAYOFF_HISTORY_ROWS = [
+  ["Date", "Team 1", "Team 2", "Info", "Game Type"],
+  ["C2S2 Game 1", "The Phantoms", "Cheerios", "Wild Card Round", "Playoffs"],
+  ["C2S2 Game 2", "Gus N Em", "Illegals", "Wild Card Round", "Playoffs"],
+  ["C2S2 Game 3", "Turkeys", "Cheerios", "Semi Finals", "Playoffs"],
+  ["C2S2 Game 4", "The Lions", "Gus N Em", "Semi Finals", "Playoffs"],
+  ["C2S2 Game 5", "Turkeys", "Gus N Em", "Finals", "Playoffs"],
+];
 
 const ARCHIVE_RANGES = {
   standings: "A1:F7",
@@ -599,6 +607,7 @@ async function loadHistoricalData(teamName) {
     { label: "C1S2", key: "c1s2-regular", type: "csv", url: C1S2_STANDINGS_URL },
   ];
   const playoffSeasonConfigs = [
+    { label: "C2S2 Playoffs", key: "c2s2-playoffs", type: "inline", rows: C2S2_PLAYOFF_HISTORY_ROWS },
     { label: "C2S1 Playoffs", key: "c2s1-post", type: "range", url: ARCHIVE_URL, range: ARCHIVE_RANGES.schedule_post },
     { label: "C1S6 Playoffs", key: "c1s6-post", type: "csv", url: C1S6_POST_SCHEDULE_URL },
     { label: "C1S5 Playoffs", key: "c1s5-post", type: "csv", url: C1S5_POST_SCHEDULE_URL },
@@ -653,13 +662,19 @@ async function loadHistoricalData(teamName) {
     renderFranchiseHistory(franchiseRows);
 
     const championMap = await championPromise;
-    const playoffSettled = await Promise.allSettled(playoffSeasonConfigs.map((config) => fetch(config.url, { cache: "no-store" })));
+    const playoffSettled = await Promise.allSettled(
+      playoffSeasonConfigs.map((config) =>
+        config.type === "inline"
+          ? Promise.resolve({ ok: true, text: async () => "" })
+          : fetch(config.url, { cache: "no-store" })
+      )
+    );
     const playoffRows = [];
     for (let i = 0; i < playoffSeasonConfigs.length; i += 1) {
       const config = playoffSeasonConfigs[i];
       const response = playoffSettled[i];
       if (response.status !== "fulfilled" || !response.value.ok) continue;
-      const parsed = parseCSV(await response.value.text());
+      const parsed = config.type === "inline" ? config.rows : parseCSV(await response.value.text());
       const scheduleRows = config.type === "range" ? sliceRange(parsed, config.range) : parsed;
       const row = buildPlayoffHistoryRows(scheduleRows, config.label, config.key, franchiseKey, championMap);
       if (row) playoffRows.push(row);
