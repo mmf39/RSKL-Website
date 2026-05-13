@@ -28,12 +28,12 @@ const C2S2_REGULAR_RANGES = {
   standings: "A59:F69",
 };
 const C2S2_PLAYOFF_HISTORY_ROWS = [
-  ["Date", "Team 1", "Team 2", "Info", "Game Type"],
-  ["C2S2 Game 1", "The Phantoms", "Cheerios", "Wild Card Round", "Playoffs"],
-  ["C2S2 Game 2", "Gus N Em", "Illegals", "Wild Card Round", "Playoffs"],
-  ["C2S2 Game 3", "Turkeys", "Cheerios", "Semi Finals", "Playoffs"],
-  ["C2S2 Game 4", "The Lions", "Gus N Em", "Semi Finals", "Playoffs"],
-  ["C2S2 Game 5", "Turkeys", "Gus N Em", "Finals", "Playoffs"],
+  ["Date", "Team 1", "Team 2", "Info", "Game Type", "Games", "Winner"],
+  ["C2S2 Game 1", "The Phantoms", "Cheerios", "Wild Card Round", "Playoffs", "1", "Cheerios"],
+  ["C2S2 Game 2", "Gus N Em", "Illegals", "Wild Card Round", "Playoffs", "1", "Gus N Em"],
+  ["C2S2 Game 3", "Turkeys", "Cheerios", "Semi Finals", "Playoffs", "2", "Turkeys"],
+  ["C2S2 Game 4", "The Lions", "Gus N Em", "Semi Finals", "Playoffs", "3", "Gus N Em"],
+  ["C2S2 Game 5", "Turkeys", "Gus N Em", "Finals", "Playoffs", "3", "Gus N Em"],
 ];
 
 const ARCHIVE_RANGES = {
@@ -491,6 +491,9 @@ function buildPlayoffHistoryRows(scheduleRows, seasonLabel, seasonKey, franchise
   const headers = scheduleRows[0] || [];
   if (!headers.length) return null;
   const idx = getScheduleIndexes(headers, seasonKey);
+  const lowerHeaders = headers.map((header) => String(header || "").trim().toLowerCase());
+  const gamesIdx = lowerHeaders.findIndex((header) => header === "games");
+  const winnerIdx = lowerHeaders.findIndex((header) => header === "winner");
   const teamRows = scheduleRows.slice(1).filter((row) => {
     const team1 = displayTeamName(row[idx.team1] || "");
     const team2 = displayTeamName(row[idx.team2] || "");
@@ -510,13 +513,26 @@ function buildPlayoffHistoryRows(scheduleRows, seasonLabel, seasonKey, franchise
       if (team1 && !opponents.includes(team1)) opponents.push(team1);
     }
   });
-  const champion = championMap.get(seasonKeyToChampionRangeKey(seasonKey)) || "";
+  const inlineChampion =
+    winnerIdx === -1
+      ? ""
+      : displayTeamName(
+          teamRows.find((row) =>
+            String(row[idx.date] || "").trim().toLowerCase().includes("final")
+          )?.[winnerIdx] || ""
+        );
+  const champion = inlineChampion || championMap.get(seasonKeyToChampionRangeKey(seasonKey)) || "";
+  const totalGames = teamRows.reduce((sum, row) => {
+    if (gamesIdx === -1) return sum + 1;
+    const parsed = Number(String(row[gamesIdx] || "").trim());
+    return sum + (Number.isFinite(parsed) && parsed > 0 ? parsed : 1);
+  }, 0);
   const result = champion && getFranchiseKey(champion) === franchiseKey ? "Champion" : champion ? "Eliminated" : "Playoff appearance";
   return {
     season: seasonLabel,
     team: shownTeam || "—",
     opponents: opponents.join(", "),
-    games: teamRows.length,
+    games: totalGames,
     result,
     link: buildTeamPageHref(shownTeam || getTeamName(), seasonKey),
   };
