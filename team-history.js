@@ -515,31 +515,38 @@ function buildPlayoffHistoryRows(scheduleRows, seasonLabel, seasonKey, franchise
     }
   });
   let inlineChampion = "";
-  if (winnerIdx !== -1) {
-    if (winnerWinsIdx !== -1) {
-      const winsByTeam = new Map();
-      scheduleRows.slice(1).forEach((row) => {
-        const winner = displayTeamName(row[winnerIdx] || "");
-        if (!winner) return;
+  const winsByTeam = new Map();
+  scheduleRows.slice(1).forEach((row) => {
+    let winner = "";
+    let total = 0;
+    if (winnerIdx !== -1) {
+      winner = displayTeamName(row[winnerIdx] || "");
+      if (winnerWinsIdx !== -1) {
         const wins = Number(String(row[winnerWinsIdx] || "").trim());
-        const total = Number.isFinite(wins) && wins > 0 ? wins : 0;
-        winsByTeam.set(winner, (winsByTeam.get(winner) || 0) + total);
-      });
-      let bestWins = -1;
-      winsByTeam.forEach((wins, team) => {
-        if (wins > bestWins) {
-          bestWins = wins;
-          inlineChampion = team;
-        }
-      });
+        total = Number.isFinite(wins) && wins > 0 ? wins : 0;
+      } else {
+        total = 1;
+      }
+    } else {
+      winner = displayTeamName(row[idx.team1] || "");
+      total = winner ? 1 : 0;
     }
-    if (!inlineChampion) {
-      inlineChampion = displayTeamName(
-        teamRows.find((row) =>
-          String(row[idx.date] || "").trim().toLowerCase().includes("final")
-        )?.[winnerIdx] || ""
-      );
+    if (!winner || total <= 0) return;
+    winsByTeam.set(winner, (winsByTeam.get(winner) || 0) + total);
+  });
+  let bestWins = -1;
+  winsByTeam.forEach((wins, team) => {
+    if (wins > bestWins) {
+      bestWins = wins;
+      inlineChampion = team;
     }
+  });
+  if (!inlineChampion && winnerIdx !== -1) {
+    inlineChampion = displayTeamName(
+      teamRows.find((row) =>
+        String(row[idx.date] || "").trim().toLowerCase().includes("final")
+      )?.[winnerIdx] || ""
+    );
   }
   const champion = inlineChampion || championMap.get(seasonKeyToChampionRangeKey(seasonKey)) || "";
   const totalGames = teamRows.reduce((sum, row) => {
