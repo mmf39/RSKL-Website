@@ -1722,6 +1722,25 @@ input[type="text"] {
   gap: 12px;
 }
 
+.standings-disclaimer {
+  margin: 16px 6px 0;
+  text-align: center;
+  color: rgba(248, 240, 230, 0.8);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.standings-disclaimer a {
+  color: #ffb347;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.standings-disclaimer a:hover {
+  color: #ffd27a;
+  text-decoration: underline;
+}
+
 .leader-section {
   display: grid;
   gap: 12px;

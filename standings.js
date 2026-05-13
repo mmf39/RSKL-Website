@@ -57,7 +57,7 @@ const DIVISIONS = {
     primaryKey: "north",
     secondaryKey: "south",
     primaryLabel: "North",
-    secondaryLabel: "South",
+    secondaryLabel: "Locked PSP",
     primary: new Set(["Turkeys", "The Lions", "The Phantoms", "Gus N Em", "Illegals"]),
     secondary: new Set(["Cheerios", "The Snipers", "Storm", "MayeDay", "Dream Team"]),
   },
