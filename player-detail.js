@@ -1156,6 +1156,16 @@ function getTeamLogoHtml(teamName) {
     ? '<img class="player-team-logo" src="/assets/burritos.jpg" alt="Burritos logo" />'
     : shownTeam === "Cobras"
     ? '<img class="player-team-logo" src="/assets/cobras.png" alt="Cobras logo" />'
+    : shownTeam === "Karma Avengers"
+    ? '<img class="player-team-logo" src="/assets/karma-avengers.png" alt="Karma Avengers logo" />'
+    : shownTeam === "Mafia"
+    ? '<img class="player-team-logo" src="/assets/mafia.png" alt="Mafia logo" />'
+    : shownTeam === "Thunderhawks"
+    ? '<img class="player-team-logo" src="/assets/thunderhawks.png" alt="Thunderhawks logo" />'
+    : shownTeam === "Whatsgrass"
+    ? '<img class="player-team-logo" src="/assets/whatsgrass.png" alt="Whatsgrass logo" />'
+    : shownTeam === "Wolves"
+    ? '<img class="player-team-logo" src="/assets/wolves.png" alt="Wolves logo" />'
     : shownTeam === "Chicken Nuggets"
     ? '<img class="player-team-logo" src="/assets/chicken-nuggets.jpg" alt="Chicken Nuggets logo" />'
     : shownTeam === "Yetis"

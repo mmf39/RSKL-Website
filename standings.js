@@ -411,6 +411,21 @@ function getTeamLogoHtml(teamName) {
   if (teamName === "Cobras") {
     return '<img class="standings-logo" src="/assets/cobras.png" alt="Cobras logo" />';
   }
+  if (teamName === "Karma Avengers" || teamName === "Avengers") {
+    return '<img class="standings-logo" src="/assets/karma-avengers.png" alt="Karma Avengers logo" />';
+  }
+  if (teamName === "Mafia") {
+    return '<img class="standings-logo" src="/assets/mafia.png" alt="Mafia logo" />';
+  }
+  if (teamName === "Thunderhawks") {
+    return '<img class="standings-logo" src="/assets/thunderhawks.png" alt="Thunderhawks logo" />';
+  }
+  if (teamName === "Whatsgrass") {
+    return '<img class="standings-logo" src="/assets/whatsgrass.png" alt="Whatsgrass logo" />';
+  }
+  if (teamName === "Wolves") {
+    return '<img class="standings-logo" src="/assets/wolves.png" alt="Wolves logo" />';
+  }
   if (teamName === "Chicken Nuggets") {
     return '<img class="standings-logo" src="/assets/chicken-nuggets.jpg" alt="Chicken Nuggets logo" />';
   }

@@ -755,6 +755,21 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
     if (team === "Cobras") {
       return '<img class="standings-logo" src="/assets/cobras.png" alt="Cobras logo" />';
     }
+    if (team === "Karma Avengers") {
+      return '<img class="standings-logo" src="/assets/karma-avengers.png" alt="Karma Avengers logo" />';
+    }
+    if (team === "Mafia") {
+      return '<img class="standings-logo" src="/assets/mafia.png" alt="Mafia logo" />';
+    }
+    if (team === "Thunderhawks") {
+      return '<img class="standings-logo" src="/assets/thunderhawks.png" alt="Thunderhawks logo" />';
+    }
+    if (team === "Whatsgrass") {
+      return '<img class="standings-logo" src="/assets/whatsgrass.png" alt="Whatsgrass logo" />';
+    }
+    if (team === "Wolves") {
+      return '<img class="standings-logo" src="/assets/wolves.png" alt="Wolves logo" />';
+    }
     if (team === "Yetis") {
       return '<img class="standings-logo" src="/assets/yetis.png" alt="Yetis logo" />';
     }

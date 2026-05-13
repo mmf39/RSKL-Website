@@ -281,8 +281,23 @@ function getTeamLogo(team) {
   if (clean === "Cobras") {
     return '<img class="standings-logo" src="/assets/cobras.png" alt="Cobras logo" />';
   }
+  if (clean === "Karma Avengers") {
+    return '<img class="standings-logo" src="/assets/karma-avengers.png" alt="Karma Avengers logo" />';
+  }
+  if (clean === "Mafia") {
+    return '<img class="standings-logo" src="/assets/mafia.png" alt="Mafia logo" />';
+  }
   if (clean === "Masdog N Em" || clean === "Richer N Em") {
     return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="N Em logo" />';
+  }
+  if (clean === "Thunderhawks") {
+    return '<img class="standings-logo" src="/assets/thunderhawks.png" alt="Thunderhawks logo" />';
+  }
+  if (clean === "Whatsgrass") {
+    return '<img class="standings-logo" src="/assets/whatsgrass.png" alt="Whatsgrass logo" />';
+  }
+  if (clean === "Wolves") {
+    return '<img class="standings-logo" src="/assets/wolves.png" alt="Wolves logo" />';
   }
   if (clean === "Yetis") {
     return '<img class="standings-logo" src="/assets/yetis.png" alt="Yetis logo" />';
