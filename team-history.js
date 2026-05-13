@@ -283,8 +283,11 @@ function getTeamLogoSrc(team) {
 
 function buildTeamPageHref(team, seasonKey) {
   const params = new URLSearchParams();
-  params.set("team", displayTeamName(team));
-  if (seasonKey) params.set("season", normalizeSeasonValue(seasonKey));
+  const shownTeam = displayTeamName(team);
+  const normalizedSeason = seasonKey ? normalizeSeasonValue(seasonKey) : "";
+  params.set("team", shownTeam);
+  if (normalizedSeason) params.set("season", normalizedSeason);
+  if (normalizedSeason === ALL_TIME_SEASON) params.set("view", "historical");
   return `/team.html?${params.toString()}`;
 }
 

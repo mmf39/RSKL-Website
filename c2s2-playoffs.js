@@ -1,179 +1,112 @@
-const PLAYOFFS_CSV_URL = "/api/sheet?name=playoffs";
-const REFRESH_MS = 60000;
-
-const GAME_SLOTS = [
-  { game: 1, cols: ["A", "B"], rows: [5, 7] },
-  { game: 2, cols: ["A", "B"], rows: [10, 12] },
-  { game: 3, cols: ["C", "D"], rows: [4, 6] },
-  { game: 4, cols: ["C", "D"], rows: [9, 11] },
-  { game: 5, cols: ["E", "F"], rows: [5, 10] },
+const PLAYOFF_BRACKET = [
+  {
+    title: "Wild Card Round",
+    matchups: [
+      {
+        game: "Game 1",
+        top: { seed: 3, team: "The Phantoms", score: 0 },
+        bottom: { seed: 6, team: "Cheerios", score: 1 },
+      },
+      {
+        game: "Game 2",
+        top: { seed: 4, team: "Gus N Em", score: 1 },
+        bottom: { seed: 5, team: "Illegals", score: 0 },
+      },
+    ],
+  },
+  {
+    title: "Semi Finals",
+    matchups: [
+      {
+        game: "Game 3",
+        top: { seed: 1, team: "Turkeys", score: 2 },
+        bottom: { seed: 6, team: "Cheerios", score: 0 },
+      },
+      {
+        game: "Game 4",
+        top: { seed: 2, team: "The Lions", score: 1 },
+        bottom: { seed: 4, team: "Gus N Em", score: 2 },
+      },
+    ],
+  },
+  {
+    title: "Finals",
+    matchups: [
+      {
+        game: "Game 5",
+        top: { seed: 1, team: "Turkeys", score: 0 },
+        bottom: { seed: 4, team: "Gus N Em", score: 3 },
+      },
+    ],
+  },
 ];
-
-function parseCSV(text) {
-  const rows = [];
-  let row = [];
-  let value = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < text.length; i += 1) {
-    const char = text[i];
-    const next = text[i + 1];
-
-    if (char === '"') {
-      if (inQuotes && next === '"') {
-        value += '"';
-        i += 1;
-      } else {
-        inQuotes = !inQuotes;
-      }
-      continue;
-    }
-
-    if (char === "," && !inQuotes) {
-      row.push(value.trim());
-      value = "";
-      continue;
-    }
-
-    if ((char === "\n" || char === "\r") && !inQuotes) {
-      if (char === "\r" && next === "\n") i += 1;
-      row.push(value.trim());
-      if (row.length > 1 || row[0] !== "") rows.push(row);
-      row = [];
-      value = "";
-      continue;
-    }
-
-    value += char;
-  }
-
-  if (value.length || row.length) {
-    row.push(value.trim());
-    rows.push(row);
-  }
-
-  return rows;
-}
-
-function colToIndex(col) {
-  const s = String(col || "").trim().toUpperCase();
-  if (!s) return -1;
-  let n = 0;
-  for (let i = 0; i < s.length; i += 1) {
-    const ch = s.charCodeAt(i);
-    if (ch < 65 || ch > 90) return -1;
-    n = n * 26 + (ch - 64);
-  }
-  return n - 1;
-}
-
-function getCell(rows, col, rowNum) {
-  const r = Number(rowNum) - 1;
-  const c = colToIndex(col);
-  if (r < 0 || c < 0) return "";
-  return String((rows[r] && rows[r][c]) || "").trim();
-}
-
-function toNumber(value) {
-  const cleaned = String(value || "")
-    .replace(/,/g, "")
-    .replace(/[^0-9.-]/g, "");
-  if (!cleaned) return null;
-  const n = Number(cleaned);
-  return Number.isFinite(n) ? n : null;
-}
 
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/\"/g, "&quot;")
+    .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
 
-function extractName(value) {
-  const text = String(value || "").trim();
-  if (!text) return "TBD";
-  return text;
-}
-
-function readGames(rows) {
-  return GAME_SLOTS.map((slot) => {
-    const [nameCol, scoreCol] = slot.cols;
-    const [topRow, botRow] = slot.rows;
-
-    const aName = extractName(getCell(rows, nameCol, topRow));
-    const bName = extractName(getCell(rows, nameCol, botRow));
-    const aScore = toNumber(getCell(rows, scoreCol, topRow));
-    const bScore = toNumber(getCell(rows, scoreCol, botRow));
-
-    const aWin = aScore !== null && bScore !== null && aScore > bScore;
-    const bWin = aScore !== null && bScore !== null && bScore > aScore;
-
-    return {
-      game: slot.game,
-      aName,
-      bName,
-      aScore,
-      bScore,
-      aWin,
-      bWin,
-    };
-  });
-}
-
-function renderGames(games) {
-  const container = document.getElementById("madness-bracket");
-  if (!container) return;
-
-  container.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;">
-      ${games
-        .map(
-          (g) => `
-            <article style="border:1px solid rgba(255,140,26,.5);border-radius:12px;padding:14px;background:rgba(10,28,65,.55);">
-              <div style="font-weight:800;color:#ffb347;margin-bottom:10px;">Game ${g.game}</div>
-              <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid rgba(255,140,26,.25);${g.aWin ? "color:#38e08d;font-weight:800;" : ""}">
-                <span>${escapeHtml(g.aName)}</span>
-                <strong>${g.aScore === null ? "—" : escapeHtml(g.aScore)}</strong>
-              </div>
-              <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid rgba(255,140,26,.25);${g.bWin ? "color:#38e08d;font-weight:800;" : ""}">
-                <span>${escapeHtml(g.bName)}</span>
-                <strong>${g.bScore === null ? "—" : escapeHtml(g.bScore)}</strong>
-              </div>
-            </article>
-          `
-        )
-        .join("")}
+function renderTeamLine(entry, isWinner) {
+  return `
+    <div style="display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid rgba(255,140,26,.22);${isWinner ? "color:#38e08d;font-weight:800;" : ""}">
+      <span>#${escapeHtml(entry.seed)} ${escapeHtml(entry.team)}</span>
+      <strong>${escapeHtml(entry.score)}</strong>
     </div>
   `;
 }
 
-async function loadPlayoffs() {
-  const lastUpdated = document.getElementById("last-updated");
-  try {
-    const res = await fetch(PLAYOFFS_CSV_URL, { cache: "no-store" });
-    if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
-    const text = await res.text();
-    const rows = parseCSV(text);
-    const games = readGames(rows);
-    renderGames(games);
+function renderBracket() {
+  const container = document.getElementById("madness-bracket");
+  if (!container) return;
 
-    if (lastUpdated) {
-      const now = new Date();
-      lastUpdated.textContent = `Last updated: ${now.toLocaleString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-      })}`;
-    }
-  } catch (_e) {
-    const container = document.getElementById("madness-bracket");
-    if (container) container.innerHTML = '<p>Unable to load playoff games.</p>';
-  }
+  container.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;align-items:start;">
+      ${PLAYOFF_BRACKET.map(
+        (round) => `
+          <section style="border:1px solid rgba(255,140,26,.45);border-radius:16px;padding:16px;background:rgba(10,28,65,.55);">
+            <h3 style="margin:0 0 14px;color:#ffb347;font-size:1.1rem;">${escapeHtml(round.title)}</h3>
+            <div style="display:grid;gap:14px;">
+              ${round.matchups
+                .map((matchup) => {
+                  const topWins = matchup.top.score > matchup.bottom.score;
+                  const bottomWins = matchup.bottom.score > matchup.top.score;
+                  return `
+                    <article style="border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;background:rgba(255,255,255,.03);">
+                      <div style="font-weight:700;color:#ffd28d;margin-bottom:6px;">${escapeHtml(matchup.game)}</div>
+                      ${renderTeamLine(matchup.top, topWins)}
+                      ${renderTeamLine(matchup.bottom, bottomWins)}
+                    </article>
+                  `;
+                })
+                .join("")}
+            </div>
+          </section>
+        `
+      ).join("")}
+    </div>
+    <section style="margin-top:16px;border:1px solid rgba(56,224,141,.35);border-radius:16px;padding:16px;background:rgba(56,224,141,.08);">
+      <div style="font-size:.85rem;letter-spacing:.08em;text-transform:uppercase;color:#9edfbf;">Champion</div>
+      <div style="margin-top:6px;font-size:1.45rem;font-weight:800;color:#38e08d;">#4 Gus N Em</div>
+      <div style="margin-top:4px;color:#d9e7ff;">Defeated #1 Turkeys, 3-0, in the finals.</div>
+    </section>
+  `;
 }
 
-loadPlayoffs();
-setInterval(loadPlayoffs, REFRESH_MS);
+function renderLastUpdated() {
+  const lastUpdated = document.getElementById("last-updated");
+  if (!lastUpdated) return;
+  const now = new Date();
+  lastUpdated.textContent = `Last updated: ${now.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })}`;
+}
+
+renderBracket();
+renderLastUpdated();
