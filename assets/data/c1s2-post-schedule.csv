@@ -1,20 +1,20 @@
-Date,Team 1,Team 2,Game Type
-10/14,Whatsgrass,Tigers,Wild Card
-10/14,Cobras,Illegals,Wild Card
-10/16,Whatsgrass,Tigers,Wild Card
-10/16,Cobras,Illegals,Wild Card
-10/17,Whatsgrass,Tigers,Wild Card
-10/17,Cobras,Illegals,Wild Card
-10/19,Thunderhawks,Tigers,Division Series
-10/19,Burritos,Cobras,Division Series
-10/20,Thunderhawks,Tigers,Division Series
-10/20,Burritos,Cobras,Division Series
-10/22,Thunderhawks,Tigers,Division Series
-10/22,Burritos,Cobras,Division Series
-10/23,Burritos,Cobras,Division Series
-10/25,Burritos,Cobras,Division Series
-10/27,Cobras,Tigers,Championship
-10/28,Cobras,Tigers,Championship
-10/30,Cobras,Tigers,Championship
-10/31,Cobras,Tigers,Championship
-11/1,Cobras,Tigers,Championship
+Date,Team 1,Team 2,Game Type,Winner
+10/14,Whatsgrass,Tigers,Wild Card,Whatsgrass
+10/14,Cobras,Illegals,Wild Card,Cobras
+10/16,Whatsgrass,Tigers,Wild Card,Whatsgrass
+10/16,Cobras,Illegals,Wild Card,Cobras
+10/17,Whatsgrass,Tigers,Wild Card,Whatsgrass
+10/17,Cobras,Illegals,Wild Card,Cobras
+10/19,Thunderhawks,Tigers,Division Series,Thunderhawks
+10/19,Burritos,Cobras,Division Series,Burritos
+10/20,Thunderhawks,Tigers,Division Series,Thunderhawks
+10/20,Burritos,Cobras,Division Series,Burritos
+10/22,Thunderhawks,Tigers,Division Series,Thunderhawks
+10/22,Burritos,Cobras,Division Series,Burritos
+10/23,Burritos,Cobras,Division Series,Burritos
+10/25,Burritos,Cobras,Division Series,Burritos
+10/27,Cobras,Tigers,Championship,Cobras
+10/28,Cobras,Tigers,Championship,Cobras
+10/30,Cobras,Tigers,Championship,Cobras
+10/31,Cobras,Tigers,Championship,Cobras
+11/1,Cobras,Tigers,Championship,Cobras

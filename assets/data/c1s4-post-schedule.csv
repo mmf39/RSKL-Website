@@ -1,24 +1,24 @@
-Date,Team 1,Team 2,Game Type
-2/22,Karma Avengers,Thunderhawks,Playoffs
-2/22,Burritos,Gus N Em,Playoffs
-2/23,Karma Avengers,Thunderhawks,Playoffs
-2/23,Burritos,Gus N Em,Playoffs
-2/25,Whatsgrass,Karma Avengers,Playoffs
-2/25,Cobras,Gus N Em,Playoffs
-2/25,Karma Avengers,Thunderhawks,Playoffs
-2/26,Burritos,Gus N Em,Playoffs
-2/27,Whatsgrass,Karma Avengers,Playoffs
-2/28,Cobras,Gus N Em,Playoffs
-3/1,Whatsgrass,Karma Avengers,Playoffs
-3/2,Cobras,Gus N Em,Playoffs
-3/3,Whatsgrass,Karma Avengers,Playoffs
-3/4,Cobras,Gus N Em,Playoffs
-3/5,Whatsgrass,Karma Avengers,Playoffs
-3/6,Cobras,Gus N Em,Playoffs
-3/7,Cobras,Karma Avengers,Playoffs
-3/8,Cobras,Karma Avengers,Playoffs
-3/9,Cobras,Karma Avengers,Playoffs
-3/10,Cobras,Karma Avengers,Playoffs
-3/12,Cobras,Karma Avengers,Playoffs
-3/13,Cobras,Karma Avengers,Playoffs
-3/15,Cobras,Karma Avengers,Playoffs
+Date,Team 1,Team 2,Game Type,Winner
+2/22,Karma Avengers,Thunderhawks,Playoffs,Karma Avengers
+2/22,Burritos,Gus N Em,Playoffs,Burritos
+2/23,Karma Avengers,Thunderhawks,Playoffs,Karma Avengers
+2/23,Burritos,Gus N Em,Playoffs,Burritos
+2/25,Whatsgrass,Karma Avengers,Playoffs,Whatsgrass
+2/25,Cobras,Gus N Em,Playoffs,Cobras
+2/25,Karma Avengers,Thunderhawks,Playoffs,Karma Avengers
+2/26,Burritos,Gus N Em,Playoffs,Burritos
+2/27,Whatsgrass,Karma Avengers,Playoffs,Whatsgrass
+2/28,Cobras,Gus N Em,Playoffs,Cobras
+3/1,Whatsgrass,Karma Avengers,Playoffs,Whatsgrass
+3/2,Cobras,Gus N Em,Playoffs,Cobras
+3/3,Whatsgrass,Karma Avengers,Playoffs,Whatsgrass
+3/4,Cobras,Gus N Em,Playoffs,Cobras
+3/5,Whatsgrass,Karma Avengers,Playoffs,Whatsgrass
+3/6,Cobras,Gus N Em,Playoffs,Cobras
+3/7,Cobras,Karma Avengers,Playoffs,Cobras
+3/8,Cobras,Karma Avengers,Playoffs,Cobras
+3/9,Cobras,Karma Avengers,Playoffs,Cobras
+3/10,Cobras,Karma Avengers,Playoffs,Cobras
+3/12,Cobras,Karma Avengers,Playoffs,Cobras
+3/13,Cobras,Karma Avengers,Playoffs,Cobras
+3/15,Cobras,Karma Avengers,Playoffs,Cobras
