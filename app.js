@@ -1098,7 +1098,7 @@ function renderLeagueNews(items) {
   const newsItems = (items || [])
     .filter((item) => ["preview", "recap"].includes(item.kind))
     .sort((a, b) => {
-      const kindRank = (item) => (item.kind === "recap" ? 0 : 1);
+      const kindRank = (item) => (item.kind === "preview" ? 0 : 1);
       const rankDiff = kindRank(a) - kindRank(b);
       if (rankDiff !== 0) return rankDiff;
       return Date.parse(String(b.publishedAt || "")) - Date.parse(String(a.publishedAt || ""));
