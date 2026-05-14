@@ -131,7 +131,7 @@ function normalizeTeamName(name) {
     .replace(/\([^)]*\)/g, "")
     .trim();
   if (clean === "Bullets") return "Storm";
-  if (clean === "Yetis") return "MayeDay";
+  if (clean === "Yetis") return "Scorpions";
   if (clean === "The Future") return "Dream Team";
   return clean;
 }
@@ -410,7 +410,7 @@ function getTeamLogo(team) {
   if (clean === "The Lions") return "/assets/the-lions.png";
   if (clean === "The Snipers") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
-  if (clean === "MayeDay") return "/assets/mayeday.jpg";
+  if (clean === "Scorpions") return "/assets/mayeday.jpg";
   if (clean === "Cobras") return "/assets/cobras.png";
   if (clean === "Karma Avengers") return "/assets/karma-avengers.png";
   if (clean === "Mafia") return "/assets/mafia.png";

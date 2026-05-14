@@ -17,7 +17,7 @@ function escapeHtml(value) {
 function displayTeamName(value) {
   const name = String(value || "").trim();
   if (name === "Bullets") return "Storm";
-  if (name === "Yetis") return "MayeDay";
+  if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
@@ -33,7 +33,7 @@ function getTeamLogoSrc(name) {
   if (shown === "The Lions") return "/assets/the-lions.png";
   if (shown === "The Snipers") return "/assets/the-snipers.png";
   if (shown === "The Phantoms") return "/assets/the-phantoms.png";
-  if (shown === "MayeDay") return "/assets/mayeday.jpg";
+  if (shown === "Scorpions") return "/assets/mayeday.jpg";
   if (shown === "Cobras") return "/assets/cobras.png";
   if (shown === "Karma Avengers") return "/assets/karma-avengers.png";
   if (shown === "Mafia") return "/assets/mafia.png";

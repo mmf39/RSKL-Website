@@ -59,7 +59,7 @@ const DIVISIONS = {
     primaryLabel: "North",
     secondaryLabel: "Locked PSP",
     primary: new Set(["Turkeys", "The Lions", "The Phantoms", "Gus N Em", "Illegals"]),
-    secondary: new Set(["Cheerios", "The Snipers", "Storm", "MayeDay", "Dream Team"]),
+    secondary: new Set(["Cheerios", "The Snipers", "Storm", "Scorpions", "Dream Team"]),
   },
   c1s2: {
     primaryKey: "east",
@@ -108,7 +108,7 @@ const CURRENT_TEAMS = [
   "Gus N Em",
   "Storm",
   "Cheerios",
-  "MayeDay",
+  "Scorpions",
   "Illegals",
   "The Lions",
   "Dream Team",
@@ -214,7 +214,7 @@ function escapeHtml(value) {
 function displayTeamName(value) {
   const name = String(value || "").trim();
   if (name === "Bullets") return "Storm";
-  if (name === "Yetis") return "MayeDay";
+  if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
@@ -260,7 +260,7 @@ function getFranchiseKey(value) {
   if (team === "Storm" || team === "Bullets" || team === "Strom") {
     return "storm";
   }
-  if (team === "MayeDay" || team === "Yetis") {
+  if (team === "Scorpions" || team === "Yetis") {
     return "mayeday";
   }
   if (team === "Dream Team" || team === "The Future") {
@@ -393,8 +393,8 @@ function getTeamLogoHtml(teamName) {
   if (teamName === "The Phantoms") {
     return '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';
   }
-  if (teamName === "MayeDay") {
-    return '<img class="standings-logo" src="/assets/mayeday.jpg" alt="MayeDay logo" />';
+  if (teamName === "Scorpions") {
+    return '<img class="standings-logo" src="/assets/mayeday.jpg" alt="Scorpions logo" />';
   }
   if (teamName === "ALEK Manoahs") {
     return '<img class="standings-logo" src="/assets/alek-manoahs.jpg" alt="ALEK Manoahs logo" />';

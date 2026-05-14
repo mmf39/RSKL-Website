@@ -105,7 +105,7 @@ function sliceRange(rows, range) {
 function displayTeamName(value) {
   const name = String(value || "").trim();
   if (name === "Bullets") return "Storm";
-  if (name === "Yetis") return "MayeDay";
+  if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";

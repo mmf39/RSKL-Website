@@ -219,7 +219,7 @@ function parsePct(value) {
 function displayTeamName(value) {
   const name = String(value || "").trim();
   if (name === "Bullets") return "Storm";
-  if (name === "Yetis") return "MayeDay";
+  if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
@@ -233,7 +233,7 @@ function getTeamName() {
   const params = new URLSearchParams(window.location.search);
   const team = params.get("team") || "";
   if (team === "Dream Team") return "The Future";
-  if (team === "MayeDay") return "Yetis";
+  if (team === "Scorpions") return "Yetis";
   if (team === "Storm") return "Bullets";
   return team;
 }
@@ -257,7 +257,7 @@ function getFranchiseKey(value) {
   if (team === "Enforcers" || team === "Wolves") return "wolves-lineage";
   if (team === "Wrangler" || team === "Wranglers") return "wranglers";
   if (team === "Storm" || team === "Bullets" || team === "Strom") return "storm";
-  if (team === "MayeDay" || team === "Yetis") return "mayeday";
+  if (team === "Scorpions" || team === "Yetis") return "mayeday";
   if (team === "Dream Team" || team === "The Future") return "dream-team";
   return normalizeTeamLabel(team);
 }
@@ -268,7 +268,7 @@ function getTeamLogoSrc(team) {
   if (clean === "The Lions") return "/assets/the-lions.png";
   if (clean === "The Snipers") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
-  if (clean === "MayeDay") return "/assets/mayeday.jpg";
+  if (clean === "Scorpions") return "/assets/mayeday.jpg";
   if (clean === "Cobras") return "/assets/cobras.png";
   if (clean === "Karma Avengers") return "/assets/karma-avengers.png";
   if (clean === "Mafia") return "/assets/mafia.png";

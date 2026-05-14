@@ -116,7 +116,7 @@ const TEAM_NAMES = new Set([
   "Turkeys",
   "Cheerios",
   "Yetis",
-  "MayeDay",
+  "Scorpions",
   "Illegals",
   "The Lions",
   "The Future",
@@ -226,7 +226,7 @@ function cleanTeamName(value) {
 function displayTeamName(value) {
   const name = cleanTeamName(value);
   if (name === "Bullets") return "Storm";
-  if (name === "Yetis") return "MayeDay";
+  if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
@@ -275,8 +275,8 @@ function getTeamLogo(team) {
   if (clean === "The Phantoms") {
     return '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';
   }
-  if (clean === "MayeDay") {
-    return '<img class="standings-logo" src="/assets/mayeday.jpg" alt="MayeDay logo" />';
+  if (clean === "Scorpions") {
+    return '<img class="standings-logo" src="/assets/mayeday.jpg" alt="Scorpions logo" />';
   }
   if (clean === "Cobras") {
     return '<img class="standings-logo" src="/assets/cobras.png" alt="Cobras logo" />';
@@ -347,7 +347,7 @@ function canonicalTeamName(value) {
   if (lower === "lions") return "The Lions";
   if (lower === "phantoms") return "The Phantoms";
   if (lower === "future") return "The Future";
-  if (lower === "mayeday") return "MayeDay";
+  if (lower === "mayeday") return "Scorpions";
   if (lower === "snipers") return "The Snipers";
   if (lower === "bullets") return "Storm";
   return clean;
@@ -379,8 +379,8 @@ function linkifyTeamsAndPlayers(text) {
     Bullets: "Storm",
     Turkeys: "Turkeys",
     Cheerios: "Cheerios",
-    Yetis: "MayeDay",
-    MayeDay: "MayeDay",
+    Yetis: "Scorpions",
+    Scorpions: "Scorpions",
     Illegals: "Illegals",
     "The Lions": "The Lions",
     Lions: "The Lions",

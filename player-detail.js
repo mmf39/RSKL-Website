@@ -265,7 +265,7 @@ function normalizePlayerKey(value) {
 function displayTeamName(value) {
   const name = String(value || "").trim();
   if (name === "Bullets") return "Storm";
-  if (name === "Yetis") return "MayeDay";
+  if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
   return name;
 }
@@ -1144,8 +1144,8 @@ function getTeamLogoHtml(teamName) {
     ? '<img class="player-team-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />'
     : shownTeam === "The Phantoms"
     ? '<img class="player-team-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />'
-    : shownTeam === "MayeDay"
-    ? '<img class="player-team-logo" src="/assets/mayeday.jpg" alt="MayeDay logo" />'
+    : shownTeam === "Scorpions"
+    ? '<img class="player-team-logo" src="/assets/mayeday.jpg" alt="Scorpions logo" />'
     : shownTeam === "ALEK Manoahs"
     ? '<img class="player-team-logo" src="/assets/alek-manoahs.jpg" alt="ALEK Manoahs logo" />'
     : shownTeam === "Bees"

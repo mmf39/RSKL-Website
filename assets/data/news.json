@@ -1,20 +1,74 @@
 {
-  "updatedAt": "2026-05-14T11:18:23.961Z",
+  "updatedAt": "2026-05-14T13:17:47.092Z",
   "timezone": "America/New_York",
   "items": [
     {
-      "id": "transaction-trade-5-11-mayeday-gets-trickyy-burden-10-2nd-round-pick-dream-team-gets-killyouridol-uno-first-round-pick",
+      "id": "transaction-trade-5-11-scorpions-gets-trickyy-burden-10-2nd-round-pick-dream-team-gets-killyouridol-uno-first-round-pick",
       "kind": "transaction",
       "season": "c2s3-regular",
-      "title": "Trade Breakdown: MayeDay and Dream Team",
-      "summary": "MayeDay and Dream Team swapped pieces, and this one deserves a closer look than a normal transaction line.",
+      "title": "Trade Breakdown: Scorpions and Dream Team",
+      "summary": "Scorpions and Dream Team swapped pieces, and this one deserves a closer look than a normal transaction line.",
       "bullets": [
-        "MayeDay added @trickyy @burden_10 2nd round pick, which could reshape their rotation right away.",
+        "Scorpions added @trickyy @burden_10 2nd round pick, which could reshape their rotation right away.",
         "Dream Team answered with @killyouridol @uno first round pick, so both sides clearly had a specific need in mind.",
         "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
       ],
       "teams": [
-        "MayeDay",
+        "Scorpions",
+        "Dream Team"
+      ],
+      "publishedAt": "2026-05-14T13:17:47.085Z",
+      "transactionDate": "5/11"
+    },
+    {
+      "id": "transaction-trade-5-3-dream-team-gets-c2s3-1st-round-pick-gaston-rifting-c2s3-2nd-round-pick-scorpions-gets-c2s3-1st-round-pick-dos-gtlover-c2s3-2nd-c2s4-3rd-via-dream-team",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Trade Breakdown: Dream Team and Scorpions",
+      "summary": "Dream Team and Scorpions swapped pieces, and this one deserves a closer look than a normal transaction line.",
+      "bullets": [
+        "Dream Team added C2S3 1st round pick, @gaston @rifting C2S3 2nd round pick, which could reshape their rotation right away.",
+        "Scorpions answered with C2S3 1st round pick, @dos @gtlover C2S3 2nd C2S4 3rd via Dream Team, so both sides clearly had a specific need in mind.",
+        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
+      ],
+      "teams": [
+        "Dream Team",
+        "Scorpions"
+      ],
+      "publishedAt": "2026-05-14T13:17:47.085Z",
+      "transactionDate": "5/3"
+    },
+    {
+      "id": "transaction-trade-5-3-scorpions-gets-c2s3-2nd-round-pick-dream-team-gets-jamesthebot888",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Trade Breakdown: Scorpions and Dream Team",
+      "summary": "Scorpions and Dream Team swapped pieces, and this one deserves a closer look than a normal transaction line.",
+      "bullets": [
+        "Scorpions added C2S3 2nd round pick, which could reshape their rotation right away.",
+        "Dream Team answered with @jamesthebot888, so both sides clearly had a specific need in mind.",
+        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
+      ],
+      "teams": [
+        "Scorpions",
+        "Dream Team"
+      ],
+      "publishedAt": "2026-05-14T13:17:47.085Z",
+      "transactionDate": "5/3"
+    },
+    {
+      "id": "transaction-trade-5-11-mayeday-gets-trickyy-burden-10-2nd-round-pick-dream-team-gets-killyouridol-uno-first-round-pick",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Trade Breakdown: Scorpions and Dream Team",
+      "summary": "Scorpions and Dream Team swapped pieces, and this one deserves a closer look than a normal transaction line.",
+      "bullets": [
+        "Scorpions added @trickyy @burden_10 2nd round pick, which could reshape their rotation right away.",
+        "Dream Team answered with @killyouridol @uno first round pick, so both sides clearly had a specific need in mind.",
+        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
+      ],
+      "teams": [
+        "Scorpions",
         "Dream Team"
       ],
       "publishedAt": "2026-05-13T20:32:58.168Z",
@@ -124,16 +178,16 @@
       "id": "transaction-trade-5-3-dream-team-gets-c2s3-1st-round-pick-gaston-rifting-c2s3-2nd-round-pick-mayeday-gets-c2s3-1st-round-pick-dos-gtlover-c2s3-2nd-c2s4-3rd-via-dream-team",
       "kind": "transaction",
       "season": "c2s3-regular",
-      "title": "Trade Breakdown: Dream Team and MayeDay",
-      "summary": "Dream Team and MayeDay swapped pieces, and this one deserves a closer look than a normal transaction line.",
+      "title": "Trade Breakdown: Dream Team and Scorpions",
+      "summary": "Dream Team and Scorpions swapped pieces, and this one deserves a closer look than a normal transaction line.",
       "bullets": [
         "Dream Team added C2S3 1st round pick, @gaston @rifting C2S3 2nd round pick, which could reshape their rotation right away.",
-        "MayeDay answered with C2S3 1st round pick, @dos @gtlover C2S3 2nd C2S4 3rd via Dream Team, so both sides clearly had a specific need in mind.",
+        "Scorpions answered with C2S3 1st round pick, @dos @gtlover C2S3 2nd C2S4 3rd via Dream Team, so both sides clearly had a specific need in mind.",
         "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
       ],
       "teams": [
         "Dream Team",
-        "MayeDay"
+        "Scorpions"
       ],
       "publishedAt": "2026-05-13T20:32:58.168Z",
       "transactionDate": "5/3"
@@ -160,15 +214,15 @@
       "id": "transaction-trade-5-3-mayeday-gets-c2s3-2nd-round-pick-dream-team-gets-jamesthebot888",
       "kind": "transaction",
       "season": "c2s3-regular",
-      "title": "Trade Breakdown: MayeDay and Dream Team",
-      "summary": "MayeDay and Dream Team swapped pieces, and this one deserves a closer look than a normal transaction line.",
+      "title": "Trade Breakdown: Scorpions and Dream Team",
+      "summary": "Scorpions and Dream Team swapped pieces, and this one deserves a closer look than a normal transaction line.",
       "bullets": [
-        "MayeDay added C2S3 2nd round pick, which could reshape their rotation right away.",
+        "Scorpions added C2S3 2nd round pick, which could reshape their rotation right away.",
         "Dream Team answered with @jamesthebot888, so both sides clearly had a specific need in mind.",
         "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
       ],
       "teams": [
-        "MayeDay",
+        "Scorpions",
         "Dream Team"
       ],
       "publishedAt": "2026-05-13T20:32:58.168Z",
@@ -262,13 +316,13 @@
       "id": "recap-2026-05-12-mayeday-the-snipers",
       "kind": "recap",
       "season": "c2s3-regular",
-      "title": "The Snipers beat MayeDay, 41357-34011",
+      "title": "The Snipers beat Scorpions, 41357-34011",
       "summary": "The Snipers took care of business on 5/12. Here is the fast read on the margin, the star turns, and what decided it.",
       "bullets": [
         "The Snipers created enough separation to close this out by 7346 points."
       ],
       "teams": [
-        "MayeDay",
+        "Scorpions",
         "The Snipers"
       ],
       "gameDate": "5/12",

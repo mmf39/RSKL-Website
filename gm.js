@@ -240,7 +240,7 @@ function setActiveTab(tab) {
 function displayTeamName(value) {
   const team = String(value || "").trim();
   if (team === "Bullets") return "Storm";
-  if (team === "Yetis") return "MayeDay";
+  if (team === "Yetis") return "Scorpions";
   if (team === "The Future") return "Dream Team";
   return team;
 }
@@ -248,7 +248,7 @@ function displayTeamName(value) {
 function canonicalTeamKey(value) {
   const team = String(value || "").trim();
   if (team === "Storm") return "Bullets";
-  if (team === "MayeDay") return "Yetis";
+  if (team === "Scorpions") return "Yetis";
   if (team === "Dream Team") return "The Future";
   return team;
 }

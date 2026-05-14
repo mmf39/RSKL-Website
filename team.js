@@ -40,7 +40,7 @@ const TEAM_ORDER = [
   "Gus N Em",
   "Storm",
   "Cheerios",
-  "MayeDay",
+  "Scorpions",
   "Illegals",
   "The Lions",
   "Dream Team",
@@ -191,7 +191,7 @@ function getSeason() {
 function displayTeamName(value) {
   const name = String(value || "").trim();
   if (name === "Bullets") return "Storm";
-  if (name === "Yetis") return "MayeDay";
+  if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
@@ -400,7 +400,7 @@ function getTeamLogoSrc(team) {
   if (clean === "The Lions") return "/assets/the-lions.png";
   if (clean === "The Snipers") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
-  if (clean === "MayeDay") return "/assets/mayeday.jpg";
+  if (clean === "Scorpions") return "/assets/mayeday.jpg";
   if (clean === "ALEK Manoahs") return "/assets/alek-manoahs.jpg";
   if (clean === "Bees") return "/assets/bees.jpg";
   if (clean === "Broncos") return "/assets/broncos.jpg";
@@ -828,7 +828,7 @@ function getFranchiseKey(value) {
   if (team === "Storm" || team === "Bullets" || team === "Strom") {
     return "storm";
   }
-  if (team === "MayeDay" || team === "Yetis") {
+  if (team === "Scorpions" || team === "Yetis") {
     return "mayeday";
   }
   if (team === "Dream Team" || team === "The Future") {
@@ -1774,7 +1774,7 @@ function getTeamName() {
   const params = new URLSearchParams(window.location.search);
   const team = params.get("team") || "";
   if (team === "Dream Team") return "The Future";
-  if (team === "MayeDay") return "Yetis";
+  if (team === "Scorpions") return "Yetis";
   if (team === "Storm") return "Bullets";
   return team;
 }
@@ -2412,7 +2412,7 @@ function getTeamLogo(team) {
   if (clean === "The Lions") return "/assets/the-lions.png";
   if (clean === "The Snipers") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
-  if (clean === "MayeDay") return "/assets/mayeday.jpg";
+  if (clean === "Scorpions") return "/assets/mayeday.jpg";
   if (clean === "Cobras") return "/assets/cobras.png";
   if (clean === "Karma Avengers") return "/assets/karma-avengers.png";
   if (clean === "Mafia") return "/assets/mafia.png";

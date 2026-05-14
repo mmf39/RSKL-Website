@@ -429,7 +429,7 @@ function normalizePlayerKey(value) {
 function displayTeamName(value) {
   const name = String(value || "").trim();
   if (name === "Bullets") return "Storm";
-  if (name === "Yetis") return "MayeDay";
+  if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
@@ -749,8 +749,8 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
     if (team === "The Phantoms") {
       return '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';
     }
-    if (team === "MayeDay") {
-      return '<img class="standings-logo" src="/assets/mayeday.jpg" alt="MayeDay logo" />';
+    if (team === "Scorpions") {
+      return '<img class="standings-logo" src="/assets/mayeday.jpg" alt="Scorpions logo" />';
     }
     if (team === "Cobras") {
       return '<img class="standings-logo" src="/assets/cobras.png" alt="Cobras logo" />';

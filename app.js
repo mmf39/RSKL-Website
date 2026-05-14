@@ -33,7 +33,7 @@ const TEAM_ORDER = [
   "Gus N Em",
   "Storm",
   "Cheerios",
-  "MayeDay",
+  "Scorpions",
   "Illegals",
   "The Lions",
   "Dream Team",
@@ -302,7 +302,7 @@ function initSeasonSelect() {
 function displayTeamName(value) {
   const name = String(value || "").trim();
   if (name === "Bullets") return "Storm";
-  if (name === "Yetis") return "MayeDay";
+  if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
@@ -318,7 +318,7 @@ function getTeamLogoSrc(name) {
   if (shown === "The Lions") return "/assets/the-lions.png";
   if (shown === "The Snipers") return "/assets/the-snipers.png";
   if (shown === "The Phantoms") return "/assets/the-phantoms.png";
-  if (shown === "MayeDay") return "/assets/mayeday.jpg";
+  if (shown === "Scorpions") return "/assets/mayeday.jpg";
   if (shown === "ALEK Manoahs") return "/assets/alek-manoahs.jpg";
   if (shown === "Bees") return "/assets/bees.jpg";
   if (shown === "Broncos") return "/assets/broncos.jpg";
@@ -350,7 +350,7 @@ function getTeamColorClass(name) {
   if (clean === "gus n em") return "team-color-gus";
   if (clean === "storm") return "team-color-storm";
   if (clean === "cheerios") return "team-color-cheerios";
-  if (clean === "mayeday" || clean === "yetis") return "team-color-yetis";
+  if (clean === "scorpions" || clean === "yetis") return "team-color-yetis";
   if (clean === "illegals") return "team-color-illegals";
   if (clean === "the lions") return "team-color-lions";
   if (clean === "dream team" || clean === "the future") return "team-color-future";
@@ -1097,7 +1097,12 @@ function renderLeagueNews(items) {
   if (!els.leagueNews) return;
   const newsItems = (items || [])
     .filter((item) => ["preview", "recap"].includes(item.kind))
-    .sort((a, b) => Date.parse(String(b.publishedAt || "")) - Date.parse(String(a.publishedAt || "")));
+    .sort((a, b) => {
+      const kindRank = (item) => (item.kind === "recap" ? 0 : 1);
+      const rankDiff = kindRank(a) - kindRank(b);
+      if (rankDiff !== 0) return rankDiff;
+      return Date.parse(String(b.publishedAt || "")) - Date.parse(String(a.publishedAt || ""));
+    });
   const visibleItems = (newsItems.length ? newsItems : items || []).slice(0, 3);
   if (!visibleItems.length) {
     els.leagueNews.innerHTML = buildStateCard(
