@@ -38,6 +38,8 @@ let scheduleGames = [];
 let gamesByDate = new Map();
 let selectedDateKey = "";
 let scheduleLoadToken = 0;
+let gameScoreStateCache = new Map();
+let scheduleRenderFrame = 0;
 
 const ARCHIVE_RANGES = {
   schedule_regular: "G31:I79",
@@ -132,8 +134,20 @@ function hydrateCachedEnhancements(seasonRaw) {
     teamLeadersMap = computeTeamLeaders(cached.playerRows);
   }
 
-  renderScheduleViews();
+  scheduleRenderScheduleViews();
   return true;
+}
+
+function getGameCacheKey(game) {
+  return buildGameKey(game.dateToken, game.team1, game.team2);
+}
+
+function scheduleRenderScheduleViews() {
+  if (scheduleRenderFrame) return;
+  scheduleRenderFrame = requestAnimationFrame(() => {
+    scheduleRenderFrame = 0;
+    renderScheduleViews();
+  });
 }
 
 function getSeasonRaw() {
@@ -971,10 +985,14 @@ function getBoxScorePayload(game) {
 }
 
 function getGameScoreState(game) {
-  const live = liveScoreMap.get(buildGameKey(game.dateToken, game.team1, game.team2));
+  const cacheKey = getGameCacheKey(game);
+  const cached = gameScoreStateCache.get(cacheKey);
+  if (cached) return cached;
+
+  const live = liveScoreMap.get(cacheKey);
   if (live) {
     const outcomes = getOutcomeFromScores(live.team1Score, live.team2Score);
-    return {
+    const payload = {
       status: "live",
       label: "LIVE",
       team1Score: live.team1Score || "",
@@ -983,11 +1001,13 @@ function getGameScoreState(game) {
       team2Outcome: outcomes.team2,
       livePayload: live,
     };
+    gameScoreStateCache.set(cacheKey, payload);
+    return payload;
   }
-  const final = finalScoreMap.get(buildGameKey(game.dateToken, game.team1, game.team2));
+  const final = finalScoreMap.get(cacheKey);
   if (final && final.team1Score && final.team2Score) {
     const outcomes = getOutcomeFromScores(final.team1Score, final.team2Score);
-    return {
+    const payload = {
       status: "final",
       label: "FINAL",
       team1Score: final.team1Score,
@@ -995,11 +1015,13 @@ function getGameScoreState(game) {
       team1Outcome: outcomes.team1,
       team2Outcome: outcomes.team2,
     };
+    gameScoreStateCache.set(cacheKey, payload);
+    return payload;
   }
   const payload = getBoxScorePayload(game);
   if (payload.finalScore) {
     const outcomes = getOutcomeFromScores(payload.team1Score, payload.team2Score);
-    return {
+    const state = {
       status: "final",
       label: "FINAL",
       team1Score: payload.team1Score || "",
@@ -1007,8 +1029,10 @@ function getGameScoreState(game) {
       team1Outcome: outcomes.team1,
       team2Outcome: outcomes.team2,
     };
+    gameScoreStateCache.set(cacheKey, state);
+    return state;
   }
-  return {
+  const state = {
     status: "upcoming",
     label: "UPCOMING",
     team1Score: "",
@@ -1016,6 +1040,8 @@ function getGameScoreState(game) {
     team1Outcome: "",
     team2Outcome: "",
   };
+  gameScoreStateCache.set(cacheKey, state);
+  return state;
 }
 
 function buildLiveBoxMarkup(game, livePayload) {
@@ -1265,8 +1291,13 @@ function bindCalendarEvents() {
   }
 
   if (els.search) {
+    let searchTimer = 0;
     els.search.addEventListener("input", () => {
-      renderScheduleViews();
+      if (searchTimer) clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        searchTimer = 0;
+        renderScheduleViews();
+      }, 80);
     });
   }
 
@@ -1282,6 +1313,7 @@ function resetScheduleEnhancements() {
   liveScoreMap = new Map();
   finalScoreMap = new Map();
   teamLeadersMap = new Map();
+  gameScoreStateCache = new Map();
 }
 
 function applyInitialScheduleRows(rows, season) {
@@ -1292,6 +1324,7 @@ function applyInitialScheduleRows(rows, season) {
   scheduleGames = buildGames(rows, season);
   scheduleGames.sort(compareGameDates);
   rebuildGamesByDate();
+  gameScoreStateCache = new Map();
 
   if (!scheduleGames.length) {
     throw new Error("No games found.");
@@ -1304,7 +1337,7 @@ function applyInitialScheduleRows(rows, season) {
     : upcomingGames[0]
     ? upcomingGames[0].dateToken
     : scheduleGames[0].dateToken;
-  renderScheduleViews();
+  scheduleRenderScheduleViews();
   updateLastUpdated();
 }
 
@@ -1342,7 +1375,7 @@ async function hydrateCurrentSeasonSchedule(loadToken) {
     playerRows,
   });
 
-  renderScheduleViews();
+  scheduleRenderScheduleViews();
 }
 
 function hydrateEmbeddedScheduleData(regularRows, loadToken, seasonRaw) {
@@ -1359,7 +1392,7 @@ function hydrateEmbeddedScheduleData(regularRows, loadToken, seasonRaw) {
       liveRows: [],
       playerRows,
     });
-    renderScheduleViews();
+    scheduleRenderScheduleViews();
   }, 0);
 }
 
@@ -1375,7 +1408,7 @@ function hydrateArchiveScheduleData(archiveRows, loadToken, seasonRaw) {
       liveRows: [],
       playerRows: [],
     });
-    renderScheduleViews();
+    scheduleRenderScheduleViews();
   }, 0);
 }
 

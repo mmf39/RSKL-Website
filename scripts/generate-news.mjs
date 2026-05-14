@@ -797,14 +797,49 @@ function parseArgs(argv) {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  const [feed, standingsRows, scheduleRows, boxscoreRows, playerRows, transactionRows] = await Promise.all([
-    readNewsFeed(),
-    fetchCsv(SOURCES.standingsDashboard),
-    fetchCsv(SOURCES.schedule),
-    fetchCsv(SOURCES.boxscore),
-    fetchCsv(SOURCES.playerStats),
-    fetchCsv(SOURCES.transactions),
-  ]);
+  const feed = await readNewsFeed();
+  const fetches = [];
+
+  if (options.preview || options.recap) {
+    fetches.push({
+      key: "standingsRows",
+      promise: fetchCsv(SOURCES.standingsDashboard),
+    });
+    fetches.push({
+      key: "scheduleRows",
+      promise: fetchCsv(SOURCES.schedule),
+    });
+  }
+
+  if (options.preview) {
+    fetches.push({
+      key: "boxscoreRows",
+      promise: fetchCsv(SOURCES.boxscore),
+    });
+    fetches.push({
+      key: "playerRows",
+      promise: fetchCsv(SOURCES.playerStats),
+    });
+  }
+
+  if (options.transactions) {
+    fetches.push({
+      key: "transactionRows",
+      promise: fetchCsv(SOURCES.transactions).catch((error) => {
+        console.warn(`Transaction source unavailable; falling back to existing feed items: ${error.message}`);
+        return null;
+      }),
+    });
+  }
+
+  const resolved = Object.fromEntries(
+    await Promise.all(fetches.map(async ({ key, promise }) => [key, await promise]))
+  );
+  const standingsRows = resolved.standingsRows || [];
+  const scheduleRows = resolved.scheduleRows || [];
+  const boxscoreRows = resolved.boxscoreRows || [];
+  const playerRows = resolved.playerRows || [];
+  const transactionRows = resolved.transactionRows || null;
 
   const scheduleGames = buildScheduleGames(prepareScheduleRows(scheduleRows));
   const standingsMap = buildStandingsMap(standingsRows);
@@ -833,7 +868,9 @@ async function main() {
     );
   }
   if (options.transactions) {
-    nextItems = nextItems.concat(buildTransactionItems(transactionRows));
+    nextItems = nextItems.concat(
+      transactionRows ? buildTransactionItems(transactionRows) : feed.items.filter((item) => item.kind === "transaction")
+    );
   }
 
   const mergedItems = mergeItems(feed.items, nextItems);
