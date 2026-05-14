@@ -696,7 +696,12 @@ function parseSinglePartyRows(rows, type) {
     });
 }
 
-function buildTransactionItems(transactionRows) {
+function buildTransactionItems(transactionRows, existingItems = []) {
+  const existingIds = new Set(
+    (existingItems || [])
+      .filter((item) => item.kind === "transaction")
+      .map((item) => String(item.id || ""))
+  );
   const items = [
     ...parseTradeRows(sliceRange(transactionRows, TRANSACTION_RANGES.trade)),
     ...parseSinglePartyRows(sliceRange(transactionRows, TRANSACTION_RANGES.signing), "Signing"),
@@ -727,7 +732,7 @@ function buildTransactionItems(transactionRows) {
         ? `${item.team1 || "Team 1"} and ${item.team2 || "Team 2"} swapped pieces, and this one deserves a closer look than a normal transaction line.`
         : `${item.summary}. This is the quick AI read on what the move could mean.`;
 
-    return {
+    const nextItem = {
       id: `transaction-${slugify(item.type)}-${slugify(item.date)}-${slugify(item.summary)}`,
       kind: "transaction",
       season: "c2s3-regular",
@@ -738,7 +743,8 @@ function buildTransactionItems(transactionRows) {
       publishedAt: new Date().toISOString(),
       transactionDate: item.date,
     };
-  });
+    return existingIds.has(nextItem.id) ? null : nextItem;
+  }).filter(Boolean);
 }
 
 function mergeItems(existingItems, nextItems) {
@@ -869,7 +875,9 @@ async function main() {
   }
   if (options.transactions) {
     nextItems = nextItems.concat(
-      transactionRows ? buildTransactionItems(transactionRows) : feed.items.filter((item) => item.kind === "transaction")
+      transactionRows
+        ? buildTransactionItems(transactionRows, feed.items)
+        : feed.items.filter((item) => item.kind === "transaction")
     );
   }
 
