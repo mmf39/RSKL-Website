@@ -1095,8 +1095,10 @@ function renderLeagueLeaders(rows, seasonRaw) {
 
 function renderLeagueNews(items) {
   if (!els.leagueNews) return;
-  const recapItems = (items || []).filter((item) => item.kind === "recap");
-  const visibleItems = (recapItems.length ? recapItems : items || []).slice(0, 3);
+  const newsItems = (items || [])
+    .filter((item) => ["preview", "recap"].includes(item.kind))
+    .sort((a, b) => Date.parse(String(b.publishedAt || "")) - Date.parse(String(a.publishedAt || "")));
+  const visibleItems = (newsItems.length ? newsItems : items || []).slice(0, 3);
   if (!visibleItems.length) {
     els.leagueNews.innerHTML = buildStateCard(
       "No News Yet",
