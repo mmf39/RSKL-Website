@@ -1,7 +1,61 @@
 {
-  "updatedAt": "2026-05-14T13:17:47.092Z",
+  "updatedAt": "2026-05-14T14:28:44.931Z",
   "timezone": "America/New_York",
   "items": [
+    {
+      "id": "preview-2026-05-14-dream-team-scorpions",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Dream Team vs Scorpions: 3 things to watch",
+      "summary": "Three quick angles to watch before Dream Team and Scorpions hit the 5/14 slate.",
+      "bullets": [
+        "Dream Team bring the stronger record into this one at 2-2, so the early tone of the matchup matters.",
+        "Dream Team will lean on @fullofopps (12136.7 avg) while Scorpions answer with @dos (8221.8 avg).",
+        "Dream Team are 1-2 in their last 3, while Scorpions are 1-2 over their last 3."
+      ],
+      "teams": [
+        "Dream Team",
+        "Scorpions"
+      ],
+      "gameDate": "5/14",
+      "publishedAt": "2026-05-14T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-05-14-the-phantoms-gus-n-em",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "The Phantoms vs Gus N Em: 3 things to watch",
+      "summary": "Three quick angles to watch before The Phantoms and Gus N Em hit the 5/14 slate.",
+      "bullets": [
+        "The Phantoms bring the stronger record into this one at 3-1, so the early tone of the matchup matters.",
+        "The Phantoms will lean on @_jake (6116.0 avg) while Gus N Em answer with @juan69 (6853.0 avg).",
+        "The Phantoms are 2-1 in their last 3, while Gus N Em are 2-1 over their last 3."
+      ],
+      "teams": [
+        "The Phantoms",
+        "Gus N Em"
+      ],
+      "gameDate": "5/14",
+      "publishedAt": "2026-05-14T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-05-14-cheerios-the-snipers",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Cheerios vs The Snipers: 3 things to watch",
+      "summary": "Three quick angles to watch before Cheerios and The Snipers hit the 5/14 slate.",
+      "bullets": [
+        "The Snipers bring the stronger record into this one at 3-0, so the early tone of the matchup matters.",
+        "Cheerios will lean on @jameswyo (7120.7 avg) while The Snipers answer with @nick72 (11155.0 avg).",
+        "Cheerios are 0-3 in their last 3, while The Snipers are 3-0 over their last 3."
+      ],
+      "teams": [
+        "Cheerios",
+        "The Snipers"
+      ],
+      "gameDate": "5/14",
+      "publishedAt": "2026-05-14T10:00:00-04:00"
+    },
     {
       "id": "transaction-trade-5-11-scorpions-gets-trickyy-burden-10-2nd-round-pick-dream-team-gets-killyouridol-uno-first-round-pick",
       "kind": "transaction",
@@ -55,24 +109,6 @@
       ],
       "publishedAt": "2026-05-14T13:17:47.085Z",
       "transactionDate": "5/3"
-    },
-    {
-      "id": "transaction-trade-5-11-mayeday-gets-trickyy-burden-10-2nd-round-pick-dream-team-gets-killyouridol-uno-first-round-pick",
-      "kind": "transaction",
-      "season": "c2s3-regular",
-      "title": "Trade Breakdown: Scorpions and Dream Team",
-      "summary": "Scorpions and Dream Team swapped pieces, and this one deserves a closer look than a normal transaction line.",
-      "bullets": [
-        "Scorpions added @trickyy @burden_10 2nd round pick, which could reshape their rotation right away.",
-        "Dream Team answered with @killyouridol @uno first round pick, so both sides clearly had a specific need in mind.",
-        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
-      ],
-      "teams": [
-        "Scorpions",
-        "Dream Team"
-      ],
-      "publishedAt": "2026-05-13T20:32:58.168Z",
-      "transactionDate": "5/11"
     },
     {
       "id": "transaction-trade-5-6-the-lions-gets-rifting-snowy-arachnid-dream-team-gets-trickyy-1st-and-2nd-swap-if-lions-are-worse-the-dream-team",
@@ -175,24 +211,6 @@
       "transactionDate": "5/3"
     },
     {
-      "id": "transaction-trade-5-3-dream-team-gets-c2s3-1st-round-pick-gaston-rifting-c2s3-2nd-round-pick-mayeday-gets-c2s3-1st-round-pick-dos-gtlover-c2s3-2nd-c2s4-3rd-via-dream-team",
-      "kind": "transaction",
-      "season": "c2s3-regular",
-      "title": "Trade Breakdown: Dream Team and Scorpions",
-      "summary": "Dream Team and Scorpions swapped pieces, and this one deserves a closer look than a normal transaction line.",
-      "bullets": [
-        "Dream Team added C2S3 1st round pick, @gaston @rifting C2S3 2nd round pick, which could reshape their rotation right away.",
-        "Scorpions answered with C2S3 1st round pick, @dos @gtlover C2S3 2nd C2S4 3rd via Dream Team, so both sides clearly had a specific need in mind.",
-        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
-      ],
-      "teams": [
-        "Dream Team",
-        "Scorpions"
-      ],
-      "publishedAt": "2026-05-13T20:32:58.168Z",
-      "transactionDate": "5/3"
-    },
-    {
       "id": "transaction-trade-5-3-storm-gets-na-te-and-c2s3-2nd-the-snipers-gets-c2s3-1st",
       "kind": "transaction",
       "season": "c2s3-regular",
@@ -206,24 +224,6 @@
       "teams": [
         "Storm",
         "The Snipers"
-      ],
-      "publishedAt": "2026-05-13T20:32:58.168Z",
-      "transactionDate": "5/3"
-    },
-    {
-      "id": "transaction-trade-5-3-mayeday-gets-c2s3-2nd-round-pick-dream-team-gets-jamesthebot888",
-      "kind": "transaction",
-      "season": "c2s3-regular",
-      "title": "Trade Breakdown: Scorpions and Dream Team",
-      "summary": "Scorpions and Dream Team swapped pieces, and this one deserves a closer look than a normal transaction line.",
-      "bullets": [
-        "Scorpions added C2S3 2nd round pick, which could reshape their rotation right away.",
-        "Dream Team answered with @jamesthebot888, so both sides clearly had a specific need in mind.",
-        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
-      ],
-      "teams": [
-        "Scorpions",
-        "Dream Team"
       ],
       "publishedAt": "2026-05-13T20:32:58.168Z",
       "transactionDate": "5/3"
