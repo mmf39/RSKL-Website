@@ -1,60 +1,108 @@
 {
-  "updatedAt": "2026-05-14T14:28:44.931Z",
+  "updatedAt": "2026-05-15T11:52:00.712Z",
   "timezone": "America/New_York",
   "items": [
     {
-      "id": "preview-2026-05-14-dream-team-scorpions",
+      "id": "preview-2026-05-15-the-lions-illegals",
       "kind": "preview",
       "season": "c2s3-regular",
-      "title": "Dream Team vs Scorpions: 3 things to watch",
-      "summary": "Three quick angles to watch before Dream Team and Scorpions hit the 5/14 slate.",
+      "title": "The Lions vs Illegals: 3 things to watch",
+      "summary": "Three quick angles to watch before The Lions and Illegals hit the 5/15 slate.",
       "bullets": [
-        "Dream Team bring the stronger record into this one at 2-2, so the early tone of the matchup matters.",
-        "Dream Team will lean on @fullofopps (12136.7 avg) while Scorpions answer with @dos (8221.8 avg).",
-        "Dream Team are 1-2 in their last 3, while Scorpions are 1-2 over their last 3."
+        "Illegals bring the stronger record into this one at 2-2, so the early tone of the matchup matters.",
+        "The Lions will lean on @snowy (7149.3 avg) while Illegals answer with @dbook C (6746.0 avg).",
+        "The last meeting went Illegals 27812-22561 over The Lions on 5/13, so there is already a little revenge angle here."
+      ],
+      "teams": [
+        "The Lions",
+        "Illegals"
+      ],
+      "gameDate": "5/15",
+      "publishedAt": "2026-05-15T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-05-15-storm-turkeys",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Storm vs Turkeys: 3 things to watch",
+      "summary": "Three quick angles to watch before Storm and Turkeys hit the 5/15 slate.",
+      "bullets": [
+        "Turkeys bring the stronger record into this one at 3-1, so the early tone of the matchup matters.",
+        "Storm will lean on @hulkman1025 (7452.0 avg) while Turkeys answer with @jordancarter (11738.7 avg).",
+        "Storm are 2-1 in their last 3, while Turkeys are 2-1 over their last 3."
+      ],
+      "teams": [
+        "Storm",
+        "Turkeys"
+      ],
+      "gameDate": "5/15",
+      "publishedAt": "2026-05-15T10:00:00-04:00"
+    },
+    {
+      "id": "recap-2026-05-14-dream-team-scorpions",
+      "kind": "recap",
+      "season": "c2s3-regular",
+      "title": "Scorpions beat Dream Team, 17610-15388",
+      "summary": "Scorpions took care of business on 5/14. Here is the fast read on the margin, the star turns, and what decided it.",
+      "bullets": [
+        "Scorpions created enough separation to close this out by 2222 points."
       ],
       "teams": [
         "Dream Team",
         "Scorpions"
       ],
       "gameDate": "5/14",
-      "publishedAt": "2026-05-14T10:00:00-04:00"
+      "publishedAt": "2026-05-15T07:05:00-04:00"
     },
     {
-      "id": "preview-2026-05-14-the-phantoms-gus-n-em",
-      "kind": "preview",
+      "id": "recap-2026-05-14-the-phantoms-gus-n-em",
+      "kind": "recap",
       "season": "c2s3-regular",
-      "title": "The Phantoms vs Gus N Em: 3 things to watch",
-      "summary": "Three quick angles to watch before The Phantoms and Gus N Em hit the 5/14 slate.",
+      "title": "Gus N Em beat The Phantoms, 15085-11604",
+      "summary": "Gus N Em took care of business on 5/14. Here is the fast read on the margin, the star turns, and what decided it.",
       "bullets": [
-        "The Phantoms bring the stronger record into this one at 3-1, so the early tone of the matchup matters.",
-        "The Phantoms will lean on @_jake (6116.0 avg) while Gus N Em answer with @juan69 (6853.0 avg).",
-        "The Phantoms are 2-1 in their last 3, while Gus N Em are 2-1 over their last 3."
+        "Gus N Em created enough separation to close this out by 3481 points."
       ],
       "teams": [
         "The Phantoms",
         "Gus N Em"
       ],
       "gameDate": "5/14",
-      "publishedAt": "2026-05-14T10:00:00-04:00"
+      "publishedAt": "2026-05-15T07:05:00-04:00"
     },
     {
-      "id": "preview-2026-05-14-cheerios-the-snipers",
-      "kind": "preview",
+      "id": "recap-2026-05-14-cheerios-the-snipers",
+      "kind": "recap",
       "season": "c2s3-regular",
-      "title": "Cheerios vs The Snipers: 3 things to watch",
-      "summary": "Three quick angles to watch before Cheerios and The Snipers hit the 5/14 slate.",
+      "title": "The Snipers beat Cheerios, 18953-10662",
+      "summary": "The Snipers took care of business on 5/14. Here is the fast read on the margin, the star turns, and what decided it.",
       "bullets": [
-        "The Snipers bring the stronger record into this one at 3-0, so the early tone of the matchup matters.",
-        "Cheerios will lean on @jameswyo (7120.7 avg) while The Snipers answer with @nick72 (11155.0 avg).",
-        "Cheerios are 0-3 in their last 3, while The Snipers are 3-0 over their last 3."
+        "The Snipers created enough separation to close this out by 8291 points."
       ],
       "teams": [
         "Cheerios",
         "The Snipers"
       ],
       "gameDate": "5/14",
-      "publishedAt": "2026-05-14T10:00:00-04:00"
+      "publishedAt": "2026-05-15T07:05:00-04:00"
+    },
+    {
+      "id": "transaction-trade-5-14-the-snipers-gets-dos-scorpions-gets-bigk-and-c2s4-2nd-round-pick",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Trade Breakdown: The Snipers and Scorpions",
+      "summary": "The Snipers and Scorpions swapped pieces, and this one deserves a closer look than a normal transaction line.",
+      "bullets": [
+        "The Snipers added @dos, which could reshape their rotation right away.",
+        "Scorpions answered with @bigk and C2S4 2nd round pick, so both sides clearly had a specific need in mind.",
+        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
+      ],
+      "teams": [
+        "The Snipers",
+        "Scorpions"
+      ],
+      "publishedAt": "2026-05-14T22:27:00.541Z",
+      "transactionDate": "5/14"
     },
     {
       "id": "transaction-trade-5-11-scorpions-gets-trickyy-burden-10-2nd-round-pick-dream-team-gets-killyouridol-uno-first-round-pick",

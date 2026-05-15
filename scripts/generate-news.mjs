@@ -761,6 +761,8 @@ function mergeItems(existingItems, nextItems) {
     const semanticKey =
       item.kind === "transaction"
         ? `${item.kind}|${item.transactionDate || ""}|${item.summary || ""}`
+        : ["preview", "recap"].includes(item.kind)
+        ? `game|${item.gameDate || ""}|${teamsKey}`
         : `${item.kind}|${item.gameDate || ""}|${teamsKey}|${item.title || ""}`;
     const existing = deduped.get(semanticKey);
     if (!existing) {
