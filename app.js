@@ -267,6 +267,17 @@ function formatDateLabel(token) {
   });
 }
 
+function getTodayDateTokenEt() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(new Date());
+  const month = parts.find((part) => part.type === "month")?.value || "";
+  const day = parts.find((part) => part.type === "day")?.value || "";
+  return month && day ? `${Number(month)}/${Number(day)}` : "";
+}
+
 function normalizeTeamName(name) {
   return displayTeamName(String(name || ""))
     .replace(/\([^)]*\)/g, "")
@@ -1095,19 +1106,17 @@ function renderLeagueLeaders(rows, seasonRaw) {
 
 function renderLeagueNews(items) {
   if (!els.leagueNews) return;
+  const todayToken = getTodayDateTokenEt();
   const newsItems = (items || [])
-    .filter((item) => ["preview", "recap"].includes(item.kind))
+    .filter((item) => item.kind === "preview" && (!todayToken || String(item.gameDate || "").trim() === todayToken))
     .sort((a, b) => {
-      const kindRank = (item) => (item.kind === "preview" ? 0 : 1);
-      const rankDiff = kindRank(a) - kindRank(b);
-      if (rankDiff !== 0) return rankDiff;
       return Date.parse(String(b.publishedAt || "")) - Date.parse(String(a.publishedAt || ""));
     });
-  const visibleItems = (newsItems.length ? newsItems : items || []).slice(0, 3);
+  const visibleItems = newsItems.slice(0, 3);
   if (!visibleItems.length) {
     els.leagueNews.innerHTML = buildStateCard(
       "No News Yet",
-      "Run the news generator to publish previews, recaps, and transaction wire stories."
+      "Run the news generator to publish current game previews."
     );
     return;
   }
