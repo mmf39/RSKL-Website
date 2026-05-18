@@ -211,11 +211,16 @@ function slugify(value) {
 }
 
 async function fetchCsv(url) {
-  const response = await fetch(url, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Fetch failed for ${url}: ${response.status}`);
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Fetch failed for ${url}: ${response.status}`);
+    }
+    return parseCSV(await response.text());
+  } catch (error) {
+    console.warn(`Source unavailable; continuing with empty data: ${url} (${error.message})`);
+    return [];
   }
-  return parseCSV(await response.text());
 }
 
 async function readNewsFeed() {

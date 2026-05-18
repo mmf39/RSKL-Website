@@ -1,7 +1,61 @@
 {
-  "updatedAt": "2026-05-15T11:52:00.712Z",
+  "updatedAt": "2026-05-18T19:15:42.058Z",
   "timezone": "America/New_York",
   "items": [
+    {
+      "id": "preview-2026-05-17-scorpions-gus-n-em",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Scorpions vs Gus N Em: 3 things to watch",
+      "summary": "Three quick angles to watch before Scorpions and Gus N Em hit the 5/17 slate.",
+      "bullets": [
+        "Gus N Em bring the stronger record into this one at 4-1, so the early tone of the matchup matters.",
+        "Scorpions will lean on @dos (8221.8 avg) while Gus N Em answer with @juan69 (5892.8 avg).",
+        "Scorpions are 1-2 in their last 3, while Gus N Em are 2-1 over their last 3."
+      ],
+      "teams": [
+        "Scorpions",
+        "Gus N Em"
+      ],
+      "gameDate": "5/17",
+      "publishedAt": "2026-05-17T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-05-17-the-snipers-cheerios",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "The Snipers vs Cheerios: 3 things to watch",
+      "summary": "Three quick angles to watch before The Snipers and Cheerios hit the 5/17 slate.",
+      "bullets": [
+        "The Snipers bring the stronger record into this one at 4-0, so the early tone of the matchup matters.",
+        "The Snipers will lean on @nick72 (11155.0 avg) while Cheerios answer with @jameswyo (6005.0 avg).",
+        "The last meeting went The Snipers 18953-10662 over Cheerios on 5/14, so there is already a little revenge angle here."
+      ],
+      "teams": [
+        "The Snipers",
+        "Cheerios"
+      ],
+      "gameDate": "5/17",
+      "publishedAt": "2026-05-17T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-05-17-dream-team-illegals",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Dream Team vs Illegals: 3 things to watch",
+      "summary": "Three quick angles to watch before Dream Team and Illegals hit the 5/17 slate.",
+      "bullets": [
+        "Illegals bring the stronger record into this one at 3-2, so the early tone of the matchup matters.",
+        "Dream Team will lean on @fullofopps (10247.8 avg) while Illegals answer with @dbook C (6746.0 avg).",
+        "Dream Team are 0-3 in their last 3, while Illegals are 1-2 over their last 3."
+      ],
+      "teams": [
+        "Dream Team",
+        "Illegals"
+      ],
+      "gameDate": "5/17",
+      "publishedAt": "2026-05-17T10:00:00-04:00"
+    },
     {
       "id": "preview-2026-05-15-the-lions-illegals",
       "kind": "preview",
