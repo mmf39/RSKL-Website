@@ -12,7 +12,7 @@ const GM_LOCAL_LOCKS_KEY = "rskl_local_game_locks";
 const GM_FREE_AGENCY_KEY = "rskl_gm_free_agency_selection";
 const GM_FREE_AGENCY_VOTER_KEY = "rskl_gm_free_agency_voter_handle";
 const GM_GAME_LOCKS_TABLE = "gm_game_locks";
-const GM_ALL_STAR_VOTES_TABLE = "gm_all_star_votes";
+const GM_ALL_STAR_VOTES_TABLE = "gm_all_star_votes_public";
 
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
