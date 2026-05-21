@@ -4516,6 +4516,14 @@ input[type="text"] {
   font-weight: 500;
 }
 
+.gm-check-stats {
+  display: block;
+  margin-top: 4px;
+  color: rgba(255, 225, 196, 0.82);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
 .gm-check input {
   accent-color: var(--accent);
 }

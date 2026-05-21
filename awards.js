@@ -1,5 +1,6 @@
 const AWARDS_URL = "/api/sheet?name=awards";
 const ROSTER_URL = "/api/sheet?name=roster";
+const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const GM_ALL_STAR_VOTES_TABLE = "gm_all_star_votes_public";
 const ALL_STAR_VOTE_KEY = "rskl_all_star_vote";
@@ -80,6 +81,7 @@ let supabaseUrl = "";
 let supabaseAnon = "";
 let selectedVotes = [];
 let allStarPlayers = [];
+let allStarPlayerStats = new Map();
 
 function parseCSV(text) {
   const rows = [];
@@ -167,6 +169,68 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function normalizePlayerKey(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .replace(/\u2020|\*/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function parseNumber(value) {
+  const num = Number(String(value || "").replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(num) ? num : null;
+}
+
+function detectPlayerColumns(headerRow) {
+  const lookup = new Map(
+    headerRow.map((value, index) => [String(value || "").trim().toLowerCase(), index])
+  );
+  const find = (...names) => {
+    for (const name of names) {
+      if (lookup.has(name)) return lookup.get(name);
+    }
+    return -1;
+  };
+  return {
+    date: find("date", "game date"),
+    team: find("team"),
+    player: find("player", "name"),
+    score: find("score", "avv score"),
+    rank: find("rank", "avv rank"),
+  };
+}
+
+function buildPlayerStatsMap(rows) {
+  if (!rows.length) return new Map();
+  const header = rows[0] || [];
+  const cols = detectPlayerColumns(header);
+  const totals = new Map();
+  rows.slice(1).forEach((row) => {
+    const player = String(row[cols.player] || "").trim();
+    if (!player) return;
+    const key = normalizePlayerKey(player);
+    const score = parseNumber(row[cols.score]);
+    const rank = parseNumber(row[cols.rank]);
+    if (!totals.has(key)) {
+      totals.set(key, { gp: 0, scoreSum: 0, scoreGames: 0, rankSum: 0, rankGames: 0, rel: 0, war: 0 });
+    }
+    const entry = totals.get(key);
+    entry.gp += 1;
+    if (score !== null) {
+      entry.scoreSum += score;
+      entry.scoreGames += 1;
+      entry.rel += score;
+      entry.war += score / 100;
+    }
+    if (rank !== null) {
+      entry.rankSum += rank;
+      entry.rankGames += 1;
+    }
+  });
+  return totals;
 }
 
 function safeJsonParse(value, fallback = null) {
@@ -283,6 +347,15 @@ function getAllStarPlayersFromRows(rows) {
   return players;
 }
 
+async function loadAllStarPlayerStats() {
+  const response = await fetch(PLAYER_STATS_URL, { cache: "no-store" });
+  if (!response.ok) {
+    return;
+  }
+  const rows = parseCSV(await response.text());
+  allStarPlayerStats = buildPlayerStatsMap(rows);
+}
+
 function renderVoteList() {
   if (!els.voteList) return;
   if (els.voteCount) {
@@ -292,11 +365,18 @@ function renderVoteList() {
     const checked = selectedVotes.some((value) => value.toLowerCase() === player.toLowerCase())
       ? "checked"
       : "";
+    const stats = allStarPlayerStats.get(normalizePlayerKey(player));
+    const statsLine = stats
+      ? `<span class="gm-check-stats">GP ${stats.gp} • Avv score ${((stats.scoreGames ? stats.scoreSum / stats.scoreGames : 0)).toFixed(2)} • Avv rank ${((stats.rankGames ? stats.rankSum / stats.rankGames : 0)).toFixed(2)} • REL ${stats.rel.toFixed(2)} • WAR ${stats.war.toFixed(2)}</span>`
+      : "";
     return `
       <label class="gm-check">
         <input type="checkbox" data-awards-vote-player value="${escapeHtml(player)}" ${checked} />
-        <span><strong>${escapeHtml(player)}</strong></span>
-        <span class="gm-check-pill">All Star</span>
+        <span>
+          <strong>${escapeHtml(player)}</strong>
+          ${statsLine}
+        </span>
+        ${checked ? '<span class="gm-check-pill">All Star</span>' : ""}
       </label>
     `;
   }).join("");
@@ -624,6 +704,11 @@ async function initAllStarVoting() {
     if (els.voteStatus) {
       els.voteStatus.textContent = error.message || "Unable to load players.";
     }
+  }
+  try {
+    await loadAllStarPlayerStats();
+  } catch (_) {
+    allStarPlayerStats = new Map();
   }
   loadVoteDraft();
   if (hasSavedVoterHandle()) {
