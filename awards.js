@@ -242,12 +242,12 @@ function buildPlayerStatsMap(rows) {
   byDate.forEach((scores, dateKey) => {
     if (!scores.length) return;
     const sum = scores.reduce((acc, n) => acc + n, 0);
-    const mean = scores.length ? sum / scores.length : null;
     const sorted = [...scores].sort((a, b) => a - b);
     const mid = Math.floor(sorted.length / 2);
-    const medianValue =
-      sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
-    baselines.set(dateKey, { mean, median: medianValue });
+    baselines.set(dateKey, {
+      mean: scores.length ? sum / scores.length : null,
+      median: sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid],
+    });
   });
 
   const totals = new Map();
@@ -267,19 +267,20 @@ function buildPlayerStatsMap(rows) {
     if (score === null) return;
     if (!totals.has(key)) {
       totals.set(key, {
-        gp: 0,
-        scoreSum: 0,
-        scoreGames: 0,
+        sum: 0,
+        games: 0,
         rankSum: 0,
         rankGames: 0,
-        rel: 0,
+        relMeanSum: 0,
+        relMeanGames: 0,
+        relMedianSum: 0,
+        relMedianGames: 0,
         war: 0,
       });
     }
     const entry = totals.get(key);
-    entry.gp += 1;
-    entry.scoreSum += score;
-    entry.scoreGames += 1;
+    entry.sum += score;
+    entry.games += 1;
     if (rank !== null) {
       entry.rankSum += rank;
       entry.rankGames += 1;
@@ -287,13 +288,35 @@ function buildPlayerStatsMap(rows) {
     const dateKey = String(row[allStarPlayerColumns.date] || "").trim();
     const baseline = baselines.get(dateKey);
     if (baseline && baseline.mean && baseline.mean > 0) {
-      entry.rel += score / baseline.mean;
+      entry.relMeanSum += score / baseline.mean;
+      entry.relMeanGames += 1;
     }
     if (baseline && baseline.median && baseline.median > 0) {
-      entry.war += (score - 0.9 * baseline.median) / (0.92 * baseline.median);
+      entry.relMedianSum += score / baseline.median;
+      entry.relMedianGames += 1;
+      const replacementScore = 0.9 * baseline.median;
+      const avgMargin = 0.92 * baseline.median;
+      if (avgMargin > 0) {
+        entry.war += (score - replacementScore) / avgMargin;
+      }
     }
   });
-  return totals;
+  return new Map(
+    Array.from(totals.entries()).map(([tag, value]) => [
+      tag,
+      {
+        tag,
+        displayName: tag,
+        total: value.sum,
+        avg: value.games ? value.sum / value.games : 0,
+        avgRank: value.rankGames ? value.rankSum / value.rankGames : 0,
+        relMean: value.relMeanGames ? value.relMeanSum / value.relMeanGames : 0,
+        relMedian: value.relMedianGames ? value.relMedianSum / value.relMedianGames : 0,
+        war: value.war,
+        games: value.games,
+      },
+    ])
+  );
 }
 
 function safeJsonParse(value, fallback = null) {
@@ -433,14 +456,14 @@ function renderVoteList() {
       ? "checked"
       : "";
     const stats = allStarPlayerStats.get(normalizePlayerKey(player));
-    const avgScore = stats ? (stats.scoreGames ? stats.scoreSum / stats.scoreGames : 0) : 0;
-    const avgRank = stats ? (stats.rankGames ? stats.rankSum / stats.rankGames : 0) : 0;
+    const avgScore = stats ? stats.avg : 0;
+    const avgRank = stats ? stats.avgRank : 0;
     const statsLine = stats
       ? `
-        <span class="gm-check-meta">GP ${stats.gp}</span>
+        <span class="gm-check-meta">GP ${stats.games}</span>
         <span class="gm-check-meta">Avv score ${avgScore.toFixed(0)}</span>
         <span class="gm-check-meta">Avv rank ${avgRank.toFixed(2)}</span>
-        <span class="gm-check-meta">REL ${stats.rel.toFixed(2)}</span>
+        <span class="gm-check-meta">REL ${stats.relMean.toFixed(2)}</span>
         <span class="gm-check-meta">WAR ${stats.war.toFixed(2)}</span>
       `
       : "";
