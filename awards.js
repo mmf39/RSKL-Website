@@ -82,6 +82,7 @@ let supabaseAnon = "";
 let selectedVotes = [];
 let allStarPlayers = [];
 let allStarPlayerStats = new Map();
+let allStarPlayerColumns = { date: 0, team: 1, player: 2, score: 3, rank: 4, opponent: 5 };
 
 function parseCSV(text) {
   const rows = [];
@@ -185,49 +186,93 @@ function parseNumber(value) {
 }
 
 function detectPlayerColumns(headerRow) {
-  const lookup = new Map(
-    headerRow.map((value, index) => [String(value || "").trim().toLowerCase(), index])
-  );
-  const find = (...names) => {
-    for (const name of names) {
-      if (lookup.has(name)) return lookup.get(name);
-    }
-    return -1;
+  const columns = {
+    date: 0,
+    team: 1,
+    player: 2,
+    score: 3,
+    rank: 4,
+    opponent: 5,
   };
-  return {
-    date: find("date", "game date"),
-    team: find("team"),
-    player: find("player", "name"),
-    score: find("score", "avv score"),
-    rank: find("rank", "avv rank"),
-  };
+  if (!headerRow || !headerRow.length) {
+    return columns;
+  }
+  const lowered = headerRow.map((cell) => String(cell || "").toLowerCase());
+  const pick = (label) => lowered.indexOf(label);
+  const dateIdx = pick("date");
+  const teamIdx = pick("team");
+  const playerIdx = pick("player");
+  const scoreIdx = pick("score") !== -1 ? pick("score") : pick("points");
+  const rankIdx = pick("rank");
+  const opponentIdx = pick("opponent");
+
+  if (dateIdx !== -1) columns.date = dateIdx;
+  if (teamIdx !== -1) columns.team = teamIdx;
+  if (playerIdx !== -1) columns.player = playerIdx;
+  if (scoreIdx !== -1) columns.score = scoreIdx;
+  if (rankIdx !== -1) columns.rank = rankIdx;
+  if (opponentIdx !== -1) columns.opponent = opponentIdx;
+
+  return columns;
 }
 
 function buildPlayerStatsMap(rows) {
-  if (!rows.length) return new Map();
-  const header = rows[0] || [];
-  const cols = detectPlayerColumns(header);
+  const baselines = new Map();
+  const byDate = new Map();
+  rows.forEach((row) => {
+    const dateKey = String(row[allStarPlayerColumns.date] || "").trim();
+    const score = parseNumber(row[allStarPlayerColumns.score]);
+    if (!dateKey || score === null) return;
+    if (!byDate.has(dateKey)) {
+      byDate.set(dateKey, []);
+    }
+    byDate.get(dateKey).push(score);
+  });
+  byDate.forEach((scores, dateKey) => {
+    if (!scores.length) return;
+    const sum = scores.reduce((acc, n) => acc + n, 0);
+    const mean = scores.length ? sum / scores.length : null;
+    const sorted = [...scores].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const medianValue =
+      sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+    baselines.set(dateKey, { mean, median: medianValue });
+  });
+
   const totals = new Map();
-  rows.slice(1).forEach((row) => {
-    const player = String(row[cols.player] || "").trim();
-    if (!player) return;
-    const key = normalizePlayerKey(player);
-    const score = parseNumber(row[cols.score]);
-    const rank = parseNumber(row[cols.rank]);
+  rows.forEach((row) => {
+    const rawName = String(row[allStarPlayerColumns.player] || "").trim();
+    if (!rawName) return;
+    const key = normalizePlayerKey(rawName);
+    const score = parseNumber(row[allStarPlayerColumns.score]);
+    const rank = parseNumber(row[allStarPlayerColumns.rank]);
+    if (score === null) return;
     if (!totals.has(key)) {
-      totals.set(key, { gp: 0, scoreSum: 0, scoreGames: 0, rankSum: 0, rankGames: 0, rel: 0, war: 0 });
+      totals.set(key, {
+        gp: 0,
+        scoreSum: 0,
+        scoreGames: 0,
+        rankSum: 0,
+        rankGames: 0,
+        rel: 0,
+        war: 0,
+      });
     }
     const entry = totals.get(key);
     entry.gp += 1;
-    if (score !== null) {
-      entry.scoreSum += score;
-      entry.scoreGames += 1;
-      entry.rel += score;
-      entry.war += score / 100;
-    }
+    entry.scoreSum += score;
+    entry.scoreGames += 1;
     if (rank !== null) {
       entry.rankSum += rank;
       entry.rankGames += 1;
+    }
+    const dateKey = String(row[allStarPlayerColumns.date] || "").trim();
+    const baseline = baselines.get(dateKey);
+    if (baseline && baseline.mean && baseline.mean > 0) {
+      entry.rel += score / baseline.mean;
+    }
+    if (baseline && baseline.median && baseline.median > 0) {
+      entry.war += (score - 0.9 * baseline.median) / (0.92 * baseline.median);
     }
   });
   return totals;
@@ -356,6 +401,7 @@ async function loadAllStarPlayerStats() {
     return;
   }
   const rows = parseCSV(await response.text());
+  allStarPlayerColumns = detectPlayerColumns(rows[0] || []);
   allStarPlayerStats = buildPlayerStatsMap(rows);
 }
 
@@ -374,7 +420,7 @@ function renderVoteList() {
     const statsLine = stats
       ? `
         <span class="gm-check-meta">GP ${stats.gp}</span>
-        <span class="gm-check-meta">Avv score ${avgScore.toFixed(2)}</span>
+        <span class="gm-check-meta">Avv score ${avgScore.toFixed(0)}</span>
         <span class="gm-check-meta">Avv rank ${avgRank.toFixed(2)}</span>
         <span class="gm-check-meta">REL ${stats.rel.toFixed(2)}</span>
         <span class="gm-check-meta">WAR ${stats.war.toFixed(2)}</span>
