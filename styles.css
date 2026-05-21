@@ -4518,9 +4518,10 @@ input[type="text"] {
 .gm-check-main {
   min-width: 0;
   display: flex;
-  align-items: baseline;
-  gap: 12px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  flex-wrap: nowrap;
 }
 
 .gm-check-main strong {
@@ -4530,7 +4531,7 @@ input[type="text"] {
 }
 
 .gm-check-stats {
-  display: inline-flex;
+  display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
