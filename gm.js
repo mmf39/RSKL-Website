@@ -11,6 +11,7 @@ const GM_ASSIGNMENT_KEY = "rskl_gm_assignment";
 const GM_LOCAL_LOCKS_KEY = "rskl_local_game_locks";
 const GM_FREE_AGENCY_KEY = "rskl_gm_free_agency_selection";
 const GM_GAME_LOCKS_TABLE = "gm_game_locks";
+const GM_ALL_STAR_VOTES_TABLE = "gm_all_star_votes";
 
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
@@ -109,6 +110,7 @@ const els = {
   freeAgencySave: document.getElementById("free-agency-save"),
   freeAgencyStatus: document.getElementById("free-agency-status"),
   freeAgencyView: document.getElementById("free-agency-view"),
+  freeAgencyResultsView: document.getElementById("free-agency-results-view"),
   powerTeamSelect: document.getElementById("power-team-select"),
   powerRankingsList: document.getElementById("power-rankings-list"),
   powerRandomize: document.getElementById("power-randomize"),
@@ -130,6 +132,7 @@ let commishUpcomingGames = [];
 let lineupSubmittedByTeam = new Map();
 let localGameLocksByDate = {};
 let freeAgencySelection = [];
+let freeAgencyResults = [];
 
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
@@ -643,6 +646,9 @@ function applyAuthUi() {
   if (els.commishTab) {
     els.commishTab.hidden = !(signedIn && isCommish());
   }
+  if (els.freeAgencyResultsView) {
+    els.freeAgencyResultsView.closest(".gm-card").hidden = !(signedIn && isCommish());
+  }
   if (els.sessionMeta) {
     els.sessionMeta.hidden = !signedIn;
   }
@@ -668,6 +674,7 @@ function applyAuthUi() {
   renderLineupTeam(els.lineupTeamSelect ? els.lineupTeamSelect.value : "");
   renderPowerRankingsTeam(els.powerTeamSelect ? els.powerTeamSelect.value : "");
   renderPowerVotesView();
+  renderFreeAgencyResults();
   renderCommishLockGames();
 
   if (signedIn) {
@@ -1282,17 +1289,13 @@ function renderLineupTeam(team) {
 }
 
 function loadFreeAgencySelection() {
-  const raw = safeJsonParse(localStorage.getItem(GM_FREE_AGENCY_KEY), []);
-  freeAgencySelection = Array.isArray(raw)
-    ? raw.map((p) => String(p || "").trim()).filter(Boolean)
-    : [];
+  freeAgencySelection = [];
 }
 
 function setFreeAgencySelection(selection) {
   freeAgencySelection = Array.isArray(selection)
     ? selection.map((p) => String(p || "").trim()).filter(Boolean)
     : [];
-  localStorage.setItem(GM_FREE_AGENCY_KEY, JSON.stringify(freeAgencySelection));
 }
 
 function renderFreeAgencySelection() {
@@ -1329,12 +1332,160 @@ function renderFreeAgencySelection() {
     els.freeAgencyView.innerHTML = freeAgencySelection.length
       ? `
         <div class="gm-readonly-card">
-          <div class="gm-readonly-title">Current Ballot</div>
+          <div class="gm-readonly-title">Your Ballot</div>
           <div>${freeAgencySelection.map(escapeHtml).join(", ")}</div>
         </div>
       `
       : '<div class="gm-empty">No selection saved.</div>';
   }
+}
+
+function normalizeAllStarVoteRow(row) {
+  const votes = Array.isArray(row?.votes)
+    ? row.votes.map((v) => String(v || "").trim()).filter(Boolean)
+    : Array.isArray(row?.players)
+    ? row.players.map((v) => String(v || "").trim()).filter(Boolean)
+    : String(row?.votes_csv || row?.vote || "")
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean);
+  return {
+    voterId: String(row?.voter_id || row?.user_id || "").trim(),
+    voterEmail: String(row?.voter_email || row?.email || "").trim(),
+    voterTeam: String(row?.voter_team || row?.team || "").trim(),
+    votes,
+    updatedAt: String(row?.updated_at || row?.updatedAt || "").trim(),
+  };
+}
+
+async function fetchFreeAgencySelectionFromSupabase() {
+  requireSupabaseConfig();
+  if (!gmSession?.access_token || !gmSession?.user?.id) {
+    return [];
+  }
+  const query =
+    `?select=voter_id,voter_email,voter_team,votes,updated_at` +
+    `&voter_id=eq.${encodeURIComponent(gmSession.user.id)}` +
+    `&limit=1`;
+  const response = await fetch(`${supabaseUrl}/rest/v1/${GM_ALL_STAR_VOTES_TABLE}${query}`, {
+    headers: authHeaders(true),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(`All Star ballot fetch failed: ${response.status}`);
+  }
+  const payload = await response.json();
+  if (!Array.isArray(payload) || !payload.length) return [];
+  return normalizeAllStarVoteRow(payload[0]).votes;
+}
+
+async function saveFreeAgencySelectionToSupabase(selection) {
+  requireSupabaseConfig();
+  if (!gmSession?.access_token || !gmSession?.user?.id) {
+    throw new Error("Sign in with a GM account first.");
+  }
+  const votes = Array.isArray(selection)
+    ? selection.map((p) => String(p || "").trim()).filter(Boolean)
+    : [];
+  if (!votes.length) {
+    throw new Error("Select at least one player.");
+  }
+  if (votes.length > 6) {
+    throw new Error("Pick up to 6 players only.");
+  }
+  const payload = {
+    voter_id: gmSession.user.id,
+    voter_email: gmSession.user.email || "",
+    voter_team: getAuthorizedTeam() || "",
+    votes,
+    updated_at: new Date().toISOString(),
+  };
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/${GM_ALL_STAR_VOTES_TABLE}?on_conflict=voter_id`,
+    {
+      method: "POST",
+      headers: {
+        ...authHeaders(true),
+        Prefer: "resolution=merge-duplicates,return=representation",
+      },
+      body: JSON.stringify([payload]),
+    }
+  );
+  if (!response.ok) {
+    throw new Error(`All Star ballot save failed: ${response.status}`);
+  }
+  const result = await response.json();
+  if (!Array.isArray(result)) {
+    throw new Error("Invalid All Star ballot save response.");
+  }
+  return normalizeAllStarVoteRow(result[0]).votes;
+}
+
+async function fetchAllStarResultsFromSupabase() {
+  requireSupabaseConfig();
+  if (!isSignedInGm() || !isCommish()) {
+    freeAgencyResults = [];
+    return [];
+  }
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/${GM_ALL_STAR_VOTES_TABLE}?select=voter_id,voter_email,voter_team,votes,updated_at&order=updated_at.desc`,
+    {
+      headers: authHeaders(true),
+      cache: "no-store",
+    }
+  );
+  if (!response.ok) {
+    throw new Error(`All Star results fetch failed: ${response.status}`);
+  }
+  const payload = await response.json();
+  if (!Array.isArray(payload)) {
+    throw new Error("Invalid All Star results response.");
+  }
+  freeAgencyResults = payload.map(normalizeAllStarVoteRow);
+  return freeAgencyResults;
+}
+
+function renderFreeAgencyResults() {
+  if (!els.freeAgencyResultsView) return;
+  if (!isSignedInGm() || !isCommish()) {
+    els.freeAgencyResultsView.innerHTML = "";
+    return;
+  }
+  if (!freeAgencyResults.length) {
+    els.freeAgencyResultsView.innerHTML = '<div class="gm-empty">No votes submitted yet.</div>';
+    return;
+  }
+  const counts = new Map();
+  freeAgencyResults.forEach((vote) => {
+    vote.votes.forEach((player) => {
+      counts.set(player, (counts.get(player) || 0) + 1);
+    });
+  });
+  const rows = Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([player, count]) => `<div class="gm-list-item"><span>${escapeHtml(player)}</span><span>${count}</span></div>`)
+    .join("");
+  els.freeAgencyResultsView.innerHTML = `
+    <div class="gm-readonly-card">
+      <div class="gm-readonly-title">Vote Totals</div>
+      <div class="gm-list">${rows}</div>
+    </div>
+    <div class="gm-readonly-card">
+      <div class="gm-readonly-title">Ballots</div>
+      <div class="gm-list">
+        ${freeAgencyResults
+          .map(
+            (vote) => `
+              <div class="gm-list-item">
+                <span>${escapeHtml(displayTeamName(vote.voterTeam) || vote.voterEmail || vote.voterId || "GM")}</span>
+                <span>${escapeHtml(vote.votes.join(", "))}</span>
+              </div>
+            `
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
 }
 
 function updateLineupTabMeta(team) {
@@ -2204,17 +2355,18 @@ function bindEvents() {
       const selectedPlayers = Array.from(
         els.freeAgencyPlayerList.querySelectorAll('input[data-free-agency-player]:checked')
       ).map((node) => String(node.value || "").trim());
-      if (!selectedPlayers.length) {
-        setFreeAgencyStatus("Select at least one player.", true);
-        return;
+      try {
+        const saved = await saveFreeAgencySelectionToSupabase(selectedPlayers);
+        setFreeAgencySelection(saved);
+        renderFreeAgencySelection();
+        if (isCommish()) {
+          await fetchAllStarResultsFromSupabase();
+          renderFreeAgencyResults();
+        }
+        setFreeAgencyStatus("All Star ballot saved.");
+      } catch (error) {
+        setFreeAgencyStatus(error.message || "Unable to save ballot.", true);
       }
-      if (selectedPlayers.length > 6) {
-        setFreeAgencyStatus("Pick up to 6 players only.", true);
-        return;
-      }
-      setFreeAgencySelection(selectedPlayers);
-      renderFreeAgencySelection();
-      setFreeAgencyStatus("Free agency selection saved.");
     });
   }
 
@@ -2375,11 +2527,23 @@ async function init() {
     } catch (_) {
       powerVotesCache = {};
     }
+    try {
+      const savedVotes = await fetchFreeAgencySelectionFromSupabase();
+      setFreeAgencySelection(savedVotes);
+    } catch (_) {
+      loadFreeAgencySelection();
+    }
+    try {
+      await fetchAllStarResultsFromSupabase();
+    } catch (_) {
+      freeAgencyResults = [];
+    }
     applyAuthUi();
     renderSelectedTeam(els.teamSelect.value || "");
     renderRenameTeam(els.renameTeamSelect ? els.renameTeamSelect.value : "");
     renderLineupTeam(els.lineupTeamSelect ? els.lineupTeamSelect.value : "");
     renderFreeAgencySelection();
+    renderFreeAgencyResults();
     renderPowerRankingsTeam(
       els.powerTeamSelect ? els.powerTeamSelect.value : ""
     );
