@@ -432,7 +432,7 @@ function getAllStarPlayersFromRows(rows) {
   });
   return players.filter((player) => {
     const stats = allStarPlayerStats.get(normalizePlayerKey(player));
-    return !stats || Number(stats.gp || 0) > 0;
+    return Boolean(stats && Number(stats.games || 0) > 0);
   });
 }
 
