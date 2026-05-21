@@ -384,6 +384,9 @@ function renderChampions(rows, seasonKey) {
 }
 
 async function loadAwards() {
+  if (!els.table || !els.champions) {
+    return;
+  }
   try {
     const cachedTime = Number(localStorage.getItem(AWARDS_CACHE_TIME_KEY) || 0);
     const cachedCsv = localStorage.getItem(AWARDS_CACHE_KEY);
@@ -506,10 +509,12 @@ async function initAllStarVoting() {
   }
 }
 
-els.season.addEventListener("change", () => {
-  localStorage.setItem(SEASON_KEY, els.season.value);
-  loadAwards();
-});
+if (els.season) {
+  els.season.addEventListener("change", () => {
+    localStorage.setItem(SEASON_KEY, els.season.value);
+    loadAwards();
+  });
+}
 
 loadAwards();
 initAllStarVoting();
