@@ -109,6 +109,7 @@ const els = {
   freeAgencyCount: document.getElementById("free-agency-count"),
   freeAgencyPlayerList: document.getElementById("free-agency-player-list"),
   freeAgencyClear: document.getElementById("free-agency-clear"),
+  freeAgencySaveTop: document.getElementById("free-agency-save-top"),
   freeAgencySave: document.getElementById("free-agency-save"),
   freeAgencyStatus: document.getElementById("free-agency-status"),
   freeAgencyView: document.getElementById("free-agency-view"),
@@ -1463,7 +1464,10 @@ async function saveFreeAgencySelectionToSupabase(selection) {
     }
   );
   if (!response.ok) {
-    throw new Error(`All Star ballot save failed: ${response.status}`);
+    const detail = await response.text().catch(() => "");
+    throw new Error(
+      `All Star ballot save failed: ${response.status}${detail ? ` - ${detail}` : ""}`
+    );
   }
   const result = await response.json();
   if (!Array.isArray(result)) {
@@ -2403,8 +2407,7 @@ function bindEvents() {
       setFreeAgencyStatus("Selection cleared.");
     });
   }
-  if (els.freeAgencySave) {
-    els.freeAgencySave.addEventListener("click", async () => {
+  const saveFreeAgencyBallot = async () => {
       try {
         const selectedPlayers = Array.from(
           els.freeAgencyPlayerList.querySelectorAll('input[data-free-agency-player]:checked')
@@ -2420,7 +2423,12 @@ function bindEvents() {
       } catch (error) {
         setFreeAgencyStatus(error.message || "Unable to save ballot.", true);
       }
-    });
+  };
+  if (els.freeAgencySaveTop) {
+    els.freeAgencySaveTop.addEventListener("click", saveFreeAgencyBallot);
+  }
+  if (els.freeAgencySave) {
+    els.freeAgencySave.addEventListener("click", saveFreeAgencyBallot);
   }
 
   if (els.powerSave) {
