@@ -1356,7 +1356,7 @@ function renderFreeAgencySelection() {
                 inputmode="text"
                 data-free-agency-handle
                 data-player="${escapeHtml(player)}"
-                placeholder="Type real @handle"
+                placeholder="Enter handle"
                 value="${escapeHtml(handleValue)}"
               />
             </label>
