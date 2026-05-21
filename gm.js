@@ -1079,6 +1079,20 @@ function getTeamPlayers(team) {
   return rosterByTeam.get(team) || rosterByTeam.get(canonicalTeamKey(team)) || [];
 }
 
+function getAllPlayersForFreeAgency() {
+  const seen = new Set();
+  const players = [];
+  TEAM_ORDER.forEach((team) => {
+    getTeamPlayers(team).forEach((player) => {
+      const key = normalizeName(player);
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      players.push({ team, player });
+    });
+  });
+  return players;
+}
+
 function getTeamPicks(team) {
   return picksByTeam.get(team) || [];
 }
@@ -1306,7 +1320,7 @@ function renderFreeAgencySelection(team) {
     }
     return;
   }
-  const players = getTeamPlayers(selectedTeam);
+  const players = getAllPlayersForFreeAgency();
   if (!players.length) {
     els.freeAgencyPlayerList.innerHTML = '<div class="gm-empty">No players found.</div>';
     if (els.freeAgencyView) {
@@ -1316,12 +1330,15 @@ function renderFreeAgencySelection(team) {
   }
   const selectedSet = new Set(selectedPlayers.map(normalizeName));
   els.freeAgencyPlayerList.innerHTML = players
-    .map((player) => {
+    .map(({ player, team: playerTeam }) => {
       const checked = selectedSet.has(normalizeName(player)) ? "checked" : "";
       return `
         <label class="gm-check">
           <input type="checkbox" data-free-agency-player value="${escapeHtml(player)}" ${checked} />
-          <span>${escapeHtml(player)}</span>
+          <span>
+            <strong>${escapeHtml(player)}</strong>
+            <small class="gm-check-sub">${escapeHtml(displayTeamName(playerTeam))}</small>
+          </span>
           <span class="gm-check-pill">All Star</span>
         </label>
       `;
