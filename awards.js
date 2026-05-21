@@ -4,6 +4,8 @@ const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const GM_ALL_STAR_VOTES_TABLE = "gm_all_star_votes";
 const ALL_STAR_VOTE_KEY = "rskl_all_star_vote";
 const ALL_STAR_VOTER_KEY = "rskl_all_star_voter_handle";
+const ALL_STAR_VOTER_ID_KEY = "rskl_all_star_voter_id";
+const ALL_STAR_VOTER_LOCK_KEY = "rskl_all_star_voter_locked";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -76,6 +78,7 @@ let supabaseUrl = "";
 let supabaseAnon = "";
 let selectedVotes = [];
 let allStarPlayers = [];
+let voterId = "";
 
 function parseCSV(text) {
   const rows = [];
@@ -202,6 +205,11 @@ function loadVoteDraft() {
   if (els.voterHandle) {
     els.voterHandle.value = String(localStorage.getItem(ALL_STAR_VOTER_KEY) || "").trim();
   }
+  voterId = String(localStorage.getItem(ALL_STAR_VOTER_ID_KEY) || "").trim();
+  if (!voterId) {
+    voterId = `v_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+    localStorage.setItem(ALL_STAR_VOTER_ID_KEY, voterId);
+  }
 }
 
 function saveVoteDraft(nextVotes) {
@@ -259,8 +267,24 @@ function renderVoteList() {
   }).join("");
 }
 
+function setVoterLocked(isLocked) {
+  localStorage.setItem(ALL_STAR_VOTER_LOCK_KEY, isLocked ? "1" : "0");
+  if (els.voterHandle) {
+    els.voterHandle.disabled = isLocked;
+  }
+  if (els.voteSaveTop) {
+    els.voteSaveTop.disabled = isLocked;
+  }
+  if (els.voteSave) {
+    els.voteSave.disabled = isLocked;
+  }
+}
+
 async function saveVoteToSupabase() {
   requireSupabaseConfig();
+  if (localStorage.getItem(ALL_STAR_VOTER_LOCK_KEY) === "1") {
+    throw new Error("Your @handle is already locked for this device.");
+  }
   const voterHandle = String(els.voterHandle?.value || "").trim();
   if (!voterHandle) {
     throw new Error("Enter your real @handle.");
@@ -273,7 +297,7 @@ async function saveVoteToSupabase() {
   }
   localStorage.setItem(ALL_STAR_VOTER_KEY, voterHandle);
   const payload = {
-    voter_id: voterHandle.toLowerCase(),
+    voter_id: voterId,
     voter_email: "",
     voter_team: "",
     voter_handle: voterHandle.startsWith("@") ? voterHandle : `@${voterHandle}`,
@@ -297,6 +321,7 @@ async function saveVoteToSupabase() {
       `All Star ballot save failed: ${response.status}${detail ? ` - ${detail}` : ""}`
     );
   }
+  setVoterLocked(true);
 }
 
 function linkifyWinner(text) {
@@ -502,6 +527,32 @@ async function loadAllStarPlayers() {
   allStarPlayers = getAllStarPlayersFromRows(rows);
 }
 
+async function loadSavedBallot() {
+  requireSupabaseConfig();
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/${GM_ALL_STAR_VOTES_TABLE}?select=voter_id,voter_handle,votes,updated_at&voter_id=eq.${encodeURIComponent(voterId)}&limit=1`,
+    {
+      headers: authHeaders(),
+      cache: "no-store",
+    }
+  );
+  if (!response.ok) {
+    return;
+  }
+  const payload = await response.json();
+  if (!Array.isArray(payload) || !payload.length) {
+    return;
+  }
+  const row = payload[0];
+  const savedHandle = String(row?.voter_handle || "").trim();
+  const votes = Array.isArray(row?.votes) ? row.votes.map((v) => String(v || "").trim()).filter(Boolean) : [];
+  if (savedHandle && els.voterHandle) {
+    els.voterHandle.value = savedHandle;
+  }
+  saveVoteDraft(votes);
+  setVoterLocked(true);
+}
+
 async function initAllStarVoting() {
   try {
     await loadSupabaseConfig();
@@ -517,6 +568,14 @@ async function initAllStarVoting() {
     }
   }
   loadVoteDraft();
+  if (localStorage.getItem(ALL_STAR_VOTER_LOCK_KEY) === "1") {
+    setVoterLocked(true);
+  }
+  try {
+    await loadSavedBallot();
+  } catch (_) {
+    // fall back to local draft if Supabase is unavailable
+  }
   renderVoteList();
   if (els.voteList) {
     els.voteList.addEventListener("change", (event) => {
@@ -558,6 +617,12 @@ async function initAllStarVoting() {
   if (els.voteSave) els.voteSave.addEventListener("click", saveHandler);
   if (els.voteClear) {
     els.voteClear.addEventListener("click", () => {
+      if (localStorage.getItem(ALL_STAR_VOTER_LOCK_KEY) === "1") {
+        if (els.voteStatus) {
+          els.voteStatus.textContent = "Your handle is locked and can’t be changed.";
+        }
+        return;
+      }
       saveVoteDraft([]);
       renderVoteList();
       if (els.voteStatus) {
