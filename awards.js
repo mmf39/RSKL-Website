@@ -16,6 +16,7 @@ const els = {
   voteSaveTop: document.getElementById("awards-vote-save-top"),
   voteSave: document.getElementById("awards-vote-save"),
   voteClear: document.getElementById("awards-vote-clear"),
+  voteGate: document.getElementById("awards-vote-gate"),
   voteList: document.getElementById("awards-vote-list"),
   voteCount: document.getElementById("awards-vote-count"),
   voteStatus: document.getElementById("awards-vote-status"),
@@ -210,6 +211,7 @@ function loadVoteDraft() {
     voterId = `v_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
     localStorage.setItem(ALL_STAR_VOTER_ID_KEY, voterId);
   }
+  syncVoteGate();
 }
 
 function saveVoteDraft(nextVotes) {
@@ -219,6 +221,20 @@ function saveVoteDraft(nextVotes) {
   localStorage.setItem(ALL_STAR_VOTE_KEY, JSON.stringify(selectedVotes));
   if (els.voteCount) {
     els.voteCount.textContent = `${selectedVotes.length} / 6`;
+  }
+}
+
+function hasSavedVoterHandle() {
+  return Boolean(String(localStorage.getItem(ALL_STAR_VOTER_KEY) || "").trim());
+}
+
+function syncVoteGate() {
+  const locked = hasSavedVoterHandle();
+  if (els.voteGate) {
+    els.voteGate.hidden = !locked;
+  }
+  if (els.voterHandle) {
+    els.voterHandle.disabled = locked;
   }
 }
 
@@ -253,6 +269,7 @@ function renderVoteList() {
   if (els.voteCount) {
     els.voteCount.textContent = `${selectedVotes.length} / 6`;
   }
+  syncVoteGate();
   els.voteList.innerHTML = allStarPlayers.map((player) => {
     const checked = selectedVotes.some((value) => value.toLowerCase() === player.toLowerCase())
       ? "checked"
@@ -269,20 +286,12 @@ function renderVoteList() {
 
 function setVoterLocked(isLocked) {
   localStorage.setItem(ALL_STAR_VOTER_LOCK_KEY, isLocked ? "1" : "0");
-  if (els.voterHandle) {
-    els.voterHandle.disabled = isLocked;
-  }
-  if (els.voteSaveTop) {
-    els.voteSaveTop.disabled = isLocked;
-  }
-  if (els.voteSave) {
-    els.voteSave.disabled = isLocked;
-  }
+  syncVoteGate();
 }
 
 async function saveVoteToSupabase() {
   requireSupabaseConfig();
-  if (localStorage.getItem(ALL_STAR_VOTER_LOCK_KEY) === "1") {
+  if (hasSavedVoterHandle()) {
     throw new Error("Your @handle is already locked for this device.");
   }
   const voterHandle = String(els.voterHandle?.value || "").trim();
@@ -321,6 +330,7 @@ async function saveVoteToSupabase() {
       `All Star ballot save failed: ${response.status}${detail ? ` - ${detail}` : ""}`
     );
   }
+  syncVoteGate();
   setVoterLocked(true);
 }
 
@@ -617,7 +627,7 @@ async function initAllStarVoting() {
   if (els.voteSave) els.voteSave.addEventListener("click", saveHandler);
   if (els.voteClear) {
     els.voteClear.addEventListener("click", () => {
-      if (localStorage.getItem(ALL_STAR_VOTER_LOCK_KEY) === "1") {
+      if (hasSavedVoterHandle()) {
         if (els.voteStatus) {
           els.voteStatus.textContent = "Your handle is locked and can’t be changed.";
         }
