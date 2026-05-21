@@ -174,15 +174,26 @@ function escapeHtml(value) {
 
 function normalizePlayerKey(value) {
   return String(value || "")
-    .replace(/\s+/g, " ")
-    .replace(/\u2020|\*/g, "")
     .trim()
+    .replace(/^@/, "")
     .toLowerCase();
 }
 
 function parseNumber(value) {
   const num = Number(String(value || "").replace(/[^0-9.-]/g, ""));
   return Number.isFinite(num) ? num : null;
+}
+
+function stripCaptainMarker(value) {
+  return String(value || "")
+    .replace(/\s*\(c\)\s*$/i, "")
+    .replace(/\s+c\s*$/i, "")
+    .trim();
+}
+
+function isCaptainMarked(value) {
+  const text = String(value || "").trim();
+  return /\(c\)\s*$/i.test(text) || /\sc\s*$/i.test(text);
 }
 
 function detectPlayerColumns(headerRow) {
@@ -241,11 +252,18 @@ function buildPlayerStatsMap(rows) {
 
   const totals = new Map();
   rows.forEach((row) => {
-    const rawName = String(row[allStarPlayerColumns.player] || "").trim();
+    const rawNameWithMarker = String(row[allStarPlayerColumns.player] || "").trim();
+    const rawName = stripCaptainMarker(rawNameWithMarker);
     if (!rawName) return;
     const key = normalizePlayerKey(rawName);
-    const score = parseNumber(row[allStarPlayerColumns.score]);
+    const baseScore = parseNumber(row[allStarPlayerColumns.score]);
     const rank = parseNumber(row[allStarPlayerColumns.rank]);
+    const score =
+      baseScore === null
+        ? null
+        : isCaptainMarked(rawNameWithMarker)
+        ? baseScore - 0.5
+        : baseScore;
     if (score === null) return;
     if (!totals.has(key)) {
       totals.set(key, {
