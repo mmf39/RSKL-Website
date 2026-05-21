@@ -112,8 +112,6 @@ const els = {
   freeAgencySaveTop: document.getElementById("free-agency-save-top"),
   freeAgencySave: document.getElementById("free-agency-save"),
   freeAgencyStatus: document.getElementById("free-agency-status"),
-  freeAgencyView: document.getElementById("free-agency-view"),
-  freeAgencyResultsView: document.getElementById("free-agency-results-view"),
   powerTeamSelect: document.getElementById("power-team-select"),
   powerRankingsList: document.getElementById("power-rankings-list"),
   powerRandomize: document.getElementById("power-randomize"),
@@ -649,9 +647,6 @@ function applyAuthUi() {
   if (els.commishTab) {
     els.commishTab.hidden = !(signedIn && isCommish());
   }
-  if (els.freeAgencyResultsView) {
-    els.freeAgencyResultsView.closest(".gm-card").hidden = !(signedIn && isCommish());
-  }
   if (els.sessionMeta) {
     els.sessionMeta.hidden = !signedIn;
   }
@@ -677,7 +672,6 @@ function applyAuthUi() {
   renderLineupTeam(els.lineupTeamSelect ? els.lineupTeamSelect.value : "");
   renderPowerRankingsTeam(els.powerTeamSelect ? els.powerTeamSelect.value : "");
   renderPowerVotesView();
-  renderFreeAgencyResults();
   renderCommishLockGames();
 
   if (signedIn) {
@@ -1330,9 +1324,6 @@ function renderFreeAgencySelection() {
   const players = getAllPlayersForFreeAgency();
   if (!players.length) {
     els.freeAgencyPlayerList.innerHTML = '<div class="gm-empty">No players found.</div>';
-    if (els.freeAgencyView) {
-      els.freeAgencyView.innerHTML = '<div class="gm-empty">No selection saved.</div>';
-    }
     return;
   }
   const selectedSet = new Set(freeAgencySelection.map(normalizeName));
@@ -1351,24 +1342,6 @@ function renderFreeAgencySelection() {
       `;
     })
     .join("");
-
-  if (els.freeAgencyView) {
-    els.freeAgencyView.innerHTML = freeAgencySelection.length
-      ? `
-        <div class="gm-readonly-card">
-          <div class="gm-readonly-title">Your Ballot</div>
-          <div>${freeAgencySelection.map(escapeHtml).join(", ")}</div>
-        </div>
-      `
-      : '<div class="gm-empty">No selection saved.</div>';
-  }
-
-  if (els.freeAgencyVoterHandle && !els.freeAgencyVoterHandle.value) {
-    const savedHandle = String(localStorage.getItem(GM_FREE_AGENCY_VOTER_KEY) || "").trim();
-    if (savedHandle) {
-      els.freeAgencyVoterHandle.value = savedHandle;
-    }
-  }
 }
 
 function normalizeAllStarVoteRow(row) {
@@ -1498,51 +1471,6 @@ async function fetchAllStarResultsFromSupabase() {
   }
   freeAgencyResults = payload.map(normalizeAllStarVoteRow);
   return freeAgencyResults;
-}
-
-function renderFreeAgencyResults() {
-  if (!els.freeAgencyResultsView) return;
-  if (!isSignedInGm() || !isCommish()) {
-    els.freeAgencyResultsView.innerHTML = "";
-    return;
-  }
-  if (!freeAgencyResults.length) {
-    els.freeAgencyResultsView.innerHTML = '<div class="gm-empty">No votes submitted yet.</div>';
-    return;
-  }
-  const counts = new Map();
-  freeAgencyResults.forEach((vote) => {
-    vote.votes.forEach((player) => {
-      const name = String(player || "").trim();
-      if (!name) return;
-      counts.set(name, (counts.get(name) || 0) + 1);
-    });
-  });
-  const rows = Array.from(counts.entries())
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .map(([player, count]) => `<div class="gm-list-item"><span>${escapeHtml(player)}</span><span>${count}</span></div>`)
-    .join("");
-  els.freeAgencyResultsView.innerHTML = `
-    <div class="gm-readonly-card">
-      <div class="gm-readonly-title">Vote Totals</div>
-      <div class="gm-list">${rows}</div>
-    </div>
-    <div class="gm-readonly-card">
-      <div class="gm-readonly-title">Ballots</div>
-      <div class="gm-list">
-        ${freeAgencyResults
-          .map(
-            (vote) => `
-              <div class="gm-list-item">
-                <span>${escapeHtml(vote.voterHandle || vote.voterTeam || vote.voterEmail || vote.voterId || "GM")}</span>
-                <span>${escapeHtml(vote.votes.join(", "))}</span>
-              </div>
-            `
-          )
-          .join("")}
-      </div>
-    </div>
-  `;
 }
 
 function updateLineupTabMeta(team) {
@@ -2415,10 +2343,6 @@ function bindEvents() {
         const saved = await saveFreeAgencySelectionToSupabase(selectedPlayers);
         setFreeAgencySelection(saved);
         renderFreeAgencySelection();
-        if (isCommish()) {
-          await fetchAllStarResultsFromSupabase();
-          renderFreeAgencyResults();
-        }
         setFreeAgencyStatus("All Star ballot saved.");
       } catch (error) {
         setFreeAgencyStatus(error.message || "Unable to save ballot.", true);
@@ -2594,17 +2518,11 @@ async function init() {
     } catch (_) {
       loadFreeAgencySelection();
     }
-    try {
-      await fetchAllStarResultsFromSupabase();
-    } catch (_) {
-      freeAgencyResults = [];
-    }
     applyAuthUi();
     renderSelectedTeam(els.teamSelect.value || "");
     renderRenameTeam(els.renameTeamSelect ? els.renameTeamSelect.value : "");
     renderLineupTeam(els.lineupTeamSelect ? els.lineupTeamSelect.value : "");
     renderFreeAgencySelection();
-    renderFreeAgencyResults();
     renderPowerRankingsTeam(
       els.powerTeamSelect ? els.powerTeamSelect.value : ""
     );
