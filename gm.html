@@ -62,7 +62,6 @@
             <button class="gm-tab active" type="button" data-gm-tab="trade">Trade Block</button>
             <button class="gm-tab" type="button" data-gm-tab="rename">Player Name Change</button>
             <button class="gm-tab" type="button" data-gm-tab="lineup">Lineup Submit</button>
-            <button class="gm-tab" type="button" data-gm-tab="free-agency">All Star Game Voting</button>
             <button class="gm-tab" type="button" data-gm-tab="power">Power Rankings Vote</button>
             <button class="gm-tab" type="button" data-gm-tab="commish" id="gm-commish-tab" hidden>Lock Times</button>
             <div id="gm-lineup-tab-meta" class="gm-tab gm-tab-info">Due —</div>
@@ -191,40 +190,6 @@
 
             <button id="lineup-save" class="btn">Submit Lineup</button>
             <div id="lineup-status" class="gm-status"></div>
-          </div>
-        </div>
-
-        <div id="gm-tab-free-agency" class="gm-tab-panel" hidden>
-          <div class="gm-card">
-            <div class="label">All Star Game Voting</div>
-            <div class="gm-help">
-              Pick up to 6 players to vote for the All Star Game. Your ballot is saved in this browser.
-            </div>
-            <label class="label" for="free-agency-voter-handle">Your @handle</label>
-            <input
-              id="free-agency-voter-handle"
-              class="text-input"
-              type="text"
-              placeholder="Enter your @handle"
-            />
-            <div class="gm-actions">
-              <button id="free-agency-save-top" class="btn" type="button">Save Ballot</button>
-            </div>
-            <div class="gm-row">
-              <div>
-                <div class="label">Votes Cast</div>
-                <div id="free-agency-count" class="gm-team-label">0 / 6</div>
-              </div>
-            </div>
-
-            <div class="label">Choose Players</div>
-            <div id="free-agency-player-list" class="gm-checklist"></div>
-
-            <div class="gm-actions">
-              <button id="free-agency-clear" class="btn ghost" type="button">Clear Ballot</button>
-              <button id="free-agency-save" class="btn" type="button">Save Ballot</button>
-            </div>
-            <div id="free-agency-status" class="gm-status"></div>
           </div>
         </div>
 

@@ -1,10 +1,21 @@
 const AWARDS_URL = "/api/sheet?name=awards";
+const SUPABASE_CONFIG_URL = "/api/supabase-config";
+const GM_ALL_STAR_VOTES_TABLE = "gm_all_star_votes";
+const ALL_STAR_VOTE_KEY = "rskl_all_star_vote";
+const ALL_STAR_VOTER_KEY = "rskl_all_star_voter_handle";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
   season: document.getElementById("awards-season"),
   table: document.getElementById("awards-table"),
   champions: document.getElementById("champions-table"),
+  voterHandle: document.getElementById("awards-voter-handle"),
+  voteSaveTop: document.getElementById("awards-vote-save-top"),
+  voteSave: document.getElementById("awards-vote-save"),
+  voteClear: document.getElementById("awards-vote-clear"),
+  voteList: document.getElementById("awards-vote-list"),
+  voteCount: document.getElementById("awards-vote-count"),
+  voteStatus: document.getElementById("awards-vote-status"),
 };
 
 const SEASON_KEY = "awardsSeason";
@@ -46,6 +57,10 @@ const TEAM_NAMES = [
   "The Snipers",
   "The Phantoms",
 ];
+
+let supabaseUrl = "";
+let supabaseAnon = "";
+let selectedVotes = [];
 
 function parseCSV(text) {
   const rows = [];
@@ -133,6 +148,114 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function safeJsonParse(value, fallback = null) {
+  try {
+    return value ? JSON.parse(value) : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function requireSupabaseConfig() {
+  if (!supabaseUrl || !supabaseAnon) {
+    throw new Error("Supabase config missing.");
+  }
+}
+
+function authHeaders() {
+  requireSupabaseConfig();
+  return {
+    "Content-Type": "application/json",
+    apikey: supabaseAnon,
+  };
+}
+
+async function loadSupabaseConfig() {
+  const response = await fetch(SUPABASE_CONFIG_URL, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Supabase config failed: ${response.status}`);
+  }
+  const payload = await response.json();
+  supabaseUrl = String(payload.url || payload.supabaseUrl || "").trim();
+  supabaseAnon = String(payload.anonKey || payload.supabaseAnon || "").trim();
+}
+
+function loadVoteDraft() {
+  selectedVotes = safeJsonParse(localStorage.getItem(ALL_STAR_VOTE_KEY), []);
+  if (els.voterHandle) {
+    els.voterHandle.value = String(localStorage.getItem(ALL_STAR_VOTER_KEY) || "").trim();
+  }
+}
+
+function saveVoteDraft(nextVotes) {
+  selectedVotes = Array.isArray(nextVotes)
+    ? nextVotes.map((v) => String(v || "").trim()).filter(Boolean)
+    : [];
+  localStorage.setItem(ALL_STAR_VOTE_KEY, JSON.stringify(selectedVotes));
+  if (els.voteCount) {
+    els.voteCount.textContent = `${selectedVotes.length} / 6`;
+  }
+}
+
+function renderVoteList() {
+  if (!els.voteList) return;
+  if (els.voteCount) {
+    els.voteCount.textContent = `${selectedVotes.length} / 6`;
+  }
+  els.voteList.innerHTML = TEAM_NAMES.map((player) => {
+    const checked = selectedVotes.some((value) => value.toLowerCase() === player.toLowerCase())
+      ? "checked"
+      : "";
+    return `
+      <label class="gm-check">
+        <input type="checkbox" data-awards-vote-player value="${escapeHtml(player)}" ${checked} />
+        <span><strong>${escapeHtml(player)}</strong></span>
+        <span class="gm-check-pill">All Star</span>
+      </label>
+    `;
+  }).join("");
+}
+
+async function saveVoteToSupabase() {
+  requireSupabaseConfig();
+  const voterHandle = String(els.voterHandle?.value || "").trim();
+  if (!voterHandle) {
+    throw new Error("Enter your real @handle.");
+  }
+  if (!selectedVotes.length) {
+    throw new Error("Select at least one player.");
+  }
+  if (selectedVotes.length > 6) {
+    throw new Error("Pick up to 6 players only.");
+  }
+  localStorage.setItem(ALL_STAR_VOTER_KEY, voterHandle);
+  const payload = {
+    voter_id: voterHandle.toLowerCase(),
+    voter_email: "",
+    voter_team: "",
+    voter_handle: voterHandle.startsWith("@") ? voterHandle : `@${voterHandle}`,
+    votes: selectedVotes,
+    updated_at: new Date().toISOString(),
+  };
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/${GM_ALL_STAR_VOTES_TABLE}?on_conflict=voter_id`,
+    {
+      method: "POST",
+      headers: {
+        ...authHeaders(),
+        Prefer: "resolution=merge-duplicates,return=representation",
+      },
+      body: JSON.stringify([payload]),
+    }
+  );
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(
+      `All Star ballot save failed: ${response.status}${detail ? ` - ${detail}` : ""}`
+    );
+  }
 }
 
 function linkifyWinner(text) {
@@ -326,9 +449,67 @@ async function loadAwards() {
   }
 }
 
+async function initAllStarVoting() {
+  try {
+    await loadSupabaseConfig();
+  } catch (_) {
+    // Keep the page functional even if Supabase config is unavailable.
+  }
+  loadVoteDraft();
+  renderVoteList();
+  if (els.voteList) {
+    els.voteList.addEventListener("change", (event) => {
+      const checkbox = event.target.closest('input[data-awards-vote-player]');
+      if (!checkbox) return;
+      const checked = Array.from(
+        els.voteList.querySelectorAll('input[data-awards-vote-player]:checked')
+      ).map((node) => String(node.value || "").trim());
+      if (checked.length > 6) {
+        checkbox.checked = false;
+        if (els.voteStatus) {
+          els.voteStatus.textContent = "Pick up to 6 players only.";
+        }
+        return;
+      }
+      saveVoteDraft(checked);
+      if (els.voteStatus) {
+        els.voteStatus.textContent = `Selected ${checked.length} of 6.`;
+      }
+    });
+  }
+  const saveHandler = async () => {
+    try {
+      const checked = Array.from(
+        els.voteList.querySelectorAll('input[data-awards-vote-player]:checked')
+      ).map((node) => String(node.value || "").trim());
+      saveVoteDraft(checked);
+      await saveVoteToSupabase();
+      if (els.voteStatus) {
+        els.voteStatus.textContent = "All Star ballot saved.";
+      }
+    } catch (error) {
+      if (els.voteStatus) {
+        els.voteStatus.textContent = error.message || "Unable to save ballot.";
+      }
+    }
+  };
+  if (els.voteSaveTop) els.voteSaveTop.addEventListener("click", saveHandler);
+  if (els.voteSave) els.voteSave.addEventListener("click", saveHandler);
+  if (els.voteClear) {
+    els.voteClear.addEventListener("click", () => {
+      saveVoteDraft([]);
+      renderVoteList();
+      if (els.voteStatus) {
+        els.voteStatus.textContent = "Selection cleared.";
+      }
+    });
+  }
+}
+
 els.season.addEventListener("change", () => {
   localStorage.setItem(SEASON_KEY, els.season.value);
   loadAwards();
 });
 
 loadAwards();
+initAllStarVoting();
