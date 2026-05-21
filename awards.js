@@ -1,4 +1,5 @@
 const AWARDS_URL = "/api/sheet?name=awards";
+const ROSTER_URL = "/api/sheet?name=roster";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const GM_ALL_STAR_VOTES_TABLE = "gm_all_star_votes";
 const ALL_STAR_VOTE_KEY = "rskl_all_star_vote";
@@ -58,9 +59,23 @@ const TEAM_NAMES = [
   "The Phantoms",
 ];
 
+const TEAM_RANGES = {
+  "Gus N Em": "B2:C13",
+  Bullets: "E2:F13",
+  Turkeys: "H2:I13",
+  Cheerios: "B17:C28",
+  Yetis: "E17:F28",
+  Illegals: "H17:I28",
+  "The Lions": "B32:C43",
+  "The Future": "E32:F43",
+  "The Snipers": "H32:I43",
+  "The Phantoms": "B45:C56",
+};
+
 let supabaseUrl = "";
 let supabaseAnon = "";
 let selectedVotes = [];
+let allStarPlayers = [];
 
 function parseCSV(text) {
   const rows = [];
@@ -199,12 +214,38 @@ function saveVoteDraft(nextVotes) {
   }
 }
 
+function getAllStarPlayersFromRows(rows) {
+  const seen = new Set();
+  const players = [];
+  Object.values(TEAM_RANGES).forEach((range) => {
+    const sliced = sliceRange(rows, range);
+    sliced.forEach((row) => {
+      const left = String(row[0] || "").trim();
+      const right = String(row[1] || "").trim();
+      const candidates = [];
+      if (left && !["PLAYER", "TEAM", "INFO"].includes(left.toUpperCase())) {
+        candidates.push(left);
+      }
+      if (right && !["PLAYER", "TEAM", "INFO"].includes(right.toUpperCase())) {
+        candidates.push(right);
+      }
+      candidates.forEach((player) => {
+        const key = player.toLowerCase();
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        players.push(player);
+      });
+    });
+  });
+  return players;
+}
+
 function renderVoteList() {
   if (!els.voteList) return;
   if (els.voteCount) {
     els.voteCount.textContent = `${selectedVotes.length} / 6`;
   }
-  els.voteList.innerHTML = TEAM_NAMES.map((player) => {
+  els.voteList.innerHTML = allStarPlayers.map((player) => {
     const checked = selectedVotes.some((value) => value.toLowerCase() === player.toLowerCase())
       ? "checked"
       : "";
@@ -452,11 +493,28 @@ async function loadAwards() {
   }
 }
 
+async function loadAllStarPlayers() {
+  const response = await fetch(ROSTER_URL, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Roster fetch failed: ${response.status}`);
+  }
+  const rows = parseCSV(await response.text());
+  allStarPlayers = getAllStarPlayersFromRows(rows);
+}
+
 async function initAllStarVoting() {
   try {
     await loadSupabaseConfig();
   } catch (_) {
     // Keep the page functional even if Supabase config is unavailable.
+  }
+  try {
+    await loadAllStarPlayers();
+  } catch (error) {
+    allStarPlayers = [];
+    if (els.voteStatus) {
+      els.voteStatus.textContent = error.message || "Unable to load players.";
+    }
   }
   loadVoteDraft();
   renderVoteList();
