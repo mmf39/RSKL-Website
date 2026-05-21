@@ -1329,7 +1329,7 @@ function renderFreeAgencySelection() {
     els.freeAgencyView.innerHTML = freeAgencySelection.length
       ? `
         <div class="gm-readonly-card">
-          <div class="gm-readonly-title">Saved Selection</div>
+          <div class="gm-readonly-title">Current Ballot</div>
           <div>${freeAgencySelection.map(escapeHtml).join(", ")}</div>
         </div>
       `
