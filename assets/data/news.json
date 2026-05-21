@@ -1,7 +1,79 @@
 {
-  "updatedAt": "2026-05-18T19:15:42.058Z",
+  "updatedAt": "2026-05-21T19:32:09.040Z",
   "timezone": "America/New_York",
   "items": [
+    {
+      "id": "preview-2026-05-20-cheerios-turkeys",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Cheerios vs Turkeys: 3 things to watch",
+      "summary": "Three quick angles to watch before Cheerios and Turkeys hit the 5/20 slate.",
+      "bullets": [
+        "Turkeys bring the stronger record into this one at 5-1, so the early tone of the matchup matters.",
+        "Cheerios will lean on @jameswyo (5905.4 avg) while Turkeys answer with @jordancarter (10415.5 avg).",
+        "Cheerios are 0-3 in their last 3, while Turkeys are 1-2 over their last 3."
+      ],
+      "teams": [
+        "Cheerios",
+        "Turkeys"
+      ],
+      "gameDate": "5/20",
+      "publishedAt": "2026-05-20T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-05-20-storm-scorpions",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Storm vs Scorpions: 3 things to watch",
+      "summary": "Three quick angles to watch before Storm and Scorpions hit the 5/20 slate.",
+      "bullets": [
+        "Storm bring the stronger record into this one at 2-4, so the early tone of the matchup matters.",
+        "Storm will lean on @phx (5603.8 avg) while Scorpions answer with @dos (8221.8 avg).",
+        "Storm are 2-1 in their last 3, while Scorpions are 1-2 over their last 3."
+      ],
+      "teams": [
+        "Storm",
+        "Scorpions"
+      ],
+      "gameDate": "5/20",
+      "publishedAt": "2026-05-20T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-05-19-illegals-gus-n-em",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Illegals vs Gus N Em: 3 things to watch",
+      "summary": "Three quick angles to watch before Illegals and Gus N Em hit the 5/19 slate.",
+      "bullets": [
+        "Gus N Em bring the stronger record into this one at 5-2, so the early tone of the matchup matters.",
+        "Illegals will lean on @dbook C (6746.0 avg) while Gus N Em answer with @juan69 (6236.7 avg).",
+        "The last meeting went Gus N Em 18555-11287 over Illegals on 5/11, so there is already a little revenge angle here."
+      ],
+      "teams": [
+        "Illegals",
+        "Gus N Em"
+      ],
+      "gameDate": "5/19",
+      "publishedAt": "2026-05-19T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-05-19-the-snipers-scorpions",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "The Snipers vs Scorpions: 3 things to watch",
+      "summary": "Three quick angles to watch before The Snipers and Scorpions hit the 5/19 slate.",
+      "bullets": [
+        "The Snipers bring the stronger record into this one at 5-0, so the early tone of the matchup matters.",
+        "The Snipers will lean on @nick72 (9329.7 avg) while Scorpions answer with @dos (8221.8 avg).",
+        "The last meeting went The Snipers 41357-34011 over Scorpions on 5/12, so there is already a little revenge angle here."
+      ],
+      "teams": [
+        "The Snipers",
+        "Scorpions"
+      ],
+      "gameDate": "5/19",
+      "publishedAt": "2026-05-19T10:00:00-04:00"
+    },
     {
       "id": "preview-2026-05-17-scorpions-gus-n-em",
       "kind": "preview",

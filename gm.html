@@ -62,6 +62,7 @@
             <button class="gm-tab active" type="button" data-gm-tab="trade">Trade Block</button>
             <button class="gm-tab" type="button" data-gm-tab="rename">Player Name Change</button>
             <button class="gm-tab" type="button" data-gm-tab="lineup">Lineup Submit</button>
+            <button class="gm-tab" type="button" data-gm-tab="free-agency">Free Agency Selection</button>
             <button class="gm-tab" type="button" data-gm-tab="power">Power Rankings Vote</button>
             <button class="gm-tab" type="button" data-gm-tab="commish" id="gm-commish-tab" hidden>Lock Times</button>
             <div id="gm-lineup-tab-meta" class="gm-tab gm-tab-info">Due —</div>
@@ -190,6 +191,54 @@
 
             <button id="lineup-save" class="btn">Submit Lineup</button>
             <div id="lineup-status" class="gm-status"></div>
+          </div>
+        </div>
+
+        <div id="gm-tab-free-agency" class="gm-tab-panel" hidden>
+          <div class="gm-card">
+            <div class="label">Free Agency Selection</div>
+            <div class="gm-help">
+              Pick up to 6 players to mark as all stars. Your selection is saved in this browser.
+            </div>
+            <label class="label" for="free-agency-team-select">Team</label>
+            <select id="free-agency-team-select" class="text-input">
+              <option value="">Select team</option>
+              <option value="Gus N Em">Gus N Em</option>
+              <option value="Storm">Storm</option>
+              <option value="Turkeys">Turkeys</option>
+              <option value="Cheerios">Cheerios</option>
+              <option value="Scorpions">Scorpions</option>
+              <option value="Illegals">Illegals</option>
+              <option value="The Lions">The Lions</option>
+              <option value="Dream Team">Dream Team</option>
+              <option value="The Snipers">The Snipers</option>
+              <option value="The Phantoms">The Phantoms</option>
+            </select>
+
+            <div class="gm-row">
+              <div>
+                <div class="label">Selected Team</div>
+                <div id="free-agency-team-label" class="gm-team-label">—</div>
+              </div>
+              <div>
+                <div class="label">Selected</div>
+                <div id="free-agency-count" class="gm-team-label">0 / 6</div>
+              </div>
+            </div>
+
+            <div class="label">Choose All Stars</div>
+            <div id="free-agency-player-list" class="gm-checklist"></div>
+
+            <div class="gm-actions">
+              <button id="free-agency-clear" class="btn ghost" type="button">Clear Selection</button>
+              <button id="free-agency-save" class="btn" type="button">Save Selection</button>
+            </div>
+            <div id="free-agency-status" class="gm-status"></div>
+          </div>
+
+          <div class="gm-card">
+            <div class="label">Saved Selection</div>
+            <div id="free-agency-view" class="gm-readonly-list"></div>
           </div>
         </div>
 

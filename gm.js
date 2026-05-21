@@ -9,6 +9,7 @@ const GM_REFRESH_TOKEN_KEY = "rskl_gm_refresh_token";
 const GM_SESSION_USER_KEY = "rskl_gm_user";
 const GM_ASSIGNMENT_KEY = "rskl_gm_assignment";
 const GM_LOCAL_LOCKS_KEY = "rskl_local_game_locks";
+const GM_FREE_AGENCY_KEY = "rskl_gm_free_agency_selection";
 const GM_GAME_LOCKS_TABLE = "gm_game_locks";
 
 const TEAM_RANGES = {
@@ -65,6 +66,7 @@ const els = {
   tabTradePanel: document.getElementById("gm-tab-trade"),
   tabRenamePanel: document.getElementById("gm-tab-rename"),
   tabLineupPanel: document.getElementById("gm-tab-lineup"),
+  tabFreeAgencyPanel: document.getElementById("gm-tab-free-agency"),
   tabPowerPanel: document.getElementById("gm-tab-power"),
   tabCommishPanel: document.getElementById("gm-tab-commish"),
   lineupTabMeta: document.getElementById("gm-lineup-tab-meta"),
@@ -101,6 +103,14 @@ const els = {
   lineupCode: document.getElementById("lineup-code"),
   lineupSave: document.getElementById("lineup-save"),
   lineupStatus: document.getElementById("lineup-status"),
+  freeAgencyTeamSelect: document.getElementById("free-agency-team-select"),
+  freeAgencyTeamLabel: document.getElementById("free-agency-team-label"),
+  freeAgencyCount: document.getElementById("free-agency-count"),
+  freeAgencyPlayerList: document.getElementById("free-agency-player-list"),
+  freeAgencyClear: document.getElementById("free-agency-clear"),
+  freeAgencySave: document.getElementById("free-agency-save"),
+  freeAgencyStatus: document.getElementById("free-agency-status"),
+  freeAgencyView: document.getElementById("free-agency-view"),
   powerTeamSelect: document.getElementById("power-team-select"),
   powerRankingsList: document.getElementById("power-rankings-list"),
   powerRandomize: document.getElementById("power-randomize"),
@@ -121,6 +131,7 @@ let gmAssignment = null;
 let commishUpcomingGames = [];
 let lineupSubmittedByTeam = new Map();
 let localGameLocksByDate = {};
+let freeAgencySelectionByTeam = new Map();
 
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
@@ -209,6 +220,8 @@ function setActiveTab(tab) {
       ? "rename"
       : tab === "lineup"
       ? "lineup"
+      : tab === "free-agency"
+      ? "free-agency"
       : tab === "power"
       ? "power"
       : tab === "commish"
@@ -222,6 +235,9 @@ function setActiveTab(tab) {
   }
   if (els.tabLineupPanel) {
     els.tabLineupPanel.hidden = active !== "lineup";
+  }
+  if (els.tabFreeAgencyPanel) {
+    els.tabFreeAgencyPanel.hidden = active !== "free-agency";
   }
   if (els.tabPowerPanel) {
     els.tabPowerPanel.hidden = active !== "power";
@@ -295,6 +311,12 @@ function setLineupStatus(message, isError = false) {
   if (!els.lineupStatus) return;
   els.lineupStatus.textContent = message;
   els.lineupStatus.className = `gm-status ${isError ? "error" : ""}`;
+}
+
+function setFreeAgencyStatus(message, isError = false) {
+  if (!els.freeAgencyStatus) return;
+  els.freeAgencyStatus.textContent = message;
+  els.freeAgencyStatus.className = `gm-status ${isError ? "error" : ""}`;
 }
 
 function setPowerStatus(message, isError = false) {
@@ -1247,6 +1269,78 @@ function renderLineupTeam(team) {
   setLineupStatus("");
 }
 
+function getFreeAgencySelection(team) {
+  return freeAgencySelectionByTeam.get(team) || [];
+}
+
+function setFreeAgencySelection(team, selection) {
+  const next = new Map(freeAgencySelectionByTeam);
+  next.set(team, Array.isArray(selection) ? selection : []);
+  freeAgencySelectionByTeam = next;
+  localStorage.setItem(GM_FREE_AGENCY_KEY, JSON.stringify(Object.fromEntries(next)));
+}
+
+function loadFreeAgencySelection() {
+  const raw = safeJsonParse(localStorage.getItem(GM_FREE_AGENCY_KEY), {});
+  const map = new Map();
+  Object.entries(raw || {}).forEach(([team, players]) => {
+    map.set(team, Array.isArray(players) ? players.map((p) => String(p || "").trim()).filter(Boolean) : []);
+  });
+  freeAgencySelectionByTeam = map;
+}
+
+function renderFreeAgencySelection(team) {
+  if (!els.freeAgencyPlayerList) return;
+  const selectedTeam = String(team || "").trim();
+  if (els.freeAgencyTeamLabel) {
+    els.freeAgencyTeamLabel.textContent = selectedTeam ? displayTeamName(selectedTeam) : "—";
+  }
+  const selectedPlayers = getFreeAgencySelection(selectedTeam);
+  if (els.freeAgencyCount) {
+    els.freeAgencyCount.textContent = `${selectedPlayers.length} / 6`;
+  }
+  if (!selectedTeam) {
+    els.freeAgencyPlayerList.innerHTML = '<div class="gm-empty">Select a team.</div>';
+    if (els.freeAgencyView) {
+      els.freeAgencyView.innerHTML = '<div class="gm-empty">No selection saved.</div>';
+    }
+    return;
+  }
+  const players = getTeamPlayers(selectedTeam);
+  if (!players.length) {
+    els.freeAgencyPlayerList.innerHTML = '<div class="gm-empty">No players found.</div>';
+    if (els.freeAgencyView) {
+      els.freeAgencyView.innerHTML = '<div class="gm-empty">No selection saved.</div>';
+    }
+    return;
+  }
+  const selectedSet = new Set(selectedPlayers.map(normalizeName));
+  els.freeAgencyPlayerList.innerHTML = players
+    .map((player) => {
+      const checked = selectedSet.has(normalizeName(player)) ? "checked" : "";
+      return `
+        <label class="gm-check">
+          <input type="checkbox" data-free-agency-player value="${escapeHtml(player)}" ${checked} />
+          <span>${escapeHtml(player)}</span>
+          <span class="gm-check-pill">All Star</span>
+        </label>
+      `;
+    })
+    .join("");
+
+  const saved = getFreeAgencySelection(selectedTeam);
+  if (els.freeAgencyView) {
+    els.freeAgencyView.innerHTML = saved.length
+      ? `
+        <div class="gm-readonly-card">
+          <div class="gm-readonly-title">${escapeHtml(displayTeamName(selectedTeam))}</div>
+          <div>${saved.map(escapeHtml).join(", ")}</div>
+        </div>
+      `
+      : '<div class="gm-empty">No selection saved.</div>';
+  }
+}
+
 function updateLineupTabMeta(team) {
   if (!els.lineupTabMeta) return;
   const selectedTeam = String(team || "").trim() || getAuthorizedTeam();
@@ -1802,6 +1896,12 @@ function bindEvents() {
       renderLineupTeam(els.lineupTeamSelect.value);
     });
   }
+  if (els.freeAgencyTeamSelect) {
+    els.freeAgencyTeamSelect.addEventListener("change", () => {
+      renderFreeAgencySelection(els.freeAgencyTeamSelect.value);
+      setFreeAgencyStatus("");
+    });
+  }
   if (els.powerTeamSelect) {
     els.powerTeamSelect.addEventListener("change", () => {
       renderPowerRankingsTeam(els.powerTeamSelect.value);
@@ -2085,6 +2185,60 @@ function bindEvents() {
       }
     });
   }
+  if (els.freeAgencyPlayerList) {
+    els.freeAgencyPlayerList.addEventListener("change", (event) => {
+      const checkbox = event.target.closest('input[data-free-agency-player]');
+      if (!checkbox) return;
+      const team = els.freeAgencyTeamSelect ? els.freeAgencyTeamSelect.value : "";
+      if (!team) return;
+      const checkedPlayers = Array.from(
+        els.freeAgencyPlayerList.querySelectorAll('input[data-free-agency-player]:checked')
+      ).map((node) => String(node.value || "").trim());
+      if (checkedPlayers.length > 6) {
+        checkbox.checked = false;
+        setFreeAgencyStatus("Pick up to 6 players only.", true);
+        return;
+      }
+      setFreeAgencySelection(team, checkedPlayers);
+      setFreeAgencyStatus(`Selected ${checkedPlayers.length} of 6.`);
+      renderFreeAgencySelection(team);
+    });
+  }
+  if (els.freeAgencyClear) {
+    els.freeAgencyClear.addEventListener("click", () => {
+      const team = els.freeAgencyTeamSelect ? els.freeAgencyTeamSelect.value : "";
+      if (!team) {
+        setFreeAgencyStatus("Select a team first.", true);
+        return;
+      }
+      setFreeAgencySelection(team, []);
+      renderFreeAgencySelection(team);
+      setFreeAgencyStatus("Selection cleared.");
+    });
+  }
+  if (els.freeAgencySave) {
+    els.freeAgencySave.addEventListener("click", async () => {
+      const team = els.freeAgencyTeamSelect ? els.freeAgencyTeamSelect.value : "";
+      if (!team) {
+        setFreeAgencyStatus("Select a team first.", true);
+        return;
+      }
+      const selectedPlayers = Array.from(
+        els.freeAgencyPlayerList.querySelectorAll('input[data-free-agency-player]:checked')
+      ).map((node) => String(node.value || "").trim());
+      if (!selectedPlayers.length) {
+        setFreeAgencyStatus("Select at least one player.", true);
+        return;
+      }
+      if (selectedPlayers.length > 6) {
+        setFreeAgencyStatus("Pick up to 6 players only.", true);
+        return;
+      }
+      setFreeAgencySelection(team, selectedPlayers);
+      renderFreeAgencySelection(team);
+      setFreeAgencyStatus("Free agency selection saved.");
+    });
+  }
 
   if (els.powerSave) {
     els.powerSave.addEventListener("click", async () => {
@@ -2134,6 +2288,7 @@ async function init() {
   setActiveTab("trade");
   try {
     loadLocalGameLocks();
+    loadFreeAgencySelection();
     await loadSupabaseConfig();
     const savedToken = localStorage.getItem(GM_ACCESS_TOKEN_KEY) || "";
     const savedRefresh = localStorage.getItem(GM_REFRESH_TOKEN_KEY) || "";
@@ -2246,6 +2401,9 @@ async function init() {
     renderSelectedTeam(els.teamSelect.value || "");
     renderRenameTeam(els.renameTeamSelect ? els.renameTeamSelect.value : "");
     renderLineupTeam(els.lineupTeamSelect ? els.lineupTeamSelect.value : "");
+    renderFreeAgencySelection(
+      els.freeAgencyTeamSelect ? els.freeAgencyTeamSelect.value : ""
+    );
     renderPowerRankingsTeam(
       els.powerTeamSelect ? els.powerTeamSelect.value : ""
     );
