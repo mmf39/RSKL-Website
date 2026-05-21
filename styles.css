@@ -4509,19 +4509,31 @@ input[type="text"] {
   display: block;
 }
 
+.gm-check > .gm-check-main {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.gm-check > .gm-check-main > strong {
+  display: inline-block;
+}
+
+.gm-check > .gm-check-main > .gm-check-stats {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
 .gm-check-sub {
   color: var(--muted);
   font-size: 0.8rem;
   font-weight: 500;
-}
-
-.gm-check-main {
-  min-width: 0;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
 }
 
 .gm-check-main strong {
@@ -4532,9 +4544,6 @@ input[type="text"] {
 
 .gm-check-stats {
   display: inline-flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
   min-width: 0;
   color: rgba(255, 225, 196, 0.82);
   font-size: 0.76rem;
