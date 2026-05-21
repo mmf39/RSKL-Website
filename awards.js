@@ -13,7 +13,7 @@ const els = {
   table: document.getElementById("awards-table"),
   champions: document.getElementById("champions-table"),
   voterHandle: document.getElementById("awards-voter-handle"),
-  voteSaveTop: document.getElementById("awards-vote-save-top"),
+  voteAdvance: document.getElementById("awards-vote-advance"),
   voteSave: document.getElementById("awards-vote-save"),
   voteClear: document.getElementById("awards-vote-clear"),
   voteGate: document.getElementById("awards-vote-gate"),
@@ -236,6 +236,9 @@ function syncVoteGate() {
   if (els.voterHandle) {
     els.voterHandle.disabled = locked;
   }
+  if (els.voteAdvance) {
+    els.voteAdvance.disabled = locked;
+  }
 }
 
 function getAllStarPlayersFromRows(rows) {
@@ -332,6 +335,22 @@ async function saveVoteToSupabase() {
   }
   syncVoteGate();
   setVoterLocked(true);
+}
+
+function advanceToBallot() {
+  const voterHandle = String(els.voterHandle?.value || "").trim();
+  if (!voterHandle) {
+    if (els.voteStatus) {
+      els.voteStatus.textContent = "Enter your real @handle first.";
+    }
+    return;
+  }
+  localStorage.setItem(ALL_STAR_VOTER_KEY, voterHandle);
+  setVoterLocked(true);
+  if (els.voteStatus) {
+    els.voteStatus.textContent = "Handle locked. You can now choose your ballot.";
+  }
+  renderVoteList();
 }
 
 function linkifyWinner(text) {
@@ -578,7 +597,7 @@ async function initAllStarVoting() {
     }
   }
   loadVoteDraft();
-  if (localStorage.getItem(ALL_STAR_VOTER_LOCK_KEY) === "1") {
+  if (hasSavedVoterHandle()) {
     setVoterLocked(true);
   }
   try {
@@ -623,8 +642,16 @@ async function initAllStarVoting() {
       }
     }
   };
-  if (els.voteSaveTop) els.voteSaveTop.addEventListener("click", saveHandler);
   if (els.voteSave) els.voteSave.addEventListener("click", saveHandler);
+  if (els.voteAdvance) els.voteAdvance.addEventListener("click", advanceToBallot);
+  if (els.voterHandle) {
+    els.voterHandle.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        advanceToBallot();
+      }
+    });
+  }
   if (els.voteClear) {
     els.voteClear.addEventListener("click", () => {
       if (hasSavedVoterHandle()) {
