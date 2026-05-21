@@ -4506,8 +4506,7 @@ input[type="text"] {
 }
 
 .gm-check span {
-  display: grid;
-  gap: 2px;
+  display: block;
 }
 
 .gm-check-sub {
@@ -4516,12 +4515,39 @@ input[type="text"] {
   font-weight: 500;
 }
 
+.gm-check-main {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.gm-check-main strong {
+  white-space: nowrap;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+}
+
 .gm-check-stats {
-  display: block;
-  margin-top: 4px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
   color: rgba(255, 225, 196, 0.82);
   font-size: 0.76rem;
-  line-height: 1.35;
+  line-height: 1.25;
+}
+
+.gm-check-meta {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 161, 43, 0.1);
+  border: 1px solid rgba(255, 161, 43, 0.16);
+  white-space: nowrap;
 }
 
 .gm-check input {
@@ -4530,9 +4556,10 @@ input[type="text"] {
 
 .gm-check-pill {
   margin-left: auto;
-  padding: 4px 10px;
+  align-self: center;
+  padding: 5px 12px;
   border-radius: 999px;
-  font-size: 0.74rem;
+  font-size: 0.76rem;
   font-weight: 700;
   color: #1f2436;
   background: linear-gradient(135deg, #ff9f28, #ffd36c);

@@ -344,7 +344,10 @@ function getAllStarPlayersFromRows(rows) {
       });
     });
   });
-  return players;
+  return players.filter((player) => {
+    const stats = allStarPlayerStats.get(normalizePlayerKey(player));
+    return !stats || Number(stats.gp || 0) > 0;
+  });
 }
 
 async function loadAllStarPlayerStats() {
@@ -366,15 +369,23 @@ function renderVoteList() {
       ? "checked"
       : "";
     const stats = allStarPlayerStats.get(normalizePlayerKey(player));
+    const avgScore = stats ? (stats.scoreGames ? stats.scoreSum / stats.scoreGames : 0) : 0;
+    const avgRank = stats ? (stats.rankGames ? stats.rankSum / stats.rankGames : 0) : 0;
     const statsLine = stats
-      ? `<span class="gm-check-stats">GP ${stats.gp} • Avv score ${((stats.scoreGames ? stats.scoreSum / stats.scoreGames : 0)).toFixed(2)} • Avv rank ${((stats.rankGames ? stats.rankSum / stats.rankGames : 0)).toFixed(2)} • REL ${stats.rel.toFixed(2)} • WAR ${stats.war.toFixed(2)}</span>`
+      ? `
+        <span class="gm-check-meta">GP ${stats.gp}</span>
+        <span class="gm-check-meta">Avv score ${avgScore.toFixed(2)}</span>
+        <span class="gm-check-meta">Avv rank ${avgRank.toFixed(2)}</span>
+        <span class="gm-check-meta">REL ${stats.rel.toFixed(2)}</span>
+        <span class="gm-check-meta">WAR ${stats.war.toFixed(2)}</span>
+      `
       : "";
     return `
       <label class="gm-check">
         <input type="checkbox" data-awards-vote-player value="${escapeHtml(player)}" ${checked} />
-        <span>
+        <span class="gm-check-main">
           <strong>${escapeHtml(player)}</strong>
-          ${statsLine}
+          <span class="gm-check-stats">${statsLine}</span>
         </span>
         ${checked ? '<span class="gm-check-pill">All Star</span>' : ""}
       </label>
