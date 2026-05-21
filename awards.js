@@ -687,12 +687,6 @@ async function initAllStarVoting() {
   }
   if (els.voteClear) {
     els.voteClear.addEventListener("click", () => {
-      if (hasSavedVoterHandle()) {
-        if (els.voteStatus) {
-          els.voteStatus.textContent = "Your handle is locked and can’t be changed.";
-        }
-        return;
-      }
       saveVoteDraft([]);
       renderVoteList();
       if (els.voteStatus) {
