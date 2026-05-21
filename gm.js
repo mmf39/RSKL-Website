@@ -1289,13 +1289,33 @@ function renderLineupTeam(team) {
 }
 
 function loadFreeAgencySelection() {
-  freeAgencySelection = [];
+  const raw = safeJsonParse(localStorage.getItem(GM_FREE_AGENCY_KEY), []);
+  freeAgencySelection = Array.isArray(raw)
+    ? raw
+        .map((entry) => {
+          if (!entry || typeof entry !== "object") return null;
+          const player = String(entry.player || "").trim();
+          const handle = String(entry.handle || "").trim();
+          if (!player) return null;
+          return { player, handle };
+        })
+        .filter(Boolean)
+    : [];
 }
 
 function setFreeAgencySelection(selection) {
   freeAgencySelection = Array.isArray(selection)
-    ? selection.map((p) => String(p || "").trim()).filter(Boolean)
+    ? selection
+        .map((entry) => {
+          if (!entry || typeof entry !== "object") return null;
+          const player = String(entry.player || "").trim();
+          const handle = String(entry.handle || "").trim();
+          if (!player) return null;
+          return { player, handle };
+        })
+        .filter(Boolean)
     : [];
+  localStorage.setItem(GM_FREE_AGENCY_KEY, JSON.stringify(freeAgencySelection));
 }
 
 function renderFreeAgencySelection() {
@@ -1311,19 +1331,37 @@ function renderFreeAgencySelection() {
     }
     return;
   }
-  const selectedSet = new Set(freeAgencySelection.map(normalizeName));
+  const selectedSet = new Set(freeAgencySelection.map((entry) => normalizeName(entry.player)));
   els.freeAgencyPlayerList.innerHTML = players
     .map(({ player, team: playerTeam }) => {
       const checked = selectedSet.has(normalizeName(player)) ? "checked" : "";
+      const saved = freeAgencySelection.find((entry) => normalizeName(entry.player) === normalizeName(player));
+      const handleValue = saved?.handle || "";
       return `
-        <label class="gm-check">
-          <input type="checkbox" data-free-agency-player value="${escapeHtml(player)}" ${checked} />
-          <span>
-            <strong>${escapeHtml(player)}</strong>
-            <small class="gm-check-sub">${escapeHtml(displayTeamName(playerTeam))}</small>
-          </span>
-          <span class="gm-check-pill">All Star</span>
-        </label>
+        <div class="gm-vote-row">
+          <label class="gm-check">
+            <input type="checkbox" data-free-agency-player value="${escapeHtml(player)}" ${checked} />
+            <span>
+              <strong>${escapeHtml(player)}</strong>
+              <small class="gm-check-sub">${escapeHtml(displayTeamName(playerTeam))}</small>
+            </span>
+            <span class="gm-check-pill">All Star</span>
+          </label>
+          ${checked ? `
+            <label class="gm-handle-row">
+              <span class="gm-handle-label">@</span>
+              <input
+                class="text-input gm-handle-input"
+                type="text"
+                inputmode="text"
+                data-free-agency-handle
+                data-player="${escapeHtml(player)}"
+                placeholder="Type real @handle"
+                value="${escapeHtml(handleValue)}"
+              />
+            </label>
+          ` : ""}
+        </div>
       `;
     })
     .join("");
@@ -1333,7 +1371,7 @@ function renderFreeAgencySelection() {
       ? `
         <div class="gm-readonly-card">
           <div class="gm-readonly-title">Your Ballot</div>
-          <div>${freeAgencySelection.map(escapeHtml).join(", ")}</div>
+          <div>${freeAgencySelection.map((entry) => `${escapeHtml(entry.player)} (${escapeHtml(entry.handle || "no @handle")})`).join(", ")}</div>
         </div>
       `
       : '<div class="gm-empty">No selection saved.</div>';
@@ -1342,13 +1380,27 @@ function renderFreeAgencySelection() {
 
 function normalizeAllStarVoteRow(row) {
   const votes = Array.isArray(row?.votes)
-    ? row.votes.map((v) => String(v || "").trim()).filter(Boolean)
+    ? row.votes
+        .map((v) => {
+          if (!v || typeof v !== "object") {
+            const text = String(v || "").trim();
+            return text ? { player: text, handle: "" } : null;
+          }
+          const player = String(v.player || v.name || "").trim();
+          const handle = String(v.handle || v.at || "").trim();
+          return player ? { player, handle } : null;
+        })
+        .filter(Boolean)
     : Array.isArray(row?.players)
-    ? row.players.map((v) => String(v || "").trim()).filter(Boolean)
+    ? row.players
+        .map((v) => String(v || "").trim())
+        .filter(Boolean)
+        .map((player) => ({ player, handle: "" }))
     : String(row?.votes_csv || row?.vote || "")
         .split(",")
         .map((v) => v.trim())
-        .filter(Boolean);
+        .filter(Boolean)
+        .map((player) => ({ player, handle: "" }));
   return {
     voterId: String(row?.voter_id || row?.user_id || "").trim(),
     voterEmail: String(row?.voter_email || row?.email || "").trim(),
@@ -1385,10 +1437,17 @@ async function saveFreeAgencySelectionToSupabase(selection) {
     throw new Error("Sign in with a GM account first.");
   }
   const votes = Array.isArray(selection)
-    ? selection.map((p) => String(p || "").trim()).filter(Boolean)
+    ? selection
+        .map((entry) => {
+          if (!entry || typeof entry !== "object") return null;
+          const player = String(entry.player || "").trim();
+          const handle = String(entry.handle || "").trim();
+          return player && handle ? { player, handle: handle.startsWith("@") ? handle : `@${handle}` } : null;
+        })
+        .filter(Boolean)
     : [];
   if (!votes.length) {
-    throw new Error("Select at least one player.");
+    throw new Error("Select at least one player and add an @handle.");
   }
   if (votes.length > 6) {
     throw new Error("Pick up to 6 players only.");
@@ -1457,7 +1516,9 @@ function renderFreeAgencyResults() {
   }
   const counts = new Map();
   freeAgencyResults.forEach((vote) => {
-    vote.votes.forEach((player) => {
+    vote.votes.forEach((entry) => {
+      const player = String(entry.player || "").trim();
+      if (!player) return;
       counts.set(player, (counts.get(player) || 0) + 1);
     });
   });
@@ -1478,7 +1539,7 @@ function renderFreeAgencyResults() {
             (vote) => `
               <div class="gm-list-item">
                 <span>${escapeHtml(displayTeamName(vote.voterTeam) || vote.voterEmail || vote.voterId || "GM")}</span>
-                <span>${escapeHtml(vote.votes.join(", "))}</span>
+                <span>${escapeHtml(vote.votes.map((entry) => `${entry.player}${entry.handle ? ` (@${entry.handle.replace(/^@/, "")})` : ""}`).join(", "))}</span>
               </div>
             `
           )
@@ -2332,7 +2393,7 @@ function bindEvents() {
       if (!checkbox) return;
       const checkedPlayers = Array.from(
         els.freeAgencyPlayerList.querySelectorAll('input[data-free-agency-player]:checked')
-      ).map((node) => String(node.value || "").trim());
+      ).map((node) => ({ player: String(node.value || "").trim(), handle: "" }));
       if (checkedPlayers.length > 6) {
         checkbox.checked = false;
         setFreeAgencyStatus("Pick up to 6 players only.", true);
@@ -2341,6 +2402,26 @@ function bindEvents() {
       setFreeAgencySelection(checkedPlayers);
       setFreeAgencyStatus(`Selected ${checkedPlayers.length} of 6.`);
       renderFreeAgencySelection();
+    });
+    els.freeAgencyPlayerList.addEventListener("input", (event) => {
+      const handleInput = event.target.closest('input[data-free-agency-handle]');
+      if (!handleInput) return;
+      const player = String(handleInput.dataset.player || "").trim();
+      const handle = String(handleInput.value || "").trim();
+      const next = freeAgencySelection.map((entry) =>
+        normalizeName(entry.player) === normalizeName(player) ? { ...entry, handle } : entry
+      );
+      setFreeAgencySelection(next);
+      if (handle && !handle.startsWith("@")) {
+        handleInput.value = `@${handle}`;
+        setFreeAgencySelection(
+          next.map((entry) =>
+            normalizeName(entry.player) === normalizeName(player)
+              ? { ...entry, handle: handleInput.value.trim() }
+              : entry
+          )
+        );
+      }
     });
   }
   if (els.freeAgencyClear) {
@@ -2354,7 +2435,18 @@ function bindEvents() {
     els.freeAgencySave.addEventListener("click", async () => {
       const selectedPlayers = Array.from(
         els.freeAgencyPlayerList.querySelectorAll('input[data-free-agency-player]:checked')
-      ).map((node) => String(node.value || "").trim());
+      ).map((node) => {
+        const player = String(node.value || "").trim();
+        const handleNode = els.freeAgencyPlayerList.querySelector(
+          `input[data-free-agency-handle][data-player="${CSS.escape(player)}"]`
+        );
+        const handle = String(handleNode?.value || "").trim();
+        return { player, handle };
+      });
+      if (selectedPlayers.some((entry) => !entry.handle)) {
+        setFreeAgencyStatus("Add a real @handle for every selected player.", true);
+        return;
+      }
       try {
         const saved = await saveFreeAgencySelectionToSupabase(selectedPlayers);
         setFreeAgencySelection(saved);
