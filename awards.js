@@ -6,6 +6,8 @@ const ALL_STAR_VOTE_KEY = "rskl_all_star_vote";
 const ALL_STAR_VOTER_KEY = "rskl_all_star_voter_handle";
 const ALL_STAR_VOTER_ID_KEY = "rskl_all_star_voter_id";
 const ALL_STAR_VOTER_LOCK_KEY = "rskl_all_star_voter_locked";
+const ALL_STAR_DAILY_BRACKET_DATE_KEY = "rskl_all_star_bracket_day";
+const ALL_STAR_DAILY_BRACKET_COUNT_KEY = "rskl_all_star_bracket_count";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -228,6 +230,27 @@ function hasSavedVoterHandle() {
   return Boolean(String(localStorage.getItem(ALL_STAR_VOTER_KEY) || "").trim());
 }
 
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getDailyBracketCount() {
+  const today = getTodayKey();
+  const storedDay = String(localStorage.getItem(ALL_STAR_DAILY_BRACKET_DATE_KEY) || "").trim();
+  if (storedDay !== today) {
+    localStorage.setItem(ALL_STAR_DAILY_BRACKET_DATE_KEY, today);
+    localStorage.setItem(ALL_STAR_DAILY_BRACKET_COUNT_KEY, "0");
+    return 0;
+  }
+  return Number(localStorage.getItem(ALL_STAR_DAILY_BRACKET_COUNT_KEY) || 0) || 0;
+}
+
+function incrementDailyBracketCount() {
+  const count = getDailyBracketCount() + 1;
+  localStorage.setItem(ALL_STAR_DAILY_BRACKET_COUNT_KEY, String(count));
+  return count;
+}
+
 function syncVoteGate() {
   const locked = hasSavedVoterHandle();
   if (els.voteGate) {
@@ -345,8 +368,19 @@ function advanceToBallot() {
     }
     return;
   }
+  const alreadyLocked = hasSavedVoterHandle();
+  const currentCount = getDailyBracketCount();
+  if (!alreadyLocked && currentCount >= 5) {
+    if (els.voteStatus) {
+      els.voteStatus.textContent = "You can only create 5 brackets per day.";
+    }
+    return;
+  }
   localStorage.setItem(ALL_STAR_VOTER_KEY, voterHandle);
   setVoterLocked(true);
+  if (!alreadyLocked) {
+    incrementDailyBracketCount();
+  }
   syncVoteGate();
   renderVoteList();
   if (els.voteStatus) {
