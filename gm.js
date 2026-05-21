@@ -1369,7 +1369,6 @@ function normalizeAllStarVoteRow(row) {
         .map((player) => ({ player, handle: "" }));
   return {
     voterId: String(row?.voter_id || row?.user_id || "").trim(),
-    voterEmail: String(row?.voter_email || row?.email || "").trim(),
     voterTeam: String(row?.voter_team || row?.team || "").trim(),
     voterHandle: String(row?.voter_handle || row?.submitter_handle || "").trim(),
     votes,
@@ -1383,7 +1382,7 @@ async function fetchFreeAgencySelectionFromSupabase() {
     return [];
   }
   const query =
-    `?select=voter_id,voter_email,voter_team,voter_handle,votes,updated_at` +
+    `?select=voter_id,voter_team,voter_handle,votes,updated_at` +
     `&voter_id=eq.${encodeURIComponent(gmSession.user.id)}` +
     `&limit=1`;
   const response = await fetch(`${supabaseUrl}/rest/v1/${GM_ALL_STAR_VOTES_TABLE}${query}`, {
@@ -1419,7 +1418,6 @@ async function saveFreeAgencySelectionToSupabase(selection) {
   setFreeAgencyVoterHandle(voterHandle);
   const payload = {
     voter_id: gmSession.user.id,
-    voter_email: gmSession.user.email || "",
     voter_team: getAuthorizedTeam() || "",
     voter_handle: voterHandle.startsWith("@") ? voterHandle : `@${voterHandle}`,
     votes,
@@ -1456,7 +1454,7 @@ async function fetchAllStarResultsFromSupabase() {
     return [];
   }
   const response = await fetch(
-    `${supabaseUrl}/rest/v1/${GM_ALL_STAR_VOTES_TABLE}?select=voter_id,voter_email,voter_team,votes,updated_at&order=updated_at.desc`,
+    `${supabaseUrl}/rest/v1/${GM_ALL_STAR_VOTES_TABLE}?select=voter_id,voter_team,voter_handle,votes,updated_at&order=updated_at.desc`,
     {
       headers: authHeaders(true),
       cache: "no-store",

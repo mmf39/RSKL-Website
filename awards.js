@@ -354,7 +354,6 @@ async function saveVoteToSupabase() {
   localStorage.setItem(ALL_STAR_VOTER_KEY, voterHandle);
   const payload = {
     voter_id: voterId,
-    voter_email: "",
     voter_team: "",
     voter_handle: voterHandle.startsWith("@") ? voterHandle : `@${voterHandle}`,
     votes: selectedVotes,
