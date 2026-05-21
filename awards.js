@@ -295,7 +295,6 @@ function renderVoteList() {
   if (els.voteCount) {
     els.voteCount.textContent = `${selectedVotes.length} / 6`;
   }
-  syncVoteGate();
   els.voteList.innerHTML = allStarPlayers.map((player) => {
     const checked = selectedVotes.some((value) => value.toLowerCase() === player.toLowerCase())
       ? "checked"
@@ -317,10 +316,9 @@ function setVoterLocked(isLocked) {
 
 async function saveVoteToSupabase() {
   requireSupabaseConfig();
-  if (hasSavedVoterHandle()) {
-    throw new Error("Your @handle is already locked for this device.");
-  }
-  const voterHandle = String(els.voterHandle?.value || "").trim();
+  const voterHandle = String(
+    els.voterHandle?.value || localStorage.getItem(ALL_STAR_VOTER_KEY) || ""
+  ).trim();
   if (!voterHandle) {
     throw new Error("Enter your real @handle.");
   }
@@ -384,7 +382,7 @@ function advanceToBallot() {
   syncVoteGate();
   renderVoteList();
   if (els.voteStatus) {
-    els.voteStatus.textContent = "Handle locked. You can now choose your ballot.";
+    els.voteStatus.textContent = "Handle locked. You can now choose your players.";
   }
 }
 

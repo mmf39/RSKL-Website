@@ -719,22 +719,13 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
     sorted.sort((a, b) => b.avg - a.avg);
   }
 
-  const metricLabel =
-    metric === "total_score"
-      ? "total"
-      : metric === "avg_rank"
-      ? "avg rank"
-      : metric === "rel_median"
-      ? "REL (median)"
-      : metric === "rel_mean"
-      ? "REL (mean)"
-      : metric === "war"
-      ? "WAR"
-      : metric === "gp"
-      ? "gp"
-      : "avg";
   const visible = query ? sorted : sorted.slice(0, 25);
   const selectedSeason = getPlayerSeason();
+  const formatNumber = (value, digits = 2) => {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return "0.00";
+    return num.toFixed(digits);
+  };
 
   const teamLogo = (team) => {
     if (team === "The Future" || team === "Dream Team") {
@@ -817,7 +808,17 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
         ? '<p><em>Partial C1S3 data only. Some stats were not recorded.</em></p>'
         : ""
     }
-    <div class="leader-grid">
+    <div class="leader-grid leader-grid--players">
+      <div class="player-leader-row player-leader-row--head">
+        <div class="leader-rank">#</div>
+        <div class="leader-name">Player</div>
+        <div class="leader-team">Team</div>
+        <div class="leader-col">GP</div>
+        <div class="leader-col">Avv score</div>
+        <div class="leader-col">Avv rank</div>
+        <div class="leader-col">REL</div>
+        <div class="leader-col">WAR</div>
+      </div>
       ${visible
         .map(
           (item, index) => `
@@ -830,22 +831,11 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
                   displayTeamName(item.team)
                 )}">${escapeHtml(displayTeamName(item.team) || "—")}</a>
               </div>
-              <div class="leader-value">${
-                metric === "total_score"
-                  ? item.total.toFixed(0)
-                  : metric === "avg_rank"
-                  ? item.avgRank.toFixed(2)
-                  : metric === "rel_median"
-                  ? item.relMedian.toFixed(3)
-                  : metric === "rel_mean"
-                  ? item.relMean.toFixed(3)
-                  : metric === "war"
-                  ? item.war.toFixed(3)
-                  : metric === "gp"
-                  ? item.games
-                  : item.avg.toFixed(2)
-              } ${metricLabel}</div>
-              <div class="leader-sub">${item.games} GP</div>
+              <div class="leader-col">${item.games}</div>
+              <div class="leader-col">${formatNumber(item.avg)}</div>
+              <div class="leader-col">${formatNumber(item.avgRank)}</div>
+              <div class="leader-col">${formatNumber(item.relMean, 3)}</div>
+              <div class="leader-col">${formatNumber(item.war, 3)}</div>
             </div>
           `
         )
