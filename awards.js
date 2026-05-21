@@ -407,35 +407,6 @@ function syncVoteGate() {
   }
 }
 
-function getAllStarPlayersFromRows(rows) {
-  const seen = new Set();
-  const players = [];
-  Object.values(TEAM_RANGES).forEach((range) => {
-    const sliced = sliceRange(rows, range);
-    sliced.forEach((row) => {
-      const left = String(row[0] || "").trim();
-      const right = String(row[1] || "").trim();
-      const candidates = [];
-      if (left && !["PLAYER", "TEAM", "INFO"].includes(left.toUpperCase())) {
-        candidates.push(left);
-      }
-      if (right && !["PLAYER", "TEAM", "INFO"].includes(right.toUpperCase())) {
-        candidates.push(right);
-      }
-      candidates.forEach((player) => {
-        const key = player.toLowerCase();
-        if (!key || seen.has(key)) return;
-        seen.add(key);
-        players.push(player);
-      });
-    });
-  });
-  return players.filter((player) => {
-    const stats = allStarPlayerStats.get(normalizePlayerKey(player));
-    return Boolean(stats && Number(stats.games || 0) > 0);
-  });
-}
-
 async function loadAllStarPlayerStats() {
   const response = await fetch(PLAYER_STATS_URL, { cache: "no-store" });
   if (!response.ok) {
@@ -444,6 +415,19 @@ async function loadAllStarPlayerStats() {
   const rows = parseCSV(await response.text());
   allStarPlayerColumns = detectPlayerColumns(rows[0] || []);
   allStarPlayerStats = buildPlayerStatsMap(rows);
+  const seen = new Set();
+  allStarPlayers = rows
+    .slice(1)
+    .map((row) => String(row[allStarPlayerColumns.player] || "").trim())
+    .map((name) => stripCaptainMarker(name))
+    .filter((name) => {
+      const key = normalizePlayerKey(name);
+      if (!name || seen.has(key)) return false;
+      const stats = allStarPlayerStats.get(key);
+      if (!stats || Number(stats.games || 0) <= 0) return false;
+      seen.add(key);
+      return true;
+    });
 }
 
 function renderVoteList() {
@@ -749,14 +733,7 @@ async function loadAwards() {
   }
 }
 
-async function loadAllStarPlayers() {
-  const response = await fetch(ROSTER_URL, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Roster fetch failed: ${response.status}`);
-  }
-  const rows = parseCSV(await response.text());
-  allStarPlayers = getAllStarPlayersFromRows(rows);
-}
+async function loadAllStarPlayers() {}
 
 async function loadSavedBallot() {
   requireSupabaseConfig();
