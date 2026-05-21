@@ -1,7 +1,6 @@
 create table if not exists public.gm_all_star_votes_public (
-  voter_id uuid primary key,
+  voter_handle text primary key,
   voter_team text not null default '',
-  voter_handle text not null default '',
   votes jsonb not null default '[]'::jsonb,
   updated_at timestamptz not null default now()
 );

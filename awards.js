@@ -4,7 +4,6 @@ const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const GM_ALL_STAR_VOTES_TABLE = "gm_all_star_votes_public";
 const ALL_STAR_VOTE_KEY = "rskl_all_star_vote";
 const ALL_STAR_VOTER_KEY = "rskl_all_star_voter_handle";
-const ALL_STAR_VOTER_ID_KEY = "rskl_all_star_voter_id";
 const ALL_STAR_VOTER_LOCK_KEY = "rskl_all_star_voter_locked";
 const ALL_STAR_DAILY_BRACKET_DATE_KEY = "rskl_all_star_bracket_day";
 const ALL_STAR_DAILY_BRACKET_COUNT_KEY = "rskl_all_star_bracket_count";
@@ -81,7 +80,6 @@ let supabaseUrl = "";
 let supabaseAnon = "";
 let selectedVotes = [];
 let allStarPlayers = [];
-let voterId = "";
 
 function parseCSV(text) {
   const rows = [];
@@ -179,29 +177,6 @@ function safeJsonParse(value, fallback = null) {
   }
 }
 
-function isUuid(value) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    String(value || "").trim()
-  );
-}
-
-function createUuid() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  const bytes = Array.from({ length: 16 }, () => Math.floor(Math.random() * 256));
-  bytes[6] = (bytes[6] & 0x0f) | 0x40;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = bytes.map((byte) => byte.toString(16).padStart(2, "0")).join("");
-  return [
-    hex.slice(0, 8),
-    hex.slice(8, 12),
-    hex.slice(12, 16),
-    hex.slice(16, 20),
-    hex.slice(20),
-  ].join("-");
-}
-
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
     throw new Error("Supabase config missing.");
@@ -230,11 +205,6 @@ function loadVoteDraft() {
   selectedVotes = safeJsonParse(localStorage.getItem(ALL_STAR_VOTE_KEY), []);
   if (els.voterHandle) {
     els.voterHandle.value = String(localStorage.getItem(ALL_STAR_VOTER_KEY) || "").trim();
-  }
-  voterId = String(localStorage.getItem(ALL_STAR_VOTER_ID_KEY) || "").trim();
-  if (!isUuid(voterId)) {
-    voterId = createUuid();
-    localStorage.setItem(ALL_STAR_VOTER_ID_KEY, voterId);
   }
   syncVoteGate();
 }
@@ -352,15 +322,15 @@ async function saveVoteToSupabase() {
     throw new Error("Pick up to 6 players only.");
   }
   localStorage.setItem(ALL_STAR_VOTER_KEY, voterHandle);
+  const voterKey = voterHandle.startsWith("@") ? voterHandle : `@${voterHandle}`;
   const payload = {
-    voter_id: voterId,
     voter_team: "",
-    voter_handle: voterHandle.startsWith("@") ? voterHandle : `@${voterHandle}`,
+    voter_handle: voterKey,
     votes: selectedVotes,
     updated_at: new Date().toISOString(),
   };
   const response = await fetch(
-    `${supabaseUrl}/rest/v1/${GM_ALL_STAR_VOTES_TABLE}?on_conflict=voter_id`,
+    `${supabaseUrl}/rest/v1/${GM_ALL_STAR_VOTES_TABLE}?on_conflict=voter_handle`,
     {
       method: "POST",
       headers: {
@@ -613,8 +583,13 @@ async function loadAllStarPlayers() {
 
 async function loadSavedBallot() {
   requireSupabaseConfig();
+  const voterHandle = String(localStorage.getItem(ALL_STAR_VOTER_KEY) || "").trim();
+  if (!voterHandle) {
+    return;
+  }
+  const voterKey = voterHandle.startsWith("@") ? voterHandle : `@${voterHandle}`;
   const response = await fetch(
-    `${supabaseUrl}/rest/v1/${GM_ALL_STAR_VOTES_TABLE}?select=voter_id,voter_handle,votes,updated_at&voter_id=eq.${encodeURIComponent(voterId)}&limit=1`,
+    `${supabaseUrl}/rest/v1/${GM_ALL_STAR_VOTES_TABLE}?select=voter_handle,votes,updated_at&voter_handle=eq.${encodeURIComponent(voterKey)}&limit=1`,
     {
       headers: authHeaders(),
       cache: "no-store",
