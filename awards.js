@@ -347,10 +347,11 @@ function advanceToBallot() {
   }
   localStorage.setItem(ALL_STAR_VOTER_KEY, voterHandle);
   setVoterLocked(true);
+  syncVoteGate();
+  renderVoteList();
   if (els.voteStatus) {
     els.voteStatus.textContent = "Handle locked. You can now choose your ballot.";
   }
-  renderVoteList();
 }
 
 function linkifyWinner(text) {
