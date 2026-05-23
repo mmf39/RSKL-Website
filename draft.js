@@ -8,6 +8,16 @@ const C1S4_DRAFT_URL = "/assets/data/c1s4-draft.csv";
 const C1S5_DRAFT_URL = "/assets/data/c1s5-draft.csv";
 const C1S6_DRAFT_URL = "/assets/data/c1s6-draft.csv";
 const DRAFT_YEAR_KEY = "draftYear";
+const DRAFT_YEAR_VALUES = new Set([
+  "c1s2",
+  "c1s3",
+  "c1s4",
+  "c1s5",
+  "c1s6",
+  "c2s1",
+  "c2s2",
+  "c2s3",
+]);
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -827,8 +837,13 @@ function renderExpansion(rows) {
 }
 
 function getSelectedDraftYear() {
+  const params = new URLSearchParams(window.location.search);
+  const queryYear = params.get("year") || params.get("draftYear");
+  if (DRAFT_YEAR_VALUES.has(queryYear)) {
+    return queryYear;
+  }
   const saved = localStorage.getItem(DRAFT_YEAR_KEY);
-  if (saved === "c1s2" || saved === "c1s3" || saved === "c1s4" || saved === "c1s5" || saved === "c1s6" || saved === "c2s1" || saved === "c2s2" || saved === "c2s3") {
+  if (DRAFT_YEAR_VALUES.has(saved)) {
     return saved;
   }
   return "c2s3";
