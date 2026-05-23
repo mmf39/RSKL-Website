@@ -881,7 +881,7 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
 
   const playerLabel = (item) => {
     const rookieBadge = isRookieSeason(selectedSeason, item.tag)
-      ? '<span class="player-mark rookie-mark" title="Rookie for this season">Rookie</span>'
+      ? '<span class="player-mark rookie-mark" title="Rookie for this season">R</span>'
       : "";
     const badge = isRisingStarsPlayer(item.tag)
       ? '<span class="player-mark" title="Rising Stars participant">RS</span>'

@@ -130,7 +130,7 @@
     const activeSeason = resolveSeason(season);
     const badges = [];
     if (rookie && isRookie(activeSeason, player)) {
-      badges.push('<span class="player-mark rookie-mark" title="Rookie for this season">Rookie</span>');
+      badges.push('<span class="player-mark rookie-mark" title="Rookie for this season">R</span>');
     }
     if (risingStars && RISING_STARS_HANDLES.has(normalize(player))) {
       badges.push('<span class="player-mark" title="Rising Stars participant">RS</span>');

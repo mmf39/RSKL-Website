@@ -2438,7 +2438,7 @@ async function loadPlayer() {
   const displayName =
     playerNameOverrides.get(normalizePlayerKey(playerName)) || playerName;
   const rookieBadge = isRookieSeason(currentLoadedSeason, playerName)
-    ? ' <span class="player-mark rookie-mark" title="Rookie for this season">Rookie</span>'
+    ? ' <span class="player-mark rookie-mark" title="Rookie for this season">R</span>'
     : "";
   const risingStarsBadge = isRisingStarsPlayer(playerName)
     ? ' <span class="player-mark" title="Rising Stars participant">RS</span>'
