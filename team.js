@@ -1788,7 +1788,8 @@ function getTeamName() {
   const params = new URLSearchParams(window.location.search);
   const team = params.get("team") || "";
   if (team === "Dream Team") return "The Future";
-  if (team === "Scorpions") return "Yetis";
+  if (team === "Scorpions") return "Scorpions";
+  if (team === "Yetis") return "Scorpions";
   if (team === "Storm") return "Bullets";
   return team;
 }
