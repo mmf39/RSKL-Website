@@ -1,4 +1,146 @@
 (() => {
+  const RISING_STARS_HANDLES = new Set([
+    "fullofopps",
+    "xyz",
+    "jd3",
+    "vampire",
+    "florida_sportsfan",
+    "osboti",
+  ]);
+  const ROOKIE_SEASON_ORDER = [
+    "c1s2-regular",
+    "c1s3-regular",
+    "c1s4-regular",
+    "c1s5-regular",
+    "c1s6-regular",
+    "c2s1-regular",
+    "c2s2-regular",
+    "c2s3-regular",
+  ];
+  const ROOKIE_ROSTER_SOURCES = {
+    "c1s2-regular": "/assets/data/c1s2-rosters.csv",
+    "c1s3-regular": "/assets/data/c1s3-rosters.csv",
+    "c1s4-regular": "/assets/data/c1s4-player-stats.csv",
+    "c1s5-regular": "/assets/data/c1s5-rosters.csv",
+    "c1s6-regular": "/assets/data/c1s6-rosters.csv",
+    "c2s1-regular": "/assets/data/c2s1-rosters.csv",
+    "c2s2-regular": "/api/sheet?name=player-stats",
+    "c2s3-regular": "/api/sheet?name=player-stats",
+  };
+  const rookieCache = new Map();
+
+  const normalize = (value) =>
+    String(value || "").trim().replace(/^@/, "").toLowerCase();
+
+  const parseCSV = (text) => {
+    const rows = [];
+    let row = [];
+    let value = "";
+    let inQuotes = false;
+    for (let i = 0; i < text.length; i += 1) {
+      const char = text[i];
+      const next = text[i + 1];
+      if (char === '"') {
+        if (inQuotes && next === '"') {
+          value += '"';
+          i += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+        continue;
+      }
+      if (char === "," && !inQuotes) {
+        row.push(value.trim());
+        value = "";
+        continue;
+      }
+      if ((char === "\n" || char === "\r") && !inQuotes) {
+        if (char === "\r" && next === "\n") i += 1;
+        row.push(value.trim());
+        if (row.length > 1 || row[0] !== "") rows.push(row);
+        row = [];
+        value = "";
+        continue;
+      }
+      value += char;
+    }
+    if (value.length || row.length) {
+      row.push(value.trim());
+      rows.push(row);
+    }
+    return rows;
+  };
+
+  async function loadRookieCache() {
+    if (rookieCache.size) return rookieCache;
+    const entries = await Promise.all(
+      ROOKIE_SEASON_ORDER.map(async (seasonKey) => {
+        const url = ROOKIE_ROSTER_SOURCES[seasonKey];
+        if (!url) return [seasonKey, new Set()];
+        try {
+          const response = await fetch(url, { cache: "no-store" });
+          if (!response.ok) return [seasonKey, new Set()];
+          const rows = parseCSV(await response.text());
+          const players = new Set();
+          rows.slice(1).forEach((row) => {
+            const candidate = [row[1], row[0], row[2]]
+              .map((cell) => String(cell || "").trim())
+              .find(Boolean);
+            if (candidate) players.add(normalize(candidate));
+          });
+          return [seasonKey, players];
+        } catch (_) {
+          return [seasonKey, new Set()];
+        }
+      })
+    );
+    entries.forEach(([seasonKey, set]) => rookieCache.set(seasonKey, set));
+    return rookieCache;
+  }
+
+  function rookieResetIndex(seasonKey) {
+    const index = ROOKIE_SEASON_ORDER.indexOf(seasonKey);
+    if (index === -1) return -1;
+    const resetIndex = ROOKIE_SEASON_ORDER.indexOf("c2s1-regular");
+    return seasonKey === "c2s1-regular" ? resetIndex : index >= resetIndex ? resetIndex : 0;
+  }
+
+  function isRookie(seasonKey, player) {
+    const normalized = normalize(player);
+    const seasonIndex = ROOKIE_SEASON_ORDER.indexOf(seasonKey);
+    if (!normalized || seasonIndex === -1) return false;
+    const resetIndex = rookieResetIndex(seasonKey);
+    if (resetIndex === -1) return false;
+    for (let i = resetIndex; i < seasonIndex; i += 1) {
+      if (rookieCache.get(ROOKIE_SEASON_ORDER[i])?.has(normalized)) return false;
+    }
+    return Boolean(rookieCache.get(seasonKey)?.has(normalized));
+  }
+
+  function resolveSeason(input) {
+    return (
+      input ||
+      localStorage.getItem("playerSeason") ||
+      localStorage.getItem("season") ||
+      "c2s3-regular"
+    );
+  }
+
+  function badgeHtml({ player, season, rookie = false, risingStars = false }) {
+    const activeSeason = resolveSeason(season);
+    const badges = [];
+    if (rookie && isRookie(activeSeason, player)) {
+      badges.push('<span class="player-mark rookie-mark" title="Rookie for this season">Rookie</span>');
+    }
+    if (risingStars && RISING_STARS_HANDLES.has(normalize(player))) {
+      badges.push('<span class="player-mark" title="Rising Stars participant">RS</span>');
+    }
+    return badges.join("");
+  }
+
+  window.rsklPlayerBadgeHtml = badgeHtml;
+  window.rsklLoadRookieCache = loadRookieCache;
+
   const nav = document.querySelector(".site-nav");
   const toggle = document.querySelector("[data-menu-toggle]");
   const panel = document.querySelector("[data-menu-panel]");

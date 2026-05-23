@@ -754,9 +754,7 @@ function renderTable(headers, dataRows, teamName) {
                 const link = `player-detail.html?player=${encodeURIComponent(
                   nameText
                 )}`;
-                return `<td><a class="roster-link" href="${link}">${escapeHtml(
-                  nameText
-                )}</a></td>`;
+                return `<td><a class="roster-link" href="${link}">${window.rsklPlayerBadgeHtml ? `${escapeHtml(nameText)}${window.rsklPlayerBadgeHtml({ player: nameText, rookie: true, risingStars: true })}` : escapeHtml(nameText)}</a></td>`;
               }
               return `<td>${escapeHtml(value)}</td>`;
             })
@@ -781,9 +779,7 @@ function renderRosterTableWithNotice(players, notice) {
     .map((player) => {
       const nameText = String(player || "").trim();
       const link = `player-detail.html?player=${encodeURIComponent(nameText)}`;
-      return `<tr><td><a class="roster-link" href="${link}">${escapeHtml(
-        nameText
-      )}</a></td></tr>`;
+      return `<tr><td><a class="roster-link" href="${link}">${window.rsklPlayerBadgeHtml ? `${escapeHtml(nameText)}${window.rsklPlayerBadgeHtml({ player: nameText, rookie: true, risingStars: true })}` : escapeHtml(nameText)}</a></td></tr>`;
     })
     .join("");
   els.body.innerHTML = `${noticeRow}${playerRows}`;

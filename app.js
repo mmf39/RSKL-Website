@@ -103,6 +103,19 @@ function isArchiveSeason(seasonRaw) {
   return seasonRaw !== "c2s3-regular";
 }
 
+function renderPlayerName(player, season, options = {}) {
+  const badgeHtml = window.rsklPlayerBadgeHtml
+    ? window.rsklPlayerBadgeHtml({
+        player,
+        season,
+        rookie: options.rookie !== false,
+        risingStars: options.risingStars !== false,
+      })
+    : "";
+  const label = String(player?.displayName || player?.player || player?.tag || "Player");
+  return `${escapeHtml(label)}${badgeHtml}`;
+}
+
 function syncDashboardPanels(seasonRaw) {
   const hideArchiveOnly = isArchiveSeason(seasonRaw);
   if (els.livePanel) {
@@ -1077,7 +1090,7 @@ function renderLeagueLeaders(rows, seasonRaw) {
       return `
         <article class="leader-card dashboard-leader-card">
           <div class="dashboard-leader-kicker">${escapeHtml(metric.title)}</div>
-          <a class="leader-name" href="/player-detail.html?player=${encodeURIComponent(item.tag)}&season=${encodeURIComponent(seasonRaw)}">${escapeHtml(item.displayName)}</a>
+          <a class="leader-name" href="/player-detail.html?player=${encodeURIComponent(item.tag)}&season=${encodeURIComponent(seasonRaw)}">${renderPlayerName(item)}</a>
           <div class="leader-value">${escapeHtml(metric.formatter(item))}</div>
           <div class="leader-sub">${escapeHtml(metric.subtitle)}</div>
           <div class="dashboard-leader-meta">
@@ -1199,7 +1212,7 @@ function renderLiveModal(game) {
         .map(
           (player) => `
             <div class="boxscore-row">
-              <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(player.player)}">${escapeHtml(formatLivePlayerDisplay(player))}</a>
+              <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(player.player)}">${renderPlayerName({ player: formatLivePlayerDisplay(player) }, undefined, { rookie: false })}</a>
               <span>${escapeHtml(player.points || "")}</span>
               <span>${escapeHtml(player.rank || "")}</span>
             </div>

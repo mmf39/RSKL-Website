@@ -554,7 +554,7 @@ function linkifyWinner(text) {
   }
   return `<a class="awards-link" href="player-detail.html?player=${encodeURIComponent(
     value
-  )}">${escapeHtml(value)}</a>`;
+  )}">${escapeHtml(value)}${window.rsklPlayerBadgeHtml ? window.rsklPlayerBadgeHtml({ player: value, rookie: true, risingStars: true }) : ""}</a>`;
 }
 
 function updateLastUpdated() {

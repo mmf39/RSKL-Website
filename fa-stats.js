@@ -209,7 +209,7 @@ function render(rows, query = "", field = "player") {
           <h3 class="fa-card-title">
             <a class="tx-link" href="/player-detail.html?player=${encodeURIComponent(
               row.player
-            )}">${escapeHtml(row.player)}</a>
+            )}">${escapeHtml(row.player)}${window.rsklPlayerBadgeHtml ? window.rsklPlayerBadgeHtml({ player: row.player, rookie: true, risingStars: true }) : ""}</a>
             <span class="fa-card-sub"> - ${escapeHtml(
               formatValue(row.rankedDays)
             )} Ranked Days (${escapeHtml(

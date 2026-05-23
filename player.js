@@ -1,11 +1,12 @@
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
-const C1S2_PLAYER_STATS_URL = "/assets/data/c1s2-player-stats.csv";
-const C1S3_PLAYER_STATS_URL = "/assets/data/c1s3-player-stats.csv";
+const C2S1_ROSTERS_URL = "/assets/data/c2s1-rosters.csv";
+const C1S2_ROSTERS_URL = "/assets/data/c1s2-rosters.csv";
+const C1S3_ROSTERS_URL = "/assets/data/c1s3-rosters.csv";
 const C1S4_PLAYER_STATS_URL = "/assets/data/c1s4-player-stats.csv";
-const C1S5_PLAYER_STATS_URL = "/assets/data/c1s5-player-stats.csv";
-const C1S6_PLAYER_STATS_URL = "/assets/data/c1s6-player-stats.csv";
+const C1S5_ROSTERS_URL = "/assets/data/c1s5-rosters.csv";
+const C1S6_ROSTERS_URL = "/assets/data/c1s6-rosters.csv";
 const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
 const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
@@ -22,6 +23,7 @@ const els = {
 let playerRows = [];
 let leaderboardRows = [];
 let playerNameOverrides = new Map();
+let rookieSeasonCache = new Map();
 const RISING_STARS_HANDLES = new Set([
   "fullofopps",
   "xyz",
@@ -30,6 +32,26 @@ const RISING_STARS_HANDLES = new Set([
   "florida_sportsfan",
   "osboti",
 ]);
+const ROOKIE_SEASON_ORDER = [
+  "c1s2-regular",
+  "c1s3-regular",
+  "c1s4-regular",
+  "c1s5-regular",
+  "c1s6-regular",
+  "c2s1-regular",
+  "c2s2-regular",
+  "c2s3-regular",
+];
+const ROOKIE_ROSTER_SOURCES = {
+  "c1s2-regular": C1S2_ROSTERS_URL,
+  "c1s3-regular": C1S3_ROSTERS_URL,
+  "c1s4-regular": C1S4_PLAYER_STATS_URL,
+  "c1s5-regular": C1S5_ROSTERS_URL,
+  "c1s6-regular": C1S6_ROSTERS_URL,
+  "c2s1-regular": C2S1_ROSTERS_URL,
+  "c2s2-regular": PLAYER_STATS_URL,
+  "c2s3-regular": PLAYER_STATS_URL,
+};
 let playerColumns = {
   date: 0,
   team: 1,
@@ -438,6 +460,57 @@ function isRisingStarsPlayer(value) {
   return RISING_STARS_HANDLES.has(normalizePlayerKey(value));
 }
 
+function getRookieResetIndex(seasonKey) {
+  const index = ROOKIE_SEASON_ORDER.indexOf(seasonKey);
+  if (index === -1) return -1;
+  const resetIndex = ROOKIE_SEASON_ORDER.indexOf("c2s1-regular");
+  if (seasonKey === "c2s1-regular") return resetIndex;
+  return index >= resetIndex ? resetIndex : 0;
+}
+
+function isRookieSeason(seasonKey, playerKey) {
+  const normalizedPlayer = normalizePlayerKey(playerKey);
+  if (!normalizedPlayer) return false;
+  const seasonIndex = ROOKIE_SEASON_ORDER.indexOf(seasonKey);
+  if (seasonIndex === -1) return false;
+  const resetIndex = getRookieResetIndex(seasonKey);
+  if (resetIndex === -1) return false;
+  for (let i = resetIndex; i < seasonIndex; i += 1) {
+    const priorSeason = ROOKIE_SEASON_ORDER[i];
+    const priorSet = rookieSeasonCache.get(priorSeason);
+    if (priorSet && priorSet.has(normalizedPlayer)) {
+      return false;
+    }
+  }
+  const currentSet = rookieSeasonCache.get(seasonKey);
+  return Boolean(currentSet && currentSet.has(normalizedPlayer));
+}
+
+async function loadRookieSeasonCache() {
+  if (rookieSeasonCache.size) return rookieSeasonCache;
+  const entries = await Promise.all(
+    ROOKIE_SEASON_ORDER.map(async (seasonKey) => {
+      const url = ROOKIE_ROSTER_SOURCES[seasonKey];
+      if (!url) return [seasonKey, new Set()];
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) return [seasonKey, new Set()];
+      const rows = parseCSV(await response.text());
+      const players = new Set();
+      rows.slice(1).forEach((row) => {
+        const candidate = [row[1], row[0], row[2]]
+          .map((value) => String(value || "").trim())
+          .find(Boolean);
+        if (candidate) {
+          players.add(normalizePlayerKey(candidate));
+        }
+      });
+      return [seasonKey, players];
+    })
+  );
+  rookieSeasonCache = new Map(entries);
+  return rookieSeasonCache;
+}
+
 function displayTeamName(value) {
   const name = String(value || "").trim();
   if (name === "Bullets") return "Storm";
@@ -807,10 +880,13 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
   };
 
   const playerLabel = (item) => {
+    const rookieBadge = isRookieSeason(selectedSeason, item.tag)
+      ? '<span class="player-mark rookie-mark" title="Rookie for this season">Rookie</span>'
+      : "";
     const badge = isRisingStarsPlayer(item.tag)
       ? '<span class="player-mark" title="Rising Stars participant">RS</span>'
       : "";
-    return `${escapeHtml(item.displayName)}${badge}`;
+    return `${escapeHtml(item.displayName)}${rookieBadge}${badge}`;
   };
 
   els.results.innerHTML = `
@@ -866,6 +942,7 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
 async function loadPlayerStats() {
   try {
     await loadPlayerOverrides();
+    await loadRookieSeasonCache();
     const season = getPlayerSeason();
     if (season === "c2s3-regular" || season === "c2s2-playoffs") {
       const response = await fetch(PLAYER_STATS_URL, { cache: "no-store" });

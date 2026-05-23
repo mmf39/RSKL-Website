@@ -3612,6 +3612,12 @@ input[type="text"] {
   white-space: nowrap;
 }
 
+.rookie-mark {
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.36);
+  color: #b6f7c7;
+}
+
 .player-leader-row .leader-team {
   min-width: 0;
 }

@@ -388,7 +388,7 @@ function renderAllTimePlayers(rows, trackedSeasons) {
   }
   els.franchisePlayersBody.innerHTML = rows.map((row) => `
     <tr class="franchise-history-row is-active">
-      <td><a class="history-team-link" href="/player-detail.html?player=${encodeURIComponent(row.player)}">${escapeHtml(row.player)}</a></td>
+      <td><a class="history-team-link" href="/player-detail.html?player=${encodeURIComponent(row.player)}">${escapeHtml(row.player)}${window.rsklPlayerBadgeHtml ? window.rsklPlayerBadgeHtml({ player: row.player, rookie: true, risingStars: true }) : ""}</a></td>
       <td>${escapeHtml(row.seasons.join(", "))}</td>
       <td>${escapeHtml(row.teams.join(", "))}</td>
     </tr>

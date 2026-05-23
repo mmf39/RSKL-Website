@@ -422,6 +422,18 @@ function formatPlayerDisplay(player) {
   return player.isCaptain ? `${player.player} (C)` : player.player;
 }
 
+function renderPlayerName(name, season, options = {}) {
+  const badgeHtml = window.rsklPlayerBadgeHtml
+    ? window.rsklPlayerBadgeHtml({
+        player: name,
+        season,
+        rookie: options.rookie !== false,
+        risingStars: options.risingStars !== false,
+      })
+    : "";
+  return `${escapeHtml(name)}${badgeHtml}`;
+}
+
 function extractLeagueDay(rows) {
   const hit = rows.find(
     (row) =>

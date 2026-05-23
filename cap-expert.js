@@ -496,7 +496,7 @@ function renderTeamBreakdown(teamMap) {
             .map(
               (row) => `
                 <tr>
-                  <td><a class="draft-link" href="/player-detail.html?player=${encodeURIComponent(row.player)}">${escapeHtml(row.player)}</a></td>
+                  <td><a class="draft-link" href="/player-detail.html?player=${encodeURIComponent(row.player)}">${escapeHtml(row.player)}${window.rsklPlayerBadgeHtml ? window.rsklPlayerBadgeHtml({ player: row.player, rookie: true, risingStars: true }) : ""}</a></td>
                   <td>${escapeHtml(row.years || "—")}</td>
                   <td>${formatNumber(row.totalRax)}</td>
                   <td>${formatNumber(row.capHit)}</td>
@@ -536,7 +536,7 @@ function renderLeagueTable() {
         .map(
           (row) => `
             <tr>
-              <td><a class="draft-link" href="/player-detail.html?player=${encodeURIComponent(row.player)}">${escapeHtml(row.player)}</a></td>
+              <td><a class="draft-link" href="/player-detail.html?player=${encodeURIComponent(row.player)}">${escapeHtml(row.player)}${window.rsklPlayerBadgeHtml ? window.rsklPlayerBadgeHtml({ player: row.player, rookie: true, risingStars: true }) : ""}</a></td>
               <td>
                 <a class="leader-team-link cap-team-link" href="/team.html?team=${encodeURIComponent(row.team)}">
                   <img class="cap-inline-logo" src="${escapeHtml(getTeamLogo(row.team))}" alt="${escapeHtml(row.team)} logo" />

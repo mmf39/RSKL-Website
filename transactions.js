@@ -376,7 +376,10 @@ function renderLinks(list, kind) {
         kind === "team"
           ? `team.html?team=${encodeURIComponent(value)}`
           : `player-detail.html?player=${encodeURIComponent(value)}`;
-      return `<a class="tx-link" href="${href}">${escapeHtml(value)}</a>`;
+      const badge = window.rsklPlayerBadgeHtml
+        ? window.rsklPlayerBadgeHtml({ player: value, rookie: true, risingStars: true })
+        : "";
+      return `<a class="tx-link" href="${href}">${escapeHtml(value)}${badge}</a>`;
     })
     .join(", ");
 }
@@ -387,9 +390,12 @@ function linkifyPlayers(text) {
   return parts
     .map((part) => {
       if (/^@[A-Za-z0-9_.]+$/.test(part)) {
+        const badge = window.rsklPlayerBadgeHtml
+          ? window.rsklPlayerBadgeHtml({ player: part, rookie: true, risingStars: true })
+          : "";
         return `<a class="tx-link" href="player-detail.html?player=${encodeURIComponent(
           part
-        )}">${escapeHtml(part)}</a>`;
+        )}">${escapeHtml(part)}${badge}</a>`;
       }
       return escapeHtml(part);
     })
