@@ -109,6 +109,24 @@ const LIVE_RIGHT_NAME_COL = 5;
 const LIVE_RIGHT_POINTS_COL = 6;
 const LIVE_RIGHT_RANK_COL = 7;
 
+function getRightNameCol(row) {
+  if (Array.isArray(row) && row.length >= 8) {
+    return 4;
+  }
+  if (Array.isArray(row) && row.length >= 4) {
+    return 2;
+  }
+  return 4;
+}
+
+function getRightPointsCol(row) {
+  return getRightNameCol(row) + 1;
+}
+
+function getRightRankCol(row) {
+  return getRightNameCol(row) + 2;
+}
+
 const ARCHIVE_TEAM_ROSTERS = {
   "Gus N Em": "H1:I12",
   Cheerios: "H16:I27",
