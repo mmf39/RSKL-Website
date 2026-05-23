@@ -22,6 +22,14 @@ const els = {
 let playerRows = [];
 let leaderboardRows = [];
 let playerNameOverrides = new Map();
+const RISING_STARS_HANDLES = new Set([
+  "fullofopps",
+  "xyz",
+  "jd3",
+  "vampire",
+  "florida_sportsfan",
+  "osboti",
+]);
 let playerColumns = {
   date: 0,
   team: 1,
@@ -426,6 +434,10 @@ function normalizePlayerKey(value) {
     .toLowerCase();
 }
 
+function isRisingStarsPlayer(value) {
+  return RISING_STARS_HANDLES.has(normalizePlayerKey(value));
+}
+
 function displayTeamName(value) {
   const name = String(value || "").trim();
   if (name === "Bullets") return "Storm";
@@ -794,6 +806,13 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
     return "";
   };
 
+  const playerLabel = (item) => {
+    const badge = isRisingStarsPlayer(item.tag)
+      ? '<span class="player-mark" title="Rising Stars participant">RS</span>'
+      : "";
+    return `${escapeHtml(item.displayName)}${badge}`;
+  };
+
   els.results.innerHTML = `
     ${
       selectedSeason === "c1s2-regular" || selectedSeason === "c1s2-playoffs"
@@ -824,7 +843,7 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
           (item, index) => `
             <div class="player-leader-row">
               <div class="leader-rank">#${index + 1}</div>
-              <a class="leader-name" href="player-detail.html?player=${encodeURIComponent(item.tag)}&season=${encodeURIComponent(selectedSeason)}">${escapeHtml(item.displayName)}</a>
+              <a class="leader-name" href="player-detail.html?player=${encodeURIComponent(item.tag)}&season=${encodeURIComponent(selectedSeason)}">${playerLabel(item)}</a>
               <div class="leader-team">
                 ${teamLogo(item.team)}
                 <a class="leader-team-link" href="team.html?team=${encodeURIComponent(

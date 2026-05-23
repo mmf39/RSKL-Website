@@ -3584,6 +3584,24 @@ input[type="text"] {
   color: #ffe6c7;
 }
 
+.player-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 140, 26, 0.16);
+  border: 1px solid rgba(255, 140, 26, 0.36);
+  color: #ffcf9b;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
 .player-leader-row .leader-team {
   min-width: 0;
 }

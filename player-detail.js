@@ -14,6 +14,14 @@ const C1S5_PLAYER_STATS_URL = "/assets/data/c1s5-player-stats.csv";
 const C1S6_PLAYER_STATS_URL = "/assets/data/c1s6-player-stats.csv";
 const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
 const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
+const RISING_STARS_HANDLES = new Set([
+  "fullofopps",
+  "xyz",
+  "jd3",
+  "vampire",
+  "florida_sportsfan",
+  "osboti",
+]);
 const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
 const TRANSACTIONS_RANGE = "A3:E81";
@@ -260,6 +268,10 @@ function normalizePlayerKey(value) {
     .trim()
     .replace(/^@/, "")
     .toLowerCase();
+}
+
+function isRisingStarsPlayer(value) {
+  return RISING_STARS_HANDLES.has(normalizePlayerKey(value));
 }
 
 function displayTeamName(value) {
@@ -2351,7 +2363,10 @@ async function loadPlayer() {
   await overridesPromise;
   const displayName =
     playerNameOverrides.get(normalizePlayerKey(playerName)) || playerName;
-  els.name.textContent = displayName || "Player";
+  const risingStarsBadge = isRisingStarsPlayer(playerName)
+    ? ' <span class="player-mark" title="Rising Stars participant">RS</span>'
+    : "";
+  els.name.innerHTML = `${escapeHtml(displayName || "Player")}${risingStarsBadge}`;
   if (els.sub) {
     els.sub.textContent = displayName
       ? displayName
