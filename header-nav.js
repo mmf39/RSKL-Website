@@ -126,11 +126,17 @@
     );
   }
 
-  function badgeHtml({ player, season, rookie = false, risingStars = false }) {
+  function badgeHtml({
+    player,
+    season,
+    rookie = false,
+    drafted = false,
+    risingStars = false,
+  }) {
     const activeSeason = resolveSeason(season);
     const badges = [];
-    if (rookie && isRookie(activeSeason, player)) {
-      badges.push('<span class="player-mark rookie-mark" title="Rookie for this season">R</span>');
+    if ((rookie || drafted) && isRookie(activeSeason, player)) {
+      badges.push('<span class="player-mark rookie-mark" title="Drafted for this season">R</span>');
     }
     if (risingStars && RISING_STARS_HANDLES.has(normalize(player))) {
       badges.push('<span class="player-mark" title="Rising Stars participant">RS</span>');
