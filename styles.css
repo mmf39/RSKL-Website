@@ -2261,6 +2261,16 @@ input[type="text"] {
   padding: 24px;
   color: var(--muted);
   font-size: 0.9rem;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+.footer::after {
+  content: "Glossary: RS = Rising Stars";
+  color: rgba(255, 214, 170, 0.8);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
 }
 
 .footer-link {
@@ -3656,6 +3666,10 @@ input[type="text"] {
 .awards-winner {
   color: var(--ink);
   font-weight: 600;
+}
+
+.rising-stars-grid {
+  margin-top: 6px;
 }
 
 .awards-title-center,
