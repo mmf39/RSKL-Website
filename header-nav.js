@@ -98,6 +98,17 @@
     return rookieCache;
   }
 
+  function normalizeRookieSeasonKey(seasonKey) {
+    if (seasonKey === "c2s2-playoffs") return "c2s2-regular";
+    if (seasonKey === "c2s1-playoffs") return "c2s1-regular";
+    if (seasonKey === "c1s2-playoffs") return "c1s2-regular";
+    if (seasonKey === "c1s3-playoffs") return "c1s3-regular";
+    if (seasonKey === "c1s4-playoffs") return "c1s4-regular";
+    if (seasonKey === "c1s5-playoffs") return "c1s5-regular";
+    if (seasonKey === "c1s6-playoffs") return "c1s6-regular";
+    return seasonKey;
+  }
+
   function rookieResetIndex(seasonKey) {
     const index = ROOKIE_SEASON_ORDER.indexOf(seasonKey);
     if (index === -1) return -1;
@@ -107,14 +118,15 @@
 
   function isRookie(seasonKey, player) {
     const normalized = normalize(player);
-    const seasonIndex = ROOKIE_SEASON_ORDER.indexOf(seasonKey);
+    const normalizedSeason = normalizeRookieSeasonKey(seasonKey);
+    const seasonIndex = ROOKIE_SEASON_ORDER.indexOf(normalizedSeason);
     if (!normalized || seasonIndex === -1) return false;
-    const resetIndex = rookieResetIndex(seasonKey);
+    const resetIndex = rookieResetIndex(normalizedSeason);
     if (resetIndex === -1) return false;
     for (let i = resetIndex; i < seasonIndex; i += 1) {
       if (rookieCache.get(ROOKIE_SEASON_ORDER[i])?.has(normalized)) return false;
     }
-    return Boolean(rookieCache.get(seasonKey)?.has(normalized));
+    return Boolean(rookieCache.get(normalizedSeason)?.has(normalized));
   }
 
   function resolveSeason(input) {
@@ -133,7 +145,7 @@
     drafted = false,
     risingStars = false,
   }) {
-    const activeSeason = resolveSeason(season);
+    const activeSeason = normalizeRookieSeasonKey(resolveSeason(season));
     const badges = [];
     if ((rookie || drafted) && isRookie(activeSeason, player)) {
       badges.push('<span class="player-mark rookie-mark" title="Drafted for this season">R</span>');

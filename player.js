@@ -468,12 +468,24 @@ function getRookieResetIndex(seasonKey) {
   return index >= resetIndex ? resetIndex : 0;
 }
 
+function normalizeRookieSeasonKey(seasonKey) {
+  if (seasonKey === "c2s2-playoffs") return "c2s2-regular";
+  if (seasonKey === "c2s1-playoffs") return "c2s1-regular";
+  if (seasonKey === "c1s2-playoffs") return "c1s2-regular";
+  if (seasonKey === "c1s3-playoffs") return "c1s3-regular";
+  if (seasonKey === "c1s4-playoffs") return "c1s4-regular";
+  if (seasonKey === "c1s5-playoffs") return "c1s5-regular";
+  if (seasonKey === "c1s6-playoffs") return "c1s6-regular";
+  return seasonKey;
+}
+
 function isRookieSeason(seasonKey, playerKey) {
   const normalizedPlayer = normalizePlayerKey(playerKey);
   if (!normalizedPlayer) return false;
-  const seasonIndex = ROOKIE_SEASON_ORDER.indexOf(seasonKey);
+  const normalizedSeason = normalizeRookieSeasonKey(seasonKey);
+  const seasonIndex = ROOKIE_SEASON_ORDER.indexOf(normalizedSeason);
   if (seasonIndex === -1) return false;
-  const resetIndex = getRookieResetIndex(seasonKey);
+  const resetIndex = getRookieResetIndex(normalizedSeason);
   if (resetIndex === -1) return false;
   for (let i = resetIndex; i < seasonIndex; i += 1) {
     const priorSeason = ROOKIE_SEASON_ORDER[i];
@@ -482,7 +494,7 @@ function isRookieSeason(seasonKey, playerKey) {
       return false;
     }
   }
-  const currentSet = rookieSeasonCache.get(seasonKey);
+  const currentSet = rookieSeasonCache.get(normalizedSeason);
   return Boolean(currentSet && currentSet.has(normalizedPlayer));
 }
 
