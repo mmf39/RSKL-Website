@@ -258,9 +258,8 @@ function detectScheduleIndexes(rows) {
   const findIdx = (checks) => header.findIndex((value) => checks.some((check) => value.includes(check)));
   return {
     date: findIdx(["date"]),
-    team1: findIdx(["team 1", "team1", "away"]),
-    team2: findIdx(["team 2", "team2", "home"]),
-    gameType: findIdx(["game type", "type"]),
+    away: findIdx(["away", "team 1", "team1", "visitor"]),
+    home: findIdx(["home", "team 2", "team2"]),
   };
 }
 
@@ -272,8 +271,8 @@ function buildScheduleGames(rows) {
     .map((row) => {
       const rawDate = String(row[indexes.date] || "").trim();
       const dateToken = normalizeDateToken(rawDate);
-      const team1 = displayTeamName(String(row[indexes.team1] || "").trim());
-      const team2 = displayTeamName(String(row[indexes.team2] || "").trim());
+      const team1 = displayTeamName(String(row[indexes.away] || "").trim());
+      const team2 = displayTeamName(String(row[indexes.home] || "").trim());
       const gameType = String(row[indexes.gameType] || "").trim();
       if (!dateToken || !team1 || !team2) return null;
       return { rawDate, dateToken, team1, team2, gameType };

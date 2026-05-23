@@ -7,7 +7,6 @@ const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const TRANSACTIONS_CSV_URL = "/api/sheet?name=transactions";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
-const NEWS_FEED_URL = "/assets/data/news.json";
 const C1S2_REGULAR_SCHEDULE_URL = "/assets/data/c1s2-regular-schedule.csv";
 const C1S2_POST_SCHEDULE_URL = "/assets/data/c1s2-post-schedule.csv";
 const C1S2_STANDINGS_URL = "/assets/data/c1s2-standings.csv";
@@ -90,7 +89,6 @@ const els = {
   liveRow: document.getElementById("live-scoring"),
   featuredMatchups: document.getElementById("featured-matchups"),
   leagueLeaders: document.getElementById("league-leaders"),
-  leagueNews: document.getElementById("league-news"),
   recentTransactions: document.getElementById("recent-transactions"),
   liveModal: document.getElementById("live-modal"),
   liveDetails: document.getElementById("live-details"),
@@ -418,15 +416,6 @@ function formatNewsKind(value) {
   return "League News";
 }
 
-async function fetchNewsFeed() {
-  const response = await fetch(`${NEWS_FEED_URL}?v=${Date.now()}`, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`News fetch failed: ${response.status}`);
-  }
-  const payload = await response.json();
-  return Array.isArray(payload?.items) ? payload.items : [];
-}
-
 function prepareDashboardScheduleRows(rows, seasonRaw) {
   if (!rows.length) return [];
   if (seasonRaw !== "c2s3-regular") return rows;
@@ -495,9 +484,6 @@ function setDashboardLoading() {
   }
   if (els.leagueLeaders) {
     els.leagueLeaders.innerHTML = buildStateCard("Loading Leaders", "Computing top performers from player stats.");
-  }
-  if (els.leagueNews) {
-    els.leagueNews.innerHTML = buildStateCard("Loading News", "Pulling the latest AI-written previews, recaps, and transaction wire.");
   }
   if (els.recentTransactions) {
     els.recentTransactions.innerHTML = buildStateCard("Loading Transactions", "Checking the latest front-office movement.");
@@ -1104,52 +1090,6 @@ function renderLeagueLeaders(rows, seasonRaw) {
     .join("");
 }
 
-function renderLeagueNews(items) {
-  if (!els.leagueNews) return;
-  const todayToken = getTodayDateTokenEt();
-  const newsItems = (items || [])
-    .filter((item) => item.kind === "preview" && (!todayToken || String(item.gameDate || "").trim() === todayToken))
-    .sort((a, b) => {
-      return Date.parse(String(b.publishedAt || "")) - Date.parse(String(a.publishedAt || ""));
-    });
-  const visibleItems = newsItems.slice(0, 3);
-  if (!visibleItems.length) {
-    els.leagueNews.innerHTML = buildStateCard(
-      "No News Yet",
-      "Run the news generator to publish current game previews."
-    );
-    return;
-  }
-
-  els.leagueNews.innerHTML = visibleItems
-    .map((item) => {
-      const teams = Array.isArray(item.teams) ? item.teams.filter(Boolean) : [];
-      const teamLinks = teams.length
-        ? `<div class="dashboard-news-teams">${teams
-            .map(
-              (team) =>
-                `<a class="dashboard-news-team" href="/team.html?team=${encodeURIComponent(team)}">${renderSmallTeamLogo(team)}<span>${escapeHtml(team)}</span></a>`
-            )
-            .join("")}</div>`
-        : "";
-
-      return `
-        <article class="dashboard-news-card dashboard-news-card-compact news-kind-${escapeHtml(item.kind || "news")}" tabindex="0" role="link" data-news-id="${escapeHtml(item.id || "")}">
-          <div class="dashboard-news-head">
-            <span class="dashboard-news-kind">${escapeHtml(formatNewsKind(item.kind))}</span>
-            <span class="dashboard-news-time">${escapeHtml(formatNewsTimestamp(item.publishedAt))}</span>
-          </div>
-          <h3 class="dashboard-news-title">${escapeHtml(item.title || "League News")}</h3>
-          ${
-            teamLinks
-              ? `<div class="dashboard-news-footer">${teamLinks}</div>`
-              : `<div class="dashboard-news-footer"></div>`
-          }
-        </article>
-      `;
-    })
-    .join("");
-}
 
 function extractPlayers(text) {
   return String(text || "").match(/@[A-Za-z0-9_.]+/g) || [];
@@ -1280,7 +1220,6 @@ function renderLiveModal(game) {
 async function loadData() {
   setDashboardLoading();
   const seasonRaw = getSeasonRaw();
-  const newsPromise = fetchNewsFeed().catch(() => []);
   syncDashboardPanels(seasonRaw);
 
   if (els.standingsLink) {
@@ -1495,7 +1434,6 @@ async function loadData() {
       }
     }
 
-    renderLeagueNews(await newsPromise);
     updateLastUpdated();
   } catch (error) {
     if (els.teamsGrid) {
@@ -1513,14 +1451,6 @@ async function loadData() {
     if (els.recentTransactions) {
       els.recentTransactions.innerHTML = buildStateCard("Transactions Unavailable", "Recent transaction data is currently unavailable.");
     }
-    if (els.leagueNews) {
-      const fallbackNews = await newsPromise.catch(() => []);
-      if (fallbackNews.length) {
-        renderLeagueNews(fallbackNews);
-      } else {
-        els.leagueNews.innerHTML = buildStateCard("News Unavailable", "The AI news feed could not be loaded right now.");
-      }
-    }
   }
 }
 
@@ -1532,31 +1462,6 @@ if (els.liveRow) {
     const game = currentLiveGames[index];
     if (!game) return;
     renderLiveModal(game);
-  });
-}
-
-if (els.leagueNews) {
-  const openNewsCard = (card) => {
-    const newsId = String(card?.dataset.newsId || "").trim();
-    if (!newsId) return;
-    window.location.href = `/news-detail.html?id=${encodeURIComponent(newsId)}`;
-  };
-
-  els.leagueNews.addEventListener("click", (event) => {
-    const card = event.target.closest(".dashboard-news-card-compact");
-    if (!card) return;
-    const link = event.target.closest("a");
-    if (link) return;
-    openNewsCard(card);
-  });
-
-  els.leagueNews.addEventListener("keydown", (event) => {
-    const card = event.target.closest(".dashboard-news-card-compact");
-    if (!card) return;
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      openNewsCard(card);
-    }
   });
 }
 

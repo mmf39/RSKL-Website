@@ -532,6 +532,12 @@ body {
 
 .player-results-shell {
   margin-top: 20px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 .player-page .leader-grid {
@@ -3126,6 +3132,7 @@ input[type="text"] {
 .player-results {
   display: grid;
   gap: 16px;
+  min-width: 860px;
 }
 
 .player-section {
@@ -3519,6 +3526,10 @@ input[type="text"] {
   border: 1px solid rgba(255, 140, 26, 0.18);
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16);
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.leader-grid--players {
+  min-width: 860px;
 }
 
 .player-leader-row:hover {
