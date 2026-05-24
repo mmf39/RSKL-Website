@@ -540,8 +540,7 @@ function buildCurrentLeagueSnapshotRows(rows) {
 
     const teamRaw = String(row[activeIndexes.teamIdx] || "").trim();
     const team = normalizeCurrentTeamName(teamRaw);
-    if (!team) return;
-    if (!TEAM_ORDER.includes(team)) return;
+    if (!team || !TEAM_ORDER.includes(team) || team === "N/A") return;
 
     itemsByTeam.set(team, {
       team,
@@ -552,20 +551,9 @@ function buildCurrentLeagueSnapshotRows(rows) {
     });
   });
 
-  const items = TEAM_ORDER.map((team) => itemsByTeam.get(team)).filter(Boolean);
-  TEAM_ORDER.forEach((team) => {
-    if (!itemsByTeam.has(team)) {
-      itemsByTeam.set(team, {
-        team,
-        wins: null,
-        losses: null,
-        gb: null,
-        winPct: null,
-      });
-    }
-  });
-
-  const finalItems = TEAM_ORDER.map((team) => itemsByTeam.get(team));
+  const finalItems = TEAM_ORDER
+    .map((team) => itemsByTeam.get(team))
+    .filter(Boolean);
 
   finalItems.sort((a, b) => {
     if ((b.winPct ?? -1) !== (a.winPct ?? -1)) return (b.winPct ?? -1) - (a.winPct ?? -1);

@@ -738,7 +738,7 @@ function buildLeagueRowsFromArchive(standingsTable, scheduleTable, season) {
     .slice(1)
     .map((row) => {
       const team = normalizeCurrentTeamName(row[teamIdx] || "");
-      if (!team) {
+      if (!team || team === "N/A" || !isStandingsTeamName(team)) {
         return null;
       }
       return {
@@ -754,7 +754,7 @@ function buildLeagueRowsFromArchive(standingsTable, scheduleTable, season) {
         transactions: 0,
       };
     })
-    .filter((row) => row && isStandingsTeamName(row.team));
+    .filter((row) => row && row.team && row.team !== "N/A" && isStandingsTeamName(row.team));
 }
 
 function buildHistoryRowsFromCurrentStandings(rows) {
@@ -773,7 +773,7 @@ function buildHistoryRowsFromCurrentStandings(rows) {
     }
 
     const team = displayTeamName(String(row[indexes.teamIdx] || "").trim());
-    if (!team || !isStandingsTeamName(team)) {
+    if (!team || team === "N/A" || !isStandingsTeamName(team)) {
       return;
     }
 
@@ -788,12 +788,7 @@ function buildHistoryRowsFromCurrentStandings(rows) {
 
   CURRENT_TEAMS.forEach((team) => {
     if (!seenTeams.has(team)) {
-      builtRows.push({
-        team,
-        wins: null,
-        loss: null,
-        winpct: null,
-      });
+      builtRows.push({ team, wins: null, loss: null, winpct: null });
     }
   });
 
@@ -846,6 +841,9 @@ async function buildAllTimeLeagueStandings() {
 
     seasonRows.forEach((row) => {
       const teamName = normalizeCurrentTeamName(row.team);
+      if (!teamName || teamName === "N/A" || !isStandingsTeamName(teamName)) {
+        return;
+      }
       const franchiseKey = getFranchiseKey(teamName);
       if (!franchiseKey) {
         return;
