@@ -553,14 +553,27 @@ function buildCurrentLeagueSnapshotRows(rows) {
   });
 
   const items = TEAM_ORDER.map((team) => itemsByTeam.get(team)).filter(Boolean);
+  TEAM_ORDER.forEach((team) => {
+    if (!itemsByTeam.has(team)) {
+      itemsByTeam.set(team, {
+        team,
+        wins: null,
+        losses: null,
+        gb: null,
+        winPct: null,
+      });
+    }
+  });
 
-  items.sort((a, b) => {
+  const finalItems = TEAM_ORDER.map((team) => itemsByTeam.get(team));
+
+  finalItems.sort((a, b) => {
     if ((b.winPct ?? -1) !== (a.winPct ?? -1)) return (b.winPct ?? -1) - (a.winPct ?? -1);
     if ((a.gb ?? 999) !== (b.gb ?? 999)) return (a.gb ?? 999) - (b.gb ?? 999);
     return a.team.localeCompare(b.team);
   });
 
-  return items.map((item, index) => ({ ...item, rank: index + 1 }));
+  return finalItems.map((item, index) => ({ ...item, rank: index + 1 }));
 }
 
 function buildArchiveLeagueSnapshotRows(rows) {

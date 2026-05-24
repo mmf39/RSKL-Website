@@ -759,6 +759,7 @@ function buildLeagueRowsFromArchive(standingsTable, scheduleTable, season) {
 
 function buildHistoryRowsFromCurrentStandings(rows) {
   const builtRows = [];
+  const seenTeams = new Set();
   let indexes = null;
 
   (rows || []).forEach((row) => {
@@ -782,6 +783,18 @@ function buildHistoryRowsFromCurrentStandings(rows) {
       loss: parseNumber(row[indexes.lossesIdx]),
       winpct: parsePct(row[indexes.pctIdx]),
     });
+    seenTeams.add(team);
+  });
+
+  CURRENT_TEAMS.forEach((team) => {
+    if (!seenTeams.has(team)) {
+      builtRows.push({
+        team,
+        wins: null,
+        loss: null,
+        winpct: null,
+      });
+    }
   });
 
   return builtRows;
