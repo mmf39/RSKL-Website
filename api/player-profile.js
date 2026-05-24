@@ -3,7 +3,9 @@ const { URL } = require("url");
 
 const LIVE_ROSTER_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=0&single=true&output=csv";
-const PLAYER_PROFILE_SCRIPT_URL = process.env.PLAYER_PROFILE_SCRIPT_URL || "";
+const PLAYER_PROFILE_SCRIPT_URL =
+  process.env.PLAYER_PROFILE_SCRIPT_URL ||
+  "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
 
 function sendJson(res, status, body) {
   res.statusCode = status;

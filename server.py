@@ -49,6 +49,8 @@ LIVE_ROSTER_URL = (
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=0&single=true&output=csv"
 )
 PLAYER_PROFILE_SCRIPT_URL = os.environ.get("PLAYER_PROFILE_SCRIPT_URL", "")
+if not PLAYER_PROFILE_SCRIPT_URL:
+    PLAYER_PROFILE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec"
 SHEET_UPDATE_URL = (
     "https://script.google.com/macros/s/AKfycbylZD-O7LCsznZpnRpYsAdbp7bCbknV-qta8PO0uv_k4Tnevf8Klkbfcg6Hh5DXC9GFvg/exec"
 )
