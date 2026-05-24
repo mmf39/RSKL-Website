@@ -326,6 +326,7 @@ function displayTeamName(value) {
   if (name === "Bullets") return "Storm";
   if (name === "Yetis") return "Scorpions";
   if (name === "Scorpians") return "Scorpions";
+  if (name === "N/A") return "Scorpions";
   if (name === "The Future") return "Dream Team";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
@@ -337,7 +338,7 @@ function displayTeamName(value) {
 
 function normalizeCurrentTeamName(value) {
   const team = displayTeamName(value);
-  if (team === "Yetis") return "Scorpions";
+  if (team === "Yetis" || team === "N/A") return "Scorpions";
   return team;
 }
 
