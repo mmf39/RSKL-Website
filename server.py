@@ -58,6 +58,7 @@ MIME = {
 
 CACHE_TTL_SECONDS = 900
 CACHE = {}
+UNCACHED_SHEET_NAMES = {"standings", "standings-dashboard"}
 SHEETS = {
     "archive": ARCHIVE_URL,
     "awards": AWARDS_URL,
@@ -76,31 +77,37 @@ SHEETS = {
 }
 
 
-def send(handler, status, body, content_type="text/plain; charset=utf-8"):
+def send(handler, status, body, content_type="text/plain; charset=utf-8", cache_control=None):
     handler.send_response(status)
     handler.send_header("Content-Type", content_type)
     handler.send_header("Access-Control-Allow-Origin", "*")
+    if cache_control:
+        handler.send_header("Cache-Control", cache_control)
     handler.end_headers()
     if isinstance(body, str):
         body = body.encode("utf-8")
     handler.wfile.write(body)
 
 
-def proxy_csv(handler, url):
+def proxy_csv(handler, url, use_cache=True):
     now = time.time()
-    cached = CACHE.get(url)
+    if use_cache:
+        cached = CACHE.get(url)
+    else:
+        cached = None
     if cached and now - cached["time"] < CACHE_TTL_SECONDS:
-        send(handler, 200, cached["data"], "text/csv; charset=utf-8")
+        send(handler, 200, cached["data"], "text/csv; charset=utf-8", "no-store")
         return
     try:
         with urllib.request.urlopen(url) as response:
             data = response.read()
-            CACHE[url] = {"time": now, "data": data}
-            send(handler, 200, data, "text/csv; charset=utf-8")
+            if use_cache:
+                CACHE[url] = {"time": now, "data": data}
+            send(handler, 200, data, "text/csv; charset=utf-8", "no-store")
     except urllib.error.HTTPError as err:
-        send(handler, err.code, f"Upstream error {err.code}")
+        send(handler, err.code, f"Upstream error {err.code}", cache_control="no-store")
     except Exception as err:  # pylint: disable=broad-except
-        send(handler, 500, f"Proxy error: {err}")
+        send(handler, 500, f"Proxy error: {err}", cache_control="no-store")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -109,10 +116,10 @@ class Handler(BaseHTTPRequestHandler):
         path = parsed.path
 
         if path == "/api/standings":
-            proxy_csv(self, STANDINGS_URL)
+            proxy_csv(self, STANDINGS_URL, use_cache=False)
             return
         if path == "/api/standings-dashboard":
-            proxy_csv(self, STANDINGS_DASHBOARD_URL)
+            proxy_csv(self, STANDINGS_DASHBOARD_URL, use_cache=False)
             return
         if path == "/api/teams":
             proxy_csv(self, TEAMS_URL)
@@ -145,7 +152,7 @@ class Handler(BaseHTTPRequestHandler):
             if not target:
                 send(self, 400, json.dumps({"ok": False, "message": "Invalid sheet name"}), "application/json; charset=utf-8")
                 return
-            proxy_csv(self, target)
+            proxy_csv(self, target, use_cache=name not in UNCACHED_SHEET_NAMES)
             return
         if path == "/api/sheet-update":
             try:
