@@ -260,8 +260,11 @@ function getFranchiseKey(value) {
   if (team === "Storm" || team === "Bullets" || team === "Strom") {
     return "storm";
   }
-  if (team === "Scorpions" || team === "Yetis") {
-    return "mayeday";
+  if (team === "Scorpions") {
+    return "scorpions";
+  }
+  if (team === "Yetis") {
+    return "scorpions";
   }
   if (team === "Dream Team" || team === "The Future") {
     return "dream-team";
