@@ -1,6 +1,7 @@
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
+const PLAYER_PROFILE_URL = "/api/player-profile";
 const C2S1_ROSTERS_URL = "/assets/data/c2s1-rosters.csv";
 const C1S2_ROSTERS_URL = "/assets/data/c1s2-rosters.csv";
 const C1S3_ROSTERS_URL = "/assets/data/c1s3-rosters.csv";
@@ -24,6 +25,7 @@ let playerRows = [];
 let leaderboardRows = [];
 let playerNameOverrides = new Map();
 let rookieSeasonCache = new Map();
+const playerAvatarCache = new Map();
 const RISING_STARS_HANDLES = new Set([
   "fullofopps",
   "xyz",
@@ -447,6 +449,83 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function buildPlayerAvatarMarkup(item) {
+  const cacheKey = normalizePlayerKey(item.tag);
+  const cachedUrl = playerAvatarCache.get(cacheKey) || "";
+  const hiddenClass = cachedUrl ? "" : " player-avatar-inline--empty";
+  const srcAttr = cachedUrl ? ` src="${escapeHtml(cachedUrl)}"` : "";
+  return `
+    <span class="player-avatar-inline${hiddenClass}" data-player-avatar="${escapeHtml(cacheKey)}" aria-hidden="true">
+      <img class="player-avatar-inline__image"${srcAttr} alt="" loading="lazy" />
+    </span>
+  `;
+}
+
+async function fetchPlayerAvatarUrl(item, season) {
+  const cacheKey = normalizePlayerKey(item.tag);
+  if (!cacheKey) {
+    return "";
+  }
+  if (playerAvatarCache.has(cacheKey)) {
+    return playerAvatarCache.get(cacheKey) || "";
+  }
+
+  try {
+    const params = new URLSearchParams();
+    params.set("player", item.tag || "");
+    if (item.displayName && item.displayName !== item.tag) {
+      params.set("displayName", item.displayName);
+    }
+    if (season) {
+      params.set("season", season);
+    }
+    const response = await fetch(`${PLAYER_PROFILE_URL}?${params.toString()}`, {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      playerAvatarCache.set(cacheKey, "");
+      return "";
+    }
+    const payload = await response.json();
+    const url = String(
+      payload.photoUrl ||
+        payload.profilePictureUrl ||
+        payload.avatarUrl ||
+        payload.imageUrl ||
+        payload.headshotUrl ||
+        payload.pictureUrl ||
+        ""
+    ).trim();
+    playerAvatarCache.set(cacheKey, url);
+    return url;
+  } catch (_error) {
+    playerAvatarCache.set(cacheKey, "");
+    return "";
+  }
+}
+
+async function hydrateVisiblePlayerAvatars(items, season) {
+  await Promise.all(
+    items.map(async (item) => {
+      const cacheKey = normalizePlayerKey(item.tag);
+      if (!cacheKey) {
+        return;
+      }
+      const url = await fetchPlayerAvatarUrl(item, season);
+      if (!url) {
+        return;
+      }
+      const avatar = document.querySelector(`[data-player-avatar="${CSS.escape(cacheKey)}"]`);
+      const image = avatar ? avatar.querySelector(".player-avatar-inline__image") : null;
+      if (!avatar || !image) {
+        return;
+      }
+      image.src = url;
+      avatar.classList.remove("player-avatar-inline--empty");
+    })
+  );
 }
 
 function normalizePlayerKey(value) {
@@ -931,7 +1010,10 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
           (item, index) => `
             <div class="player-leader-row">
               <div class="leader-rank">#${index + 1}</div>
-              <a class="leader-name" href="player-detail.html?player=${encodeURIComponent(item.tag)}&season=${encodeURIComponent(selectedSeason)}">${playerLabel(item)}</a>
+              <a class="leader-name leader-name--player" href="player-detail.html?player=${encodeURIComponent(item.tag)}&season=${encodeURIComponent(selectedSeason)}">
+                ${buildPlayerAvatarMarkup(item)}
+                <span>${playerLabel(item)}</span>
+              </a>
               <div class="leader-team">
                 ${teamLogo(item.team)}
                 <a class="leader-team-link" href="team.html?team=${encodeURIComponent(
@@ -949,6 +1031,8 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
         .join("")}
     </div>
   `;
+
+  hydrateVisiblePlayerAvatars(visible, selectedSeason);
 }
 
 async function loadPlayerStats() {
