@@ -58,6 +58,7 @@ const TEAM_RANGES = {
   Turkeys: "H2:I13",
   Cheerios: "B17:C28",
   Yetis: "E17:F28",
+  Scorpions: "E17:F28",
   Illegals: "H17:I28",
   "The Lions": "B32:C43",
   "The Future": "E32:F43",
@@ -133,6 +134,7 @@ const ARCHIVE_TEAM_ROSTERS = {
   Bullets: "K1:L12",
   Storm: "K1:L12",
   Yetis: "K16:L27",
+  Scorpions: "K16:L27",
   Turkeys: "N1:O12",
   Illegals: "N16:O27",
 };
@@ -144,6 +146,7 @@ const ARCHIVE_TEAM_STANDINGS = {
   Storm: "A4:F4",
   Cheerios: "A5:F5",
   Yetis: "A6:F6",
+  Scorpions: "A6:F6",
   Illegals: "A7:F7",
 };
 
@@ -154,6 +157,7 @@ const DRAFT_CAPITAL_COLUMNS = {
   Storm: "C",
   Cheerios: "D",
   Yetis: "E",
+  Scorpions: "E",
   "The Lions": "F",
   "The Phantoms": "G",
   "The Future": "H",
