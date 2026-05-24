@@ -2,6 +2,8 @@ const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const PLAYER_PROFILE_URL = "/api/player-profile";
+const PLAYER_PROFILE_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
 const C2S1_ROSTERS_URL = "/assets/data/c2s1-rosters.csv";
 const C1S2_ROSTERS_URL = "/assets/data/c1s2-rosters.csv";
 const C1S3_ROSTERS_URL = "/assets/data/c1s3-rosters.csv";
@@ -481,25 +483,46 @@ async function fetchPlayerAvatarUrl(item, season) {
     if (season) {
       params.set("season", season);
     }
-    const response = await fetch(`${PLAYER_PROFILE_URL}?${params.toString()}`, {
+    const query = params.toString();
+    const response = await fetch(`${PLAYER_PROFILE_URL}?${query}`, {
       cache: "no-store",
     });
-    if (!response.ok) {
+    if (response.ok) {
+      const payload = await response.json();
+      const resolved = String(
+        payload.photoUrl ||
+          payload.profilePictureUrl ||
+          payload.avatarUrl ||
+          payload.imageUrl ||
+          payload.headshotUrl ||
+          payload.pictureUrl ||
+          ""
+      ).trim();
+      if (resolved) {
+        playerAvatarCache.set(cacheKey, resolved);
+        return resolved;
+      }
+    }
+
+    const fallbackResponse = await fetch(`${PLAYER_PROFILE_SCRIPT_URL}?${query}`, {
+      cache: "no-store",
+    });
+    if (!fallbackResponse.ok) {
       playerAvatarCache.set(cacheKey, "");
       return "";
     }
-    const payload = await response.json();
-    const resolved = String(
-      payload.photoUrl ||
-        payload.profilePictureUrl ||
-        payload.avatarUrl ||
-        payload.imageUrl ||
-        payload.headshotUrl ||
-        payload.pictureUrl ||
+    const fallbackPayload = await fallbackResponse.json();
+    const fallbackResolved = String(
+      fallbackPayload.photoUrl ||
+        fallbackPayload.profilePictureUrl ||
+        fallbackPayload.avatarUrl ||
+        fallbackPayload.imageUrl ||
+        fallbackPayload.headshotUrl ||
+        fallbackPayload.pictureUrl ||
         ""
     ).trim();
-    playerAvatarCache.set(cacheKey, resolved);
-    return resolved;
+    playerAvatarCache.set(cacheKey, fallbackResolved);
+    return fallbackResolved;
   } catch (_error) {
     playerAvatarCache.set(cacheKey, "");
     return "";
