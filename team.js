@@ -1066,15 +1066,18 @@ async function loadAllTimeTeamSnapshot(teamName) {
   renderLeagueMetricLeader();
 
   const target = getFranchiseKey(teamName);
-  const row = leagueStandingsMetrics.find((entry) => getFranchiseKey(entry.team) === target);
+  const row =
+    leagueStandingsMetrics.find((entry) => getFranchiseKey(entry.team) === target) ||
+    leagueStandingsMetrics.find((entry) => normalizeCurrentTeamName(entry.team) === shownTeam) ||
+    leagueStandingsMetrics.find((entry) => normalizeCurrentTeamName(entry.team) === "Scorpions");
   if (!row) {
     throw new Error("No all-time franchise data found.");
   }
 
   els.statTeam.textContent = shownTeam;
-  els.statGp.textContent = row.gp ? String(row.gp) : "—";
-  els.statWins.textContent = row.wins ? String(row.wins) : "0";
-  els.statLoss.textContent = row.loss ? String(row.loss) : "0";
+  els.statGp.textContent = row.gp !== null && row.gp !== undefined ? String(row.gp) : "—";
+  els.statWins.textContent = row.wins !== null && row.wins !== undefined ? String(row.wins) : "—";
+  els.statLoss.textContent = row.loss !== null && row.loss !== undefined ? String(row.loss) : "—";
   els.statWinPct.textContent =
     typeof row.winpct === "number" ? row.winpct.toFixed(3).replace(/^0/, ".") : "—";
   clearAllTimeOnlyStats();
@@ -3257,20 +3260,20 @@ async function loadRoster() {
 }
 
 function updateStandingsFromRanges(teamName, standingsRows) {
-  const target = normalizeTeamLabel(teamName);
+  const target = normalizeTeamLabel(normalizeCurrentTeamName(teamName));
   const row = getCurrentStandingsRows(standingsRows).find(
-    (entry) => normalizeTeamLabel(entry.team) === target
+    (entry) => normalizeTeamLabel(normalizeCurrentTeamName(entry.team)) === target
   );
   if (!row) {
     return;
   }
 
   els.statTeam.textContent = displayTeamName(row.team || teamName || "—");
-  els.statGp.textContent = row.gp || "—";
-  els.statWins.textContent = row.wins || "—";
-  els.statLoss.textContent = row.losses || "—";
-  els.statGb.textContent = row.gb || "—";
-  els.statWinPct.textContent = row.winPct || "—";
+  els.statGp.textContent = row.gp !== null && row.gp !== undefined ? String(row.gp) : "—";
+  els.statWins.textContent = row.wins !== null && row.wins !== undefined ? String(row.wins) : "—";
+  els.statLoss.textContent = row.losses !== null && row.losses !== undefined ? String(row.losses) : "—";
+  els.statGb.textContent = row.gb !== null && row.gb !== undefined ? String(row.gb) : "—";
+  els.statWinPct.textContent = row.winPct !== null && row.winPct !== undefined ? row.winPct : "—";
   if (els.statSos) {
     els.statSos.textContent = "—";
   }
@@ -3289,10 +3292,10 @@ function updateStandingsFromC1S2(teamName, standingsRows) {
   if (teamIdx === -1 || winsIdx === -1 || lossIdx === -1 || gbIdx === -1 || pctIdx === -1) {
     return;
   }
-  const target = normalizeTeamLabel(teamName);
+  const target = normalizeTeamLabel(normalizeCurrentTeamName(teamName));
   const row = standingsRows
     .slice(1)
-    .find((entry) => normalizeTeamLabel(entry[teamIdx]) === target);
+    .find((entry) => normalizeTeamLabel(normalizeCurrentTeamName(entry[teamIdx])) === target);
   if (!row) {
     return;
   }
@@ -3305,8 +3308,8 @@ function updateStandingsFromC1S2(teamName, standingsRows) {
   els.statGp.textContent = gp !== null ? String(gp) : "—";
   els.statWins.textContent = wins !== null ? String(wins) : "—";
   els.statLoss.textContent = loss !== null ? String(loss) : "—";
-  els.statGb.textContent = row[gbIdx] || "—";
-  els.statWinPct.textContent = row[pctIdx] || "—";
+  els.statGb.textContent = row[gbIdx] !== undefined && row[gbIdx] !== null && String(row[gbIdx]).trim() !== "" ? String(row[gbIdx]) : "—";
+  els.statWinPct.textContent = row[pctIdx] !== undefined && row[pctIdx] !== null && String(row[pctIdx]).trim() !== "" ? String(row[pctIdx]) : "—";
   if (els.statSos) {
     els.statSos.textContent = "—";
   }
@@ -3318,11 +3321,11 @@ function updateStandingsFromRow(values) {
   }
   const [team, gp, wins, loss, gb, winPct] = values;
   els.statTeam.textContent = displayTeamName(team || "—");
-  els.statGp.textContent = gp || "—";
-  els.statWins.textContent = wins || "—";
-  els.statLoss.textContent = loss || "—";
-  els.statGb.textContent = gb || "—";
-  els.statWinPct.textContent = winPct || "—";
+  els.statGp.textContent = gp !== undefined && gp !== null && String(gp).trim() !== "" ? String(gp) : "—";
+  els.statWins.textContent = wins !== undefined && wins !== null && String(wins).trim() !== "" ? String(wins) : "—";
+  els.statLoss.textContent = loss !== undefined && loss !== null && String(loss).trim() !== "" ? String(loss) : "—";
+  els.statGb.textContent = gb !== undefined && gb !== null && String(gb).trim() !== "" ? String(gb) : "—";
+  els.statWinPct.textContent = winPct !== undefined && winPct !== null && String(winPct).trim() !== "" ? String(winPct) : "—";
   if (els.statSos) {
     els.statSos.textContent = "—";
   }
