@@ -25,7 +25,6 @@ const C1S3_STANDINGS_URL = "/assets/data/c1s3-standings.csv";
 const SEASON_KEY = "season";
 
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
-const TEAMS_LIMIT = 10;
 
 const TEAM_ORDER = [
   "Turkeys",
@@ -552,6 +551,18 @@ function buildCurrentLeagueSnapshotRows(rows) {
     });
   });
 
+  TEAM_ORDER.forEach((team) => {
+    if (!itemsByTeam.has(team)) {
+      itemsByTeam.set(team, {
+        team,
+        wins: null,
+        losses: null,
+        gb: null,
+        winPct: null,
+      });
+    }
+  });
+
   const finalItems = TEAM_ORDER.map((team) => itemsByTeam.get(team)).filter(Boolean);
 
   finalItems.sort((a, b) => {
@@ -602,7 +613,6 @@ function renderLeagueSnapshot(items) {
   }
 
   els.teamsGrid.innerHTML = items
-    .slice(0, TEAMS_LIMIT)
     .map((item) => {
       const team = normalizeCurrentTeamName(item.team);
       const record = item.wins !== null && item.losses !== null ? `${item.wins}-${item.losses}` : "—";

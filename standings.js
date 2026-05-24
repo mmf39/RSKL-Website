@@ -719,6 +719,19 @@ function getCurrentStandingsRows(rows) {
     });
   });
 
+  CURRENT_TEAMS.forEach((team) => {
+    if (!byTeam.has(team)) {
+      byTeam.set(team, {
+        team,
+        gp: null,
+        wins: null,
+        losses: null,
+        gb: null,
+        winPct: null,
+      });
+    }
+  });
+
   return Array.from(byTeam.values());
 }
 
