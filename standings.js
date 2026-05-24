@@ -773,7 +773,7 @@ function buildHistoryRowsFromCurrentStandings(rows) {
       return;
     }
 
-    const team = displayTeamName(String(row[indexes.teamIdx] || "").trim());
+    const team = normalizeCurrentTeamName(String(row[indexes.teamIdx] || "").trim());
     if (!team || team === "N/A" || !isStandingsTeamName(team)) {
       return;
     }

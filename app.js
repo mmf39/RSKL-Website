@@ -552,9 +552,10 @@ function buildCurrentLeagueSnapshotRows(rows) {
     });
   });
 
-  const finalItems = TEAM_ORDER
-    .map((team) => itemsByTeam.get(team))
-    .filter(Boolean);
+  const finalItems = TEAM_ORDER.map((team) => {
+    const item = itemsByTeam.get(team);
+    return item || { team, wins: 0, losses: 0, gb: 0, winPct: 0 };
+  });
 
   finalItems.sort((a, b) => {
     if ((b.winPct ?? -1) !== (a.winPct ?? -1)) return (b.winPct ?? -1) - (a.winPct ?? -1);

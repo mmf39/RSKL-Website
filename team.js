@@ -1049,7 +1049,7 @@ function clearAllTimeOnlyStats() {
 }
 
 async function loadAllTimeTeamSnapshot(teamName) {
-  const shownTeam = displayTeamName(teamName);
+  const shownTeam = normalizeCurrentTeamName(teamName);
   renderRosterMessage("All-time mode shows franchise history. Pick a season to view a roster.");
   renderScheduleMessage("All-time mode compares franchise records. Pick a season to view game-by-game schedule.");
   renderPanelMessage(els.draftCapital, "Pick a season to view draft capital.");
@@ -1066,21 +1066,26 @@ async function loadAllTimeTeamSnapshot(teamName) {
   leagueStandingsMetrics = await buildAllTimeLeagueStandingsMetrics();
   renderLeagueMetricLeader();
 
-  const target = getFranchiseKey(teamName);
+  const target = getFranchiseKey(shownTeam);
   const row =
     leagueStandingsMetrics.find((entry) => getFranchiseKey(entry.team) === target) ||
     leagueStandingsMetrics.find((entry) => normalizeCurrentTeamName(entry.team) === shownTeam) ||
     leagueStandingsMetrics.find((entry) => normalizeCurrentTeamName(entry.team) === "Scorpions");
-  if (!row) {
-    throw new Error("No all-time franchise data found.");
-  }
+  const safeRow =
+    row || {
+      team: shownTeam,
+      gp: 0,
+      wins: 0,
+      loss: 0,
+      winpct: null,
+    };
 
   els.statTeam.textContent = shownTeam;
-  els.statGp.textContent = row.gp !== null && row.gp !== undefined ? String(row.gp) : "—";
-  els.statWins.textContent = row.wins !== null && row.wins !== undefined ? String(row.wins) : "—";
-  els.statLoss.textContent = row.loss !== null && row.loss !== undefined ? String(row.loss) : "—";
+  els.statGp.textContent = safeRow.gp !== null && safeRow.gp !== undefined ? String(safeRow.gp) : "—";
+  els.statWins.textContent = safeRow.wins !== null && safeRow.wins !== undefined ? String(safeRow.wins) : "—";
+  els.statLoss.textContent = safeRow.loss !== null && safeRow.loss !== undefined ? String(safeRow.loss) : "—";
   els.statWinPct.textContent =
-    typeof row.winpct === "number" ? row.winpct.toFixed(3).replace(/^0/, ".") : "—";
+    typeof safeRow.winpct === "number" ? safeRow.winpct.toFixed(3).replace(/^0/, ".") : "—";
   clearAllTimeOnlyStats();
 }
 
