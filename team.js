@@ -3263,9 +3263,11 @@ async function loadRoster() {
 
 function updateStandingsFromRanges(teamName, standingsRows) {
   const target = normalizeTeamLabel(normalizeCurrentTeamName(teamName));
-  const row = getCurrentStandingsRows(standingsRows).find(
+  const currentRows = getCurrentStandingsRows(standingsRows);
+  const row = currentRows.find(
     (entry) => normalizeTeamLabel(normalizeCurrentTeamName(entry.team)) === target
-  );
+  ) || currentRows.find((entry) => normalizeTeamLabel(entry.team) === "scorpions")
+    || currentRows.find((entry) => normalizeTeamLabel(entry.team) === "yetis");
   if (!row) {
     return;
   }
@@ -3298,20 +3300,27 @@ function updateStandingsFromC1S2(teamName, standingsRows) {
   const row = standingsRows
     .slice(1)
     .find((entry) => normalizeTeamLabel(normalizeCurrentTeamName(entry[teamIdx])) === target);
-  if (!row) {
+  const scorpionsRow = standingsRows
+    .slice(1)
+    .find((entry) => normalizeTeamLabel(normalizeCurrentTeamName(entry[teamIdx])) === "scorpions")
+    || standingsRows
+      .slice(1)
+      .find((entry) => normalizeTeamLabel(normalizeCurrentTeamName(entry[teamIdx])) === "yetis");
+  const activeRow = row || scorpionsRow;
+  if (!activeRow) {
     return;
   }
 
-  const wins = parseNumber(row[winsIdx]);
-  const loss = parseNumber(row[lossIdx]);
+  const wins = parseNumber(activeRow[winsIdx]);
+  const loss = parseNumber(activeRow[lossIdx]);
   const gp = wins !== null && loss !== null ? wins + loss : null;
 
-  els.statTeam.textContent = displayTeamName(row[teamIdx] || teamName || "—");
+  els.statTeam.textContent = displayTeamName(activeRow[teamIdx] || teamName || "—");
   els.statGp.textContent = gp !== null ? String(gp) : "—";
   els.statWins.textContent = wins !== null ? String(wins) : "—";
   els.statLoss.textContent = loss !== null ? String(loss) : "—";
-  els.statGb.textContent = row[gbIdx] !== undefined && row[gbIdx] !== null && String(row[gbIdx]).trim() !== "" ? String(row[gbIdx]) : "—";
-  els.statWinPct.textContent = row[pctIdx] !== undefined && row[pctIdx] !== null && String(row[pctIdx]).trim() !== "" ? String(row[pctIdx]) : "—";
+  els.statGb.textContent = activeRow[gbIdx] !== undefined && activeRow[gbIdx] !== null && String(activeRow[gbIdx]).trim() !== "" ? String(activeRow[gbIdx]) : "—";
+  els.statWinPct.textContent = activeRow[pctIdx] !== undefined && activeRow[pctIdx] !== null && String(activeRow[pctIdx]).trim() !== "" ? String(activeRow[pctIdx]) : "—";
   if (els.statSos) {
     els.statSos.textContent = "—";
   }
