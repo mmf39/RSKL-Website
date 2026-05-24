@@ -200,7 +200,7 @@ function findRosterRecord(rows, params) {
   return null;
 }
 
-function fetchProfileFromScript(params, rosterRecord) {
+function fetchProfileFromScript(params) {
   return new Promise((resolve, reject) => {
     const target = new URL(PLAYER_PROFILE_SCRIPT_URL);
     Object.entries(params).forEach(([key, value]) => {
@@ -208,13 +208,6 @@ function fetchProfileFromScript(params, rosterRecord) {
         target.searchParams.set(key, String(value));
       }
     });
-    if (rosterRecord && rosterRecord.userId) {
-      target.searchParams.set("userId", rosterRecord.userId);
-      target.searchParams.set("playerId", rosterRecord.userId);
-    }
-    if (rosterRecord && rosterRecord.handle) {
-      target.searchParams.set("userTag", rosterRecord.handle);
-    }
 
     https
       .get(
@@ -261,60 +254,8 @@ const server = http.createServer((req, res) => {
 
     (async () => {
       try {
-        const rosterCsv = await fetchText(LIVE_ROSTER_URL);
-        const rosterRows = parseCSV(rosterCsv);
-        const rosterRecord = findRosterRecord(rosterRows, params);
-
-        if (rosterRecord && rosterRecord.imageUrl) {
-          send(
-            res,
-            200,
-            JSON.stringify({
-              ok: true,
-              player,
-              userId: rosterRecord.userId,
-              userTag: rosterRecord.handle,
-              photoUrl: rosterRecord.imageUrl,
-            }),
-            "application/json; charset=utf-8"
-          );
-          return;
-        }
-
-        if (!PLAYER_PROFILE_SCRIPT_URL) {
-          send(
-            res,
-            200,
-            JSON.stringify({
-              ok: true,
-              player,
-              userId: rosterRecord ? rosterRecord.userId : "",
-              userTag: rosterRecord ? rosterRecord.handle : "",
-            }),
-            "application/json; charset=utf-8"
-          );
-          return;
-        }
-
-        const profile = await fetchProfileFromScript(params, rosterRecord);
-        const expectedUserId = rosterRecord ? String(rosterRecord.userId || "").trim() : "";
-        const returnedUserId = String(profile.userId || profile.playerId || "").trim();
-        const safeProfile =
-          !expectedUserId || !returnedUserId || expectedUserId === returnedUserId
-            ? profile
-            : { ok: false, player, userId: expectedUserId, userTag: rosterRecord ? rosterRecord.handle : "" };
-        send(
-          res,
-          200,
-          JSON.stringify({
-            ok: true,
-            player,
-            userId: rosterRecord ? rosterRecord.userId : "",
-            userTag: rosterRecord ? rosterRecord.handle : "",
-            ...safeProfile,
-          }),
-          "application/json; charset=utf-8"
-        );
+        const profile = await fetchProfileFromScript(params);
+        send(res, 200, JSON.stringify(profile), "application/json; charset=utf-8");
       } catch (error) {
         send(res, 500, JSON.stringify({ ok: false, message: error.message }), "application/json; charset=utf-8");
       }

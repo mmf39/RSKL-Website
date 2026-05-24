@@ -215,73 +215,16 @@ class Handler(BaseHTTPRequestHandler):
                 return
             flat_params = {k: (v[0] if isinstance(v, list) and v else "") for k, v in params.items()}
             try:
-                with urllib.request.urlopen(LIVE_ROSTER_URL) as response:
-                    roster_csv = response.read().decode("utf-8")
-                roster_rows = parse_csv(roster_csv)
-                roster_record = find_roster_record(roster_rows, flat_params)
-                if roster_record and roster_record.get("imageUrl"):
-                    send(
-                        self,
-                        200,
-                        json.dumps(
-                            {
-                                "ok": True,
-                                "player": player,
-                                "userId": roster_record.get("userId", ""),
-                                "userTag": roster_record.get("handle", ""),
-                                "photoUrl": roster_record.get("imageUrl", ""),
-                            }
-                        ),
-                        "application/json; charset=utf-8",
-                        "no-store",
-                    )
-                    return
-                if not PLAYER_PROFILE_SCRIPT_URL:
-                    send(
-                        self,
-                        200,
-                        json.dumps(
-                            {
-                                "ok": True,
-                                "player": player,
-                                "userId": roster_record.get("userId", "") if roster_record else "",
-                                "userTag": roster_record.get("handle", "") if roster_record else "",
-                            }
-                        ),
-                        "application/json; charset=utf-8",
-                        "no-store",
-                    )
-                    return
                 target = PLAYER_PROFILE_SCRIPT_URL
                 query = []
                 for key, value in flat_params.items():
                     if value:
                         query.append((key, value))
-                if roster_record and roster_record.get("userId"):
-                    query.append(("userId", roster_record["userId"]))
-                    query.append(("playerId", roster_record["userId"]))
-                if roster_record and roster_record.get("handle"):
-                    query.append(("userTag", roster_record["handle"]))
                 if query:
                     sep = "&" if "?" in target else "?"
                     target = f"{target}{sep}{urlencode(query)}"
                 profile = fetch_json(target)
-                expected_user_id = roster_record.get("userId", "").strip() if roster_record else ""
-                returned_user_id = str(profile.get("userId", "") or profile.get("playerId", "")).strip() if isinstance(profile, dict) else ""
-                safe_profile = (
-                    profile
-                    if not expected_user_id or not returned_user_id or expected_user_id == returned_user_id
-                    else {"ok": False, "player": player, "userId": expected_user_id, "userTag": roster_record.get("handle", "") if roster_record else ""}
-                )
-                payload = {
-                    "ok": True,
-                    "player": player,
-                    "userId": roster_record.get("userId", "") if roster_record else "",
-                    "userTag": roster_record.get("handle", "") if roster_record else "",
-                }
-                if isinstance(safe_profile, dict):
-                    payload.update(safe_profile)
-                send(self, 200, json.dumps(payload), "application/json; charset=utf-8", "no-store")
+                send(self, 200, json.dumps(profile), "application/json; charset=utf-8", "no-store")
             except urllib.error.HTTPError as err:
                 send(self, err.code, json.dumps({"ok": False, "message": f"Upstream error {err.code}"}), "application/json; charset=utf-8", "no-store")
             except Exception as err:  # pylint: disable=broad-except
