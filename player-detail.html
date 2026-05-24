@@ -14,13 +14,19 @@
     <header class="hero">
       <div class="hero-inner player-detail-hero">
         <div class="player-detail-hero-top">
+          <div class="player-detail-avatar-card" id="player-avatar-card" hidden>
+            <img
+              id="player-avatar-image"
+              class="player-detail-avatar-image"
+              alt="Player profile picture"
+              loading="eager"
+              fetchpriority="high"
+              decoding="async" />
+          </div>
           <div class="player-detail-hero-copy">
             <div class="badge">Real Sports Karma League</div>
             <h1 id="player-name">Player</h1>
             <p id="player-sub" class="player-detail-sub">Player</p>
-          </div>
-          <div class="player-detail-avatar-card" id="player-avatar-card" hidden>
-            <img id="player-avatar-image" class="player-detail-avatar-image" alt="Player profile picture" />
           </div>
         </div>
         

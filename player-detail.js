@@ -2563,10 +2563,9 @@ async function loadPlayer() {
   const initialDisplayName = playerName || "Player";
   els.name.textContent = initialDisplayName;
   if (els.sub) {
-    els.sub.textContent = initialDisplayName
-      ? initialDisplayName
-      : "Missing player name.";
+    els.sub.textContent = "";
   }
+  loadPlayerAvatar(playerName, initialDisplayName, currentLoadedSeason);
 
   contractRowsCache = await contractPromise;
   const earlyContract = findPlayerContract(contractRowsCache, playerName, []);
@@ -2587,11 +2586,8 @@ async function loadPlayer() {
     : "";
   els.name.innerHTML = `${escapeHtml(displayName || "Player")}${rookieBadge}${risingStarsBadge}`;
   if (els.sub) {
-    els.sub.textContent = displayName
-      ? displayName
-      : "Missing player name.";
+    els.sub.textContent = "";
   }
-  loadPlayerAvatar(playerName, displayName, currentLoadedSeason);
 
   if (playerName.toUpperCase().startsWith("GM")) {
     renderTable([]);
