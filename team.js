@@ -1071,17 +1071,17 @@ async function loadAllTimeTeamSnapshot(teamName) {
     leagueStandingsMetrics.find((entry) => getFranchiseKey(entry.team) === target) ||
     leagueStandingsMetrics.find((entry) => normalizeCurrentTeamName(entry.team) === shownTeam) ||
     leagueStandingsMetrics.find((entry) => normalizeCurrentTeamName(entry.team) === "Scorpions");
-  if (!row) {
-    renderPanelMessage(els.teamTransactions, "No all-time franchise data found.");
-    return;
-  }
+  const activeRow = row || null;
 
   els.statTeam.textContent = shownTeam;
-  els.statGp.textContent = row.gp !== null && row.gp !== undefined ? String(row.gp) : "—";
-  els.statWins.textContent = row.wins !== null && row.wins !== undefined ? String(row.wins) : "—";
-  els.statLoss.textContent = row.loss !== null && row.loss !== undefined ? String(row.loss) : "—";
+  els.statGp.textContent = activeRow?.gp !== null && activeRow?.gp !== undefined ? String(activeRow.gp) : "—";
+  els.statWins.textContent = activeRow?.wins !== null && activeRow?.wins !== undefined ? String(activeRow.wins) : "—";
+  els.statLoss.textContent = activeRow?.loss !== null && activeRow?.loss !== undefined ? String(activeRow.loss) : "—";
   els.statWinPct.textContent =
-    typeof row.winpct === "number" ? row.winpct.toFixed(3).replace(/^0/, ".") : "—";
+    typeof activeRow?.winpct === "number" ? activeRow.winpct.toFixed(3).replace(/^0/, ".") : "—";
+  if (!activeRow) {
+    renderPanelMessage(els.teamTransactions, "No all-time franchise data found.");
+  }
   clearAllTimeOnlyStats();
 }
 
@@ -3269,6 +3269,12 @@ function updateStandingsFromRanges(teamName, standingsRows) {
   ) || currentRows.find((entry) => normalizeTeamLabel(entry.team) === "scorpions")
     || currentRows.find((entry) => normalizeTeamLabel(entry.team) === "yetis");
   if (!row) {
+    els.statTeam.textContent = displayTeamName(teamName || "—");
+    els.statGp.textContent = "—";
+    els.statWins.textContent = "—";
+    els.statLoss.textContent = "—";
+    els.statGb.textContent = "—";
+    els.statWinPct.textContent = "—";
     return;
   }
 
@@ -3308,6 +3314,12 @@ function updateStandingsFromC1S2(teamName, standingsRows) {
       .find((entry) => normalizeTeamLabel(normalizeCurrentTeamName(entry[teamIdx])) === "yetis");
   const activeRow = row || scorpionsRow;
   if (!activeRow) {
+    els.statTeam.textContent = displayTeamName(teamName || "—");
+    els.statGp.textContent = "—";
+    els.statWins.textContent = "—";
+    els.statLoss.textContent = "—";
+    els.statGb.textContent = "—";
+    els.statWinPct.textContent = "—";
     return;
   }
 
