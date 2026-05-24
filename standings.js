@@ -50,6 +50,8 @@ const EXCLUDED_STANDINGS_NAMES = new Set([
   "bracket",
   "standings",
   "playoffs",
+  "locked psp",
+  "locked psp join",
 ]);
 
 const DIVISIONS = {
