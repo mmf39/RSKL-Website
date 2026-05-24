@@ -13,6 +13,8 @@ const C1S6_ROSTERS_URL = "/assets/data/c1s6-rosters.csv";
 const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
 const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
+const SUPABASE_PLAYER_PROFILES_URL =
+  "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/player_profiles?select=player_tag,photo_url";
 const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 
 const els = {
@@ -28,6 +30,8 @@ let leaderboardRows = [];
 let playerNameOverrides = new Map();
 let rookieSeasonCache = new Map();
 const playerAvatarCache = new Map();
+let supabasePlayerPhotoMap = new Map();
+let supabasePlayerPhotoMapPromise = null;
 const RISING_STARS_HANDLES = new Set([
   "fullofopps",
   "xyz",
@@ -475,6 +479,32 @@ async function fetchPlayerAvatarUrl(item, season) {
   }
 
   try {
+    if (!supabasePlayerPhotoMapPromise) {
+      supabasePlayerPhotoMapPromise = fetch(SUPABASE_PLAYER_PROFILES_URL, {
+        headers: {
+          apikey: SUPABASE_API_KEY,
+          Authorization: `Bearer ${SUPABASE_API_KEY}`,
+        },
+        cache: "no-store",
+      })
+        .then((response) => (response.ok ? response.json() : []))
+        .then((rows) => {
+          supabasePlayerPhotoMap = new Map(
+            (Array.isArray(rows) ? rows : [])
+              .filter((row) => row.player_tag && row.photo_url)
+              .map((row) => [normalizePlayerKey(row.player_tag), String(row.photo_url || "").trim()])
+          );
+          return supabasePlayerPhotoMap;
+        })
+        .catch(() => new Map());
+    }
+    await supabasePlayerPhotoMapPromise;
+    const supabasePhotoUrl = supabasePlayerPhotoMap.get(cacheKey) || "";
+    if (supabasePhotoUrl) {
+      playerAvatarCache.set(cacheKey, supabasePhotoUrl);
+      return supabasePhotoUrl;
+    }
+
     const params = new URLSearchParams();
     params.set("player", item.tag || "");
     if (item.displayName && item.displayName !== item.tag) {

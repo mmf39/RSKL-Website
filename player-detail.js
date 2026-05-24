@@ -16,6 +16,8 @@ const C1S4_PLAYER_STATS_URL = "/assets/data/c1s4-player-stats.csv";
 const C1S5_ROSTERS_URL = "/assets/data/c1s5-rosters.csv";
 const C1S6_ROSTERS_URL = "/assets/data/c1s6-rosters.csv";
 const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
+const SUPABASE_PLAYER_PROFILES_URL =
+  "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/player_profiles?select=player_tag,photo_url";
 const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 const RISING_STARS_HANDLES = new Set([
   "fullofopps",
@@ -249,6 +251,25 @@ async function loadPlayerAvatar(playerName, displayName, season) {
   }
 
   try {
+    const profileResponse = await fetch(
+      `${SUPABASE_PLAYER_PROFILES_URL}&player_tag=eq.${encodeURIComponent(playerName)}`,
+      {
+        headers: {
+          apikey: SUPABASE_API_KEY,
+          Authorization: `Bearer ${SUPABASE_API_KEY}`,
+        },
+        cache: "no-store",
+      }
+    );
+    if (profileResponse.ok) {
+      const rows = await profileResponse.json();
+      const supabasePhotoUrl = String(rows?.[0]?.photo_url || "").trim();
+      if (supabasePhotoUrl) {
+        setPlayerAvatar(supabasePhotoUrl, displayName || playerName);
+        return;
+      }
+    }
+
     const params = new URLSearchParams();
     params.set("player", playerName);
     if (displayName && displayName !== playerName) {
