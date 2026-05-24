@@ -1302,7 +1302,7 @@ async function loadData() {
   try {
     if (seasonRaw === "c2s3-regular") {
       const results = await Promise.allSettled([
-        fetchSheet(STANDINGS_RECORDS_URL),
+        fetchSheet(STANDINGS_CSV_URL),
         fetchSheet(LIVE_SCORING_URL),
         fetchSheet(SCHEDULE_URL),
         fetchSheet(PLAYER_STATS_URL),
