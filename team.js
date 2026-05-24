@@ -1071,21 +1071,17 @@ async function loadAllTimeTeamSnapshot(teamName) {
     leagueStandingsMetrics.find((entry) => getFranchiseKey(entry.team) === target) ||
     leagueStandingsMetrics.find((entry) => normalizeCurrentTeamName(entry.team) === shownTeam) ||
     leagueStandingsMetrics.find((entry) => normalizeCurrentTeamName(entry.team) === "Scorpions");
-  const safeRow =
-    row || {
-      team: shownTeam,
-      gp: 0,
-      wins: 0,
-      loss: 0,
-      winpct: null,
-    };
+  if (!row) {
+    renderPanelMessage(els.teamTransactions, "No all-time franchise data found.");
+    return;
+  }
 
   els.statTeam.textContent = shownTeam;
-  els.statGp.textContent = safeRow.gp !== null && safeRow.gp !== undefined ? String(safeRow.gp) : "—";
-  els.statWins.textContent = safeRow.wins !== null && safeRow.wins !== undefined ? String(safeRow.wins) : "—";
-  els.statLoss.textContent = safeRow.loss !== null && safeRow.loss !== undefined ? String(safeRow.loss) : "—";
+  els.statGp.textContent = row.gp !== null && row.gp !== undefined ? String(row.gp) : "—";
+  els.statWins.textContent = row.wins !== null && row.wins !== undefined ? String(row.wins) : "—";
+  els.statLoss.textContent = row.loss !== null && row.loss !== undefined ? String(row.loss) : "—";
   els.statWinPct.textContent =
-    typeof safeRow.winpct === "number" ? safeRow.winpct.toFixed(3).replace(/^0/, ".") : "—";
+    typeof row.winpct === "number" ? row.winpct.toFixed(3).replace(/^0/, ".") : "—";
   clearAllTimeOnlyStats();
 }
 
