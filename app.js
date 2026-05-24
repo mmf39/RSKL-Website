@@ -545,17 +545,14 @@ function buildCurrentLeagueSnapshotRows(rows) {
 
     itemsByTeam.set(team, {
       team,
-      wins: parseNumber(row[activeIndexes.winsIdx]) ?? 0,
-      losses: parseNumber(row[activeIndexes.lossesIdx]) ?? 0,
-      gb: parseNumber(row[activeIndexes.gbIdx]) ?? 0,
-      winPct: parsePct(row[activeIndexes.pctIdx]) ?? 0,
+      wins: parseNumber(row[activeIndexes.winsIdx]),
+      losses: parseNumber(row[activeIndexes.lossesIdx]),
+      gb: parseNumber(row[activeIndexes.gbIdx]),
+      winPct: parsePct(row[activeIndexes.pctIdx]),
     });
   });
 
-  const finalItems = TEAM_ORDER.map((team) => {
-    const item = itemsByTeam.get(team);
-    return item || { team, wins: 0, losses: 0, gb: 0, winPct: 0 };
-  });
+  const finalItems = TEAM_ORDER.map((team) => itemsByTeam.get(team)).filter(Boolean);
 
   finalItems.sort((a, b) => {
     if ((b.winPct ?? -1) !== (a.winPct ?? -1)) return (b.winPct ?? -1) - (a.winPct ?? -1);
