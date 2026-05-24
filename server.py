@@ -2,7 +2,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import urllib.request
 import urllib.error
 import os
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, urlencode
 import time
 import json
 
@@ -45,6 +45,10 @@ AWARDS_URL = (
 CONTRACTS_URL = (
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vTr6cIsrgXTBa6ndhiGle_qOOUWgzH3KDUgPTANYDG2O_9u3_zdhOUGdzgz9yzMnqs1dgv54qg0TudU/pub?gid=959105096&single=true&output=csv"
 )
+LIVE_ROSTER_URL = (
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=0&single=true&output=csv"
+)
+PLAYER_PROFILE_SCRIPT_URL = os.environ.get("PLAYER_PROFILE_SCRIPT_URL", "")
 SHEET_UPDATE_URL = (
     "https://script.google.com/macros/s/AKfycbylZD-O7LCsznZpnRpYsAdbp7bCbknV-qta8PO0uv_k4Tnevf8Klkbfcg6Hh5DXC9GFvg/exec"
 )
@@ -110,10 +114,170 @@ def proxy_csv(handler, url, use_cache=True):
         send(handler, 500, f"Proxy error: {err}", cache_control="no-store")
 
 
+def normalize_name(value):
+    return str(value or "").replace("*", "").strip().lower()
+
+
+def parse_csv(text):
+    rows = []
+    row = []
+    value = ""
+    in_quotes = False
+    index = 0
+    while index < len(text):
+        char = text[index]
+        next_char = text[index + 1] if index + 1 < len(text) else ""
+        if char == '"':
+            if in_quotes and next_char == '"':
+                value += '"'
+                index += 1
+            else:
+                in_quotes = not in_quotes
+            index += 1
+            continue
+        if char == "," and not in_quotes:
+            row.append(value.strip())
+            value = ""
+            index += 1
+            continue
+        if (char == "\n" or char == "\r") and not in_quotes:
+            if char == "\r" and next_char == "\n":
+                index += 1
+            row.append(value.strip())
+            if len(row) > 1 or (row and row[0] != ""):
+                rows.append(row)
+            row = []
+            value = ""
+            index += 1
+            continue
+        value += char
+        index += 1
+    if value or row:
+        row.append(value.strip())
+        rows.append(row)
+    return rows
+
+
+def find_roster_record(rows, params):
+    if not rows:
+        return None
+    header = [str(cell or "").strip().lower() for cell in rows[0]]
+    user_at_idx = next((i for i, cell in enumerate(header) if cell in {"user @", "user@", "player"}), 0)
+    user_id_idx = next((i for i, cell in enumerate(header) if cell in {"user id", "userid", "player id"}), 1)
+    image_idx = next(
+        (
+            i
+            for i, cell in enumerate(header)
+            if cell in {"photo", "photo url", "profile picture", "profile picture url", "avatar", "image", "headshot"}
+        ),
+        -1,
+    )
+    targets = [normalize_name(params.get("player")), normalize_name(params.get("displayName"))]
+    targets = [value for value in targets if value]
+    for row in rows[1:]:
+        handle = str(row[user_at_idx] if user_at_idx < len(row) else "").strip()
+        if normalize_name(handle) not in targets:
+            continue
+        return {
+            "handle": handle,
+            "userId": str(row[user_id_idx] if user_id_idx < len(row) else "").strip(),
+            "imageUrl": str(row[image_idx] if image_idx >= 0 and image_idx < len(row) else "").strip(),
+        }
+    return None
+
+
+def fetch_json(url):
+    with urllib.request.urlopen(
+        urllib.request.Request(
+            url,
+            headers={
+                "Accept": "application/json,*/*",
+                "User-Agent": "RSKL Player Profile Proxy/1.0",
+            },
+        )
+    ) as response:
+        data = response.read().decode("utf-8")
+        return json.loads(data or "{}")
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         path = parsed.path
+        params = parse_qs(parsed.query or "")
+
+        if path == "/api/player-profile":
+            player = (params.get("player") or [""])[0].strip()
+            if not player:
+                send(self, 400, json.dumps({"ok": False, "message": "Missing player parameter."}), "application/json; charset=utf-8", "no-store")
+                return
+            flat_params = {k: (v[0] if isinstance(v, list) and v else "") for k, v in params.items()}
+            try:
+                with urllib.request.urlopen(LIVE_ROSTER_URL) as response:
+                    roster_csv = response.read().decode("utf-8")
+                roster_rows = parse_csv(roster_csv)
+                roster_record = find_roster_record(roster_rows, flat_params)
+                if roster_record and roster_record.get("imageUrl"):
+                    send(
+                        self,
+                        200,
+                        json.dumps(
+                            {
+                                "ok": True,
+                                "player": player,
+                                "userId": roster_record.get("userId", ""),
+                                "userTag": roster_record.get("handle", ""),
+                                "photoUrl": roster_record.get("imageUrl", ""),
+                            }
+                        ),
+                        "application/json; charset=utf-8",
+                        "no-store",
+                    )
+                    return
+                if not PLAYER_PROFILE_SCRIPT_URL:
+                    send(
+                        self,
+                        200,
+                        json.dumps(
+                            {
+                                "ok": True,
+                                "player": player,
+                                "userId": roster_record.get("userId", "") if roster_record else "",
+                                "userTag": roster_record.get("handle", "") if roster_record else "",
+                            }
+                        ),
+                        "application/json; charset=utf-8",
+                        "no-store",
+                    )
+                    return
+                target = PLAYER_PROFILE_SCRIPT_URL
+                query = []
+                for key, value in flat_params.items():
+                    if value:
+                        query.append((key, value))
+                if roster_record and roster_record.get("userId"):
+                    query.append(("userId", roster_record["userId"]))
+                    query.append(("playerId", roster_record["userId"]))
+                if roster_record and roster_record.get("handle"):
+                    query.append(("userTag", roster_record["handle"]))
+                if query:
+                    sep = "&" if "?" in target else "?"
+                    target = f"{target}{sep}{urlencode(query)}"
+                profile = fetch_json(target)
+                payload = {
+                    "ok": True,
+                    "player": player,
+                    "userId": roster_record.get("userId", "") if roster_record else "",
+                    "userTag": roster_record.get("handle", "") if roster_record else "",
+                }
+                if isinstance(profile, dict):
+                    payload.update(profile)
+                send(self, 200, json.dumps(payload), "application/json; charset=utf-8", "no-store")
+            except urllib.error.HTTPError as err:
+                send(self, err.code, json.dumps({"ok": False, "message": f"Upstream error {err.code}"}), "application/json; charset=utf-8", "no-store")
+            except Exception as err:  # pylint: disable=broad-except
+                send(self, 500, json.dumps({"ok": False, "message": str(err)}), "application/json; charset=utf-8", "no-store")
+            return
 
         if path == "/api/standings":
             proxy_csv(self, STANDINGS_URL, use_cache=False)

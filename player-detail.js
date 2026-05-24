@@ -7,6 +7,7 @@ const AWARDS_URL = "/api/sheet?name=awards";
 const DRAFT_URL = "/api/sheet?name=draft";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const CONTRACTS_URL = "/api/sheet?name=contracts";
+const PLAYER_PROFILE_URL = "/api/player-profile";
 const C1S2_ROSTERS_URL = "/assets/data/c1s2-rosters.csv";
 const C1S3_ROSTERS_URL = "/assets/data/c1s3-rosters.csv";
 const C1S4_PLAYER_STATS_URL = "/assets/data/c1s4-player-stats.csv";
@@ -96,6 +97,8 @@ const ARCHIVE_TEAM_ROSTERS = {
 const els = {
   name: document.getElementById("player-name"),
   sub: document.getElementById("player-sub"),
+  avatarCard: document.getElementById("player-avatar-card"),
+  avatarImage: document.getElementById("player-avatar-image"),
   lastUpdated: document.getElementById("last-updated"),
   head: document.querySelector("#player-games thead"),
   body: document.querySelector("#player-games tbody"),
@@ -155,6 +158,117 @@ let currentLoadedSeason = "";
 let contractRowsCache = [];
 let supplementalPlayerRows = [];
 let rookieSeasonCache = new Map();
+
+function setPlayerAvatar(url, playerName) {
+  if (!els.avatarCard || !els.avatarImage) {
+    return;
+  }
+  const cleanUrl = String(url || "").trim();
+  if (!cleanUrl) {
+    els.avatarCard.hidden = true;
+    els.avatarImage.removeAttribute("src");
+    return;
+  }
+  els.avatarImage.src = cleanUrl;
+  els.avatarImage.alt = `${String(playerName || "Player").trim() || "Player"} profile picture`;
+  els.avatarCard.hidden = false;
+}
+
+function findProfileImageUrl(value, depth = 0) {
+  if (!value || depth > 4) {
+    return "";
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return /^https?:\/\//i.test(trimmed) ? trimmed : "";
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const nested = findProfileImageUrl(item, depth + 1);
+      if (nested) {
+        return nested;
+      }
+    }
+    return "";
+  }
+  if (typeof value !== "object") {
+    return "";
+  }
+
+  const preferredKeys = [
+    "photoUrl",
+    "photoURL",
+    "photo_url",
+    "profilePhoto",
+    "profilePhotoUrl",
+    "profile_photo",
+    "profile_photo_url",
+    "profilePicture",
+    "profilePictureUrl",
+    "profile_picture",
+    "profile_picture_url",
+    "avatar",
+    "avatarUrl",
+    "avatar_url",
+    "image",
+    "imageUrl",
+    "image_url",
+    "headshot",
+    "headshotUrl",
+    "headshot_url",
+    "picture",
+    "pictureUrl",
+    "picture_url",
+    "pfp",
+  ];
+
+  for (const key of preferredKeys) {
+    if (Object.prototype.hasOwnProperty.call(value, key)) {
+      const direct = findProfileImageUrl(value[key], depth + 1);
+      if (direct) {
+        return direct;
+      }
+    }
+  }
+
+  for (const nestedValue of Object.values(value)) {
+    const nested = findProfileImageUrl(nestedValue, depth + 1);
+    if (nested) {
+      return nested;
+    }
+  }
+  return "";
+}
+
+async function loadPlayerAvatar(playerName, displayName, season) {
+  if (!playerName) {
+    setPlayerAvatar("", "");
+    return;
+  }
+
+  try {
+    const params = new URLSearchParams();
+    params.set("player", playerName);
+    if (displayName && displayName !== playerName) {
+      params.set("displayName", displayName);
+    }
+    if (season) {
+      params.set("season", season);
+    }
+    const response = await fetch(`${PLAYER_PROFILE_URL}?${params.toString()}`, {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      setPlayerAvatar("", displayName || playerName);
+      return;
+    }
+    const payload = await response.json();
+    const imageUrl = findProfileImageUrl(payload);
+    setPlayerAvatar(imageUrl, displayName || playerName);
+  } catch (_error) {
+    setPlayerAvatar("", displayName || playerName);
+  }
+}
 
 function parseCSV(text) {
   const rows = [];
@@ -2427,6 +2541,7 @@ async function loadPlayer() {
   window.__boxScoreRows = [];
   supplementalPlayerRows = [];
   renderPlayoffSupplement([]);
+  setPlayerAvatar("", playerName);
   const overridesPromise = loadPlayerOverrides();
   const contractPromise = fetchContractRows();
   const rookiePromise = loadRookieSeasonCache();
@@ -2461,6 +2576,7 @@ async function loadPlayer() {
       ? displayName
       : "Missing player name.";
   }
+  loadPlayerAvatar(playerName, displayName, currentLoadedSeason);
 
   if (playerName.toUpperCase().startsWith("GM")) {
     renderTable([]);
