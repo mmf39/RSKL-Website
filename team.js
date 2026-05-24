@@ -219,6 +219,12 @@ function displayTeamName(value) {
   return name;
 }
 
+function normalizeCurrentTeamName(value) {
+  const team = displayTeamName(value);
+  if (team === "Yetis") return "Scorpions";
+  return team;
+}
+
 function parseMoney(value) {
   const amount = Number(String(value || "").replace(/[^0-9.\-]/g, ""));
   return Number.isFinite(amount) ? amount : 0;
@@ -548,7 +554,7 @@ function buildLeagueRowsFromArchive(standingsTable, scheduleTable, season) {
   return standingsTable
     .slice(1)
     .map((row) => {
-      const team = displayTeamName(row[teamIdx] || "");
+      const team = normalizeCurrentTeamName(row[teamIdx] || "");
       if (!team) {
         return null;
       }
@@ -585,7 +591,7 @@ function buildLeagueRowsFromC1S2(standingsRows) {
   return standingsRows
     .slice(1)
     .map((row) => {
-      const team = displayTeamName(row[teamIdx] || "");
+      const team = normalizeCurrentTeamName(row[teamIdx] || "");
       const wins = parseNumber(row[winsIdx]);
       const loss = parseNumber(row[lossIdx]);
       return {
@@ -1671,7 +1677,7 @@ function buildHistoryRowsFromTable(tableRows) {
     return [];
   }
   return tableRows.slice(1).map((row) => ({
-    team: displayTeamName(row[teamIdx] || ""),
+    team: normalizeCurrentTeamName(row[teamIdx] || ""),
     wins: parseNumber(row[winsIdx]),
     loss: parseNumber(row[lossIdx]),
     winpct: pctIdx >= 0 ? parsePct(row[pctIdx]) : null,

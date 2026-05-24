@@ -334,6 +334,12 @@ function displayTeamName(value) {
   return name;
 }
 
+function normalizeCurrentTeamName(value) {
+  const team = displayTeamName(value);
+  if (team === "Yetis") return "Scorpions";
+  return team;
+}
+
 function getTeamLogoSrc(name) {
   const shown = displayTeamName(name);
   if (shown === "Dream Team") return "/assets/dream-team.jpg";
@@ -532,7 +538,7 @@ function buildCurrentLeagueSnapshotRows(rows) {
     if (!activeIndexes) return;
 
     const teamRaw = String(row[activeIndexes.teamIdx] || "").trim();
-    const team = displayTeamName(teamRaw);
+    const team = normalizeCurrentTeamName(teamRaw);
     if (!team) return;
     if (!TEAM_ORDER.includes(team)) return;
 
@@ -567,7 +573,7 @@ function buildArchiveLeagueSnapshotRows(rows) {
   const items = rows
     .slice(1)
     .map((row) => {
-      const team = displayTeamName(String(row[teamIdx >= 0 ? teamIdx : 0] || "").trim());
+      const team = normalizeCurrentTeamName(String(row[teamIdx >= 0 ? teamIdx : 0] || "").trim());
       return {
         team,
         wins: parseNumber(row[winsIdx]),
@@ -597,7 +603,7 @@ function renderLeagueSnapshot(items) {
   els.teamsGrid.innerHTML = items
     .slice(0, TEAMS_LIMIT)
     .map((item) => {
-      const team = displayTeamName(item.team);
+      const team = normalizeCurrentTeamName(item.team);
       const record = item.wins !== null && item.losses !== null ? `${item.wins}-${item.losses}` : "—";
       const recordMarkup =
         item.wins !== null && item.losses !== null

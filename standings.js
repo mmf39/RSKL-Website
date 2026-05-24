@@ -224,6 +224,12 @@ function displayTeamName(value) {
   return name;
 }
 
+function normalizeCurrentTeamName(value) {
+  const team = displayTeamName(value);
+  if (team === "Yetis") return "Scorpions";
+  return team;
+}
+
 function getFranchiseKey(value) {
   const team = displayTeamName(value);
   if (
@@ -698,7 +704,7 @@ function getCurrentStandingsRows(rows) {
     if (!indexes) return;
 
     const rawTeam = String(row[indexes.teamIdx] || "").trim();
-    const team = displayTeamName(rawTeam);
+    const team = normalizeCurrentTeamName(rawTeam);
     if (!team || !isStandingsTeamName(team)) return;
 
     byTeam.set(team, {
@@ -730,7 +736,7 @@ function buildLeagueRowsFromArchive(standingsTable, scheduleTable, season) {
   return standingsTable
     .slice(1)
     .map((row) => {
-      const team = displayTeamName(row[teamIdx] || "");
+      const team = normalizeCurrentTeamName(row[teamIdx] || "");
       if (!team) {
         return null;
       }
@@ -825,7 +831,7 @@ async function buildAllTimeLeagueStandings() {
         : buildHistoryRowsFromTable(parsed);
 
     seasonRows.forEach((row) => {
-      const teamName = displayTeamName(row.team);
+      const teamName = normalizeCurrentTeamName(row.team);
       const franchiseKey = getFranchiseKey(teamName);
       if (!franchiseKey) {
         return;
