@@ -266,14 +266,21 @@ class Handler(BaseHTTPRequestHandler):
                     sep = "&" if "?" in target else "?"
                     target = f"{target}{sep}{urlencode(query)}"
                 profile = fetch_json(target)
+                expected_user_id = roster_record.get("userId", "").strip() if roster_record else ""
+                returned_user_id = str(profile.get("userId", "") or profile.get("playerId", "")).strip() if isinstance(profile, dict) else ""
+                safe_profile = (
+                    profile
+                    if not expected_user_id or not returned_user_id or expected_user_id == returned_user_id
+                    else {"ok": False, "player": player, "userId": expected_user_id, "userTag": roster_record.get("handle", "") if roster_record else ""}
+                )
                 payload = {
                     "ok": True,
                     "player": player,
                     "userId": roster_record.get("userId", "") if roster_record else "",
                     "userTag": roster_record.get("handle", "") if roster_record else "",
                 }
-                if isinstance(profile, dict):
-                    payload.update(profile)
+                if isinstance(safe_profile, dict):
+                    payload.update(safe_profile)
                 send(self, 200, json.dumps(payload), "application/json; charset=utf-8", "no-store")
             except urllib.error.HTTPError as err:
                 send(self, err.code, json.dumps({"ok": False, "message": f"Upstream error {err.code}"}), "application/json; charset=utf-8", "no-store")

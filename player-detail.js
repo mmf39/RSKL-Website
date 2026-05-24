@@ -8,8 +8,6 @@ const DRAFT_URL = "/api/sheet?name=draft";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const CONTRACTS_URL = "/api/sheet?name=contracts";
 const PLAYER_PROFILE_URL = "/api/player-profile";
-const PLAYER_PROFILE_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
 const C1S2_ROSTERS_URL = "/assets/data/c1s2-rosters.csv";
 const C1S3_ROSTERS_URL = "/assets/data/c1s3-rosters.csv";
 const C1S4_PLAYER_STATS_URL = "/assets/data/c1s4-player-stats.csv";
@@ -257,23 +255,16 @@ async function loadPlayerAvatar(playerName, displayName, season) {
     if (season) {
       params.set("season", season);
     }
-    const urls = [
-      `${PLAYER_PROFILE_URL}?${params.toString()}`,
-      `${PLAYER_PROFILE_SCRIPT_URL}?${params.toString()}`,
-    ];
-    for (const url of urls) {
-      const response = await fetch(url, { cache: "no-store" });
-      if (!response.ok) {
-        continue;
-      }
-      const payload = await response.json();
-      const imageUrl = findProfileImageUrl(payload);
-      if (imageUrl) {
-        setPlayerAvatar(imageUrl, displayName || playerName);
-        return;
-      }
+    const response = await fetch(`${PLAYER_PROFILE_URL}?${params.toString()}`, {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      setPlayerAvatar("", displayName || playerName);
+      return;
     }
-    setPlayerAvatar("", displayName || playerName);
+    const payload = await response.json();
+    const imageUrl = findProfileImageUrl(payload);
+    setPlayerAvatar(imageUrl, displayName || playerName);
   } catch (_error) {
     setPlayerAvatar("", displayName || playerName);
   }

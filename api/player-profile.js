@@ -226,12 +226,18 @@ module.exports = async (req, res) => {
     }
 
     const profile = await fetchProfileFromScript(params, rosterRecord);
+    const expectedUserId = rosterRecord ? String(rosterRecord.userId || "").trim() : "";
+    const returnedUserId = String(profile.userId || profile.playerId || "").trim();
+    const safeProfile =
+      !expectedUserId || !returnedUserId || expectedUserId === returnedUserId
+        ? profile
+        : { ok: false, player, userId: expectedUserId, userTag: rosterRecord ? rosterRecord.handle : "" };
     sendJson(res, 200, {
       ok: true,
       player,
       userId: rosterRecord ? rosterRecord.userId : "",
       userTag: rosterRecord ? rosterRecord.handle : "",
-      ...profile,
+      ...safeProfile,
     });
   } catch (error) {
     sendJson(res, 500, { ok: false, message: error.message });

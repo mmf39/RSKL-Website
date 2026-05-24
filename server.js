@@ -297,6 +297,12 @@ const server = http.createServer((req, res) => {
         }
 
         const profile = await fetchProfileFromScript(params, rosterRecord);
+        const expectedUserId = rosterRecord ? String(rosterRecord.userId || "").trim() : "";
+        const returnedUserId = String(profile.userId || profile.playerId || "").trim();
+        const safeProfile =
+          !expectedUserId || !returnedUserId || expectedUserId === returnedUserId
+            ? profile
+            : { ok: false, player, userId: expectedUserId, userTag: rosterRecord ? rosterRecord.handle : "" };
         send(
           res,
           200,
@@ -305,7 +311,7 @@ const server = http.createServer((req, res) => {
             player,
             userId: rosterRecord ? rosterRecord.userId : "",
             userTag: rosterRecord ? rosterRecord.handle : "",
-            ...profile,
+            ...safeProfile,
           }),
           "application/json; charset=utf-8"
         );
