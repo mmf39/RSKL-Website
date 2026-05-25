@@ -3686,7 +3686,9 @@ input[type="text"] {
   white-space: nowrap;
 }
 
-.rookie-mark {
+.rookie-mark,
+.rising-stars-mark,
+.all-star-mark {
   padding: 4px 10px;
   background: rgba(255, 140, 26, 0.18);
   border-color: rgba(255, 140, 26, 0.52);

@@ -1,6 +1,7 @@
 (() => {
   const SUPABASE_CONFIG_URL = "/api/supabase-config";
   const ROOKIE_OVERRIDES_URL = "/assets/data/rookie-overrides.json";
+  const ALL_STAR_OVERRIDES_URL = "/assets/data/all-star-overrides.json";
   const RISING_STARS_HANDLES = new Set([
     "fullofopps",
     "xyz",
@@ -21,7 +22,9 @@
     "c2s3-regular",
   ];
   const rookieCache = new Map();
+  const allStarCache = new Map();
   let rookieOverridesPromise = null;
+  let allStarOverridesPromise = null;
   const playerPhotoCache = new Map();
   let supabaseUrl = "";
   let supabaseAnon = "";
@@ -338,6 +341,15 @@
     return rookieOverridesPromise;
   }
 
+  async function loadAllStarOverrides() {
+    if (!allStarOverridesPromise) {
+      allStarOverridesPromise = fetch(ALL_STAR_OVERRIDES_URL, { cache: "no-store" })
+        .then((response) => (response.ok ? response.json() : {}))
+        .catch(() => ({}));
+    }
+    return allStarOverridesPromise;
+  }
+
   async function loadRookieCache() {
     if (rookieCache.size) return rookieCache;
     const overridePayload = await loadRookieOverrides();
@@ -351,6 +363,18 @@
     ]);
     entries.forEach(([seasonKey, set]) => rookieCache.set(seasonKey, set));
     return rookieCache;
+  }
+
+  async function loadAllStarCache() {
+    if (allStarCache.size) return allStarCache;
+    const payload = await loadAllStarOverrides();
+    Object.entries(payload || {}).forEach(([seasonKey, players]) => {
+      allStarCache.set(
+        normalizeRookieSeasonKey(seasonKey),
+        new Set((Array.isArray(players) ? players : []).map((value) => normalize(value)).filter(Boolean))
+      );
+    });
+    return allStarCache;
   }
 
   function normalizeRookieSeasonKey(seasonKey) {
@@ -370,6 +394,13 @@
     const normalizedSeason = normalizeRookieSeasonKey(seasonKey);
     if (!normalized || !normalizedSeason) return false;
     return Boolean(rookieCache.get(normalizedSeason)?.has(normalized));
+  }
+
+  function isAllStar(seasonKey, player) {
+    const normalized = normalize(player);
+    const normalizedSeason = normalizeRookieSeasonKey(seasonKey);
+    if (!normalized || !normalizedSeason) return false;
+    return Boolean(allStarCache.get(normalizedSeason)?.has(normalized));
   }
 
   function resolveSeason(input) {
@@ -400,7 +431,10 @@
       );
     }
     if (risingStars && RISING_STARS_HANDLES.has(normalize(player))) {
-      badges.push('<span class="player-mark" title="Rising Stars participant">RS</span>');
+      badges.push('<span class="player-mark rising-stars-mark" title="Rising Stars participant">RS</span>');
+    }
+    if (isAllStar(activeSeason, player)) {
+      badges.push('<span class="player-mark all-star-mark" title="C2S3 All Star">ASG</span>');
     }
     return badges.join("");
   }
@@ -410,7 +444,7 @@
   window.rsklEnhancePlayerLinks = enhancePlayerLinks;
 
   const bootPlayerAvatars = () => {
-    loadRookieCache().finally(() => {
+    Promise.all([loadRookieCache(), loadAllStarCache()]).finally(() => {
       hydrateRookieBadges(document);
       enhancePlayerLinks(document);
       observePlayerLinks();

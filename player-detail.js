@@ -10,6 +10,7 @@ const CONTRACTS_URL = "/api/sheet?name=contracts";
 const PLAYER_PROFILE_URL = "/api/player-profile";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const ROOKIE_OVERRIDES_URL = "/assets/data/rookie-overrides.json";
+const ALL_STAR_OVERRIDES_URL = "/assets/data/all-star-overrides.json";
 const PLAYER_PROFILE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
 const C1S2_ROSTERS_URL = "/assets/data/c1s2-rosters.csv";
@@ -152,6 +153,8 @@ let contractRowsCache = [];
 let supplementalPlayerRows = [];
 let rookieSeasonCache = new Map();
 let rookieOverridesPromise = null;
+let allStarSeasonCache = new Map();
+let allStarOverridesPromise = null;
 let supabaseUrl = "";
 let supabaseAnon = "";
 let supabaseConfigPromise = null;
@@ -475,6 +478,14 @@ function isRisingStarsPlayer(value) {
   return RISING_STARS_HANDLES.has(normalizePlayerKey(value));
 }
 
+function isAllStarPlayer(seasonKey, playerKey) {
+  const normalizedPlayer = normalizePlayerKey(playerKey);
+  if (!normalizedPlayer) return false;
+  const normalizedSeason = normalizeRookieSeasonKey(seasonKey);
+  const currentSet = allStarSeasonCache.get(normalizedSeason);
+  return Boolean(currentSet && currentSet.has(normalizedPlayer));
+}
+
 function normalizeRookieSeasonKey(seasonKey) {
   if (seasonKey === "c2s2-playoffs") return "c2s2-regular";
   if (seasonKey === "c2s1-playoffs") return "c2s1-regular";
@@ -517,6 +528,23 @@ async function loadRookieSeasonCache() {
   );
   rookieSeasonCache = new Map(entries);
   return rookieSeasonCache;
+}
+
+async function loadAllStarSeasonCache() {
+  if (allStarSeasonCache.size) return allStarSeasonCache;
+  if (!allStarOverridesPromise) {
+    allStarOverridesPromise = fetch(ALL_STAR_OVERRIDES_URL, { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : {}))
+      .catch(() => ({}));
+  }
+  const payload = await allStarOverridesPromise;
+  allStarSeasonCache = new Map(
+    Object.entries(payload || {}).map(([seasonKey, players]) => [
+      normalizeRookieSeasonKey(seasonKey),
+      new Set((Array.isArray(players) ? players : []).map((value) => normalizePlayerKey(value)).filter(Boolean)),
+    ])
+  );
+  return allStarSeasonCache;
 }
 
 function displayTeamName(value) {
@@ -2607,7 +2635,7 @@ async function loadPlayer() {
   setPlayerAvatar("", playerName);
   const overridesPromise = loadPlayerOverrides();
   const contractPromise = fetchContractRows();
-  const rookiePromise = loadRookieSeasonCache();
+  const rookiePromise = Promise.all([loadRookieSeasonCache(), loadAllStarSeasonCache()]);
   const initialDisplayName = playerName || "Player";
   els.name.textContent = initialDisplayName;
   if (els.sub) {
@@ -2630,9 +2658,12 @@ async function loadPlayer() {
     ? ' <span class="player-mark rookie-mark" title="Drafted for this season">R</span>'
     : "";
   const risingStarsBadge = isRisingStarsPlayer(playerName)
-    ? ' <span class="player-mark" title="Rising Stars participant">RS</span>'
+    ? ' <span class="player-mark rising-stars-mark" title="Rising Stars participant">RS</span>'
     : "";
-  els.name.innerHTML = `${escapeHtml(displayName || "Player")}${rookieBadge}${risingStarsBadge}`;
+  const allStarBadge = isAllStarPlayer(currentLoadedSeason, playerName)
+    ? ' <span class="player-mark all-star-mark" title="C2S3 All Star">ASG</span>'
+    : "";
+  els.name.innerHTML = `${escapeHtml(displayName || "Player")}${rookieBadge}${risingStarsBadge}${allStarBadge}`;
   if (els.sub) {
     els.sub.textContent = "";
   }
