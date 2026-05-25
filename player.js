@@ -5,7 +5,14 @@ const PLAYER_PROFILE_URL = "/api/player-profile";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const PLAYER_PROFILE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
+const DRAFT_URL = "/api/sheet?name=draft";
+const ARCHIVE_DRAFT_URL = "/api/sheet?name=archive";
 const C2S1_ROSTERS_URL = "/assets/data/c2s1-rosters.csv";
+const C1S2_DRAFT_URL = "/assets/data/c1s2-draft.csv";
+const C1S3_DRAFT_URL = "/assets/data/c1s3-draft.csv";
+const C1S4_DRAFT_URL = "/assets/data/c1s4-draft.csv";
+const C1S5_DRAFT_URL = "/assets/data/c1s5-draft.csv";
+const C1S6_DRAFT_URL = "/assets/data/c1s6-draft.csv";
 const C1S2_ROSTERS_URL = "/assets/data/c1s2-rosters.csv";
 const C1S3_ROSTERS_URL = "/assets/data/c1s3-rosters.csv";
 const C1S4_PLAYER_STATS_URL = "/assets/data/c1s4-player-stats.csv";
@@ -50,15 +57,15 @@ const ROOKIE_SEASON_ORDER = [
   "c2s2-regular",
   "c2s3-regular",
 ];
-const ROOKIE_ROSTER_SOURCES = {
-  "c1s2-regular": C1S2_ROSTERS_URL,
-  "c1s3-regular": C1S3_ROSTERS_URL,
-  "c1s4-regular": C1S4_PLAYER_STATS_URL,
-  "c1s5-regular": C1S5_ROSTERS_URL,
-  "c1s6-regular": C1S6_ROSTERS_URL,
-  "c2s1-regular": C2S1_ROSTERS_URL,
-  "c2s2-regular": PLAYER_STATS_URL,
-  "c2s3-regular": PLAYER_STATS_URL,
+const ROOKIE_DRAFT_SOURCES = {
+  "c1s2-regular": { url: C1S2_DRAFT_URL },
+  "c1s3-regular": { url: C1S3_DRAFT_URL },
+  "c1s4-regular": { url: C1S4_DRAFT_URL },
+  "c1s5-regular": { url: C1S5_DRAFT_URL },
+  "c1s6-regular": { url: C1S6_DRAFT_URL },
+  "c2s1-regular": { url: ARCHIVE_DRAFT_URL, ranges: ["A120:C175"] },
+  "c2s2-regular": { url: DRAFT_URL, ranges: ["A1:C11", "A12:C22", "A23:C33", "A34:C44"] },
+  "c2s3-regular": { url: DRAFT_URL, ranges: ["A1:C10", "A12:C21"] },
 };
 let playerColumns = {
   date: 0,
@@ -674,19 +681,23 @@ async function loadRookieSeasonCache() {
   if (rookieSeasonCache.size) return rookieSeasonCache;
   const entries = await Promise.all(
     ROOKIE_SEASON_ORDER.map(async (seasonKey) => {
-      const url = ROOKIE_ROSTER_SOURCES[seasonKey];
-      if (!url) return [seasonKey, new Set()];
-      const response = await fetch(url, { cache: "no-store" });
+      const source = ROOKIE_DRAFT_SOURCES[seasonKey];
+      if (!source || !source.url) return [seasonKey, new Set()];
+      const response = await fetch(source.url, { cache: "no-store" });
       if (!response.ok) return [seasonKey, new Set()];
       const rows = parseCSV(await response.text());
+      const scopedRows =
+        Array.isArray(source.ranges) && source.ranges.length
+          ? source.ranges.flatMap((range) => sliceRange(rows, range))
+          : rows;
       const players = new Set();
-      rows.slice(1).forEach((row) => {
-        const candidate = [row[1], row[0], row[2]]
-          .map((value) => String(value || "").trim())
-          .find(Boolean);
-        if (candidate) {
-          players.add(normalizePlayerKey(candidate));
-        }
+      scopedRows.forEach((row) => {
+        row.forEach((value) => {
+          const text = String(value || "").trim();
+          if (text.startsWith("@")) {
+            players.add(normalizePlayerKey(text));
+          }
+        });
       });
       return [seasonKey, players];
     })

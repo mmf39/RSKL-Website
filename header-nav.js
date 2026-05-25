@@ -18,15 +18,21 @@
     "c2s2-regular",
     "c2s3-regular",
   ];
-  const ROOKIE_ROSTER_SOURCES = {
-    "c1s2-regular": "/assets/data/c1s2-rosters.csv",
-    "c1s3-regular": "/assets/data/c1s3-rosters.csv",
-    "c1s4-regular": "/assets/data/c1s4-player-stats.csv",
-    "c1s5-regular": "/assets/data/c1s5-rosters.csv",
-    "c1s6-regular": "/assets/data/c1s6-rosters.csv",
-    "c2s1-regular": "/assets/data/c2s1-rosters.csv",
-    "c2s2-regular": "/api/sheet?name=player-stats",
-    "c2s3-regular": "/api/sheet?name=player-stats",
+  const ROOKIE_DRAFT_SOURCES = {
+    "c1s2-regular": { url: "/assets/data/c1s2-draft.csv" },
+    "c1s3-regular": { url: "/assets/data/c1s3-draft.csv" },
+    "c1s4-regular": { url: "/assets/data/c1s4-draft.csv" },
+    "c1s5-regular": { url: "/assets/data/c1s5-draft.csv" },
+    "c1s6-regular": { url: "/assets/data/c1s6-draft.csv" },
+    "c2s1-regular": { url: "/api/sheet?name=archive", ranges: ["A120:C175"] },
+    "c2s2-regular": {
+      url: "/api/sheet?name=draft",
+      ranges: ["A1:C11", "A12:C22", "A23:C33", "A34:C44"],
+    },
+    "c2s3-regular": {
+      url: "/api/sheet?name=draft",
+      ranges: ["A1:C10", "A12:C21"],
+    },
   };
   const rookieCache = new Map();
   const playerPhotoCache = new Map();
@@ -271,24 +277,55 @@
     return rows;
   };
 
+  const colToIndex = (letter) => letter.toUpperCase().charCodeAt(0) - 65;
+
+  const parseRange = (range) => {
+    const match = String(range || "").match(/^([A-Z]+)(\d+):([A-Z]+)(\d+)$/i);
+    if (!match) return null;
+    const [, startCol, startRow, endCol, endRow] = match;
+    return {
+      startCol: colToIndex(startCol),
+      endCol: colToIndex(endCol),
+      startRow: Number(startRow) - 1,
+      endRow: Number(endRow) - 1,
+    };
+  };
+
+  const sliceRange = (rows, range) => {
+    const parsed = parseRange(range);
+    if (!parsed) return [];
+    return rows
+      .slice(parsed.startRow, parsed.endRow + 1)
+      .map((row) => row.slice(parsed.startCol, parsed.endCol + 1));
+  };
+
+  const extractDraftedPlayers = (rows) => {
+    const players = new Set();
+    (rows || []).forEach((row) => {
+      (row || []).forEach((cell) => {
+        const value = String(cell || "").trim();
+        if (value.startsWith("@")) {
+          players.add(normalize(value));
+        }
+      });
+    });
+    return players;
+  };
+
   async function loadRookieCache() {
     if (rookieCache.size) return rookieCache;
     const entries = await Promise.all(
       ROOKIE_SEASON_ORDER.map(async (seasonKey) => {
-        const url = ROOKIE_ROSTER_SOURCES[seasonKey];
-        if (!url) return [seasonKey, new Set()];
+        const source = ROOKIE_DRAFT_SOURCES[seasonKey];
+        if (!source || !source.url) return [seasonKey, new Set()];
         try {
-          const response = await fetch(url, { cache: "no-store" });
+          const response = await fetch(source.url, { cache: "no-store" });
           if (!response.ok) return [seasonKey, new Set()];
           const rows = parseCSV(await response.text());
-          const players = new Set();
-          rows.slice(1).forEach((row) => {
-            const candidate = [row[1], row[0], row[2]]
-              .map((cell) => String(cell || "").trim())
-              .find(Boolean);
-            if (candidate) players.add(normalize(candidate));
-          });
-          return [seasonKey, players];
+          const scopedRows = Array.isArray(source.ranges) && source.ranges.length
+            ? source.ranges.flatMap((range) => sliceRange(rows, range))
+            : rows;
+          return [seasonKey, extractDraftedPlayers(scopedRows)];
         } catch (_) {
           return [seasonKey, new Set()];
         }
