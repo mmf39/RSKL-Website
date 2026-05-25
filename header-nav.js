@@ -47,6 +47,10 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        vertical-align: middle;
+        line-height: 1;
       }
       .rskl-player-link__avatar {
         width: 26px;
@@ -67,6 +71,9 @@
       }
       .rskl-player-link__label {
         min-width: 0;
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
       }
     `;
     document.head.appendChild(style);
