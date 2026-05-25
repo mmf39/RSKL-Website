@@ -23,6 +23,7 @@ const PLAYER_PROFILE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const SHEETS = {
   archive:
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1077518539&single=true&output=csv",
@@ -243,6 +244,76 @@ function fetchProfileFromScript(params) {
   });
 }
 
+function readJsonBody(req) {
+  return new Promise((resolve) => {
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+    req.on("end", () => {
+      try {
+        resolve(body ? JSON.parse(body) : {});
+      } catch (_) {
+        resolve({});
+      }
+    });
+    req.on("error", () => resolve({}));
+  });
+}
+
+function supabaseRequest(method, pathName, payload) {
+  return new Promise((resolve, reject) => {
+    const target = new URL(`${SUPABASE_URL}${pathName}`);
+    const body = payload ? JSON.stringify(payload) : "";
+    const request = https.request(
+      {
+        method,
+        hostname: target.hostname,
+        path: target.pathname + target.search,
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          "Content-Type": "application/json",
+          Prefer: "return=representation",
+          ...(body ? { "Content-Length": Buffer.byteLength(body) } : {}),
+        },
+      },
+      (response) => {
+        let data = "";
+        response.on("data", (chunk) => {
+          data += chunk;
+        });
+        response.on("end", () => {
+          const status = response.statusCode || 200;
+          if (status >= 400) {
+            reject(new Error(`Supabase error ${status}: ${data.slice(0, 300)}`));
+            return;
+          }
+          try {
+            resolve(data ? JSON.parse(data) : []);
+          } catch (_) {
+            resolve([]);
+          }
+        });
+      }
+    );
+    request.on("error", reject);
+    if (body) {
+      request.write(body);
+    }
+    request.end();
+  });
+}
+
+async function patchSupabasePlayerTag(table, oldTag, payload) {
+  const rows = await supabaseRequest(
+    "PATCH",
+    `/rest/v1/${table}?player_tag=eq.${encodeURIComponent(oldTag)}`,
+    payload
+  );
+  return Array.isArray(rows) ? rows.length : 0;
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
@@ -260,6 +331,65 @@ const server = http.createServer((req, res) => {
         send(res, 200, JSON.stringify(profile), "application/json; charset=utf-8");
       } catch (error) {
         send(res, 500, JSON.stringify({ ok: false, message: error.message }), "application/json; charset=utf-8");
+      }
+    })();
+    return;
+  }
+
+  if (url.pathname === "/api/player-rename-sync") {
+    if (req.method !== "POST") {
+      send(
+        res,
+        405,
+        JSON.stringify({ ok: false, message: "Method not allowed." }),
+        "application/json; charset=utf-8"
+      );
+      return;
+    }
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      send(
+        res,
+        500,
+        JSON.stringify({ ok: false, message: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY." }),
+        "application/json; charset=utf-8"
+      );
+      return;
+    }
+    (async () => {
+      try {
+        const payload = await readJsonBody(req);
+        const oldTag = String(payload.oldTag || "").trim();
+        const newTag = String(payload.newTag || "").trim();
+        const newDisplay = String(payload.newDisplay || newTag || "").trim();
+        if (!oldTag || !newTag) {
+          send(
+            res,
+            400,
+            JSON.stringify({ ok: false, message: "Missing oldTag or newTag." }),
+            "application/json; charset=utf-8"
+          );
+          return;
+        }
+        const playersUpdated = await patchSupabasePlayerTag("players", oldTag, {
+          player_tag: newTag,
+          display_name: newDisplay,
+        }).catch(() => 0);
+        const playerProfilesUpdated = await patchSupabasePlayerTag("player_profiles", oldTag, {
+          player_tag: newTag,
+        }).catch(() => 0);
+        send(
+          res,
+          200,
+          JSON.stringify({ ok: true, playersUpdated, playerProfilesUpdated }),
+          "application/json; charset=utf-8"
+        );
+      } catch (error) {
+        send(
+          res,
+          500,
+          JSON.stringify({ ok: false, message: error.message }),
+          "application/json; charset=utf-8"
+        );
       }
     })();
     return;

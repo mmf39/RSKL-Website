@@ -53,6 +53,7 @@ if not PLAYER_PROFILE_SCRIPT_URL:
     PLAYER_PROFILE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec"
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
+SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
 SHEET_UPDATE_URL = (
     "https://script.google.com/macros/s/AKfycbylZD-O7LCsznZpnRpYsAdbp7bCbknV-qta8PO0uv_k4Tnevf8Klkbfcg6Hh5DXC9GFvg/exec"
 )
@@ -204,6 +205,32 @@ def fetch_json(url):
         return json.loads(data or "{}")
 
 
+def supabase_request(method, path, payload=None):
+    req = urllib.request.Request(
+        f"{SUPABASE_URL}{path}",
+        data=json.dumps(payload).encode("utf-8") if payload is not None else None,
+        headers={
+            "apikey": SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+        },
+        method=method,
+    )
+    with urllib.request.urlopen(req) as response:
+        data = response.read().decode("utf-8")
+        return json.loads(data or "[]")
+
+
+def patch_supabase_player_tag(table, old_tag, payload):
+    rows = supabase_request(
+        "PATCH",
+        f"/rest/v1/{table}?player_tag=eq.{urllib.parse.quote(old_tag, safe='')}",
+        payload,
+    )
+    return len(rows) if isinstance(rows, list) else 0
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -247,6 +274,65 @@ class Handler(BaseHTTPRequestHandler):
                 self,
                 200,
                 json.dumps({"ok": True, "url": SUPABASE_URL, "anonKey": SUPABASE_ANON_KEY}),
+                "application/json; charset=utf-8",
+                "no-store",
+            )
+            return
+
+        if path == "/api/player-rename-sync":
+            if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+                send(
+                    self,
+                    500,
+                    json.dumps({"ok": False, "message": "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY."}),
+                    "application/json; charset=utf-8",
+                    "no-store",
+                )
+                return
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length) if length else b"{}"
+            try:
+                payload = json.loads(body.decode("utf-8") or "{}")
+            except Exception:  # pylint: disable=broad-except
+                payload = {}
+            old_tag = str(payload.get("oldTag", "")).strip()
+            new_tag = str(payload.get("newTag", "")).strip()
+            new_display = str(payload.get("newDisplay", "") or new_tag).strip()
+            if not old_tag or not new_tag:
+                send(
+                    self,
+                    400,
+                    json.dumps({"ok": False, "message": "Missing oldTag or newTag."}),
+                    "application/json; charset=utf-8",
+                    "no-store",
+                )
+                return
+            try:
+                players_updated = patch_supabase_player_tag(
+                    "players",
+                    old_tag,
+                    {"player_tag": new_tag, "display_name": new_display},
+                )
+            except Exception:  # pylint: disable=broad-except
+                players_updated = 0
+            try:
+                player_profiles_updated = patch_supabase_player_tag(
+                    "player_profiles",
+                    old_tag,
+                    {"player_tag": new_tag},
+                )
+            except Exception:  # pylint: disable=broad-except
+                player_profiles_updated = 0
+            send(
+                self,
+                200,
+                json.dumps(
+                    {
+                        "ok": True,
+                        "playersUpdated": players_updated,
+                        "playerProfilesUpdated": player_profiles_updated,
+                    }
+                ),
                 "application/json; charset=utf-8",
                 "no-store",
             )

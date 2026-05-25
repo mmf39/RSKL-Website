@@ -4,6 +4,7 @@ const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
 const POWER_RANKINGS_URL = "/api/sheet?name=power-rankings";
 const SCHEDULE_URL = "/api/sheet?name=schedule";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
+const PLAYER_RENAME_SYNC_API = "/api/player-rename-sync";
 const GM_ACCESS_TOKEN_KEY = "rskl_gm_access_token";
 const GM_REFRESH_TOKEN_KEY = "rskl_gm_refresh_token";
 const GM_SESSION_USER_KEY = "rskl_gm_user";
@@ -943,6 +944,29 @@ async function updatePlayerNameInSheet(team, oldTag, newName) {
   }
   if (payload.updated === false) {
     throw new Error("Player not found on sheet.");
+  }
+  return payload;
+}
+
+async function syncPlayerRenameToSupabase(oldTag, newTag) {
+  const response = await fetch(PLAYER_RENAME_SYNC_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      oldTag,
+      newTag,
+      newDisplay: newTag,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Supabase player sync failed: ${response.status}`);
+  }
+  const payload = await response.json();
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Invalid Supabase player sync response.");
+  }
+  if (payload.ok === false) {
+    throw new Error(payload.message || "Unable to sync player rename to Supabase.");
   }
   return payload;
 }
@@ -2233,6 +2257,15 @@ function bindEvents() {
       }
       try {
         const result = await updatePlayerNameInSheet(team, oldTag, newName);
+        let supabaseResult = null;
+        try {
+          supabaseResult = await syncPlayerRenameToSupabase(oldTag, newName);
+        } catch (supabaseError) {
+          supabaseResult = {
+            ok: false,
+            message: supabaseError.message || "Supabase sync failed.",
+          };
+        }
         const nextPlayers = (getTeamPlayers(team) || []).map((p) =>
           normalizeName(p) === normalizeName(oldTag) ? newName : p
         );
@@ -2246,15 +2279,24 @@ function bindEvents() {
         const mirrorMsg =
           result && result.mirrorMessage ? String(result.mirrorMessage) : "";
         if (mirrorOk && mirrorUpdated) {
-          setRenameStatus("Player name updated on both sheets.");
+          if (supabaseResult && supabaseResult.ok !== false) {
+            setRenameStatus("Player name updated on both sheets and synced to Supabase.");
+          } else {
+            setRenameStatus(
+              `Player name updated on both sheets, Supabase sync failed${supabaseResult?.message ? `: ${supabaseResult.message}` : "."}`,
+              true
+            );
+          }
         } else if (mirrorOk && !mirrorUpdated) {
           setRenameStatus(
-            "Primary sheet updated, mirror sheet had no matching player.",
+            supabaseResult && supabaseResult.ok !== false
+              ? "Primary sheet updated, mirror sheet had no matching player, Supabase synced."
+              : `Primary sheet updated, mirror sheet had no matching player, Supabase failed${supabaseResult?.message ? `: ${supabaseResult.message}` : "."}`,
             true
           );
         } else {
           setRenameStatus(
-            `Primary sheet updated, mirror failed${mirrorMsg ? `: ${mirrorMsg}` : "."}`,
+            `Primary sheet updated, mirror failed${mirrorMsg ? `: ${mirrorMsg}` : "."}${supabaseResult && supabaseResult.ok === false ? ` Supabase failed: ${supabaseResult.message || "Unknown error."}` : supabaseResult ? " Supabase synced." : ""}`,
             true
           );
         }
