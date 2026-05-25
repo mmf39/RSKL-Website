@@ -75,6 +75,18 @@
         align-items: center;
         white-space: nowrap;
       }
+      .dashboard-leader-card .rskl-player-link--with-avatar {
+        display: inline-flex;
+        width: max-content;
+        max-width: 100%;
+        gap: 10px;
+        white-space: nowrap;
+      }
+      .dashboard-leader-card .rskl-player-link__avatar {
+        width: 32px;
+        height: 32px;
+        flex: 0 0 32px;
+      }
     `;
     document.head.appendChild(style);
   }
