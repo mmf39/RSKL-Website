@@ -3560,8 +3560,8 @@ input[type="text"] {
 
 .player-leader-row {
   display: grid;
-  grid-template-columns: 56px minmax(180px, 1.5fr) minmax(140px, 1fr) 72px 96px 96px 88px 88px;
-  gap: 20px;
+  grid-template-columns: 56px minmax(0, 1.4fr) minmax(0, 1fr) 64px 92px 92px 84px 84px;
+  gap: 14px;
   align-items: center;
   padding: 18px 20px;
   border-radius: 20px;
@@ -3618,17 +3618,22 @@ input[type="text"] {
   text-decoration: none;
   font-weight: 700;
   font-size: 1.08rem;
+  min-width: 0;
 }
 
 .leader-name--player {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
+  max-width: 100%;
 }
 
 .leader-name--player > span:last-child {
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .player-avatar-inline {
@@ -3699,12 +3704,20 @@ input[type="text"] {
   align-items: center;
   gap: 8px;
   justify-content: flex-start;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .leader-team-link {
   color: #ffcf9b;
   text-decoration: none;
   font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .leader-team-link:hover {
