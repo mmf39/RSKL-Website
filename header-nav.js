@@ -87,6 +87,19 @@
         height: 32px;
         flex: 0 0 32px;
       }
+      .team-page .roster-link.rskl-player-link--with-avatar {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        width: max-content;
+        max-width: 100%;
+        line-height: 1;
+      }
+      .team-page .roster-link .rskl-player-link__avatar {
+        width: 42px;
+        height: 42px;
+        flex: 0 0 42px;
+      }
     `;
     document.head.appendChild(style);
   }

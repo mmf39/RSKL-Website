@@ -2584,6 +2584,11 @@ input[type="text"] {
   color: #ffe6c7;
 }
 
+.team-page #roster-table td:first-child {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
 .team-page #roster-table thead th,
 .team-page #team-schedule thead th,
 .team-page #franchise-history-table thead th,
