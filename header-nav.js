@@ -212,9 +212,34 @@
     link.dataset.playerAvatarEnhanced = "true";
   }
 
+  function extractSeasonFromHref(href) {
+    try {
+      const url = new URL(href, window.location.origin);
+      return String(url.searchParams.get("season") || "").trim();
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function ensureRookieBadge(link) {
+    if (!link || link.querySelector(".rookie-mark")) return;
+    const player = extractPlayerFromHref(link.getAttribute("href") || "");
+    if (!player) return;
+    const season = extractSeasonFromHref(link.getAttribute("href") || "");
+    if (!isRookie(resolveSeason(season), player)) return;
+    const badge = document.createElement("span");
+    badge.className = "player-mark rookie-mark";
+    badge.title = "Drafted for this season";
+    badge.textContent = "R";
+    link.appendChild(badge);
+  }
+
   async function enhancePlayerLinks(root = document) {
     const links = Array.from(root.querySelectorAll('a[href*="player-detail.html?player="]'));
     if (!links.length) return;
+    links.forEach((link) => {
+      ensureRookieBadge(link);
+    });
     await loadPlayerPhotoCache();
     links.forEach((link) => {
       const player = extractPlayerFromHref(link.getAttribute("href") || "");
@@ -398,8 +423,10 @@
   window.rsklEnhancePlayerLinks = enhancePlayerLinks;
 
   const bootPlayerAvatars = () => {
-    enhancePlayerLinks(document);
-    observePlayerLinks();
+    loadRookieCache().finally(() => {
+      enhancePlayerLinks(document);
+      observePlayerLinks();
+    });
   };
 
   if (document.readyState === "loading") {
