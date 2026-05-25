@@ -20,22 +20,6 @@
     "c2s2-regular",
     "c2s3-regular",
   ];
-  const ROOKIE_DRAFT_SOURCES = {
-    "c1s2-regular": { url: "/assets/data/c1s2-draft.csv" },
-    "c1s3-regular": { url: "/assets/data/c1s3-draft.csv" },
-    "c1s4-regular": { url: "/assets/data/c1s4-draft.csv" },
-    "c1s5-regular": { url: "/assets/data/c1s5-draft.csv" },
-    "c1s6-regular": { url: "/assets/data/c1s6-draft.csv" },
-    "c2s1-regular": { url: "/api/sheet?name=archive", ranges: ["A120:C175"] },
-    "c2s2-regular": {
-      url: "/api/sheet?name=draft",
-      ranges: ["A1:C11", "A12:C22", "A23:C33", "A34:C44"],
-    },
-    "c2s3-regular": {
-      url: "/api/sheet?name=draft",
-      ranges: ["A1:C10", "A12:C21"],
-    },
-  };
   const rookieCache = new Map();
   let rookieOverridesPromise = null;
   const playerPhotoCache = new Map();
@@ -345,19 +329,6 @@
       .map((row) => row.slice(parsed.startCol, parsed.endCol + 1));
   };
 
-  const extractDraftedPlayers = (rows) => {
-    const players = new Set();
-    (rows || []).forEach((row) => {
-      (row || []).forEach((cell) => {
-        const value = String(cell || "").trim();
-        if (value.startsWith("@")) {
-          players.add(normalize(value));
-        }
-      });
-    });
-    return players;
-  };
-
   async function loadRookieOverrides() {
     if (!rookieOverridesPromise) {
       rookieOverridesPromise = fetch(ROOKIE_OVERRIDES_URL, { cache: "no-store" })
@@ -370,29 +341,14 @@
   async function loadRookieCache() {
     if (rookieCache.size) return rookieCache;
     const overridePayload = await loadRookieOverrides();
-    const entries = await Promise.all(
-      ROOKIE_SEASON_ORDER.map(async (seasonKey) => {
-        const source = ROOKIE_DRAFT_SOURCES[seasonKey];
-        const players = new Set(
-          (Array.isArray(overridePayload?.[seasonKey]) ? overridePayload[seasonKey] : [])
-            .map((value) => normalize(value))
-            .filter(Boolean)
-        );
-        if (!source || !source.url) return [seasonKey, players];
-        try {
-          const response = await fetch(source.url, { cache: "no-store" });
-          if (!response.ok) return [seasonKey, players];
-          const rows = parseCSV(await response.text());
-          const scopedRows = Array.isArray(source.ranges) && source.ranges.length
-            ? source.ranges.flatMap((range) => sliceRange(rows, range))
-            : rows;
-          extractDraftedPlayers(scopedRows).forEach((player) => players.add(player));
-          return [seasonKey, players];
-        } catch (_) {
-          return [seasonKey, players];
-        }
-      })
-    );
+    const entries = ROOKIE_SEASON_ORDER.map((seasonKey) => [
+      seasonKey,
+      new Set(
+        (Array.isArray(overridePayload?.[seasonKey]) ? overridePayload[seasonKey] : [])
+          .map((value) => normalize(value))
+          .filter(Boolean)
+      ),
+    ]);
     entries.forEach(([seasonKey, set]) => rookieCache.set(seasonKey, set));
     return rookieCache;
   }
@@ -409,23 +365,10 @@
     return seasonKey;
   }
 
-  function rookieResetIndex(seasonKey) {
-    const index = ROOKIE_SEASON_ORDER.indexOf(seasonKey);
-    if (index === -1) return -1;
-    const resetIndex = ROOKIE_SEASON_ORDER.indexOf("c2s1-regular");
-    return seasonKey === "c2s1-regular" ? resetIndex : index >= resetIndex ? resetIndex : 0;
-  }
-
   function isRookie(seasonKey, player) {
     const normalized = normalize(player);
     const normalizedSeason = normalizeRookieSeasonKey(seasonKey);
-    const seasonIndex = ROOKIE_SEASON_ORDER.indexOf(normalizedSeason);
-    if (!normalized || seasonIndex === -1) return false;
-    const resetIndex = rookieResetIndex(normalizedSeason);
-    if (resetIndex === -1) return false;
-    for (let i = resetIndex; i < seasonIndex; i += 1) {
-      if (rookieCache.get(ROOKIE_SEASON_ORDER[i])?.has(normalized)) return false;
-    }
+    if (!normalized || !normalizedSeason) return false;
     return Boolean(rookieCache.get(normalizedSeason)?.has(normalized));
   }
 

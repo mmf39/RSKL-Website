@@ -12,12 +12,6 @@ const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const ROOKIE_OVERRIDES_URL = "/assets/data/rookie-overrides.json";
 const PLAYER_PROFILE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
-const ARCHIVE_DRAFT_URL = "/api/sheet?name=archive";
-const C1S2_DRAFT_URL = "/assets/data/c1s2-draft.csv";
-const C1S3_DRAFT_URL = "/assets/data/c1s3-draft.csv";
-const C1S4_DRAFT_URL = "/assets/data/c1s4-draft.csv";
-const C1S5_DRAFT_URL = "/assets/data/c1s5-draft.csv";
-const C1S6_DRAFT_URL = "/assets/data/c1s6-draft.csv";
 const C1S2_ROSTERS_URL = "/assets/data/c1s2-rosters.csv";
 const C1S3_ROSTERS_URL = "/assets/data/c1s3-rosters.csv";
 const C1S4_PLAYER_STATS_URL = "/assets/data/c1s4-player-stats.csv";
@@ -42,16 +36,6 @@ const ROOKIE_SEASON_ORDER = [
   "c2s2-regular",
   "c2s3-regular",
 ];
-const ROOKIE_DRAFT_SOURCES = {
-  "c1s2-regular": { url: C1S2_DRAFT_URL },
-  "c1s3-regular": { url: C1S3_DRAFT_URL },
-  "c1s4-regular": { url: C1S4_DRAFT_URL },
-  "c1s5-regular": { url: C1S5_DRAFT_URL },
-  "c1s6-regular": { url: C1S6_DRAFT_URL },
-  "c2s1-regular": { url: ARCHIVE_DRAFT_URL, ranges: ["A120:C175"] },
-  "c2s2-regular": { url: DRAFT_URL, ranges: ["A1:C11", "A12:C22", "A23:C33", "A34:C44"] },
-  "c2s3-regular": { url: DRAFT_URL, ranges: ["A1:C10", "A12:C21"] },
-};
 const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
 const TRANSACTIONS_RANGE = "A3:E81";
@@ -491,14 +475,6 @@ function isRisingStarsPlayer(value) {
   return RISING_STARS_HANDLES.has(normalizePlayerKey(value));
 }
 
-function getRookieResetIndex(seasonKey) {
-  const index = ROOKIE_SEASON_ORDER.indexOf(seasonKey);
-  if (index === -1) return -1;
-  if (seasonKey === "c2s1-regular") return index;
-  const resetIndex = ROOKIE_SEASON_ORDER.indexOf("c2s1-regular");
-  return index >= resetIndex ? resetIndex : 0;
-}
-
 function normalizeRookieSeasonKey(seasonKey) {
   if (seasonKey === "c2s2-playoffs") return "c2s2-regular";
   if (seasonKey === "c2s1-playoffs") return "c2s1-regular";
@@ -515,17 +491,6 @@ function isRookieSeason(seasonKey, playerKey) {
   const normalizedPlayer = normalizePlayerKey(playerKey);
   if (!normalizedPlayer) return false;
   const normalizedSeason = normalizeRookieSeasonKey(seasonKey);
-  const seasonIndex = ROOKIE_SEASON_ORDER.indexOf(normalizedSeason);
-  if (seasonIndex === -1) return false;
-  const resetIndex = getRookieResetIndex(normalizedSeason);
-  if (resetIndex === -1) return false;
-  for (let i = resetIndex; i < seasonIndex; i += 1) {
-    const priorSeason = ROOKIE_SEASON_ORDER[i];
-    const priorSet = rookieSeasonCache.get(priorSeason);
-    if (priorSet && priorSet.has(normalizedPlayer)) {
-      return false;
-    }
-  }
   const currentSet = rookieSeasonCache.get(normalizedSeason);
   return Boolean(currentSet && currentSet.has(normalizedPlayer));
 }
@@ -540,7 +505,6 @@ async function loadRookieSeasonCache() {
   const overridePayload = await rookieOverridesPromise;
   const entries = await Promise.all(
     ROOKIE_SEASON_ORDER.map(async (seasonKey) => {
-      const source = ROOKIE_DRAFT_SOURCES[seasonKey];
       const players = new Set();
       (Array.isArray(overridePayload?.[seasonKey]) ? overridePayload[seasonKey] : []).forEach(
         (value) => {
@@ -548,22 +512,6 @@ async function loadRookieSeasonCache() {
           if (normalized) players.add(normalized);
         }
       );
-      if (!source || !source.url) return [seasonKey, players];
-      const response = await fetch(source.url, { cache: "no-store" });
-      if (!response.ok) return [seasonKey, players];
-      const rows = parseCSV(await response.text());
-      const scopedRows =
-        Array.isArray(source.ranges) && source.ranges.length
-          ? source.ranges.flatMap((range) => sliceRange(rows, range))
-          : rows;
-      scopedRows.forEach((row) => {
-        row.forEach((value) => {
-          const text = String(value || "").trim();
-          if (text.startsWith("@")) {
-            players.add(normalizePlayerKey(text));
-          }
-        });
-      });
       return [seasonKey, players];
     })
   );
