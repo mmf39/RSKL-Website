@@ -5581,15 +5581,79 @@ input[type="text"] {
   }
 
   .player-leader-row {
-    grid-template-columns: 48px minmax(0, 1fr);
-    gap: 10px 14px;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 8px 12px;
     text-align: left;
+    padding: 14px 12px;
+    border-radius: 16px;
+  }
+
+  .player-leader-row .leader-rank {
+    align-self: start;
+    padding-top: 4px;
+  }
+
+  .player-leader-row .leader-name {
+    font-size: 1rem;
+  }
+
+  .player-leader-row .leader-name--player {
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .player-leader-row .player-avatar-inline {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
   }
 
   .player-leader-row .leader-team,
   .player-leader-row .leader-col {
     grid-column: 2;
     justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 140, 26, 0.12);
+    font-size: 0.92rem;
+    line-height: 1.1;
+  }
+
+  .player-leader-row .leader-team::before,
+  .player-leader-row .leader-col::before {
+    color: rgba(255, 210, 156, 0.72);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 800;
+  }
+
+  .player-leader-row .leader-team::before {
+    content: "Team";
+  }
+
+  .player-leader-row .leader-col:nth-child(4)::before {
+    content: "GP";
+  }
+
+  .player-leader-row .leader-col:nth-child(5)::before {
+    content: "Avg";
+  }
+
+  .player-leader-row .leader-col:nth-child(6)::before {
+    content: "Rank";
+  }
+
+  .player-leader-row .leader-col:nth-child(7)::before {
+    content: "REL";
+  }
+
+  .player-leader-row .leader-col:nth-child(8)::before {
+    content: "WAR";
   }
 
   .player-leader-row--head {
