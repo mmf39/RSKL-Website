@@ -8,6 +8,7 @@ const DRAFT_URL = "/api/sheet?name=draft";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const CONTRACTS_URL = "/api/sheet?name=contracts";
 const PLAYER_PROFILE_URL = "/api/player-profile";
+const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const PLAYER_PROFILE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
 const C1S2_ROSTERS_URL = "/assets/data/c1s2-rosters.csv";
@@ -15,10 +16,6 @@ const C1S3_ROSTERS_URL = "/assets/data/c1s3-rosters.csv";
 const C1S4_PLAYER_STATS_URL = "/assets/data/c1s4-player-stats.csv";
 const C1S5_ROSTERS_URL = "/assets/data/c1s5-rosters.csv";
 const C1S6_ROSTERS_URL = "/assets/data/c1s6-rosters.csv";
-const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
-const SUPABASE_PLAYER_PROFILES_URL =
-  "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/player_profiles?select=player_tag,photo_url";
-const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 const RISING_STARS_HANDLES = new Set([
   "fullofopps",
   "xyz",
@@ -162,6 +159,46 @@ let currentLoadedSeason = "";
 let contractRowsCache = [];
 let supplementalPlayerRows = [];
 let rookieSeasonCache = new Map();
+let supabaseUrl = "";
+let supabaseAnon = "";
+let supabaseConfigPromise = null;
+
+function requireSupabaseConfig() {
+  return Boolean(supabaseUrl && supabaseAnon);
+}
+
+function supabaseHeaders() {
+  if (!requireSupabaseConfig()) {
+    return {};
+  }
+  return {
+    apikey: supabaseAnon,
+    Authorization: `Bearer ${supabaseAnon}`,
+  };
+}
+
+function supabaseRestUrl(path) {
+  if (!requireSupabaseConfig()) {
+    return "";
+  }
+  return `${supabaseUrl}/rest/v1${path}`;
+}
+
+async function loadSupabaseConfig() {
+  if (!supabaseConfigPromise) {
+    supabaseConfigPromise = fetch(SUPABASE_CONFIG_URL, { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        supabaseUrl = String(payload?.url || payload?.supabaseUrl || "").trim().replace(/\/$/, "");
+        supabaseAnon = String(
+          payload?.anonKey || payload?.supabaseAnon || payload?.publicAnonKey || ""
+        ).trim();
+        return requireSupabaseConfig();
+      })
+      .catch(() => false);
+  }
+  return supabaseConfigPromise;
+}
 
 function setPlayerAvatar(url, playerName) {
   if (!els.avatarCard || !els.avatarImage) {
@@ -251,22 +288,22 @@ async function loadPlayerAvatar(playerName, displayName, season) {
   }
 
   try {
-    const profileResponse = await fetch(
-      `${SUPABASE_PLAYER_PROFILES_URL}&player_tag=eq.${encodeURIComponent(playerName)}`,
-      {
-        headers: {
-          apikey: SUPABASE_API_KEY,
-          Authorization: `Bearer ${SUPABASE_API_KEY}`,
-        },
-        cache: "no-store",
-      }
-    );
-    if (profileResponse.ok) {
-      const rows = await profileResponse.json();
-      const supabasePhotoUrl = String(rows?.[0]?.photo_url || "").trim();
-      if (supabasePhotoUrl) {
-        setPlayerAvatar(supabasePhotoUrl, displayName || playerName);
-        return;
+    const hasSupabase = await loadSupabaseConfig();
+    if (hasSupabase) {
+      const profileResponse = await fetch(
+        `${supabaseRestUrl("/player_profiles?select=player_tag,photo_url")}&player_tag=eq.${encodeURIComponent(playerName)}`,
+        {
+          headers: supabaseHeaders(),
+          cache: "no-store",
+        }
+      );
+      if (profileResponse.ok) {
+        const rows = await profileResponse.json();
+        const supabasePhotoUrl = String(rows?.[0]?.photo_url || "").trim();
+        if (supabasePhotoUrl) {
+          setPlayerAvatar(supabasePhotoUrl, displayName || playerName);
+          return;
+        }
       }
     }
 
@@ -592,12 +629,16 @@ function buildBoxScorePlayerEntry(value, points, rank) {
 
 async function loadPlayerOverrides() {
   try {
-    const response = await fetch(SUPABASE_PLAYERS_URL, {
-      headers: {
-        apikey: SUPABASE_API_KEY,
-        Authorization: `Bearer ${SUPABASE_API_KEY}`,
-      },
-    });
+    const hasSupabase = await loadSupabaseConfig();
+    if (!hasSupabase) {
+      return;
+    }
+    const response = await fetch(
+      supabaseRestUrl("/players?select=player_tag,display_name"),
+      {
+        headers: supabaseHeaders(),
+      }
+    );
     if (!response.ok) {
       return;
     }

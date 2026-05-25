@@ -21,6 +21,8 @@ const LIVE_ROSTER_URL =
 const PLAYER_PROFILE_SCRIPT_URL =
   process.env.PLAYER_PROFILE_SCRIPT_URL ||
   "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
+const SUPABASE_URL = process.env.SUPABASE_URL || "";
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
 const SHEETS = {
   archive:
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1077518539&single=true&output=csv",
@@ -260,6 +262,25 @@ const server = http.createServer((req, res) => {
         send(res, 500, JSON.stringify({ ok: false, message: error.message }), "application/json; charset=utf-8");
       }
     })();
+    return;
+  }
+
+  if (url.pathname === "/api/supabase-config") {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      send(
+        res,
+        500,
+        JSON.stringify({ ok: false, message: "Missing SUPABASE_URL or SUPABASE_ANON_KEY" }),
+        "application/json; charset=utf-8"
+      );
+      return;
+    }
+    send(
+      res,
+      200,
+      JSON.stringify({ ok: true, url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY }),
+      "application/json; charset=utf-8"
+    );
     return;
   }
 

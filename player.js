@@ -2,6 +2,7 @@ const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const PLAYER_PROFILE_URL = "/api/player-profile";
+const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const PLAYER_PROFILE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
 const C2S1_ROSTERS_URL = "/assets/data/c2s1-rosters.csv";
@@ -12,10 +13,6 @@ const C1S5_ROSTERS_URL = "/assets/data/c1s5-rosters.csv";
 const C1S6_ROSTERS_URL = "/assets/data/c1s6-rosters.csv";
 const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
-const SUPABASE_PLAYERS_URL = "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/players?select=player_tag,display_name";
-const SUPABASE_PLAYER_PROFILES_URL =
-  "https://wbbkjikdxpywfeyenbhs.supabase.co/rest/v1/player_profiles?select=player_tag,photo_url";
-const SUPABASE_API_KEY = "sb_publishable_P_4Gvh9rXEUrHS_-VZu6uw_As3f4CK3";
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -32,6 +29,9 @@ let rookieSeasonCache = new Map();
 const playerAvatarCache = new Map();
 let supabasePlayerPhotoMap = new Map();
 let supabasePlayerPhotoMapPromise = null;
+let supabaseUrl = "";
+let supabaseAnon = "";
+let supabaseConfigPromise = null;
 const RISING_STARS_HANDLES = new Set([
   "fullofopps",
   "xyz",
@@ -75,6 +75,43 @@ const ARCHIVE_RANGES = {
 const C2S2_REGULAR_RANGES = {
   player_stats: "A151:G1150",
 };
+
+function requireSupabaseConfig() {
+  return Boolean(supabaseUrl && supabaseAnon);
+}
+
+function supabaseHeaders() {
+  if (!requireSupabaseConfig()) {
+    return {};
+  }
+  return {
+    apikey: supabaseAnon,
+    Authorization: `Bearer ${supabaseAnon}`,
+  };
+}
+
+function supabaseRestUrl(path) {
+  if (!requireSupabaseConfig()) {
+    return "";
+  }
+  return `${supabaseUrl}/rest/v1${path}`;
+}
+
+async function loadSupabaseConfig() {
+  if (!supabaseConfigPromise) {
+    supabaseConfigPromise = fetch(SUPABASE_CONFIG_URL, { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        supabaseUrl = String(payload?.url || payload?.supabaseUrl || "").trim().replace(/\/$/, "");
+        supabaseAnon = String(
+          payload?.anonKey || payload?.supabaseAnon || payload?.publicAnonKey || ""
+        ).trim();
+        return requireSupabaseConfig();
+      })
+      .catch(() => false);
+  }
+  return supabaseConfigPromise;
+}
 
 function getPlayerSeason() {
   const season = localStorage.getItem(SEASON_KEY);
@@ -479,14 +516,15 @@ async function fetchPlayerAvatarUrl(item, season) {
   }
 
   try {
-    if (!supabasePlayerPhotoMapPromise) {
-      supabasePlayerPhotoMapPromise = fetch(SUPABASE_PLAYER_PROFILES_URL, {
-        headers: {
-          apikey: SUPABASE_API_KEY,
-          Authorization: `Bearer ${SUPABASE_API_KEY}`,
-        },
-        cache: "no-store",
-      })
+    const hasSupabase = await loadSupabaseConfig();
+    if (hasSupabase && !supabasePlayerPhotoMapPromise) {
+      supabasePlayerPhotoMapPromise = fetch(
+        supabaseRestUrl("/player_profiles?select=player_tag,photo_url"),
+        {
+          headers: supabaseHeaders(),
+          cache: "no-store",
+        }
+      )
         .then((response) => (response.ok ? response.json() : []))
         .then((rows) => {
           supabasePlayerPhotoMap = new Map(
@@ -498,7 +536,9 @@ async function fetchPlayerAvatarUrl(item, season) {
         })
         .catch(() => new Map());
     }
-    await supabasePlayerPhotoMapPromise;
+    if (supabasePlayerPhotoMapPromise) {
+      await supabasePlayerPhotoMapPromise;
+    }
     const supabasePhotoUrl = supabasePlayerPhotoMap.get(cacheKey) || "";
     if (supabasePhotoUrl) {
       playerAvatarCache.set(cacheKey, supabasePhotoUrl);
@@ -682,12 +722,16 @@ function isCaptainMarked(value) {
 
 async function loadPlayerOverrides() {
   try {
-    const response = await fetch(SUPABASE_PLAYERS_URL, {
-      headers: {
-        apikey: SUPABASE_API_KEY,
-        Authorization: `Bearer ${SUPABASE_API_KEY}`,
-      },
-    });
+    const hasSupabase = await loadSupabaseConfig();
+    if (!hasSupabase) {
+      return;
+    }
+    const response = await fetch(
+      supabaseRestUrl("/players?select=player_tag,display_name"),
+      {
+        headers: supabaseHeaders(),
+      }
+    );
     if (!response.ok) {
       return;
     }

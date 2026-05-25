@@ -51,6 +51,8 @@ LIVE_ROSTER_URL = (
 PLAYER_PROFILE_SCRIPT_URL = os.environ.get("PLAYER_PROFILE_SCRIPT_URL", "")
 if not PLAYER_PROFILE_SCRIPT_URL:
     PLAYER_PROFILE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec"
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
 SHEET_UPDATE_URL = (
     "https://script.google.com/macros/s/AKfycbylZD-O7LCsznZpnRpYsAdbp7bCbknV-qta8PO0uv_k4Tnevf8Klkbfcg6Hh5DXC9GFvg/exec"
 )
@@ -229,6 +231,25 @@ class Handler(BaseHTTPRequestHandler):
                 send(self, err.code, json.dumps({"ok": False, "message": f"Upstream error {err.code}"}), "application/json; charset=utf-8", "no-store")
             except Exception as err:  # pylint: disable=broad-except
                 send(self, 500, json.dumps({"ok": False, "message": str(err)}), "application/json; charset=utf-8", "no-store")
+            return
+
+        if path == "/api/supabase-config":
+            if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+                send(
+                    self,
+                    500,
+                    json.dumps({"ok": False, "message": "Missing SUPABASE_URL or SUPABASE_ANON_KEY"}),
+                    "application/json; charset=utf-8",
+                    "no-store",
+                )
+                return
+            send(
+                self,
+                200,
+                json.dumps({"ok": True, "url": SUPABASE_URL, "anonKey": SUPABASE_ANON_KEY}),
+                "application/json; charset=utf-8",
+                "no-store",
+            )
             return
 
         if path == "/api/standings":
