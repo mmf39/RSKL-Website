@@ -1,4 +1,5 @@
 (() => {
+  const SUPABASE_CONFIG_URL = "/api/supabase-config";
   const RISING_STARS_HANDLES = new Set([
     "fullofopps",
     "xyz",
@@ -28,9 +29,176 @@
     "c2s3-regular": "/api/sheet?name=player-stats",
   };
   const rookieCache = new Map();
+  const playerPhotoCache = new Map();
+  let supabaseUrl = "";
+  let supabaseAnon = "";
+  let supabaseConfigPromise = null;
+  let playerPhotoCachePromise = null;
 
   const normalize = (value) =>
     String(value || "").trim().replace(/^@/, "").toLowerCase();
+
+  function ensureAvatarStyles() {
+    if (document.getElementById("rskl-player-avatar-style")) return;
+    const style = document.createElement("style");
+    style.id = "rskl-player-avatar-style";
+    style.textContent = `
+      .rskl-player-link--with-avatar {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .rskl-player-link__avatar {
+        width: 26px;
+        height: 26px;
+        flex: 0 0 26px;
+        border-radius: 50%;
+        overflow: hidden;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .rskl-player-link__avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .rskl-player-link__label {
+        min-width: 0;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function requireSupabaseConfig() {
+    return Boolean(supabaseUrl && supabaseAnon);
+  }
+
+  function supabaseHeaders() {
+    return {
+      apikey: supabaseAnon,
+      Authorization: `Bearer ${supabaseAnon}`,
+    };
+  }
+
+  function supabaseRestUrl(path) {
+    return `${supabaseUrl}/rest/v1${path}`;
+  }
+
+  async function loadSupabaseConfig() {
+    if (!supabaseConfigPromise) {
+      supabaseConfigPromise = fetch(SUPABASE_CONFIG_URL, { cache: "no-store" })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((payload) => {
+          supabaseUrl = String(payload?.url || payload?.supabaseUrl || "").trim().replace(/\/$/, "");
+          supabaseAnon = String(
+            payload?.anonKey || payload?.supabaseAnon || payload?.publicAnonKey || ""
+          ).trim();
+          return requireSupabaseConfig();
+        })
+        .catch(() => false);
+    }
+    return supabaseConfigPromise;
+  }
+
+  async function loadPlayerPhotoCache() {
+    if (!playerPhotoCachePromise) {
+      playerPhotoCachePromise = loadSupabaseConfig()
+        .then(async (hasSupabase) => {
+          if (!hasSupabase) return playerPhotoCache;
+          const response = await fetch(
+            supabaseRestUrl("/player_profiles?select=player_tag,photo_url"),
+            {
+              headers: supabaseHeaders(),
+              cache: "no-store",
+            }
+          );
+          if (!response.ok) return playerPhotoCache;
+          const rows = await response.json();
+          playerPhotoCache.clear();
+          (Array.isArray(rows) ? rows : []).forEach((row) => {
+            const key = normalize(row?.player_tag);
+            const value = String(row?.photo_url || "").trim();
+            if (key && value) {
+              playerPhotoCache.set(key, value);
+            }
+          });
+          return playerPhotoCache;
+        })
+        .catch(() => playerPhotoCache);
+    }
+    return playerPhotoCachePromise;
+  }
+
+  function extractPlayerFromHref(href) {
+    try {
+      const url = new URL(href, window.location.origin);
+      if (!/player-detail\.html$/i.test(url.pathname)) return "";
+      return String(url.searchParams.get("player") || "").trim();
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function shouldSkipAvatar(link) {
+    return Boolean(
+      !link ||
+        link.dataset.playerAvatarEnhanced === "true" ||
+        link.querySelector(".player-avatar-inline, .rskl-player-link__avatar") ||
+        link.closest(".leader-name--player") ||
+        link.closest(".player-detail-hero-copy")
+    );
+  }
+
+  function injectAvatarIntoLink(link, photoUrl) {
+    if (!link || !photoUrl || shouldSkipAvatar(link)) return;
+    ensureAvatarStyles();
+    const label = document.createElement("span");
+    label.className = "rskl-player-link__label";
+    while (link.firstChild) {
+      label.appendChild(link.firstChild);
+    }
+    const avatar = document.createElement("span");
+    avatar.className = "rskl-player-link__avatar";
+    avatar.setAttribute("aria-hidden", "true");
+    const image = document.createElement("img");
+    image.src = photoUrl;
+    image.alt = "";
+    image.loading = "lazy";
+    avatar.appendChild(image);
+    link.appendChild(avatar);
+    link.appendChild(label);
+    link.classList.add("rskl-player-link--with-avatar");
+    link.dataset.playerAvatarEnhanced = "true";
+  }
+
+  async function enhancePlayerLinks(root = document) {
+    const links = Array.from(root.querySelectorAll('a[href*="player-detail.html?player="]'));
+    if (!links.length) return;
+    await loadPlayerPhotoCache();
+    links.forEach((link) => {
+      const player = extractPlayerFromHref(link.getAttribute("href") || "");
+      const photoUrl = playerPhotoCache.get(normalize(player)) || "";
+      if (photoUrl) {
+        injectAvatarIntoLink(link, photoUrl);
+      }
+    });
+  }
+
+  function observePlayerLinks() {
+    if (!document.body) return;
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === "childList" && mutation.addedNodes.length) {
+          enhancePlayerLinks(document);
+          break;
+        }
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
 
   const parseCSV = (text) => {
     const rows = [];
@@ -158,6 +326,18 @@
 
   window.rsklPlayerBadgeHtml = badgeHtml;
   window.rsklLoadRookieCache = loadRookieCache;
+  window.rsklEnhancePlayerLinks = enhancePlayerLinks;
+
+  const bootPlayerAvatars = () => {
+    enhancePlayerLinks(document);
+    observePlayerLinks();
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootPlayerAvatars, { once: true });
+  } else {
+    bootPlayerAvatars();
+  }
 
   const nav = document.querySelector(".site-nav");
   const toggle = document.querySelector("[data-menu-toggle]");
