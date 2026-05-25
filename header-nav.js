@@ -237,8 +237,25 @@
     link.appendChild(badge);
   }
 
+  function hydrateRookieBadges(root = document) {
+    const badges = Array.from(root.querySelectorAll(".rookie-mark[data-rookie-player]"));
+    badges.forEach((badge) => {
+      const player = badge.dataset.rookiePlayer || "";
+      const season = badge.dataset.rookieSeason || "";
+      if (!isRookie(resolveSeason(season), player)) {
+        badge.remove();
+        return;
+      }
+      badge.hidden = false;
+      badge.textContent = "R";
+      badge.title = "Drafted for this season";
+      badge.classList.remove("rookie-mark--pending");
+    });
+  }
+
   async function enhancePlayerLinks(root = document) {
     const links = Array.from(root.querySelectorAll('a[href*="player-detail.html?player="]'));
+    hydrateRookieBadges(root);
     if (!links.length) return;
     links.forEach((link) => {
       ensureRookieBadge(link);
@@ -259,6 +276,7 @@
       for (const mutation of mutations) {
         if (mutation.type === "childList" && mutation.addedNodes.length) {
           enhancePlayerLinks(document);
+          hydrateRookieBadges(document);
           break;
         }
       }
@@ -431,6 +449,12 @@
     const badges = [];
     if (isRookie(activeSeason, player)) {
       badges.push('<span class="player-mark rookie-mark" title="Drafted for this season">R</span>');
+    } else if (!rookieCache.size && player) {
+      const safePlayer = String(player).replace(/"/g, "&quot;");
+      const safeSeason = String(activeSeason || "").replace(/"/g, "&quot;");
+      badges.push(
+        `<span class="player-mark rookie-mark rookie-mark--pending" data-rookie-player="${safePlayer}" data-rookie-season="${safeSeason}" title="Drafted for this season" hidden></span>`
+      );
     }
     if (risingStars && RISING_STARS_HANDLES.has(normalize(player))) {
       badges.push('<span class="player-mark" title="Rising Stars participant">RS</span>');
@@ -444,6 +468,7 @@
 
   const bootPlayerAvatars = () => {
     loadRookieCache().finally(() => {
+      hydrateRookieBadges(document);
       enhancePlayerLinks(document);
       observePlayerLinks();
     });
