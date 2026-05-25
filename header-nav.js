@@ -429,7 +429,7 @@
   }) {
     const activeSeason = normalizeRookieSeasonKey(resolveSeason(season));
     const badges = [];
-    if ((rookie || drafted) && isRookie(activeSeason, player)) {
+    if (isRookie(activeSeason, player)) {
       badges.push('<span class="player-mark rookie-mark" title="Drafted for this season">R</span>');
     }
     if (risingStars && RISING_STARS_HANDLES.has(normalize(player))) {
