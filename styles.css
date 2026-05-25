@@ -3560,10 +3560,10 @@ input[type="text"] {
 
 .player-leader-row {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1.4fr) minmax(0, 1fr) 64px 92px 92px 84px 84px;
-  gap: 14px;
+  grid-template-columns: 44px minmax(220px, 1.45fr) minmax(170px, 1fr) 52px 112px 112px 96px 96px;
+  gap: 10px;
   align-items: center;
-  padding: 18px 20px;
+  padding: 16px 14px;
   border-radius: 20px;
   background:
     linear-gradient(180deg, rgba(255, 162, 71, 0.08), rgba(7, 13, 28, 0.95) 30%),
@@ -3585,7 +3585,7 @@ input[type="text"] {
 
 .player-page .leader-rank {
   color: rgba(255, 210, 156, 0.72);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   letter-spacing: 0.08em;
 }
 
@@ -3609,7 +3609,7 @@ input[type="text"] {
 .player-leader-row .leader-col {
   white-space: nowrap;
   justify-self: end;
-  font-size: 1.15rem;
+  font-size: 1.02rem;
   color: #fff7ed;
 }
 
@@ -3617,33 +3617,30 @@ input[type="text"] {
   color: var(--ink);
   text-decoration: none;
   font-weight: 700;
-  font-size: 1.08rem;
+  font-size: 0.96rem;
   min-width: 0;
 }
 
 .leader-name--player {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
   max-width: 100%;
 }
 
 .leader-name--player > span:last-child {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .player-avatar-inline {
-  width: 42px;
-  height: 42px;
-  flex: 0 0 42px;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
+  border-radius: 12px;
   background:
     linear-gradient(180deg, rgba(255, 160, 62, 0.12), rgba(20, 24, 40, 0.92)),
     rgba(12, 18, 34, 0.94);
@@ -3702,22 +3699,17 @@ input[type="text"] {
 .leader-team {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   justify-content: flex-start;
   min-width: 0;
   max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
 }
 
 .leader-team-link {
   color: #ffcf9b;
   text-decoration: none;
   font-weight: 600;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 0.96rem;
 }
 
 .leader-team-link:hover {
