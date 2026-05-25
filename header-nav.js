@@ -1,5 +1,6 @@
 (() => {
   const SUPABASE_CONFIG_URL = "/api/supabase-config";
+  const ROOKIE_OVERRIDES_URL = "/assets/data/rookie-overrides.json";
   const RISING_STARS_HANDLES = new Set([
     "fullofopps",
     "xyz",
@@ -14,6 +15,7 @@
     "c1s4-regular",
     "c1s5-regular",
     "c1s6-regular",
+    "c1s7-regular",
     "c2s1-regular",
     "c2s2-regular",
     "c2s3-regular",
@@ -35,6 +37,7 @@
     },
   };
   const rookieCache = new Map();
+  let rookieOverridesPromise = null;
   const playerPhotoCache = new Map();
   let supabaseUrl = "";
   let supabaseAnon = "";
@@ -337,22 +340,38 @@
     return players;
   };
 
+  async function loadRookieOverrides() {
+    if (!rookieOverridesPromise) {
+      rookieOverridesPromise = fetch(ROOKIE_OVERRIDES_URL, { cache: "no-store" })
+        .then((response) => (response.ok ? response.json() : {}))
+        .catch(() => ({}));
+    }
+    return rookieOverridesPromise;
+  }
+
   async function loadRookieCache() {
     if (rookieCache.size) return rookieCache;
+    const overridePayload = await loadRookieOverrides();
     const entries = await Promise.all(
       ROOKIE_SEASON_ORDER.map(async (seasonKey) => {
         const source = ROOKIE_DRAFT_SOURCES[seasonKey];
-        if (!source || !source.url) return [seasonKey, new Set()];
+        const players = new Set(
+          (Array.isArray(overridePayload?.[seasonKey]) ? overridePayload[seasonKey] : [])
+            .map((value) => normalize(value))
+            .filter(Boolean)
+        );
+        if (!source || !source.url) return [seasonKey, players];
         try {
           const response = await fetch(source.url, { cache: "no-store" });
-          if (!response.ok) return [seasonKey, new Set()];
+          if (!response.ok) return [seasonKey, players];
           const rows = parseCSV(await response.text());
           const scopedRows = Array.isArray(source.ranges) && source.ranges.length
             ? source.ranges.flatMap((range) => sliceRange(rows, range))
             : rows;
-          return [seasonKey, extractDraftedPlayers(scopedRows)];
+          extractDraftedPlayers(scopedRows).forEach((player) => players.add(player));
+          return [seasonKey, players];
         } catch (_) {
-          return [seasonKey, new Set()];
+          return [seasonKey, players];
         }
       })
     );
@@ -368,6 +387,7 @@
     if (seasonKey === "c1s4-playoffs") return "c1s4-regular";
     if (seasonKey === "c1s5-playoffs") return "c1s5-regular";
     if (seasonKey === "c1s6-playoffs") return "c1s6-regular";
+    if (seasonKey === "c1s7-playoffs") return "c1s7-regular";
     return seasonKey;
   }
 

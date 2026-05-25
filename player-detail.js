@@ -9,6 +9,7 @@ const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const CONTRACTS_URL = "/api/sheet?name=contracts";
 const PLAYER_PROFILE_URL = "/api/player-profile";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
+const ROOKIE_OVERRIDES_URL = "/assets/data/rookie-overrides.json";
 const PLAYER_PROFILE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
 const ARCHIVE_DRAFT_URL = "/api/sheet?name=archive";
@@ -36,6 +37,7 @@ const ROOKIE_SEASON_ORDER = [
   "c1s4-regular",
   "c1s5-regular",
   "c1s6-regular",
+  "c1s7-regular",
   "c2s1-regular",
   "c2s2-regular",
   "c2s3-regular",
@@ -165,6 +167,7 @@ let currentLoadedSeason = "";
 let contractRowsCache = [];
 let supplementalPlayerRows = [];
 let rookieSeasonCache = new Map();
+let rookieOverridesPromise = null;
 let supabaseUrl = "";
 let supabaseAnon = "";
 let supabaseConfigPromise = null;
@@ -504,6 +507,7 @@ function normalizeRookieSeasonKey(seasonKey) {
   if (seasonKey === "c1s4-playoffs") return "c1s4-regular";
   if (seasonKey === "c1s5-playoffs") return "c1s5-regular";
   if (seasonKey === "c1s6-playoffs") return "c1s6-regular";
+  if (seasonKey === "c1s7-playoffs") return "c1s7-regular";
   return seasonKey;
 }
 
@@ -528,14 +532,26 @@ function isRookieSeason(seasonKey, playerKey) {
 
 async function loadRookieSeasonCache() {
   if (rookieSeasonCache.size) return rookieSeasonCache;
+  if (!rookieOverridesPromise) {
+    rookieOverridesPromise = fetch(ROOKIE_OVERRIDES_URL, { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : {}))
+      .catch(() => ({}));
+  }
+  const overridePayload = await rookieOverridesPromise;
   const entries = await Promise.all(
     ROOKIE_SEASON_ORDER.map(async (seasonKey) => {
       const source = ROOKIE_DRAFT_SOURCES[seasonKey];
-      if (!source || !source.url) return [seasonKey, new Set()];
-      const response = await fetch(source.url, { cache: "no-store" });
-      if (!response.ok) return [seasonKey, new Set()];
-      const rows = parseCSV(await response.text());
       const players = new Set();
+      (Array.isArray(overridePayload?.[seasonKey]) ? overridePayload[seasonKey] : []).forEach(
+        (value) => {
+          const normalized = normalizePlayerKey(value);
+          if (normalized) players.add(normalized);
+        }
+      );
+      if (!source || !source.url) return [seasonKey, players];
+      const response = await fetch(source.url, { cache: "no-store" });
+      if (!response.ok) return [seasonKey, players];
+      const rows = parseCSV(await response.text());
       const scopedRows =
         Array.isArray(source.ranges) && source.ranges.length
           ? source.ranges.flatMap((range) => sliceRange(rows, range))
@@ -1190,6 +1206,8 @@ function normalizeSeason(value) {
   }
   if (
     value === "career" ||
+    value === "c1s7-playoffs" ||
+    value === "c1s7-regular" ||
     value === "c1s6-playoffs" ||
     value === "c1s6-regular" ||
     value === "c1s5-playoffs" ||
@@ -1223,6 +1241,10 @@ function getSeason() {
         ? "c2s1-post"
         : normalized === "c2s2-playoffs"
         ? "c2s2-playoffs"
+        : normalized === "c1s7-playoffs"
+        ? "c1s7-post"
+        : normalized === "c1s7-regular"
+        ? "c1s7-regular"
         : normalized === "c1s6-playoffs"
         ? "c1s6-post"
         : normalized === "c1s6-regular"
@@ -1267,6 +1289,9 @@ function getSeason() {
   if (season === "c1s6-post") {
     return "c1s6-playoffs";
   }
+  if (season === "c1s7-post") {
+    return "c1s7-playoffs";
+  }
   if (season === "c1s4-post") {
     return "c1s4-playoffs";
   }
@@ -1287,6 +1312,9 @@ function getSeason() {
   }
   if (season === "c1s6-regular") {
     return "c1s6-regular";
+  }
+  if (season === "c1s7-regular") {
+    return "c1s7-regular";
   }
   if (season === "c1s4-regular") {
     return "c1s4-regular";
