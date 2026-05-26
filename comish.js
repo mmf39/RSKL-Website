@@ -20,6 +20,7 @@ const SEASONS = [
 const els = {
   lastUpdated: document.getElementById("comish-last-updated"),
   authCard: document.getElementById("comish-auth-card"),
+  deniedCard: document.getElementById("comish-denied-card"),
   authEmail: document.getElementById("comish-auth-email"),
   authPassword: document.getElementById("comish-auth-password"),
   authSignIn: document.getElementById("comish-signin"),
@@ -48,6 +49,7 @@ let supabaseUrl = "";
 let supabaseAnon = "";
 let gmSession = null;
 let gmAssignment = null;
+let authResolved = false;
 
 function normalizeHandle(value) {
   const text = String(value || "").trim();
@@ -256,7 +258,9 @@ function authRequestOptions(options = {}) {
 
 function applyAuthUi() {
   const allowed = isSignedInCommish();
-  if (els.authCard) els.authCard.hidden = allowed;
+  const signedIn = !!gmSession?.user?.id;
+  if (els.authCard) els.authCard.hidden = !authResolved || allowed || signedIn;
+  if (els.deniedCard) els.deniedCard.hidden = !authResolved || allowed || !signedIn;
   if (els.shell) els.shell.hidden = !allowed;
   if (els.save) els.save.hidden = !allowed;
   if (els.reload) els.reload.hidden = !allowed;
@@ -266,7 +270,11 @@ function applyAuthUi() {
     const email = gmSession?.user?.email || "Commissioner";
     setAuthStatus(`Signed in as ${email}.`, false);
     setStatus("Commissioner access granted.", "success");
+  } else if (signedIn) {
+    setAuthStatus("This account is not marked as commissioner.", true);
+    setStatus("Only users listed as commissioner can access this page.", "error");
   } else {
+    setAuthStatus("Sign in with the commissioner account to edit badges.", false);
     setStatus("Commissioner sign-in required.", "error");
   }
 }
@@ -363,6 +371,7 @@ async function restoreSession() {
     gmSession = null;
     gmAssignment = null;
     clearAuthState();
+    authResolved = true;
     applyAuthUi();
     return;
   }
@@ -389,17 +398,20 @@ async function restoreSession() {
       gmSession = null;
       gmAssignment = null;
       clearAuthState();
+      authResolved = true;
       applyAuthUi();
       setAuthStatus("This account is not marked as commissioner.", true);
       return;
     }
     persistAuthState();
+    authResolved = true;
     applyAuthUi();
     await loadBadgeOverrides();
   } catch (error) {
     gmSession = null;
     gmAssignment = null;
     clearAuthState();
+    authResolved = true;
     applyAuthUi();
     setAuthStatus(error.message || "Unable to restore session.", true);
   }
@@ -422,17 +434,20 @@ async function handleSignIn() {
       gmSession = null;
       gmAssignment = null;
       clearAuthState();
+      authResolved = true;
       applyAuthUi();
       setAuthStatus("This account is not marked as commissioner.", true);
       return;
     }
     persistAuthState();
+    authResolved = true;
     applyAuthUi();
     await loadBadgeOverrides();
   } catch (error) {
     gmSession = null;
     gmAssignment = null;
     clearAuthState();
+    authResolved = true;
     applyAuthUi();
     setAuthStatus(error.message || "Unable to sign in.", true);
   }
@@ -445,6 +460,7 @@ async function handleSignOut() {
     gmSession = null;
     gmAssignment = null;
     clearAuthState();
+    authResolved = true;
     applyAuthUi();
     setAuthStatus("Signed out.");
   }
@@ -480,6 +496,7 @@ function boot() {
     });
   });
 
+  setStatus("Checking commissioner access…");
   applyAuthUi();
   restoreSession();
 }

@@ -41,7 +41,7 @@
           </div>
         </div>
 
-        <div id="comish-auth-card" class="comish-card">
+        <div id="comish-auth-card" class="comish-card" hidden>
           <div class="label">Commissioner Sign In</div>
           <div class="wagers-auth-row">
             <input id="comish-auth-email" class="text-input" type="email" placeholder="Email" />
@@ -49,6 +49,12 @@
             <button id="comish-signin" class="btn" type="button">Sign In</button>
           </div>
           <div id="comish-auth-status" class="gm-status">Sign in with the commissioner account to edit badges.</div>
+        </div>
+
+        <div id="comish-denied-card" class="comish-card" hidden>
+          <div class="label">Access Restricted</div>
+          <p class="comish-denied-copy">You need a signed-in commissioner account to open this page.</p>
+          <a class="btn ghost" href="/gm.html">Go To GM Admin</a>
         </div>
 
         <div id="comish-shell" class="comish-grid" hidden>
