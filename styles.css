@@ -2266,13 +2266,6 @@ input[type="text"] {
   justify-items: center;
 }
 
-.footer::after {
-  content: "Glossary: RS = Rising Stars";
-  color: rgba(255, 214, 170, 0.8);
-  font-size: 0.82rem;
-  letter-spacing: 0.04em;
-}
-
 .footer-link {
   color: var(--accent);
   text-decoration: none;
