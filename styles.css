@@ -3647,6 +3647,16 @@ input[type="text"] {
 
 .leader-name--player > span:last-child {
   min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.leader-name--player > span:last-child .player-mark {
+  margin-left: 0;
+  flex: 0 0 auto;
 }
 
 .player-avatar-inline {
