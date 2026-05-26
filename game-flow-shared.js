@@ -174,11 +174,11 @@ function getEasternSnapshotBucket(date = new Date()) {
   const hour = Number(parts.find((part) => part.type === "hour")?.value || 0);
   const minuteRaw = Number(parts.find((part) => part.type === "minute")?.value || 0);
   const minute = Math.floor(minuteRaw / 15) * 15;
-  const bucketDate = new Date(date.getTime());
-  bucketDate.setUTCMinutes(bucketDate.getUTCMinutes() - (minuteRaw - minute));
   const minuteOfDay = hour * 60 + minute;
-  const paddedMinute = String(minute).padStart(2, "0");
-  const label = formatter12.format(new Date(`2000-01-01T${String(hour).padStart(2, "0")}:${paddedMinute}:00Z`));
+  const normalizedHour24 = ((hour % 24) + 24) % 24;
+  const hour12 = normalizedHour24 % 12 || 12;
+  const meridiem = normalizedHour24 >= 12 ? "PM" : "AM";
+  const label = `${hour12}:${String(minute).padStart(2, "0")} ${meridiem}`;
   return {
     minuteOfDay,
     label,
