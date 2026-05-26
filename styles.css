@@ -3339,6 +3339,22 @@ input[type="text"] {
   justify-items: center;
 }
 
+.player-detail-page #player-name {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  width: auto;
+  max-width: 100%;
+}
+
+.player-detail-page #player-name .player-mark {
+  margin-left: 0;
+  flex: 0 0 auto;
+}
+
 .player-detail-avatar-card {
   width: 156px;
   height: 156px;
