@@ -3856,20 +3856,20 @@ function buildGameFlowMarkup(team1Name, team2Name, snapshots) {
         </svg>
       </div>
       <div class="game-flow-checkpoints">
-        ${ordered
-          .map((item) => {
-            let leader = "Tied";
-            if (item.team1Score > item.team2Score) leader = team1Name;
-            if (item.team2Score > item.team1Score) leader = team2Name;
-            return `
-              <div class="game-flow-checkpoint">
-                <div class="game-flow-checkpoint-time">${escapeHtml(item.label)}</div>
-                <div class="game-flow-checkpoint-score">${escapeHtml(team1Name)} ${item.team1Score} - ${item.team2Score} ${escapeHtml(team2Name)}</div>
-                <div class="game-flow-checkpoint-leader">${escapeHtml(leader)}</div>
-              </div>
-            `;
-          })
-          .join("")}
+        ${(() => {
+          const latest = ordered[ordered.length - 1] || null;
+          if (!latest) return "";
+          let leader = "Tied";
+          if (latest.team1Score > latest.team2Score) leader = team1Name;
+          if (latest.team2Score > latest.team1Score) leader = team2Name;
+          return `
+            <div class="game-flow-checkpoint">
+              <div class="game-flow-checkpoint-time">${escapeHtml(latest.label)}</div>
+              <div class="game-flow-checkpoint-score">${escapeHtml(team1Name)} ${latest.team1Score} - ${latest.team2Score} ${escapeHtml(team2Name)}</div>
+              <div class="game-flow-checkpoint-leader">${escapeHtml(leader)}</div>
+            </div>
+          `;
+        })()}
       </div>
     </div>
   `;

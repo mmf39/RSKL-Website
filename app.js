@@ -912,24 +912,25 @@ function buildGameFlowMarkup(team1Name, team2Name, snapshots) {
     </svg>
   `;
 
-  const checkpoints = normalized
-    .map((item) => {
-      const diff = item.team1Score - item.team2Score;
-      const leader =
-        diff === 0
-          ? "Tied game"
-          : diff > 0
-          ? `${team1Name} +${diff}`
-          : `${team2Name} +${Math.abs(diff)}`;
-      return `
-        <div class="game-flow-checkpoint">
-          <div class="game-flow-checkpoint-time">${escapeHtml(item.label)}</div>
-          <div class="game-flow-checkpoint-score">${escapeHtml(team1Name)} ${item.team1Score} - ${item.team2Score} ${escapeHtml(team2Name)}</div>
-          <div class="game-flow-checkpoint-leader">${escapeHtml(leader)}</div>
-        </div>
-      `;
-    })
-    .join("");
+  const latest = normalized[normalized.length - 1] || null;
+  const checkpoints = latest
+    ? (() => {
+        const diff = latest.team1Score - latest.team2Score;
+        const leader =
+          diff === 0
+            ? "Tied game"
+            : diff > 0
+            ? `${team1Name} +${diff}`
+            : `${team2Name} +${Math.abs(diff)}`;
+        return `
+          <div class="game-flow-checkpoint">
+            <div class="game-flow-checkpoint-time">${escapeHtml(latest.label)}</div>
+            <div class="game-flow-checkpoint-score">${escapeHtml(team1Name)} ${latest.team1Score} - ${latest.team2Score} ${escapeHtml(team2Name)}</div>
+            <div class="game-flow-checkpoint-leader">${escapeHtml(leader)}</div>
+          </div>
+        `;
+      })()
+    : "";
 
   return `
     <div class="game-flow-shell">
