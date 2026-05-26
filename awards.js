@@ -610,8 +610,8 @@ function renderAwards(rows) {
       }
       return `
         <a class="awards-card awards-card-link" href="${link}">
-          <div class="awards-title">${escapeHtml(row[0] || "")}</div>
-          <div class="awards-winner">${escapeHtml(row[1] || "")}</div>
+          <div class="awards-title awards-title-center">${escapeHtml(row[0] || "")}</div>
+          <div class="awards-winner awards-winner-center">${escapeHtml(row[1] || "")}</div>
         </a>
       `;
     })
