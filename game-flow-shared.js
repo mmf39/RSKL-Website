@@ -1,6 +1,25 @@
 const LIVE_SCORING_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=1486072019&single=true&output=csv";
 
+const KNOWN_LIVE_TEAMS = new Set(
+  [
+    "turkeys",
+    "gus n em",
+    "storm",
+    "cheerios",
+    "scorpions",
+    "illegals",
+    "the lions",
+    "dream team",
+    "the snipers",
+    "the phantoms",
+    "karma avengers",
+    "the currents",
+    "the bolts",
+    "wranglers",
+  ].map((value) => normalizeTeamName(value))
+);
+
 function parseCSV(text) {
   const rows = [];
   let row = [];
@@ -132,6 +151,7 @@ function isLikelyLiveHeader(left, right) {
   return (
     /\(\s*-?\d+\s*\)/.test(leftText) ||
     /\(\s*-?\d+\s*\)/.test(rightText) ||
+    (KNOWN_LIVE_TEAMS.has(leftName) && KNOWN_LIVE_TEAMS.has(rightName)) ||
     /^[a-z0-9 '.&-]+$/i.test(leftParsed.name) ||
     /^[a-z0-9 '.&-]+$/i.test(rightParsed.name)
   );

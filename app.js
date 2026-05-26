@@ -80,6 +80,24 @@ const LIVE_GAME_RANGES = [
 const LIVE_RIGHT_NAME_COL = 5;
 const LIVE_RIGHT_POINTS_COL = 6;
 const LIVE_RIGHT_RANK_COL = 7;
+const KNOWN_LIVE_TEAMS = new Set(
+  [
+    "turkeys",
+    "gus n em",
+    "storm",
+    "cheerios",
+    "scorpions",
+    "illegals",
+    "the lions",
+    "dream team",
+    "the snipers",
+    "the phantoms",
+    "karma avengers",
+    "the currents",
+    "the bolts",
+    "wranglers",
+  ].map((value) => normalizeTeamName(value))
+);
 
 const els = {
   lastUpdated: document.getElementById("last-updated"),
@@ -713,6 +731,7 @@ function isLikelyLiveHeader(left, right) {
   return (
     /\(\s*-?\d+\s*\)/.test(leftText) ||
     /\(\s*-?\d+\s*\)/.test(rightText) ||
+    (KNOWN_LIVE_TEAMS.has(leftName) && KNOWN_LIVE_TEAMS.has(rightName)) ||
     /^[a-z0-9 '.&-]+$/i.test(leftParsed.name) ||
     /^[a-z0-9 '.&-]+$/i.test(rightParsed.name)
   );
