@@ -25,6 +25,11 @@ const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const BADGE_OVERRIDES_PATH = path.join(ROOT, "assets", "data", "badge-overrides.json");
+const DEFAULT_BADGE_OVERRIDES = {
+  risingStars: [],
+  rookie: {},
+  allStar: {},
+};
 const SHEETS = {
   archive:
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1077518539&single=true&output=csv",
@@ -69,8 +74,12 @@ function readBadgeOverrides() {
   return JSON.parse(fs.readFileSync(BADGE_OVERRIDES_PATH, "utf8"));
 }
 
-function writeBadgeOverrides(data) {
-  fs.writeFileSync(BADGE_OVERRIDES_PATH, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+function sanitizeBadgeOverrides(data) {
+  return {
+    risingStars: Array.isArray(data?.risingStars) ? data.risingStars : [],
+    rookie: data?.rookie && typeof data.rookie === "object" ? data.rookie : {},
+    allStar: data?.allStar && typeof data.allStar === "object" ? data.allStar : {},
+  };
 }
 
 function requestJsonWithHeaders(method, urlString, headers = {}, body = "") {
@@ -353,7 +362,7 @@ function readJsonBody(req) {
   });
 }
 
-function supabaseRequest(method, pathName, payload) {
+function supabaseRequest(method, pathName, payload, extraHeaders = {}) {
   return new Promise((resolve, reject) => {
     const target = new URL(`${SUPABASE_URL}${pathName}`);
     const body = payload ? JSON.stringify(payload) : "";
@@ -367,6 +376,7 @@ function supabaseRequest(method, pathName, payload) {
           Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
           "Content-Type": "application/json",
           Prefer: "return=representation",
+          ...extraHeaders,
           ...(body ? { "Content-Length": Buffer.byteLength(body) } : {}),
         },
       },
@@ -395,6 +405,36 @@ function supabaseRequest(method, pathName, payload) {
     }
     request.end();
   });
+}
+
+async function readBadgeOverridesFromSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return null;
+  }
+  const rows = await supabaseRequest("GET", "/rest/v1/badge_overrides?select=data&id=eq.global&limit=1");
+  const row = Array.isArray(rows) ? rows[0] : null;
+  return row?.data ? sanitizeBadgeOverrides(row.data) : null;
+}
+
+async function writeBadgeOverrides(data) {
+  const safeData = sanitizeBadgeOverrides(data);
+  if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+    const rows = await supabaseRequest(
+      "POST",
+      "/rest/v1/badge_overrides?on_conflict=id",
+      [
+        {
+          id: "global",
+          data: safeData,
+        },
+      ],
+      { Prefer: "resolution=merge-duplicates,return=representation" }
+    );
+    const row = Array.isArray(rows) ? rows[0] : null;
+    return sanitizeBadgeOverrides(row?.data || safeData);
+  }
+  fs.writeFileSync(BADGE_OVERRIDES_PATH, `${JSON.stringify(safeData, null, 2)}\n`, "utf8");
+  return safeData;
 }
 
 async function patchSupabasePlayerTag(table, oldTag, payload) {
@@ -491,8 +531,8 @@ const server = http.createServer((req, res) => {
     if (req.method === "GET") {
       (async () => {
         try {
-          await assertCommishRequest(req);
-          send(res, 200, JSON.stringify(readBadgeOverrides()), "application/json; charset=utf-8");
+          const data = (await readBadgeOverridesFromSupabase()) || readBadgeOverrides() || DEFAULT_BADGE_OVERRIDES;
+          send(res, 200, JSON.stringify(sanitizeBadgeOverrides(data)), "application/json; charset=utf-8");
         } catch (error) {
           send(
             res,
@@ -510,11 +550,11 @@ const server = http.createServer((req, res) => {
         try {
           await assertCommishRequest(req);
           const payload = await readJsonBody(req);
-          writeBadgeOverrides(payload);
+          const saved = await writeBadgeOverrides(payload);
           send(
             res,
             200,
-            JSON.stringify({ ok: true, data: readBadgeOverrides() }),
+            JSON.stringify({ ok: true, data: saved }),
             "application/json; charset=utf-8"
           );
         } catch (error) {

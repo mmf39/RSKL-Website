@@ -9,6 +9,11 @@ import json
 PORT = int(os.environ.get("PORT", 5173))
 ROOT = os.path.dirname(os.path.abspath(__file__))
 BADGE_OVERRIDES_PATH = os.path.join(ROOT, "assets", "data", "badge-overrides.json")
+DEFAULT_BADGE_OVERRIDES = {
+    "risingStars": [],
+    "rookie": {},
+    "allStar": {},
+}
 
 STANDINGS_URL = (
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vRKB1A8VvkamcBPMWAh7vVqAlOkx1UlINThkHhfMFEfSKEfpSnbbmq5d6w0KUdUju8x47pPrCAQUtFg/pub?gid=1102670617&single=true&output=csv"
@@ -206,16 +211,19 @@ def fetch_json(url):
         return json.loads(data or "{}")
 
 
-def supabase_request(method, path, payload=None):
+def supabase_request(method, path, payload=None, extra_headers=None):
+    headers = {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+    if extra_headers:
+        headers.update(extra_headers)
     req = urllib.request.Request(
         f"{SUPABASE_URL}{path}",
         data=json.dumps(payload).encode("utf-8") if payload is not None else None,
-        headers={
-            "apikey": SUPABASE_SERVICE_ROLE_KEY,
-            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-            "Content-Type": "application/json",
-            "Prefer": "return=representation",
-        },
+        headers=headers,
         method=method,
     )
     with urllib.request.urlopen(req) as response:
@@ -237,10 +245,41 @@ def read_badge_overrides():
         return json.load(handle)
 
 
+def sanitize_badge_overrides(data):
+    return {
+        "risingStars": data.get("risingStars") if isinstance(data.get("risingStars"), list) else [],
+        "rookie": data.get("rookie") if isinstance(data.get("rookie"), dict) else {},
+        "allStar": data.get("allStar") if isinstance(data.get("allStar"), dict) else {},
+    }
+
+
+def read_badge_overrides_from_supabase():
+    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+        return None
+    rows = supabase_request("GET", "/rest/v1/badge_overrides?select=data&id=eq.global&limit=1")
+    row = rows[0] if isinstance(rows, list) and rows else None
+    if not row or not isinstance(row.get("data"), dict):
+        return None
+    return sanitize_badge_overrides(row.get("data"))
+
+
 def write_badge_overrides(data):
+    safe_data = sanitize_badge_overrides(data)
+    if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY:
+        rows = supabase_request(
+            "POST",
+            "/rest/v1/badge_overrides?on_conflict=id",
+            [{"id": "global", "data": safe_data}],
+            {"Prefer": "resolution=merge-duplicates,return=representation"},
+        )
+        row = rows[0] if isinstance(rows, list) and rows else None
+        if row and isinstance(row.get("data"), dict):
+            return sanitize_badge_overrides(row.get("data"))
+        return safe_data
     with open(BADGE_OVERRIDES_PATH, "w", encoding="utf-8") as handle:
-        json.dump(data, handle, indent=2)
+        json.dump(safe_data, handle, indent=2)
         handle.write("\n")
+    return safe_data
 
 
 def assert_commish_request(handler):
@@ -405,11 +444,16 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/badge-overrides":
             if self.command == "GET":
                 try:
-                    assert_commish_request(self)
                     send(
                         self,
                         200,
-                        json.dumps(read_badge_overrides()),
+                        json.dumps(
+                            sanitize_badge_overrides(
+                                read_badge_overrides_from_supabase()
+                                or read_badge_overrides()
+                                or DEFAULT_BADGE_OVERRIDES
+                            )
+                        ),
                         "application/json; charset=utf-8",
                         "no-store",
                     )
@@ -429,11 +473,11 @@ class Handler(BaseHTTPRequestHandler):
                 try:
                     assert_commish_request(self)
                     payload = json.loads(body.decode("utf-8") or "{}")
-                    write_badge_overrides(payload)
+                    saved = write_badge_overrides(payload)
                     send(
                         self,
                         200,
-                        json.dumps({"ok": True, "data": read_badge_overrides()}),
+                        json.dumps({"ok": True, "data": saved}),
                         "application/json; charset=utf-8",
                         "no-store",
                     )

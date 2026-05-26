@@ -20,7 +20,6 @@ const SEASONS = [
 const els = {
   lastUpdated: document.getElementById("comish-last-updated"),
   authCard: document.getElementById("comish-auth-card"),
-  deniedCard: document.getElementById("comish-denied-card"),
   authEmail: document.getElementById("comish-auth-email"),
   authPassword: document.getElementById("comish-auth-password"),
   authSignIn: document.getElementById("comish-signin"),
@@ -259,8 +258,7 @@ function authRequestOptions(options = {}) {
 function applyAuthUi() {
   const allowed = isSignedInCommish();
   const signedIn = !!gmSession?.user?.id;
-  if (els.authCard) els.authCard.hidden = !authResolved || allowed || signedIn;
-  if (els.deniedCard) els.deniedCard.hidden = !authResolved || allowed || !signedIn;
+  if (els.authCard) els.authCard.hidden = !authResolved || allowed;
   if (els.shell) els.shell.hidden = !allowed;
   if (els.save) els.save.hidden = !allowed;
   if (els.reload) els.reload.hidden = !allowed;
@@ -271,7 +269,7 @@ function applyAuthUi() {
     setAuthStatus(`Signed in as ${email}.`, false);
     setStatus("Commissioner access granted.", "success");
   } else if (signedIn) {
-    setAuthStatus("This account is not marked as commissioner.", true);
+    setAuthStatus("This account is not marked as commissioner. Sign in with a commissioner account.", true);
     setStatus("Only users listed as commissioner can access this page.", "error");
   } else {
     setAuthStatus("Sign in with the commissioner account to edit badges.", false);

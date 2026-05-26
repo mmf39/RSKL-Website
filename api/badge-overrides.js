@@ -6,6 +6,11 @@ const FILE_PATH = path.join(process.cwd(), "assets", "data", "badge-overrides.js
 const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const DEFAULT_BADGE_OVERRIDES = {
+  risingStars: [],
+  rookie: {},
+  allStar: {},
+};
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -63,6 +68,16 @@ function requestJson(method, urlString, headers = {}, body = "") {
   });
 }
 
+function withSupabaseHeaders(extra = {}) {
+  return {
+    apikey: SUPABASE_SERVICE_ROLE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    "Content-Type": "application/json",
+    Prefer: "return=representation",
+    ...extra,
+  };
+}
+
 async function assertCommish(req) {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
     throw new Error("Missing Supabase server configuration.");
@@ -108,21 +123,48 @@ function readBadgeOverrides() {
   return JSON.parse(fs.readFileSync(FILE_PATH, "utf8"));
 }
 
-function writeBadgeOverrides(data) {
-  fs.writeFileSync(FILE_PATH, `${JSON.stringify(data, null, 2)}\n`, "utf8");
+function sanitizeBadgeOverrides(data) {
+  return {
+    risingStars: Array.isArray(data?.risingStars) ? data.risingStars : [],
+    rookie: data?.rookie && typeof data.rookie === "object" ? data.rookie : {},
+    allStar: data?.allStar && typeof data.allStar === "object" ? data.allStar : {},
+  };
+}
+
+async function readBadgeOverridesFromSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return null;
+  }
+  const rows = await requestJson(
+    "GET",
+    `${SUPABASE_URL}/rest/v1/badge_overrides?select=data&id=eq.global&limit=1`,
+    withSupabaseHeaders({ Accept: "application/json" })
+  );
+  const row = Array.isArray(rows) ? rows[0] : null;
+  return row?.data ? sanitizeBadgeOverrides(row.data) : null;
+}
+
+async function writeBadgeOverrides(data) {
+  const safeData = sanitizeBadgeOverrides(data);
+  if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+    const rows = await requestJson(
+      "POST",
+      `${SUPABASE_URL}/rest/v1/badge_overrides?on_conflict=id`,
+      withSupabaseHeaders({ Prefer: "resolution=merge-duplicates,return=representation" }),
+      JSON.stringify([{ id: "global", data: safeData }])
+    );
+    const row = Array.isArray(rows) ? rows[0] : null;
+    return sanitizeBadgeOverrides(row?.data || safeData);
+  }
+  fs.writeFileSync(FILE_PATH, `${JSON.stringify(safeData, null, 2)}\n`, "utf8");
+  return safeData;
 }
 
 module.exports = async (req, res) => {
-  try {
-    await assertCommish(req);
-  } catch (error) {
-    sendJson(res, error.status || 403, { ok: false, message: error.message });
-    return;
-  }
-
   if (req.method === "GET") {
     try {
-      sendJson(res, 200, readBadgeOverrides());
+      const data = (await readBadgeOverridesFromSupabase()) || readBadgeOverrides() || DEFAULT_BADGE_OVERRIDES;
+      sendJson(res, 200, sanitizeBadgeOverrides(data));
     } catch (error) {
       sendJson(res, 500, { ok: false, message: error.message });
     }
@@ -131,14 +173,15 @@ module.exports = async (req, res) => {
 
   if (req.method === "POST") {
     try {
+      await assertCommish(req);
       let payload = req.body;
       if (!payload || typeof payload !== "object") {
         payload = JSON.parse((await readBody(req)) || "{}");
       }
-      writeBadgeOverrides(payload);
-      sendJson(res, 200, { ok: true, data: readBadgeOverrides() });
+      const saved = await writeBadgeOverrides(payload);
+      sendJson(res, 200, { ok: true, data: saved });
     } catch (error) {
-      sendJson(res, 500, { ok: false, message: error.message });
+      sendJson(res, error.status || 500, { ok: false, message: error.message });
     }
     return;
   }

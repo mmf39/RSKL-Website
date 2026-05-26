@@ -3,7 +3,7 @@ const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const PLAYER_PROFILE_URL = "/api/player-profile";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
-const BADGE_OVERRIDES_URL = "/assets/data/badge-overrides.json";
+const BADGE_OVERRIDES_URL = "/api/badge-overrides";
 const PLAYER_PROFILE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
 const C2S1_ROSTERS_URL = "/assets/data/c2s1-rosters.csv";

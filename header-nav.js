@@ -1,6 +1,6 @@
 (() => {
   const SUPABASE_CONFIG_URL = "/api/supabase-config";
-  const BADGE_OVERRIDES_URL = "/assets/data/badge-overrides.json";
+  const BADGE_OVERRIDES_URL = "/api/badge-overrides";
   const RISING_STARS_HANDLES = new Set();
   const ROOKIE_SEASON_ORDER = [
     "c1s2-regular",
