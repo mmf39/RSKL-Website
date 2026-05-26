@@ -3576,10 +3576,10 @@ input[type="text"] {
 
 .player-leader-row {
   display: grid;
-  grid-template-columns: 44px minmax(220px, 1.45fr) minmax(170px, 1fr) 52px 112px 112px 96px 96px;
-  gap: 10px;
+  grid-template-columns: 40px minmax(260px, 1.7fr) minmax(150px, 0.95fr) 46px 98px 98px 84px 84px;
+  gap: 8px;
   align-items: center;
-  padding: 16px 14px;
+  padding: 14px 12px;
   border-radius: 20px;
   background:
     linear-gradient(180deg, rgba(255, 162, 71, 0.08), rgba(7, 13, 28, 0.95) 30%),
@@ -3625,7 +3625,7 @@ input[type="text"] {
 .player-leader-row .leader-col {
   white-space: nowrap;
   justify-self: end;
-  font-size: 1.02rem;
+  font-size: 0.96rem;
   color: #fff7ed;
 }
 
@@ -3633,14 +3633,14 @@ input[type="text"] {
   color: var(--ink);
   text-decoration: none;
   font-weight: 700;
-  font-size: 0.96rem;
+  font-size: 0.9rem;
   min-width: 0;
 }
 
 .leader-name--player {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
   max-width: 100%;
 }
@@ -3649,7 +3649,7 @@ input[type="text"] {
   min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   flex-wrap: nowrap;
   white-space: nowrap;
 }
@@ -3660,9 +3660,9 @@ input[type="text"] {
 }
 
 .player-avatar-inline {
-  width: 34px;
-  height: 34px;
-  flex: 0 0 34px;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3715,11 +3715,11 @@ input[type="text"] {
 .rookie-mark,
 .rising-stars-mark,
 .all-star-mark {
-  padding: 4px 10px;
+  padding: 3px 8px;
   background: rgba(255, 140, 26, 0.18);
   border-color: rgba(255, 140, 26, 0.52);
   color: #ff9a2f;
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   font-weight: 900;
   letter-spacing: 0.08em;
 }
@@ -3741,7 +3741,7 @@ input[type="text"] {
   color: #ffcf9b;
   text-decoration: none;
   font-weight: 600;
-  font-size: 0.96rem;
+  font-size: 0.88rem;
 }
 
 .leader-team-link:hover {
