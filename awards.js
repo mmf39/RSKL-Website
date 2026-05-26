@@ -179,6 +179,12 @@ function normalizePlayerKey(value) {
     .toLowerCase();
 }
 
+function stripAwardWinnerNote(value) {
+  return String(value || "")
+    .replace(/\s*\([^)]*\)\s*$/g, "")
+    .trim();
+}
+
 function parseNumber(value) {
   const num = Number(String(value || "").replace(/[^0-9.-]/g, ""));
   return Number.isFinite(num) ? num : null;
@@ -541,20 +547,21 @@ function advanceToBallot() {
 
 function linkifyWinner(text) {
   const value = String(text || "").trim();
+  const cleanValue = stripAwardWinnerNote(value);
   if (!value) {
     return "";
   }
   const teamMatch = TEAM_NAMES.find(
-    (team) => team.toLowerCase() === value.toLowerCase()
+    (team) => team.toLowerCase() === cleanValue.toLowerCase()
   );
   if (teamMatch) {
     return `<a class="awards-link" href="team.html?team=${encodeURIComponent(
       teamMatch
-    )}">${escapeHtml(value)}</a>`;
+    )}">${escapeHtml(cleanValue)}</a>`;
   }
   return `<a class="awards-link" href="player-detail.html?player=${encodeURIComponent(
-    value
-  )}">${escapeHtml(value)}${window.rsklPlayerBadgeHtml ? window.rsklPlayerBadgeHtml({ player: value, rookie: true, risingStars: true }) : ""}</a>`;
+    cleanValue
+  )}">${escapeHtml(cleanValue)}${window.rsklPlayerBadgeHtml ? window.rsklPlayerBadgeHtml({ player: cleanValue, rookie: true, risingStars: true }) : ""}</a>`;
 }
 
 function updateLastUpdated() {
@@ -594,13 +601,14 @@ function renderAwards(rows) {
   const cardMarkup = cleaned
     .map((row) => {
       const winner = String(row[1] || row[0] || "").trim();
+      const cleanWinner = stripAwardWinnerNote(winner);
       const hasWinner = Boolean(row[1] && String(row[1]).trim());
       const isTeam = TEAM_NAMES.some(
-        (team) => team.toLowerCase() === winner.toLowerCase()
+        (team) => team.toLowerCase() === cleanWinner.toLowerCase()
       );
       const link = isTeam
-        ? `team.html?team=${encodeURIComponent(winner)}`
-        : `player-detail.html?player=${encodeURIComponent(winner)}`;
+        ? `team.html?team=${encodeURIComponent(cleanWinner)}`
+        : `player-detail.html?player=${encodeURIComponent(cleanWinner)}`;
       if (!hasSecondColumn || !hasWinner) {
         return `
           <a class="awards-card awards-card-link" href="${link}">
@@ -611,7 +619,7 @@ function renderAwards(rows) {
       return `
         <a class="awards-card awards-card-link" href="${link}">
           <div class="awards-title awards-title-center">${escapeHtml(row[0] || "")}</div>
-          <div class="awards-winner awards-winner-center">${escapeHtml(row[1] || "")}</div>
+          <div class="awards-winner awards-winner-center">${escapeHtml(cleanWinner)}</div>
         </a>
       `;
     })
