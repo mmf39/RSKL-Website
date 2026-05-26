@@ -3,6 +3,7 @@ const SCHEDULE_CSV_URL =
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
+const GAME_FLOW_API = "/api/game-flow";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const C1S2_REGULAR_SCHEDULE_URL = "/assets/data/c1s2-regular-schedule.csv";
@@ -1098,6 +1099,159 @@ function buildLiveBoxMarkup(game, livePayload) {
     ${renderTeam(livePayload.team2Header, livePayload.team2Players)}`;
 }
 
+function buildGameFlowMarkup(team1Name, team2Name, snapshots) {
+  const team1Key = normalizeTeamName(team1Name);
+  const team2Key = normalizeTeamName(team2Name);
+  const ordered = (Array.isArray(snapshots) ? [...snapshots] : [])
+    .sort((a, b) => Number(a.snapshot_minute || 0) - Number(b.snapshot_minute || 0))
+    .map((row) => {
+      const storedTeam1 = normalizeTeamName(row.team1);
+      const aligned =
+        storedTeam1 === team1Key
+          ? { team1Score: Number(row.team1_score || 0), team2Score: Number(row.team2_score || 0) }
+          : { team1Score: Number(row.team2_score || 0), team2Score: Number(row.team1_score || 0) };
+      return {
+        label: String(row.snapshot_label || "").trim() || `${row.snapshot_minute || 0}m`,
+        minute: Number(row.snapshot_minute || 0),
+        team1Score: aligned.team1Score,
+        team2Score: aligned.team2Score,
+      };
+    });
+
+  if (!ordered.length) {
+    return `<div class="game-flow-shell"><div class="boxscore-empty">No game flow snapshots yet.</div></div>`;
+  }
+
+  const maxScore = Math.max(
+    ...ordered.map((item) => Math.max(item.team1Score, item.team2Score)),
+    1
+  );
+  const width = 640;
+  const height = 240;
+  const padX = 48;
+  const padY = 28;
+  const plotWidth = width - padX * 2;
+  const plotHeight = height - padY * 2;
+  const xForIndex = (index) =>
+    ordered.length <= 1 ? width / 2 : padX + (plotWidth * index) / (ordered.length - 1);
+  const yForScore = (score) => padY + plotHeight - (plotHeight * score) / maxScore;
+  const linePoints = (key) =>
+    ordered
+      .map((item, index) => `${xForIndex(index)},${yForScore(item[key])}`)
+      .join(" ");
+  const checkpoints = ordered
+    .map((item) => {
+      let leader = "Tied";
+      if (item.team1Score > item.team2Score) leader = team1Name;
+      if (item.team2Score > item.team1Score) leader = team2Name;
+      return `
+        <div class="game-flow-checkpoint">
+          <div class="game-flow-checkpoint-time">${escapeHtml(item.label)}</div>
+          <div class="game-flow-checkpoint-score">${escapeHtml(team1Name)} ${item.team1Score} - ${item.team2Score} ${escapeHtml(team2Name)}</div>
+          <div class="game-flow-checkpoint-leader">${escapeHtml(leader)}</div>
+        </div>
+      `;
+    })
+    .join("");
+
+  const svg = `
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Game flow chart">
+      <line class="game-flow-axis" x1="${padX}" y1="${height - padY}" x2="${width - padX}" y2="${height - padY}" />
+      <line class="game-flow-axis" x1="${padX}" y1="${padY}" x2="${padX}" y2="${height - padY}" />
+      <polyline class="game-flow-line team1" points="${linePoints("team1Score")}" />
+      <polyline class="game-flow-line team2" points="${linePoints("team2Score")}" />
+      ${ordered
+        .map((item, index) => {
+          const x = xForIndex(index);
+          const y1 = yForScore(item.team1Score);
+          const y2 = yForScore(item.team2Score);
+          return `
+            <circle class="game-flow-dot team1" cx="${x}" cy="${y1}" r="4.5"></circle>
+            <circle class="game-flow-dot team2" cx="${x}" cy="${y2}" r="4.5"></circle>
+            <text class="game-flow-label" x="${x}" y="${height - 8}" text-anchor="middle">${escapeHtml(item.label)}</text>
+            <text class="game-flow-value team1" x="${x}" y="${Math.max(y1 - 10, 12)}" text-anchor="middle">${item.team1Score}</text>
+            <text class="game-flow-value team2" x="${x}" y="${Math.max(y2 - 10, 12)}" text-anchor="middle">${item.team2Score}</text>
+          `;
+        })
+        .join("")}
+    </svg>
+  `;
+
+  return `
+    <div class="game-flow-shell">
+      <div class="game-flow-header">
+        <h3 class="game-flow-title">Game Flow</h3>
+        <div class="game-flow-subtitle">Saved every 15 minutes during live play</div>
+      </div>
+      <div class="game-flow-legend">
+        <div class="game-flow-legend-item"><span class="game-flow-legend-swatch team1"></span>${escapeHtml(team1Name)}</div>
+        <div class="game-flow-legend-item"><span class="game-flow-legend-swatch team2"></span>${escapeHtml(team2Name)}</div>
+      </div>
+      <div class="game-flow-chart">${svg}</div>
+      <div class="game-flow-checkpoints">${checkpoints}</div>
+    </div>
+  `;
+}
+
+function buildBoxScoreViewShell(innerHtml, config) {
+  return `
+    <div class="boxscore-view-shell"
+      data-flow-game-key="${escapeHtml(config.gameKey)}"
+      data-flow-season="${escapeHtml(config.season)}"
+      data-flow-team1="${escapeHtml(config.team1Name)}"
+      data-flow-team2="${escapeHtml(config.team2Name)}">
+      <div class="boxscore-view-tabs">
+        <button class="boxscore-view-tab active" type="button" data-box-view="boxscore">Box Score</button>
+        <button class="boxscore-view-tab" type="button" data-box-view="flow">Game Flow</button>
+      </div>
+      <div class="boxscore-view-panel" data-box-panel="boxscore">${innerHtml}</div>
+      <div class="boxscore-view-panel" data-box-panel="flow" hidden>
+        <div class="boxscore-empty">Loading game flow…</div>
+      </div>
+    </div>
+  `;
+}
+
+async function loadGameFlowPanel(root) {
+  if (!root || root.dataset.flowLoaded === "1" || root.dataset.flowLoading === "1") return;
+  const panel = root.querySelector('[data-box-panel="flow"]');
+  if (!panel) return;
+  root.dataset.flowLoading = "1";
+  try {
+    const gameKey = String(root.dataset.flowGameKey || "").trim();
+    const season = String(root.dataset.flowSeason || "").trim();
+    const team1Name = String(root.dataset.flowTeam1 || "").trim();
+    const team2Name = String(root.dataset.flowTeam2 || "").trim();
+    const response = await fetch(
+      `${GAME_FLOW_API}?gameKey=${encodeURIComponent(gameKey)}&season=${encodeURIComponent(season)}`,
+      { cache: "no-store" }
+    );
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload?.ok === false) {
+      throw new Error(payload?.message || `Game flow failed: ${response.status}`);
+    }
+    panel.innerHTML = buildGameFlowMarkup(team1Name, team2Name, payload.snapshots || []);
+    root.dataset.flowLoaded = "1";
+  } catch (error) {
+    panel.innerHTML = `<div class="boxscore-empty">${escapeHtml(error.message || "Unable to load game flow.")}</div>`;
+  } finally {
+    root.dataset.flowLoading = "0";
+  }
+}
+
+function setBoxScoreView(root, view) {
+  if (!root) return;
+  root.querySelectorAll("[data-box-view]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.boxView === view);
+  });
+  root.querySelectorAll("[data-box-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.boxPanel !== view;
+  });
+  if (view === "flow") {
+    loadGameFlowPanel(root);
+  }
+}
+
 function buildPreviewMarkup(game) {
   const previewForTeam = (teamName, opponentName) => {
     const history = scheduleGames
@@ -1266,6 +1420,13 @@ function bindCalendarEvents() {
   };
 
   const handleGameClick = (event) => {
+    const viewButton = event.target.closest("[data-box-view]");
+    if (viewButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      setBoxScoreView(viewButton.closest(".boxscore-view-shell"), viewButton.dataset.boxView || "boxscore");
+      return;
+    }
     const link = event.target.closest("a");
     if (link) return;
     const card = event.target.closest("[data-game-index]");
@@ -1285,10 +1446,27 @@ function bindCalendarEvents() {
       if (scoreState.status === "upcoming") {
         details.innerHTML = buildPreviewMarkup(game);
       } else if (scoreState.status === "live") {
-        details.innerHTML = buildLiveBoxMarkup(game, scoreState.livePayload);
+        const parsed1 = parseTeamHeader(scoreState.livePayload?.team1Header || game.team1);
+        const parsed2 = parseTeamHeader(scoreState.livePayload?.team2Header || game.team2);
+        details.innerHTML = buildBoxScoreViewShell(
+          buildLiveBoxMarkup(game, scoreState.livePayload),
+          {
+            gameKey: buildGameKey(game.dateToken, parsed1.name || game.team1, parsed2.name || game.team2),
+            season: getSeasonRaw(),
+            team1Name: parsed1.name || game.team1,
+            team2Name: parsed2.name || game.team2,
+          }
+        );
       } else {
         const payload = getBoxScorePayload(game);
-        details.innerHTML = payload.html;
+        const parsed1 = parseTeamHeader(payload.team1Header || game.team1);
+        const parsed2 = parseTeamHeader(payload.team2Header || game.team2);
+        details.innerHTML = buildBoxScoreViewShell(payload.html, {
+          gameKey: buildGameKey(game.dateToken, parsed1.name || game.team1, parsed2.name || game.team2),
+          season: getSeasonRaw(),
+          team1Name: parsed1.name || game.team1,
+          team2Name: parsed2.name || game.team2,
+        });
       }
       details.dataset.loaded = "1";
     }

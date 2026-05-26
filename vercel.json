@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/game-flow-capture?season=c2s3-regular",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

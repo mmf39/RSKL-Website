@@ -2,6 +2,13 @@ const http = require("http");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
+const {
+  LIVE_SCORING_URL,
+  parseCSV: parseSharedCsv,
+  normalizeTeamName,
+  buildLiveGameSnapshotPayloads,
+  getEasternSnapshotBucket,
+} = require("./game-flow-shared");
 
 const PORT = process.env.PORT || 5173;
 const ROOT = __dirname;
@@ -24,6 +31,7 @@ const PLAYER_PROFILE_SCRIPT_URL =
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const CRON_SECRET = process.env.CRON_SECRET || process.env.GAME_FLOW_CAPTURE_SECRET || "";
 const BADGE_OVERRIDES_PATH = path.join(ROOT, "assets", "data", "badge-overrides.json");
 const DEFAULT_BADGE_OVERRIDES = {
   risingStars: [],
@@ -250,6 +258,14 @@ function parseCSV(text) {
   }
 
   return rows;
+}
+
+function isAuthorizedCaptureRequest(req, url) {
+  if (!CRON_SECRET) return true;
+  const authHeader = String(req.headers.authorization || "").trim();
+  const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  const querySecret = String(url.searchParams.get("secret") || "").trim();
+  return bearer === CRON_SECRET || querySecret === CRON_SECRET;
 }
 
 function fetchText(url) {
@@ -522,6 +538,119 @@ const server = http.createServer((req, res) => {
           JSON.stringify({ ok: false, message: error.message }),
           "application/json; charset=utf-8"
         );
+      }
+    })();
+    return;
+  }
+
+  if (url.pathname === "/api/game-flow") {
+    if (req.method !== "GET") {
+      send(res, 405, JSON.stringify({ ok: false, message: "Method not allowed." }), "application/json; charset=utf-8");
+      return;
+    }
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      send(
+        res,
+        500,
+        JSON.stringify({ ok: false, message: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY." }),
+        "application/json; charset=utf-8"
+      );
+      return;
+    }
+    (async () => {
+      try {
+        const gameKey = String(url.searchParams.get("gameKey") || "").trim();
+        const seasonKey = String(url.searchParams.get("season") || "").trim();
+        if (!gameKey) {
+          send(res, 400, JSON.stringify({ ok: false, message: "Missing gameKey." }), "application/json; charset=utf-8");
+          return;
+        }
+        const params = new URLSearchParams();
+        params.set(
+          "select",
+          "game_key,season_key,game_date,team1,team2,team1_score,team2_score,snapshot_minute,snapshot_label,created_at"
+        );
+        params.set("game_key", `eq.${gameKey}`);
+        if (seasonKey) {
+          params.set("season_key", `eq.${seasonKey}`);
+        }
+        params.set("order", "snapshot_minute.asc");
+        const rows = await requestJsonWithHeaders(
+          "GET",
+          `${SUPABASE_URL}/rest/v1/game_flow_snapshots?${params.toString()}`,
+          {
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          }
+        );
+        const snapshots = Array.isArray(rows)
+          ? rows.map((row) => ({
+              ...row,
+              team1_key: normalizeTeamName(row.team1),
+              team2_key: normalizeTeamName(row.team2),
+            }))
+          : [];
+        send(res, 200, JSON.stringify({ ok: true, snapshots }), "application/json; charset=utf-8");
+      } catch (error) {
+        send(res, 500, JSON.stringify({ ok: false, message: error.message }), "application/json; charset=utf-8");
+      }
+    })();
+    return;
+  }
+
+  if (url.pathname === "/api/game-flow-capture") {
+    if (req.method !== "GET" && req.method !== "POST") {
+      send(res, 405, JSON.stringify({ ok: false, message: "Method not allowed." }), "application/json; charset=utf-8");
+      return;
+    }
+    if (!isAuthorizedCaptureRequest(req, url)) {
+      send(res, 401, JSON.stringify({ ok: false, message: "Unauthorized capture request." }), "application/json; charset=utf-8");
+      return;
+    }
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      send(
+        res,
+        500,
+        JSON.stringify({ ok: false, message: "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY." }),
+        "application/json; charset=utf-8"
+      );
+      return;
+    }
+    (async () => {
+      try {
+        const seasonKey = String(url.searchParams.get("season") || "c2s3-regular").trim();
+        const source = String(url.searchParams.get("source") || "auto").trim() || "auto";
+        const csvText = await fetchText(LIVE_SCORING_URL);
+        const rows = parseSharedCsv(csvText);
+        const bucket = getEasternSnapshotBucket();
+        const payload = buildLiveGameSnapshotPayloads(rows, seasonKey, bucket).map((entry) => ({
+          ...entry,
+          source,
+        }));
+        if (!payload.length) {
+          send(res, 200, JSON.stringify({ ok: true, captured: 0, snapshots: [] }), "application/json; charset=utf-8");
+          return;
+        }
+        const saved = await supabaseRequest(
+          "POST",
+          "/rest/v1/game_flow_snapshots?on_conflict=game_key,snapshot_minute",
+          payload,
+          { Prefer: "resolution=merge-duplicates,return=representation" }
+        );
+        send(
+          res,
+          200,
+          JSON.stringify({
+            ok: true,
+            captured: Array.isArray(saved) ? saved.length : payload.length,
+            snapshotMinute: bucket.minuteOfDay,
+            snapshotLabel: bucket.label,
+            snapshots: Array.isArray(saved) ? saved : payload,
+          }),
+          "application/json; charset=utf-8"
+        );
+      } catch (error) {
+        send(res, 500, JSON.stringify({ ok: false, message: error.message }), "application/json; charset=utf-8");
       }
     })();
     return;

@@ -3048,6 +3048,188 @@ input[type="text"] {
   text-decoration: none;
 }
 
+.boxscore-view-shell {
+  display: grid;
+  gap: 14px;
+}
+
+.boxscore-view-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.boxscore-view-tab {
+  appearance: none;
+  border: 1px solid rgba(255, 140, 26, 0.28);
+  background: rgba(15, 23, 42, 0.78);
+  color: #ffd9a8;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+
+.boxscore-view-tab.active {
+  background: linear-gradient(135deg, rgba(255, 140, 26, 0.24), rgba(255, 140, 26, 0.08));
+  border-color: rgba(255, 140, 26, 0.7);
+  color: #fff3df;
+}
+
+.game-flow-shell {
+  display: grid;
+  gap: 14px;
+}
+
+.game-flow-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 14px;
+}
+
+.game-flow-title {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: #ffe8c9;
+}
+
+.game-flow-subtitle {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.game-flow-chart {
+  background: rgba(6, 12, 24, 0.78);
+  border: 1px solid rgba(255, 140, 26, 0.18);
+  border-radius: 18px;
+  padding: 14px;
+}
+
+.game-flow-chart svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.game-flow-axis {
+  stroke: rgba(148, 163, 184, 0.3);
+  stroke-width: 1;
+}
+
+.game-flow-line.team1 {
+  fill: none;
+  stroke: #ff9b3d;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.game-flow-line.team2 {
+  fill: none;
+  stroke: #60a5fa;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.game-flow-dot.team1 {
+  fill: #ff9b3d;
+}
+
+.game-flow-dot.team2 {
+  fill: #60a5fa;
+}
+
+.game-flow-label {
+  fill: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.game-flow-value.team1 {
+  fill: #ffcf9a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.game-flow-value.team2 {
+  fill: #bfdbfe;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.game-flow-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+}
+
+.game-flow-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #e5e7eb;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.game-flow-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+}
+
+.game-flow-legend-swatch.team1 {
+  background: #ff9b3d;
+}
+
+.game-flow-legend-swatch.team2 {
+  background: #60a5fa;
+}
+
+.game-flow-checkpoints {
+  display: grid;
+  gap: 8px;
+}
+
+.game-flow-checkpoint {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border-bottom: 1px dashed rgba(148, 163, 184, 0.16);
+  padding-bottom: 8px;
+}
+
+.game-flow-checkpoint:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.game-flow-checkpoint-time {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.game-flow-checkpoint-score {
+  color: #f8fafc;
+  font-weight: 800;
+}
+
+.game-flow-checkpoint-leader {
+  color: #ffcf9a;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
 .schedule-row {
   cursor: pointer;
   transition: background 0.15s ease;

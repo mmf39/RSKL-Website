@@ -5,6 +5,8 @@ import os
 from urllib.parse import urlparse, parse_qs, urlencode
 import time
 import json
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 PORT = int(os.environ.get("PORT", 5173))
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -54,6 +56,7 @@ CONTRACTS_URL = (
 LIVE_ROSTER_URL = (
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=0&single=true&output=csv"
 )
+CRON_SECRET = os.environ.get("CRON_SECRET", "") or os.environ.get("GAME_FLOW_CAPTURE_SECRET", "")
 PLAYER_PROFILE_SCRIPT_URL = os.environ.get("PLAYER_PROFILE_SCRIPT_URL", "")
 if not PLAYER_PROFILE_SCRIPT_URL:
     PLAYER_PROFILE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec"
@@ -127,6 +130,149 @@ def proxy_csv(handler, url, use_cache=True):
 
 def normalize_name(value):
     return str(value or "").replace("*", "").strip().lower()
+
+
+def display_team_name(value):
+    name = str(value or "").strip()
+    if name == "Bullets":
+        return "Storm"
+    if name == "Yetis":
+        return "Scorpions"
+    if name == "The Future":
+        return "Dream Team"
+    if name == "Avengers":
+        return "Karma Avengers"
+    if name == "Currents":
+        return "The Currents"
+    if name == "Bolts":
+        return "The Bolts"
+    if name == "Doggy N em":
+        return "Doggy N Em"
+    if name == "Wrangler":
+        return "Wranglers"
+    return name
+
+
+def normalize_team_name(value):
+    return (
+        display_team_name(str(value or ""))
+        .replace(":", " ")
+        .replace("*", " ")
+        .replace("/", " ")
+        .replace("(", " ")
+        .replace(")", " ")
+        .strip()
+        .lower()
+    )
+
+
+def build_game_key(date_token, team1, team2):
+    return f"{str(date_token or '').strip()}|{normalize_team_name(team1)}|{normalize_team_name(team2)}"
+
+
+def parse_team_header(value):
+    text = str(value or "").strip()
+    if not text:
+        return {"name": "", "score": ""}
+    import re
+
+    match = re.match(r"^(.*?)(?:\(([-+]?\d+)\))?\s*$", text)
+    name = display_team_name((match.group(1) if match else text).strip())
+    score = match.group(2).strip() if match and match.group(2) else ""
+    return {"name": name, "score": score}
+
+
+def get_right_name_col(row):
+    right_f = str(row[5] if len(row) > 5 else "").strip()
+    right_e = str(row[4] if len(row) > 4 else "").strip()
+    if right_f:
+        return 5
+    if right_e:
+        return 4
+    return 5
+
+
+def is_player_cell(value):
+    text = str(value or "").strip()
+    return text.startswith("@") or "member" in text.lower()
+
+
+def extract_league_day(rows):
+    for row in rows:
+        left = str(row[0] if len(row) > 0 else "")
+        right = str(row[1] if len(row) > 1 else "")
+        if "League Day" in left or "League Day" in right:
+            raw = left or right
+            parts = raw.split(":")
+            return parts[1].strip() if len(parts) > 1 else raw.strip()
+    return ""
+
+
+def get_eastern_snapshot_bucket():
+    now = datetime.now(ZoneInfo("America/New_York"))
+    minute_bucket = (now.minute // 15) * 15
+    minute_of_day = now.hour * 60 + minute_bucket
+    label_dt = now.replace(minute=minute_bucket, second=0, microsecond=0)
+    label = label_dt.strftime("%I:%M %p").lstrip("0")
+    return {"minuteOfDay": minute_of_day, "label": label}
+
+
+def build_live_game_snapshot_payloads(rows, season_key, snapshot_info):
+    league_day = extract_league_day(rows)
+    if not league_day:
+        return []
+    start_index = 0
+    for index, row in enumerate(rows):
+        if "League Day" in str(row[0] if len(row) > 0 else "") or "League Day" in str(row[1] if len(row) > 1 else ""):
+            start_index = index + 1
+            break
+    data_rows = rows[start_index:]
+
+    def looks_like_header(left, right):
+        import re
+
+        return (
+            left
+            and right
+            and not is_player_cell(left)
+            and not is_player_cell(right)
+            and (re.search(r"\(\s*-?\d+\s*\)", left) or re.search(r"\(\s*-?\d+\s*\)", right))
+        )
+
+    payload = []
+    for row in data_rows:
+        left = str(row[0] if len(row) > 0 else "").strip()
+        right = str(row[get_right_name_col(row)] if len(row) > get_right_name_col(row) else "").strip()
+        if not looks_like_header(left, right):
+            continue
+        team1 = parse_team_header(left)
+        team2 = parse_team_header(right)
+        if not team1["name"] or not team2["name"]:
+            continue
+        payload.append(
+            {
+                "season_key": season_key,
+                "game_key": build_game_key(league_day, team1["name"], team2["name"]),
+                "game_date": league_day,
+                "team1": team1["name"],
+                "team2": team2["name"],
+                "team1_score": int(team1["score"] or 0),
+                "team2_score": int(team2["score"] or 0),
+                "snapshot_minute": snapshot_info["minuteOfDay"],
+                "snapshot_label": snapshot_info["label"],
+                "source": "auto",
+            }
+        )
+    return payload
+
+
+def is_authorized_capture_request(handler, params):
+    if not CRON_SECRET:
+        return True
+    auth_header = str(handler.headers.get("Authorization", "")).strip()
+    token = auth_header[7:].strip() if auth_header.startswith("Bearer ") else ""
+    query_secret = str((params.get("secret") or [""])[0]).strip()
+    return token == CRON_SECRET or query_secret == CRON_SECRET
 
 
 def parse_csv(text):
@@ -361,6 +507,136 @@ class Handler(BaseHTTPRequestHandler):
                 send(self, err.code, json.dumps({"ok": False, "message": f"Upstream error {err.code}"}), "application/json; charset=utf-8", "no-store")
             except Exception as err:  # pylint: disable=broad-except
                 send(self, 500, json.dumps({"ok": False, "message": str(err)}), "application/json; charset=utf-8", "no-store")
+            return
+
+        if path == "/api/game-flow":
+            if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+                send(
+                    self,
+                    500,
+                    json.dumps({"ok": False, "message": "Missing Supabase server configuration."}),
+                    "application/json; charset=utf-8",
+                    "no-store",
+                )
+                return
+            game_key = str((params.get("gameKey") or [""])[0]).strip()
+            season_key = str((params.get("season") or [""])[0]).strip()
+            if not game_key:
+                send(
+                    self,
+                    400,
+                    json.dumps({"ok": False, "message": "Missing gameKey."}),
+                    "application/json; charset=utf-8",
+                    "no-store",
+                )
+                return
+            query = (
+                "/rest/v1/game_flow_snapshots?select=game_key,season_key,game_date,team1,team2,team1_score,team2_score,snapshot_minute,snapshot_label,created_at"
+                f"&game_key=eq.{urllib.parse.quote(game_key, safe='')}"
+            )
+            if season_key:
+                query += f"&season_key=eq.{urllib.parse.quote(season_key, safe='')}"
+            query += "&order=snapshot_minute.asc"
+            try:
+                rows = supabase_request("GET", query)
+                snapshots = []
+                for row in rows if isinstance(rows, list) else []:
+                    next_row = dict(row)
+                    next_row["team1_key"] = normalize_team_name(row.get("team1", ""))
+                    next_row["team2_key"] = normalize_team_name(row.get("team2", ""))
+                    snapshots.append(next_row)
+                send(
+                    self,
+                    200,
+                    json.dumps({"ok": True, "snapshots": snapshots}),
+                    "application/json; charset=utf-8",
+                    "no-store",
+                )
+            except Exception as err:  # pylint: disable=broad-except
+                send(
+                    self,
+                    500,
+                    json.dumps({"ok": False, "message": str(err)}),
+                    "application/json; charset=utf-8",
+                    "no-store",
+                )
+            return
+
+        if path == "/api/game-flow-capture":
+            if not is_authorized_capture_request(self, params):
+                send(
+                    self,
+                    401,
+                    json.dumps({"ok": False, "message": "Unauthorized capture request."}),
+                    "application/json; charset=utf-8",
+                    "no-store",
+                )
+                return
+            if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+                send(
+                    self,
+                    500,
+                    json.dumps({"ok": False, "message": "Missing Supabase server configuration."}),
+                    "application/json; charset=utf-8",
+                    "no-store",
+                )
+                return
+            season_key = str((params.get("season") or ["c2s3-regular"])[0]).strip() or "c2s3-regular"
+            source = str((params.get("source") or ["auto"])[0]).strip() or "auto"
+            try:
+                request = urllib.request.Request(
+                    LIVE_SCORING_URL,
+                    headers={
+                        "Accept": "text/csv,*/*",
+                        "User-Agent": "RSKL Game Flow Capture/1.0",
+                    },
+                )
+                with urllib.request.urlopen(request) as response:
+                    csv_text = response.read().decode("utf-8")
+                rows = parse_csv(csv_text)
+                bucket = get_eastern_snapshot_bucket()
+                payload = [
+                    {**entry, "source": source}
+                    for entry in build_live_game_snapshot_payloads(rows, season_key, bucket)
+                ]
+                if not payload:
+                    send(
+                        self,
+                        200,
+                        json.dumps({"ok": True, "captured": 0, "snapshots": []}),
+                        "application/json; charset=utf-8",
+                        "no-store",
+                    )
+                    return
+                saved = supabase_request(
+                    "POST",
+                    "/rest/v1/game_flow_snapshots?on_conflict=game_key,snapshot_minute",
+                    payload,
+                    {"Prefer": "resolution=merge-duplicates,return=representation"},
+                )
+                send(
+                    self,
+                    200,
+                    json.dumps(
+                        {
+                            "ok": True,
+                            "captured": len(saved) if isinstance(saved, list) else len(payload),
+                            "snapshotMinute": bucket["minuteOfDay"],
+                            "snapshotLabel": bucket["label"],
+                            "snapshots": saved if isinstance(saved, list) else payload,
+                        }
+                    ),
+                    "application/json; charset=utf-8",
+                    "no-store",
+                )
+            except Exception as err:  # pylint: disable=broad-except
+                send(
+                    self,
+                    500,
+                    json.dumps({"ok": False, "message": str(err)}),
+                    "application/json; charset=utf-8",
+                    "no-store",
+                )
             return
 
         if path == "/api/supabase-config":
