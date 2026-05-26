@@ -409,6 +409,29 @@ function isCaptainCell(value) {
   return /\s+\(?c\)?$/i.test(raw);
 }
 
+function isLikelyLiveHeader(left, right) {
+  const leftText = String(left || "").trim();
+  const rightText = String(right || "").trim();
+  if (!leftText || !rightText) return false;
+  if (isPlayerCell(leftText) || isPlayerCell(rightText)) return false;
+
+  const leftParsed = parseTeamHeader(leftText);
+  const rightParsed = parseTeamHeader(rightText);
+  const leftName = normalizeTeamName(leftParsed.name);
+  const rightName = normalizeTeamName(rightParsed.name);
+  if (!leftName || !rightName || leftName === rightName) return false;
+
+  const blocked = new Set(["player", "points", "point", "pts", "rank", "score"]);
+  if (blocked.has(leftName) || blocked.has(rightName)) return false;
+
+  return (
+    /\(\s*-?\d+\s*\)/.test(leftText) ||
+    /\(\s*-?\d+\s*\)/.test(rightText) ||
+    /^[a-z0-9 '.&-]+$/i.test(leftParsed.name) ||
+    /^[a-z0-9 '.&-]+$/i.test(rightParsed.name)
+  );
+}
+
 function buildPlayerEntry(value, points, rank) {
   return {
     player: normalizePlayerCell(value),
@@ -536,19 +559,12 @@ function buildLiveScoreMap(rows) {
   );
   const dataRows = rows.slice(startIndex >= 0 ? startIndex + 1 : 0);
 
-  const looksLikeHeader = (left, right) =>
-    left &&
-    right &&
-    !isPlayerCell(left) &&
-    !isPlayerCell(right) &&
-    (/\(\s*-?\d+\s*\)/.test(left) || /\(\s*-?\d+\s*\)/.test(right));
-
   const games = [];
   let current = null;
   dataRows.forEach((row) => {
     const left = String(row[0] || "").trim();
     const right = String(row[getRightNameCol(row)] || "").trim();
-    if (looksLikeHeader(left, right)) {
+    if (isLikelyLiveHeader(left, right)) {
       current = { header: row, players: [] };
       games.push(current);
       return;
