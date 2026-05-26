@@ -31,7 +31,6 @@ const PLAYER_PROFILE_SCRIPT_URL =
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const CRON_SECRET = process.env.CRON_SECRET || process.env.GAME_FLOW_CAPTURE_SECRET || "";
 const BADGE_OVERRIDES_PATH = path.join(ROOT, "assets", "data", "badge-overrides.json");
 const DEFAULT_BADGE_OVERRIDES = {
   risingStars: [],
@@ -258,14 +257,6 @@ function parseCSV(text) {
   }
 
   return rows;
-}
-
-function isAuthorizedCaptureRequest(req, url) {
-  if (!CRON_SECRET) return true;
-  const authHeader = String(req.headers.authorization || "").trim();
-  const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
-  const querySecret = String(url.searchParams.get("secret") || "").trim();
-  return bearer === CRON_SECRET || querySecret === CRON_SECRET;
 }
 
 function fetchText(url) {
@@ -601,10 +592,6 @@ const server = http.createServer((req, res) => {
   if (url.pathname === "/api/game-flow-capture") {
     if (req.method !== "GET" && req.method !== "POST") {
       send(res, 405, JSON.stringify({ ok: false, message: "Method not allowed." }), "application/json; charset=utf-8");
-      return;
-    }
-    if (!isAuthorizedCaptureRequest(req, url)) {
-      send(res, 401, JSON.stringify({ ok: false, message: "Unauthorized capture request." }), "application/json; charset=utf-8");
       return;
     }
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {

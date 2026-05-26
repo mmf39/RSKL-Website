@@ -8,8 +8,6 @@ const {
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const CRON_SECRET = process.env.CRON_SECRET || process.env.GAME_FLOW_CAPTURE_SECRET || "";
-
 function sendJson(res, status, body) {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -85,25 +83,10 @@ function requestJson(method, urlString, headers = {}, body = "") {
   });
 }
 
-function isAuthorized(req) {
-  if (!CRON_SECRET) {
-    return true;
-  }
-  const authHeader = String(req.headers.authorization || "").trim();
-  const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
-  const url = new URL(req.url, "http://localhost");
-  const querySecret = String(url.searchParams.get("secret") || "").trim();
-  return bearer === CRON_SECRET || querySecret === CRON_SECRET;
-}
-
 module.exports = async (req, res) => {
   try {
     if (req.method !== "GET" && req.method !== "POST") {
       sendJson(res, 405, { ok: false, message: "Method not allowed." });
-      return;
-    }
-    if (!isAuthorized(req)) {
-      sendJson(res, 401, { ok: false, message: "Unauthorized capture request." });
       return;
     }
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {

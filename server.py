@@ -56,7 +56,6 @@ CONTRACTS_URL = (
 LIVE_ROSTER_URL = (
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=0&single=true&output=csv"
 )
-CRON_SECRET = os.environ.get("CRON_SECRET", "") or os.environ.get("GAME_FLOW_CAPTURE_SECRET", "")
 PLAYER_PROFILE_SCRIPT_URL = os.environ.get("PLAYER_PROFILE_SCRIPT_URL", "")
 if not PLAYER_PROFILE_SCRIPT_URL:
     PLAYER_PROFILE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec"
@@ -264,15 +263,6 @@ def build_live_game_snapshot_payloads(rows, season_key, snapshot_info):
             }
         )
     return payload
-
-
-def is_authorized_capture_request(handler, params):
-    if not CRON_SECRET:
-        return True
-    auth_header = str(handler.headers.get("Authorization", "")).strip()
-    token = auth_header[7:].strip() if auth_header.startswith("Bearer ") else ""
-    query_secret = str((params.get("secret") or [""])[0]).strip()
-    return token == CRON_SECRET or query_secret == CRON_SECRET
 
 
 def parse_csv(text):
@@ -563,15 +553,6 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/game-flow-capture":
-            if not is_authorized_capture_request(self, params):
-                send(
-                    self,
-                    401,
-                    json.dumps({"ok": False, "message": "Unauthorized capture request."}),
-                    "application/json; charset=utf-8",
-                    "no-store",
-                )
-                return
             if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
                 send(
                     self,
