@@ -1,8 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/game-flow-capture",
-      "schedule": "*/15 * * * *"
-    }
-  ]
-}

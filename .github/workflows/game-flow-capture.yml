@@ -1,0 +1,20 @@
+name: Game Flow Capture
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger game flow capture
+        env:
+          GAME_FLOW_URL: ${{ secrets.GAME_FLOW_CAPTURE_URL }}
+        run: |
+          if [ -z "$GAME_FLOW_URL" ]; then
+            echo "Missing GAME_FLOW_CAPTURE_URL secret"
+            exit 1
+          fi
+          curl --fail --silent --show-error "$GAME_FLOW_URL"
