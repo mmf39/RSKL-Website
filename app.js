@@ -668,7 +668,8 @@ function extractLeagueDay(rows) {
   if (!row) return "";
   const cell = String(row[0] || row[1] || "");
   const parts = cell.split(":");
-  return parts.length > 1 ? parts[1].trim() : cell.trim();
+  const value = parts.length > 1 ? parts[1].trim() : cell.trim();
+  return normalizeDateToken(value) || value;
 }
 
 function buildGameKey(dateToken, team1, team2) {

@@ -103,7 +103,9 @@ function extractLeagueDay(rows) {
   if (!hit) return "";
   const raw = String(hit[0] || hit[1] || "");
   const parts = raw.split(":");
-  return parts.length > 1 ? parts[1].trim() : raw.trim();
+  const value = parts.length > 1 ? parts[1].trim() : raw.trim();
+  const match = value.match(/(\d{1,2}\/\d{1,2})(?:\/\d{2,4})?/);
+  return match ? match[1] : value;
 }
 
 function isPlayerCell(value) {

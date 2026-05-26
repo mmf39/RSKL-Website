@@ -444,7 +444,8 @@ function extractLeagueDay(rows) {
   if (!hit) return "";
   const raw = String(hit[0] || hit[1] || "");
   const parts = raw.split(":");
-  return parts.length > 1 ? parts[1].trim() : raw.trim();
+  const value = parts.length > 1 ? parts[1].trim() : raw.trim();
+  return normalizeDateToken(value) || value;
 }
 
 function parseRecapPoints(value) {
