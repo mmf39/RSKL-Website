@@ -3,6 +3,7 @@ name: Game Flow Capture
 on:
   schedule:
     - cron: "*/15 * * * *"
+    - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -17,4 +18,11 @@ jobs:
             echo "Missing GAME_FLOW_CAPTURE_URL secret"
             exit 1
           fi
-          curl --fail --silent --show-error "$GAME_FLOW_URL"
+          for attempt in 1 2 3; do
+            if curl --fail --silent --show-error --connect-timeout 10 --max-time 60 "$GAME_FLOW_URL"; then
+              exit 0
+            fi
+            echo "Attempt $attempt failed, retrying..."
+            sleep 10
+          done
+          exit 1
