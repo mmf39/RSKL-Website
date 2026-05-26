@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Commissioner Badge Admin</title>
+    <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
+    <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
+    <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
+    <link rel="stylesheet" href="styles.css?v=20260525a" />
+  </head>
+  <body class="comish-page">
+    <div class="bg"></div>
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="badge">Real Sports Karma League</div>
+        <h1>Commissioner Badge Admin</h1>
+        <div class="meta">
+          <span id="comish-last-updated">Last updated: —</span>
+          <div class="site-nav">
+            <div class="site-nav-main">
+              <a class="btn ghost" href="/">Dashboard</a>
+              <a class="btn ghost" href="/schedule.html">Schedule</a>
+              <a class="btn ghost" href="/standings.html">Standings</a>
+              <a class="btn ghost" href="/player.html">Player Stats</a>
+              <a class="btn ghost" href="/gm.html">GM Admin</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Badge Overrides</h2>
+          <div class="comish-actions">
+            <button id="comish-reload" class="btn ghost" type="button">Reload</button>
+            <button id="comish-save" class="btn" type="button">Save Changes</button>
+          </div>
+        </div>
+
+        <div class="comish-grid">
+          <div class="comish-card">
+            <div class="label">Season Badges</div>
+            <label class="label" for="comish-season-select">Season</label>
+            <select id="comish-season-select" class="text-input">
+              <option value="c2s3-regular">C2S3</option>
+              <option value="c2s2-regular">C2S2</option>
+              <option value="c2s1-regular">C2S1</option>
+              <option value="c1s7-regular">C1S7</option>
+              <option value="c1s6-regular">C1S6</option>
+              <option value="c1s5-regular">C1S5</option>
+              <option value="c1s4-regular">C1S4</option>
+              <option value="c1s3-regular">C1S3</option>
+              <option value="c1s2-regular">C1S2</option>
+            </select>
+
+            <div class="comish-split">
+              <div>
+                <label class="label" for="comish-rookie-input">Rookies</label>
+                <textarea
+                  id="comish-rookie-input"
+                  class="text-input comish-textarea"
+                  rows="16"
+                  placeholder="@player1&#10;@player2"></textarea>
+                <div id="comish-rookie-count" class="gm-status">0 rookies</div>
+              </div>
+              <div>
+                <label class="label" for="comish-allstar-input">All Stars</label>
+                <textarea
+                  id="comish-allstar-input"
+                  class="text-input comish-textarea"
+                  rows="16"
+                  placeholder="@player1&#10;@player2"></textarea>
+                <div id="comish-allstar-count" class="gm-status">0 all stars</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="comish-card">
+            <div class="label">Global Badges</div>
+            <label class="label" for="comish-rising-stars-input">Rising Stars</label>
+            <textarea
+              id="comish-rising-stars-input"
+              class="text-input comish-textarea"
+              rows="16"
+              placeholder="@player1&#10;@player2"></textarea>
+            <div id="comish-rising-stars-count" class="gm-status">0 rising stars</div>
+
+            <div class="comish-json-card">
+              <div class="label">Raw Preview</div>
+              <pre id="comish-json-preview" class="comish-json-preview">{}</pre>
+            </div>
+          </div>
+        </div>
+
+        <div id="comish-status" class="gm-status">Loading badge overrides…</div>
+      </section>
+    </main>
+
+    <script src="comish.js?v=20260525a"></script>
+  </body>
+</html>

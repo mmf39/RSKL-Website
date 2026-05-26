@@ -8,6 +8,7 @@ import json
 
 PORT = int(os.environ.get("PORT", 5173))
 ROOT = os.path.dirname(os.path.abspath(__file__))
+BADGE_OVERRIDES_PATH = os.path.join(ROOT, "assets", "data", "badge-overrides.json")
 
 STANDINGS_URL = (
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vRKB1A8VvkamcBPMWAh7vVqAlOkx1UlINThkHhfMFEfSKEfpSnbbmq5d6w0KUdUju8x47pPrCAQUtFg/pub?gid=1102670617&single=true&output=csv"
@@ -231,6 +232,17 @@ def patch_supabase_player_tag(table, old_tag, payload):
     return len(rows) if isinstance(rows, list) else 0
 
 
+def read_badge_overrides():
+    with open(BADGE_OVERRIDES_PATH, "r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def write_badge_overrides(data):
+    with open(BADGE_OVERRIDES_PATH, "w", encoding="utf-8") as handle:
+        json.dump(data, handle, indent=2)
+        handle.write("\n")
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -338,6 +350,58 @@ class Handler(BaseHTTPRequestHandler):
             )
             return
 
+        if path == "/api/badge-overrides":
+            if self.command == "GET":
+                try:
+                    send(
+                        self,
+                        200,
+                        json.dumps(read_badge_overrides()),
+                        "application/json; charset=utf-8",
+                        "no-store",
+                    )
+                except Exception as err:  # pylint: disable=broad-except
+                    send(
+                        self,
+                        500,
+                        json.dumps({"ok": False, "message": str(err)}),
+                        "application/json; charset=utf-8",
+                        "no-store",
+                    )
+                return
+
+            if self.command == "POST":
+                length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(length) if length else b"{}"
+                try:
+                    payload = json.loads(body.decode("utf-8") or "{}")
+                    write_badge_overrides(payload)
+                    send(
+                        self,
+                        200,
+                        json.dumps({"ok": True, "data": read_badge_overrides()}),
+                        "application/json; charset=utf-8",
+                        "no-store",
+                    )
+                except Exception as err:  # pylint: disable=broad-except
+                    send(
+                        self,
+                        500,
+                        json.dumps({"ok": False, "message": str(err)}),
+                        "application/json; charset=utf-8",
+                        "no-store",
+                    )
+                return
+
+            send(
+                self,
+                405,
+                json.dumps({"ok": False, "message": "Method not allowed."}),
+                "application/json; charset=utf-8",
+                "no-store",
+            )
+            return
+
         if path == "/api/standings":
             proxy_csv(self, STANDINGS_URL, use_cache=False)
             return
@@ -420,6 +484,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         parsed = urlparse(self.path)
         path = parsed.path
+
+        if path == "/api/badge-overrides":
+            return self.do_GET()
 
         if path == "/api/sheet-update":
             length = int(self.headers.get("Content-Length", 0))

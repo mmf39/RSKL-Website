@@ -1,15 +1,7 @@
 (() => {
   const SUPABASE_CONFIG_URL = "/api/supabase-config";
-  const ROOKIE_OVERRIDES_URL = "/assets/data/rookie-overrides.json";
-  const ALL_STAR_OVERRIDES_URL = "/assets/data/all-star-overrides.json";
-  const RISING_STARS_HANDLES = new Set([
-    "fullofopps",
-    "xyz",
-    "jd3",
-    "vampire",
-    "florida_sportsfan",
-    "osboti",
-  ]);
+  const BADGE_OVERRIDES_URL = "/assets/data/badge-overrides.json";
+  const RISING_STARS_HANDLES = new Set();
   const ROOKIE_SEASON_ORDER = [
     "c1s2-regular",
     "c1s3-regular",
@@ -23,8 +15,7 @@
   ];
   const rookieCache = new Map();
   const allStarCache = new Map();
-  let rookieOverridesPromise = null;
-  let allStarOverridesPromise = null;
+  let badgeOverridesPromise = null;
   const playerPhotoCache = new Map();
   let supabaseUrl = "";
   let supabaseAnon = "";
@@ -332,31 +323,22 @@
       .map((row) => row.slice(parsed.startCol, parsed.endCol + 1));
   };
 
-  async function loadRookieOverrides() {
-    if (!rookieOverridesPromise) {
-      rookieOverridesPromise = fetch(ROOKIE_OVERRIDES_URL, { cache: "no-store" })
+  async function loadBadgeOverrides() {
+    if (!badgeOverridesPromise) {
+      badgeOverridesPromise = fetch(BADGE_OVERRIDES_URL, { cache: "no-store" })
         .then((response) => (response.ok ? response.json() : {}))
         .catch(() => ({}));
     }
-    return rookieOverridesPromise;
-  }
-
-  async function loadAllStarOverrides() {
-    if (!allStarOverridesPromise) {
-      allStarOverridesPromise = fetch(ALL_STAR_OVERRIDES_URL, { cache: "no-store" })
-        .then((response) => (response.ok ? response.json() : {}))
-        .catch(() => ({}));
-    }
-    return allStarOverridesPromise;
+    return badgeOverridesPromise;
   }
 
   async function loadRookieCache() {
     if (rookieCache.size) return rookieCache;
-    const overridePayload = await loadRookieOverrides();
+    const overridePayload = await loadBadgeOverrides();
     const entries = ROOKIE_SEASON_ORDER.map((seasonKey) => [
       seasonKey,
       new Set(
-        (Array.isArray(overridePayload?.[seasonKey]) ? overridePayload[seasonKey] : [])
+        (Array.isArray(overridePayload?.rookie?.[seasonKey]) ? overridePayload.rookie[seasonKey] : [])
           .map((value) => normalize(value))
           .filter(Boolean)
       ),
@@ -367,12 +349,17 @@
 
   async function loadAllStarCache() {
     if (allStarCache.size) return allStarCache;
-    const payload = await loadAllStarOverrides();
-    Object.entries(payload || {}).forEach(([seasonKey, players]) => {
+    const payload = await loadBadgeOverrides();
+    Object.entries(payload?.allStar || {}).forEach(([seasonKey, players]) => {
       allStarCache.set(
         normalizeRookieSeasonKey(seasonKey),
         new Set((Array.isArray(players) ? players : []).map((value) => normalize(value)).filter(Boolean))
       );
+    });
+    RISING_STARS_HANDLES.clear();
+    (Array.isArray(payload?.risingStars) ? payload.risingStars : []).forEach((value) => {
+      const normalized = normalize(value);
+      if (normalized) RISING_STARS_HANDLES.add(normalized);
     });
     return allStarCache;
   }

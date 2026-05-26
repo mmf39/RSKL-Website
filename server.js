@@ -24,6 +24,7 @@ const PLAYER_PROFILE_SCRIPT_URL =
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const BADGE_OVERRIDES_PATH = path.join(ROOT, "assets", "data", "badge-overrides.json");
 const SHEETS = {
   archive:
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1077518539&single=true&output=csv",
@@ -62,6 +63,14 @@ function send(res, status, body, type = "text/plain; charset=utf-8") {
     "Access-Control-Allow-Origin": "*",
   });
   res.end(body);
+}
+
+function readBadgeOverrides() {
+  return JSON.parse(fs.readFileSync(BADGE_OVERRIDES_PATH, "utf8"));
+}
+
+function writeBadgeOverrides(data) {
+  fs.writeFileSync(BADGE_OVERRIDES_PATH, `${JSON.stringify(data, null, 2)}\n`, "utf8");
 }
 
 function serveFile(res, filePath) {
@@ -392,6 +401,38 @@ const server = http.createServer((req, res) => {
         );
       }
     })();
+    return;
+  }
+
+  if (url.pathname === "/api/badge-overrides") {
+    if (req.method === "GET") {
+      try {
+        send(res, 200, JSON.stringify(readBadgeOverrides()), "application/json; charset=utf-8");
+      } catch (error) {
+        send(res, 500, JSON.stringify({ ok: false, message: error.message }), "application/json; charset=utf-8");
+      }
+      return;
+    }
+
+    if (req.method === "POST") {
+      (async () => {
+        try {
+          const payload = await readJsonBody(req);
+          writeBadgeOverrides(payload);
+          send(
+            res,
+            200,
+            JSON.stringify({ ok: true, data: readBadgeOverrides() }),
+            "application/json; charset=utf-8"
+          );
+        } catch (error) {
+          send(res, 500, JSON.stringify({ ok: false, message: error.message }), "application/json; charset=utf-8");
+        }
+      })();
+      return;
+    }
+
+    send(res, 405, JSON.stringify({ ok: false, message: "Method not allowed." }), "application/json; charset=utf-8");
     return;
   }
 

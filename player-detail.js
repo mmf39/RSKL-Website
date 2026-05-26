@@ -9,8 +9,7 @@ const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const CONTRACTS_URL = "/api/sheet?name=contracts";
 const PLAYER_PROFILE_URL = "/api/player-profile";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
-const ROOKIE_OVERRIDES_URL = "/assets/data/rookie-overrides.json";
-const ALL_STAR_OVERRIDES_URL = "/assets/data/all-star-overrides.json";
+const BADGE_OVERRIDES_URL = "/assets/data/badge-overrides.json";
 const PLAYER_PROFILE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
 const C1S2_ROSTERS_URL = "/assets/data/c1s2-rosters.csv";
@@ -18,14 +17,7 @@ const C1S3_ROSTERS_URL = "/assets/data/c1s3-rosters.csv";
 const C1S4_PLAYER_STATS_URL = "/assets/data/c1s4-player-stats.csv";
 const C1S5_ROSTERS_URL = "/assets/data/c1s5-rosters.csv";
 const C1S6_ROSTERS_URL = "/assets/data/c1s6-rosters.csv";
-const RISING_STARS_HANDLES = new Set([
-  "fullofopps",
-  "xyz",
-  "jd3",
-  "vampire",
-  "florida_sportsfan",
-  "osboti",
-]);
+const RISING_STARS_HANDLES = new Set();
 const ROOKIE_SEASON_ORDER = [
   "c1s2-regular",
   "c1s3-regular",
@@ -152,9 +144,8 @@ let currentLoadedSeason = "";
 let contractRowsCache = [];
 let supplementalPlayerRows = [];
 let rookieSeasonCache = new Map();
-let rookieOverridesPromise = null;
 let allStarSeasonCache = new Map();
-let allStarOverridesPromise = null;
+let badgeOverridesPromise = null;
 let supabaseUrl = "";
 let supabaseAnon = "";
 let supabaseConfigPromise = null;
@@ -508,16 +499,16 @@ function isRookieSeason(seasonKey, playerKey) {
 
 async function loadRookieSeasonCache() {
   if (rookieSeasonCache.size) return rookieSeasonCache;
-  if (!rookieOverridesPromise) {
-    rookieOverridesPromise = fetch(ROOKIE_OVERRIDES_URL, { cache: "no-store" })
+  if (!badgeOverridesPromise) {
+    badgeOverridesPromise = fetch(BADGE_OVERRIDES_URL, { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : {}))
       .catch(() => ({}));
   }
-  const overridePayload = await rookieOverridesPromise;
+  const overridePayload = await badgeOverridesPromise;
   const entries = await Promise.all(
     ROOKIE_SEASON_ORDER.map(async (seasonKey) => {
       const players = new Set();
-      (Array.isArray(overridePayload?.[seasonKey]) ? overridePayload[seasonKey] : []).forEach(
+      (Array.isArray(overridePayload?.rookie?.[seasonKey]) ? overridePayload.rookie[seasonKey] : []).forEach(
         (value) => {
           const normalized = normalizePlayerKey(value);
           if (normalized) players.add(normalized);
@@ -532,18 +523,23 @@ async function loadRookieSeasonCache() {
 
 async function loadAllStarSeasonCache() {
   if (allStarSeasonCache.size) return allStarSeasonCache;
-  if (!allStarOverridesPromise) {
-    allStarOverridesPromise = fetch(ALL_STAR_OVERRIDES_URL, { cache: "no-store" })
+  if (!badgeOverridesPromise) {
+    badgeOverridesPromise = fetch(BADGE_OVERRIDES_URL, { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : {}))
       .catch(() => ({}));
   }
-  const payload = await allStarOverridesPromise;
+  const payload = await badgeOverridesPromise;
   allStarSeasonCache = new Map(
-    Object.entries(payload || {}).map(([seasonKey, players]) => [
+    Object.entries(payload?.allStar || {}).map(([seasonKey, players]) => [
       normalizeRookieSeasonKey(seasonKey),
       new Set((Array.isArray(players) ? players : []).map((value) => normalizePlayerKey(value)).filter(Boolean)),
     ])
   );
+  RISING_STARS_HANDLES.clear();
+  (Array.isArray(payload?.risingStars) ? payload.risingStars : []).forEach((value) => {
+    const normalized = normalizePlayerKey(value);
+    if (normalized) RISING_STARS_HANDLES.add(normalized);
+  });
   return allStarSeasonCache;
 }
 

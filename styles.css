@@ -3748,6 +3748,66 @@ input[type="text"] {
   text-decoration: underline;
 }
 
+.comish-page .hero-inner {
+  max-width: 1200px;
+}
+
+.comish-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.comish-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.9fr);
+  gap: 18px;
+}
+
+.comish-card {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 162, 71, 0.06), rgba(7, 13, 28, 0.96) 28%),
+    rgba(7, 13, 28, 0.96);
+  border: 1px solid rgba(255, 140, 26, 0.16);
+}
+
+.comish-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.comish-textarea {
+  min-height: 320px;
+  resize: vertical;
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.comish-json-card {
+  display: grid;
+  gap: 10px;
+}
+
+.comish-json-preview {
+  margin: 0;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 140, 26, 0.16);
+  background: rgba(8, 13, 24, 0.9);
+  color: #ffe6c7;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  max-height: 420px;
+  overflow: auto;
+}
+
 .awards-grid {
   display: grid;
   gap: 14px;
