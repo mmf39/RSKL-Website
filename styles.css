@@ -3965,22 +3965,20 @@ input[type="text"] {
 
 .awards-card-link:has(.awards-winner-center) {
   align-items: center;
-  justify-content: center;
   text-align: center;
-  gap: 10px;
-  min-height: 112px;
+  gap: 6px;
 }
 
 .awards-card-link:has(.awards-winner-center) .awards-title {
-  font-size: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  font-size: inherit;
+  text-transform: none;
+  letter-spacing: 0.01em;
 }
 
 .awards-card-link:has(.awards-winner-center) .awards-winner {
-  font-size: clamp(1.45rem, 2.6vw, 2.25rem);
-  line-height: 1.05;
-  font-weight: 800;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: 600;
 }
 
 .rising-stars-grid {
