@@ -97,6 +97,7 @@ module.exports = async (req, res) => {
     const url = new URL(req.url, "http://localhost");
     const seasonKey = String(url.searchParams.get("season") || "c2s3-regular").trim();
     const source = String(url.searchParams.get("source") || "auto").trim() || "auto";
+    const debug = String(url.searchParams.get("debug") || "").trim() === "1";
     const csvText = await requestText(LIVE_SCORING_URL);
     const rows = parseCSV(csvText);
     const bucket = getEasternSnapshotBucket();
@@ -104,6 +105,19 @@ module.exports = async (req, res) => {
       ...entry,
       source,
     }));
+
+    if (debug) {
+      sendJson(res, 200, {
+        ok: true,
+        debug: true,
+        rowCount: rows.length,
+        snapshotMinute: bucket.minuteOfDay,
+        snapshotLabel: bucket.label,
+        snapshots: payload,
+        sampleRows: rows.slice(0, 40),
+      });
+      return;
+    }
 
     if (!payload.length) {
       sendJson(res, 200, { ok: true, captured: 0, snapshots: [] });
