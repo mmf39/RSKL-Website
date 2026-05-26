@@ -15,7 +15,7 @@ function sendJson(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
-function requestText(urlString) {
+function requestText(urlString, redirectCount = 0) {
   return new Promise((resolve, reject) => {
     https
       .get(
@@ -27,12 +27,23 @@ function requestText(urlString) {
           },
         },
         (res) => {
+          const status = res.statusCode || 200;
+          const location = String(res.headers.location || "").trim();
+          if (status >= 300 && status < 400 && location) {
+            res.resume();
+            if (redirectCount >= 5) {
+              reject(new Error("Too many redirects fetching live scoring feed."));
+              return;
+            }
+            const nextUrl = new URL(location, urlString).toString();
+            requestText(nextUrl, redirectCount + 1).then(resolve).catch(reject);
+            return;
+          }
           let data = "";
           res.on("data", (chunk) => {
             data += chunk;
           });
           res.on("end", () => {
-            const status = res.statusCode || 200;
             if (status >= 400) {
               reject(new Error(`Upstream error ${status}`));
               return;
