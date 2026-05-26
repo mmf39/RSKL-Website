@@ -243,6 +243,58 @@ def write_badge_overrides(data):
         handle.write("\n")
 
 
+def assert_commish_request(handler):
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY or not SUPABASE_SERVICE_ROLE_KEY:
+        err = RuntimeError("Missing Supabase server configuration.")
+        err.status = 500
+        raise err
+
+    auth_header = str(handler.headers.get("Authorization", "")).strip()
+    token = auth_header[7:].strip() if auth_header.startswith("Bearer ") else ""
+    if not token:
+        err = RuntimeError("Commissioner authorization required.")
+        err.status = 401
+        raise err
+
+    req = urllib.request.Request(
+        f"{SUPABASE_URL}/auth/v1/user?apikey={urllib.parse.quote(SUPABASE_ANON_KEY, safe='')}",
+        headers={
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+        },
+        method="GET",
+    )
+    with urllib.request.urlopen(req) as response:
+        user = json.loads(response.read().decode("utf-8") or "{}")
+
+    user_id = str(user.get("id", "")).strip()
+    if not user_id:
+        err = RuntimeError("Invalid commissioner session.")
+        err.status = 401
+        raise err
+
+    req = urllib.request.Request(
+        f"{SUPABASE_URL}/rest/v1/gm_assignments?select=user_id,role,is_commish&user_id=eq.{urllib.parse.quote(user_id, safe='')}&limit=1",
+        headers={
+            "apikey": SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+            "Accept": "application/json",
+        },
+        method="GET",
+    )
+    with urllib.request.urlopen(req) as response:
+        rows = json.loads(response.read().decode("utf-8") or "[]")
+
+    row = rows[0] if isinstance(rows, list) and rows else None
+    role = str((row or {}).get("role", "")).strip().lower()
+    is_commish = (row or {}).get("is_commish") is True or role in {"commish", "commissioner", "admin"}
+    if not is_commish:
+        err = RuntimeError("Only the commissioner can access this page.")
+        err.status = 403
+        raise err
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -353,6 +405,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/badge-overrides":
             if self.command == "GET":
                 try:
+                    assert_commish_request(self)
                     send(
                         self,
                         200,
@@ -363,7 +416,7 @@ class Handler(BaseHTTPRequestHandler):
                 except Exception as err:  # pylint: disable=broad-except
                     send(
                         self,
-                        500,
+                        getattr(err, "status", 500),
                         json.dumps({"ok": False, "message": str(err)}),
                         "application/json; charset=utf-8",
                         "no-store",
@@ -374,6 +427,7 @@ class Handler(BaseHTTPRequestHandler):
                 length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(length) if length else b"{}"
                 try:
+                    assert_commish_request(self)
                     payload = json.loads(body.decode("utf-8") or "{}")
                     write_badge_overrides(payload)
                     send(
@@ -386,7 +440,7 @@ class Handler(BaseHTTPRequestHandler):
                 except Exception as err:  # pylint: disable=broad-except
                     send(
                         self,
-                        500,
+                        getattr(err, "status", 500),
                         json.dumps({"ok": False, "message": str(err)}),
                         "application/json; charset=utf-8",
                         "no-store",

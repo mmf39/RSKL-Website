@@ -35,12 +35,23 @@
         <div class="panel-head">
           <h2>Badge Overrides</h2>
           <div class="comish-actions">
+            <button id="comish-signout" class="btn ghost" type="button" hidden>Sign Out</button>
             <button id="comish-reload" class="btn ghost" type="button">Reload</button>
             <button id="comish-save" class="btn" type="button">Save Changes</button>
           </div>
         </div>
 
-        <div class="comish-grid">
+        <div id="comish-auth-card" class="comish-card">
+          <div class="label">Commissioner Sign In</div>
+          <div class="wagers-auth-row">
+            <input id="comish-auth-email" class="text-input" type="email" placeholder="Email" />
+            <input id="comish-auth-password" class="text-input" type="password" placeholder="Password" />
+            <button id="comish-signin" class="btn" type="button">Sign In</button>
+          </div>
+          <div id="comish-auth-status" class="gm-status">Sign in with the commissioner account to edit badges.</div>
+        </div>
+
+        <div id="comish-shell" class="comish-grid" hidden>
           <div class="comish-card">
             <div class="label">Season Badges</div>
             <label class="label" for="comish-season-select">Season</label>

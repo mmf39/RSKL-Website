@@ -73,6 +73,89 @@ function writeBadgeOverrides(data) {
   fs.writeFileSync(BADGE_OVERRIDES_PATH, `${JSON.stringify(data, null, 2)}\n`, "utf8");
 }
 
+function requestJsonWithHeaders(method, urlString, headers = {}, body = "") {
+  return new Promise((resolve, reject) => {
+    const target = new URL(urlString);
+    const request = https.request(
+      {
+        method,
+        hostname: target.hostname,
+        path: `${target.pathname}${target.search}`,
+        headers: {
+          ...headers,
+          ...(body ? { "Content-Length": Buffer.byteLength(body) } : {}),
+        },
+      },
+      (response) => {
+        let data = "";
+        response.on("data", (chunk) => {
+          data += chunk;
+        });
+        response.on("end", () => {
+          const status = response.statusCode || 200;
+          if (status >= 400) {
+            reject(new Error(`Request failed (${status})`));
+            return;
+          }
+          try {
+            resolve(data ? JSON.parse(data) : null);
+          } catch (_) {
+            resolve(null);
+          }
+        });
+      }
+    );
+    request.on("error", reject);
+    if (body) request.write(body);
+    request.end();
+  });
+}
+
+async function assertCommishRequest(req) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
+    const error = new Error("Missing Supabase server configuration.");
+    error.status = 500;
+    throw error;
+  }
+  const authHeader = String(req.headers.authorization || "").trim();
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (!token) {
+    const error = new Error("Commissioner authorization required.");
+    error.status = 401;
+    throw error;
+  }
+  const user = await requestJsonWithHeaders(
+    "GET",
+    `${SUPABASE_URL}/auth/v1/user?apikey=${encodeURIComponent(SUPABASE_ANON_KEY)}`,
+    {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${token}`,
+    }
+  );
+  const userId = String(user?.id || "").trim();
+  if (!userId) {
+    const error = new Error("Invalid commissioner session.");
+    error.status = 401;
+    throw error;
+  }
+  const rows = await requestJsonWithHeaders(
+    "GET",
+    `${SUPABASE_URL}/rest/v1/gm_assignments?select=user_id,role,is_commish&user_id=eq.${encodeURIComponent(userId)}&limit=1`,
+    {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    }
+  );
+  const row = Array.isArray(rows) ? rows[0] : null;
+  const role = String(row?.role || "").trim().toLowerCase();
+  const isCommish = row?.is_commish === true || role === "commish" || role === "commissioner" || role === "admin";
+  if (!isCommish) {
+    const error = new Error("Only the commissioner can access this page.");
+    error.status = 403;
+    throw error;
+  }
+}
+
 function serveFile(res, filePath) {
   fs.readFile(filePath, (err, data) => {
     if (err) {
@@ -406,17 +489,26 @@ const server = http.createServer((req, res) => {
 
   if (url.pathname === "/api/badge-overrides") {
     if (req.method === "GET") {
-      try {
-        send(res, 200, JSON.stringify(readBadgeOverrides()), "application/json; charset=utf-8");
-      } catch (error) {
-        send(res, 500, JSON.stringify({ ok: false, message: error.message }), "application/json; charset=utf-8");
-      }
+      (async () => {
+        try {
+          await assertCommishRequest(req);
+          send(res, 200, JSON.stringify(readBadgeOverrides()), "application/json; charset=utf-8");
+        } catch (error) {
+          send(
+            res,
+            error.status || 500,
+            JSON.stringify({ ok: false, message: error.message }),
+            "application/json; charset=utf-8"
+          );
+        }
+      })();
       return;
     }
 
     if (req.method === "POST") {
       (async () => {
         try {
+          await assertCommishRequest(req);
           const payload = await readJsonBody(req);
           writeBadgeOverrides(payload);
           send(
@@ -426,7 +518,12 @@ const server = http.createServer((req, res) => {
             "application/json; charset=utf-8"
           );
         } catch (error) {
-          send(res, 500, JSON.stringify({ ok: false, message: error.message }), "application/json; charset=utf-8");
+          send(
+            res,
+            error.status || 500,
+            JSON.stringify({ ok: false, message: error.message }),
+            "application/json; charset=utf-8"
+          );
         }
       })();
       return;
