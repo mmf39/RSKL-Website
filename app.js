@@ -108,6 +108,7 @@ const els = {
   featuredMatchups: document.getElementById("featured-matchups"),
   leagueLeaders: document.getElementById("league-leaders"),
   recentTransactions: document.getElementById("recent-transactions"),
+  activityFeed: document.getElementById("activity-feed"),
   liveModal: document.getElementById("live-modal"),
   liveDetails: document.getElementById("live-details"),
 };
@@ -116,6 +117,8 @@ els.livePanel = els.liveRow ? els.liveRow.closest(".panel") : null;
 els.featuredPanel = els.featuredMatchups ? els.featuredMatchups.closest(".panel") : null;
 
 let currentLiveGames = [];
+let sheetCache = new Map();
+let lastLeagueSnapshotRows = [];
 
 function isArchiveSeason(seasonRaw) {
   return seasonRaw !== "c2s3-regular";
@@ -435,6 +438,20 @@ function buildStateCard(title, body) {
   return `<div class="dashboard-state-card"><strong>${escapeHtml(title)}</strong><span>${escapeHtml(body)}</span></div>`;
 }
 
+function buildSkeletonCard(lines = 3) {
+  return `
+    <div class="dashboard-skeleton-card" aria-hidden="true">
+      <span class="dashboard-skeleton dashboard-skeleton--title"></span>
+      ${Array.from({ length: Math.max(1, lines) })
+        .map(
+          (_, index) =>
+            `<span class="dashboard-skeleton ${index === lines - 1 ? "dashboard-skeleton--short" : ""}"></span>`
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 function formatNewsTimestamp(value) {
   const parsed = Date.parse(String(value || ""));
   if (Number.isNaN(parsed)) {
@@ -502,6 +519,9 @@ function updateLastUpdated() {
 }
 
 async function fetchSheet(url) {
+  if (sheetCache.has(url)) {
+    return sheetCache.get(url);
+  }
   const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Fetch failed: ${response.status}`);
@@ -511,24 +531,25 @@ async function fetchSheet(url) {
   if (!rows.length) {
     throw new Error("No data found.");
   }
+  sheetCache.set(url, rows);
   return rows;
 }
 
 function setDashboardLoading() {
   if (els.liveRow) {
-    els.liveRow.innerHTML = buildStateCard("Loading Live Scoring", "Pulling the current scoreboard from Google Sheets.");
-  }
-  if (els.featuredMatchups) {
-    els.featuredMatchups.innerHTML = buildStateCard("Loading Matchups", "Looking for the next featured game day.");
+    els.liveRow.innerHTML = `<div class="dashboard-live-list">${buildSkeletonCard(4)}${buildSkeletonCard(4)}</div>`;
   }
   if (els.leagueLeaders) {
-    els.leagueLeaders.innerHTML = buildStateCard("Loading Leaders", "Computing top performers from player stats.");
+    els.leagueLeaders.innerHTML = `<div class="dashboard-leader-grid">${buildSkeletonCard(3)}${buildSkeletonCard(3)}${buildSkeletonCard(3)}</div>`;
   }
   if (els.recentTransactions) {
-    els.recentTransactions.innerHTML = buildStateCard("Loading Transactions", "Checking the latest front-office movement.");
+    els.recentTransactions.innerHTML = `<div class="dashboard-transactions-list">${buildSkeletonCard(3)}${buildSkeletonCard(3)}</div>`;
   }
   if (els.teamsGrid) {
-    els.teamsGrid.innerHTML = buildStateCard("Loading League Snapshot", "Building team cards from standings data.");
+    els.teamsGrid.innerHTML = `<div class="dashboard-feature-grid">${buildSkeletonCard(3)}${buildSkeletonCard(3)}${buildSkeletonCard(3)}</div>`;
+  }
+  if (els.activityFeed) {
+    els.activityFeed.innerHTML = `<div class="dashboard-activity-list">${buildSkeletonCard(3)}${buildSkeletonCard(3)}</div>`;
   }
 }
 
