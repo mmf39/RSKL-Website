@@ -1,0 +1,28 @@
+name: Game Flow Capture
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger game flow capture
+        env:
+          GAME_FLOW_URL: ${{ secrets.GAME_FLOW_CAPTURE_URL }}
+        run: |
+          if [ -z "$GAME_FLOW_URL" ]; then
+            echo "Missing GAME_FLOW_CAPTURE_URL secret"
+            exit 1
+          fi
+          for attempt in 1 2 3; do
+            if curl --fail --silent --show-error --connect-timeout 10 --max-time 60 "$GAME_FLOW_URL"; then
+              exit 0
+            fi
+            echo "Attempt $attempt failed, retrying..."
+            sleep 10
+          done
+          exit 1

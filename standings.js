@@ -503,17 +503,6 @@ function formatMetricDisplay(metric, value) {
   return num === null ? escapeHtml(String(value)) : String(num);
 }
 
-function formatRecentForm(metric, value) {
-  const text = String(value || "").trim();
-  if (!text) return "";
-  return `
-    <div class="leader-chip leader-chip--soft">
-      ${escapeHtml(metric)}
-      <span>${escapeHtml(text)}</span>
-    </div>
-  `;
-}
-
 function sortStandingsRows(rows) {
   return [...rows].sort((a, b) => {
     const av = parseMetricValue(requestedMetric, a[requestedMetric]);
@@ -610,13 +599,8 @@ function renderStandingsSection(title, rows) {
             return `
               <a class="leader-row" href="${link}">
                 <div class="leader-rank">#${index + 1}</div>
-                <div class="leader-row-main">
+                <div>
                   <div class="leader-name">${logo}${escapeHtml(teamName)}</div>
-                  <div class="leader-row-record">
-                    <span>${formatMetricDisplay("wins", row.wins)}-${formatMetricDisplay("loss", row.loss)}</span>
-                    <span>GB ${formatMetricDisplay("gb", row.gb)}</span>
-                    <span>PCT ${formatMetricDisplay("winpct", row.winpct)}</span>
-                  </div>
                 </div>
                 <div class="leader-meta">
                   ${chips
@@ -629,9 +613,6 @@ function renderStandingsSection(title, rows) {
                       `
                     )
                     .join("")}
-                  ${row.streak ? formatRecentForm("Streak", row.streak) : ""}
-                  ${row.last5 ? formatRecentForm("Last 5", row.last5) : ""}
-                  ${row.last10 ? formatRecentForm("Last 10", row.last10) : ""}
                 </div>
               </a>
             `;
@@ -691,9 +672,6 @@ function buildLeagueRowsFromC2S2(standingsRows, scheduleRows, playerRows) {
         loss: parseNumber(metricRow.losses),
         gb: parseNumber(metricRow.gb),
         winpct: parsePct(metricRow.winPct),
-        streak: String(metricRow.streak || "").trim(),
-        last5: String(metricRow.last5 || "").trim(),
-        last10: String(metricRow.last10 || "").trim(),
         sos: computeTeamSOS(metricRow.team, scheduleRows, winPctMap, "c2s2", gp),
         pam: typeof advanced.pam === "number" ? advanced.pam : null,
         trel: typeof advanced.tRel === "number" ? advanced.tRel : null,
@@ -711,13 +689,10 @@ function getCurrentStandingsHeaderIndexes(row) {
   const lossesIdx = normalized.findIndex((cell) => cell === "loss" || cell === "losses" || cell === "l");
   const gbIdx = normalized.findIndex((cell) => cell === "gb");
   const pctIdx = normalized.findIndex((cell) => cell === "win %" || cell === "win%" || cell === "pct");
-  const streakIdx = normalized.findIndex((cell) => cell === "streak" || cell === "strk");
-  const last5Idx = normalized.findIndex((cell) => cell === "last 5" || cell === "last5");
-  const last10Idx = normalized.findIndex((cell) => cell === "last 10" || cell === "last10");
   if (teamIdx < 0 || gpIdx < 0 || winsIdx < 0 || lossesIdx < 0 || gbIdx < 0 || pctIdx < 0) {
     return null;
   }
-  return { teamIdx, gpIdx, winsIdx, lossesIdx, gbIdx, pctIdx, streakIdx, last5Idx, last10Idx };
+  return { teamIdx, gpIdx, winsIdx, lossesIdx, gbIdx, pctIdx };
 }
 
 function getCurrentStandingsRows(rows) {
@@ -743,9 +718,6 @@ function getCurrentStandingsRows(rows) {
       losses: row[indexes.lossesIdx],
       gb: row[indexes.gbIdx],
       winPct: row[indexes.pctIdx],
-      streak: indexes.streakIdx >= 0 ? row[indexes.streakIdx] : "",
-      last5: indexes.last5Idx >= 0 ? row[indexes.last5Idx] : "",
-      last10: indexes.last10Idx >= 0 ? row[indexes.last10Idx] : "",
     });
   });
 
@@ -758,9 +730,6 @@ function getCurrentStandingsRows(rows) {
         losses: null,
         gb: null,
         winPct: null,
-        streak: "",
-        last5: "",
-        last10: "",
       });
     }
   });
@@ -779,9 +748,6 @@ function buildLeagueRowsFromArchive(standingsTable, scheduleTable, season) {
   const lossIdx = headers.findIndex((h) => h === "loss" || h === "losses");
   const gbIdx = headers.findIndex((h) => h === "gb");
   const pctIdx = headers.findIndex((h) => h === "win %" || h === "win%" || h === "pct");
-  const streakIdx = headers.findIndex((h) => h === "streak" || h === "strk");
-  const last5Idx = headers.findIndex((h) => h === "last 5" || h === "last5");
-  const last10Idx = headers.findIndex((h) => h === "last 10" || h === "last10");
   const winPctMap = buildWinPctMapFromStandingsTable(standingsTable);
 
   return standingsTable
@@ -798,9 +764,6 @@ function buildLeagueRowsFromArchive(standingsTable, scheduleTable, season) {
         loss: parseNumber(row[lossIdx]),
         gb: parseNumber(row[gbIdx]),
         winpct: parsePct(row[pctIdx]),
-        streak: streakIdx >= 0 ? String(row[streakIdx] || "").trim() : "",
-        last5: last5Idx >= 0 ? String(row[last5Idx] || "").trim() : "",
-        last10: last10Idx >= 0 ? String(row[last10Idx] || "").trim() : "",
         sos: computeTeamSOS(team, scheduleTable, winPctMap, season),
         pam: null,
         trel: null,

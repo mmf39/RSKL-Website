@@ -1,0 +1,160 @@
+const https = require("https");
+const {
+  LIVE_SCORING_URL,
+  parseCSV,
+  buildLiveGameSnapshotPayloads,
+  getEasternSnapshotBucket,
+} = require("../game-flow-shared");
+
+const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+function sendJson(res, status, body) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  res.end(JSON.stringify(body));
+}
+
+function requestText(urlString, redirectCount = 0) {
+  return new Promise((resolve, reject) => {
+    https
+      .get(
+        urlString,
+        {
+          headers: {
+            Accept: "text/csv,*/*",
+            "User-Agent": "RSKL Game Flow Capture/1.0",
+          },
+        },
+        (res) => {
+          const status = res.statusCode || 200;
+          const location = String(res.headers.location || "").trim();
+          if (status >= 300 && status < 400 && location) {
+            res.resume();
+            if (redirectCount >= 5) {
+              reject(new Error("Too many redirects fetching live scoring feed."));
+              return;
+            }
+            const nextUrl = new URL(location, urlString).toString();
+            requestText(nextUrl, redirectCount + 1).then(resolve).catch(reject);
+            return;
+          }
+          let data = "";
+          res.on("data", (chunk) => {
+            data += chunk;
+          });
+          res.on("end", () => {
+            if (status >= 400) {
+              reject(new Error(`Upstream error ${status}`));
+              return;
+            }
+            resolve(data);
+          });
+        }
+      )
+      .on("error", reject);
+  });
+}
+
+function requestJson(method, urlString, headers = {}, body = "") {
+  return new Promise((resolve, reject) => {
+    const url = new URL(urlString);
+    const req = https.request(
+      {
+        method,
+        hostname: url.hostname,
+        path: `${url.pathname}${url.search}`,
+        headers: {
+          ...headers,
+          ...(body ? { "Content-Length": Buffer.byteLength(body) } : {}),
+        },
+      },
+      (res) => {
+        let data = "";
+        res.on("data", (chunk) => {
+          data += chunk;
+        });
+        res.on("end", () => {
+          const status = res.statusCode || 200;
+          if (status >= 400) {
+            reject(new Error(`Request failed (${status}): ${data.slice(0, 300)}`));
+            return;
+          }
+          try {
+            resolve(data ? JSON.parse(data) : []);
+          } catch (_) {
+            resolve([]);
+          }
+        });
+      }
+    );
+    req.on("error", reject);
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
+module.exports = async (req, res) => {
+  try {
+    if (req.method !== "GET" && req.method !== "POST") {
+      sendJson(res, 405, { ok: false, message: "Method not allowed." });
+      return;
+    }
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      sendJson(res, 500, { ok: false, message: "Missing Supabase server configuration." });
+      return;
+    }
+
+    const url = new URL(req.url, "http://localhost");
+    const seasonKey = String(url.searchParams.get("season") || "c2s3-regular").trim();
+    const source = String(url.searchParams.get("source") || "auto").trim() || "auto";
+    const debug = String(url.searchParams.get("debug") || "").trim() === "1";
+    const csvText = await requestText(LIVE_SCORING_URL);
+    const rows = parseCSV(csvText);
+    const bucket = getEasternSnapshotBucket();
+    const payload = buildLiveGameSnapshotPayloads(rows, seasonKey, bucket).map((entry) => ({
+      ...entry,
+      source,
+    }));
+
+    if (debug) {
+      sendJson(res, 200, {
+        ok: true,
+        debug: true,
+        rowCount: rows.length,
+        snapshotMinute: bucket.minuteOfDay,
+        snapshotLabel: bucket.label,
+        snapshots: payload,
+        sampleRows: rows.slice(0, 40),
+      });
+      return;
+    }
+
+    if (!payload.length) {
+      sendJson(res, 200, { ok: true, captured: 0, snapshots: [] });
+      return;
+    }
+
+    const saved = await requestJson(
+      "POST",
+      `${SUPABASE_URL}/rest/v1/game_flow_snapshots?on_conflict=game_key,snapshot_minute`,
+      {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=representation",
+      },
+      JSON.stringify(payload)
+    );
+
+    sendJson(res, 200, {
+      ok: true,
+      captured: Array.isArray(saved) ? saved.length : payload.length,
+      snapshotMinute: bucket.minuteOfDay,
+      snapshotLabel: bucket.label,
+      snapshots: Array.isArray(saved) ? saved : payload,
+    });
+  } catch (error) {
+    sendJson(res, 500, { ok: false, message: error.message });
+  }
+};
