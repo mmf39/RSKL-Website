@@ -119,7 +119,6 @@ els.featuredPanel = els.featuredMatchups ? els.featuredMatchups.closest(".panel"
 let currentLiveGames = [];
 let sheetCache = new Map();
 let lastLeagueSnapshotRows = [];
-let currentPlayerAverageMap = new Map();
 
 function isArchiveSeason(seasonRaw) {
   return seasonRaw !== "c2s3-regular";
@@ -833,144 +832,7 @@ function parseLiveGames(rows) {
     .filter(Boolean);
 }
 
-function buildPlayerAverageMap(rows) {
-  if (!rows.length) return new Map();
-  const preparedRows = prepareDashboardPlayerRows(rows);
-  const columns = detectPlayerColumns(preparedRows[0] || []);
-  const leaderboard = buildLeaderboard(preparedRows.slice(1), columns);
-  const map = new Map();
-  leaderboard.forEach((item) => {
-    map.set(normalizePlayerKey(item.tag), item);
-  });
-  return map;
-}
-
-function formatSignedNumber(value, digits = 0) {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return "0";
-  const rounded = digits ? num.toFixed(digits) : String(Math.round(num));
-  return num > 0 ? `+${rounded}` : rounded;
-}
-
-function getTopPerformer(game) {
-  const players = [
-    ...(game?.team1Players || []).map((player) => ({ ...player, team: game.team1 })),
-    ...(game?.team2Players || []).map((player) => ({ ...player, team: game.team2 })),
-  ];
-  return players
-    .map((player) => ({ ...player, numericPoints: parseNumber(player.points) ?? 0 }))
-    .sort((a, b) => b.numericPoints - a.numericPoints)[0] || null;
-}
-
-function projectWinBreakdown(game, playerAverageMap) {
-  const summarizeTeam = (players = [], fallbackScore = "0") => {
-    const current = parseNumber(fallbackScore) ?? 0;
-    let projected = 0;
-    let playersTracked = 0;
-    players.forEach((player) => {
-      const currentPoints = parseNumber(player.points) ?? 0;
-      const profile = playerAverageMap.get(normalizePlayerKey(player.player));
-      const average = Number.isFinite(profile?.avg) ? profile.avg : currentPoints;
-      projected += Math.max(currentPoints, average);
-      playersTracked += 1;
-    });
-    if (!playersTracked) {
-      projected = current;
-    }
-    return {
-      current,
-      projected,
-      tracked: playersTracked,
-    };
-  };
-
-  const team1 = summarizeTeam(game.team1Players, game.team1Score);
-  const team2 = summarizeTeam(game.team2Players, game.team2Score);
-  const diff = team1.projected - team2.projected;
-  const probability = 1 / (1 + Math.exp(-diff / 45));
-  return {
-    team1,
-    team2,
-    team1WinPct: Math.max(0.05, Math.min(0.95, probability)),
-    team2WinPct: Math.max(0.05, Math.min(0.95, 1 - probability)),
-  };
-}
-
-function buildLiveDetailMarkup(game, playerAverageMap) {
-  const topPerformer = getTopPerformer(game);
-  const projection = projectWinBreakdown(game, playerAverageMap);
-  const favoriteName = projection.team1WinPct >= projection.team2WinPct ? game.team1 : game.team2;
-  const favoritePct = projection.team1WinPct >= projection.team2WinPct ? projection.team1WinPct : projection.team2WinPct;
-
-  return `
-    <div class="dashboard-live-extra-content">
-      <div class="dashboard-live-actions">
-        <button class="dashboard-inline-link" type="button" data-live-open>Open box score</button>
-      </div>
-    </div>
-  `;
-}
-
-function renderActivityFeed(items) {
-  if (!els.activityFeed) return;
-  if (!items.length) {
-    els.activityFeed.innerHTML = buildStateCard(
-      "No Activity Yet",
-      "Standings movement and league activity will appear here once enough game data is available."
-    );
-    return;
-  }
-  els.activityFeed.innerHTML = items
-    .map(
-      (item) => `
-        <article class="dashboard-activity-card">
-          <div class="dashboard-activity-kicker">${escapeHtml(item.kicker || "League Update")}</div>
-          <div class="dashboard-activity-title">${escapeHtml(item.title || "")}</div>
-          <div class="dashboard-activity-body">${escapeHtml(item.body || "")}</div>
-        </article>
-      `
-    )
-    .join("");
-}
-
-function buildActivityItems(rows, seasonRaw) {
-  const normalizedRows = Array.isArray(rows) ? rows.filter(Boolean) : [];
-  if (!normalizedRows.length) {
-    return [];
-  }
-  const storageKey = `rskl-standings-order-${seasonRaw}`;
-  const previousOrder = (() => {
-    try {
-      return JSON.parse(localStorage.getItem(storageKey) || "[]");
-    } catch (_error) {
-      return [];
-    }
-  })();
-  const currentOrder = normalizedRows.map((row) => normalizeTeamName(row.team));
-  localStorage.setItem(storageKey, JSON.stringify(currentOrder));
-
-  const previousIndex = new Map(previousOrder.map((team, index) => [team, index]));
-  const currentIndex = new Map(currentOrder.map((team, index) => [team, index]));
-  const movedUp = normalizedRows
-    .filter((row) => previousIndex.has(normalizeTeamName(row.team)))
-    .map((row) => {
-      const key = normalizeTeamName(row.team);
-      const delta = previousIndex.get(key) - currentIndex.get(key);
-      return { row, delta };
-    })
-    .filter((item) => item.delta > 0)
-    .sort((a, b) => b.delta - a.delta)
-    .slice(0, 4)
-    .map(({ row, delta }) => ({
-      kicker: "Standings Move",
-      title: `${displayTeamName(row.team)} moved up ${delta} spot${delta === 1 ? "" : "s"}`,
-      body: `Now ranked #${currentIndex.get(normalizeTeamName(row.team)) + 1} with a ${row.wins ?? "—"}-${row.losses ?? row.loss ?? "—"} record.`,
-    }));
-
-  return movedUp;
-}
-
-function renderLiveScoring(games, seasonRaw, playerAverageMap = new Map()) {
+function renderLiveScoring(games, seasonRaw) {
   if (!els.liveRow) return;
   currentLiveGames = games || [];
   if (seasonRaw !== "c2s3-regular") {
@@ -993,26 +855,21 @@ function renderLiveScoring(games, seasonRaw, playerAverageMap = new Map()) {
       ${currentLiveGames
         .map(
           (game, index) => `
-            <article class="dashboard-live-card ${getTeamColorClass(game.team1)} ${getTeamColorClass(game.team2)}" data-live-index="${index}">
-              <button class="dashboard-live-toggle" type="button" data-live-toggle aria-expanded="false">
-                <div class="dashboard-live-head">
-                  <span class="dashboard-live-badge">LIVE</span>
-                  <span class="dashboard-live-date">${escapeHtml(formatDateLabel(game.dateToken || ""))}</span>
-                </div>
-                <div class="live-matchup">
-                  <strong class="live-team-name ${getTeamColorClass(game.team1)}">${renderSmallTeamLogo(game.team1)}<span>${escapeHtml(game.team1)}</span></strong>
-                  <span class="dashboard-live-score">${escapeHtml(game.team1Score || "—")}</span>
-                </div>
-                <div class="live-matchup">
-                  <strong class="live-team-name ${getTeamColorClass(game.team2)}">${renderSmallTeamLogo(game.team2)}<span>${escapeHtml(game.team2)}</span></strong>
-                  <span class="dashboard-live-score">${escapeHtml(game.team2Score || "—")}</span>
-                </div>
-                <span class="dashboard-live-cta">Tap for Game Center</span>
-              </button>
-              <div class="dashboard-live-detail" hidden>
-                ${buildLiveDetailMarkup(game, playerAverageMap)}
+            <button class="live-row-item dashboard-live-card ${getTeamColorClass(game.team1)} ${getTeamColorClass(game.team2)}" type="button" data-live-index="${index}">
+              <div class="dashboard-live-head">
+                <span class="dashboard-live-badge">LIVE</span>
+                <span class="dashboard-live-date">${escapeHtml(formatDateLabel(game.dateToken || ""))}</span>
               </div>
-            </article>
+              <div class="live-matchup">
+                <strong class="live-team-name ${getTeamColorClass(game.team1)}">${renderSmallTeamLogo(game.team1)}<span>${escapeHtml(game.team1)}</span></strong>
+                <span class="dashboard-live-score">${escapeHtml(game.team1Score || "—")}</span>
+              </div>
+              <div class="live-matchup">
+                <strong class="live-team-name ${getTeamColorClass(game.team2)}">${renderSmallTeamLogo(game.team2)}<span>${escapeHtml(game.team2)}</span></strong>
+                <span class="dashboard-live-score">${escapeHtml(game.team2Score || "—")}</span>
+              </div>
+              <span class="dashboard-live-cta">Open live box score</span>
+            </button>
           `
         )
         .join("")}
@@ -1563,7 +1420,7 @@ function renderRecentTransactions(items) {
     .join("");
 }
 
-function renderLiveModal(game, playerAverageMap = currentPlayerAverageMap) {
+function renderLiveModal(game) {
   if (!els.liveDetails || !els.liveModal || !game) return;
 
   const renderTeamTable = (header, players) => `
@@ -1596,14 +1453,6 @@ function renderLiveModal(game, playerAverageMap = currentPlayerAverageMap) {
       <div class="boxscore-meta">League Day: ${escapeHtml(game.dateToken || "")}</div>
       ${renderTeamTable(game.team1, game.team1Players)}
       ${renderTeamTable(game.team2, game.team2Players)}
-      <div class="dashboard-live-boxscore-toggle-wrap">
-        <button class="dashboard-inline-link" type="button" data-live-extra-toggle aria-expanded="false">
-          Show extra info
-        </button>
-      </div>
-      <div class="dashboard-live-extra-panel" hidden>
-        ${buildLiveDetailMarkup(game, playerAverageMap)}
-      </div>
     `,
     {
       gameKey: buildGameKey(game.dateToken || "", game.team1 || "", game.team2 || ""),
@@ -1616,7 +1465,6 @@ function renderLiveModal(game, playerAverageMap = currentPlayerAverageMap) {
 }
 
 async function loadData() {
-  sheetCache = new Map();
   setDashboardLoading();
   const seasonRaw = getSeasonRaw();
   syncDashboardPanels(seasonRaw);
@@ -1684,15 +1532,10 @@ async function loadData() {
       const playerRows = results[3].status === "fulfilled" ? results[3].value : [];
       const transactionRows = results[4].status === "fulfilled" ? results[4].value : [];
 
-      const leagueSnapshotRows = buildCurrentLeagueSnapshotRows(standingsRows);
-      lastLeagueSnapshotRows = leagueSnapshotRows;
-      renderLeagueSnapshot(leagueSnapshotRows);
-      renderActivityFeed(buildActivityItems(leagueSnapshotRows, seasonRaw));
+      renderLeagueSnapshot(buildCurrentLeagueSnapshotRows(standingsRows));
 
       const liveGames = liveRows.length ? parseLiveGames(liveRows) : [];
-      const playerAverageMap = playerRows.length ? buildPlayerAverageMap(playerRows) : new Map();
-      currentPlayerAverageMap = playerAverageMap;
-      renderLiveScoring(liveGames, seasonRaw, playerAverageMap);
+      renderLiveScoring(liveGames, seasonRaw);
 
       const featuredGames = scheduleRows.length ? getFeaturedGames(buildScheduleGames(prepareDashboardScheduleRows(scheduleRows, seasonRaw), seasonRaw), liveGames) : [];
       renderFeaturedMatchups(featuredGames, seasonRaw);
@@ -1727,16 +1570,13 @@ async function loadData() {
       const transactionRows = results[1].status === "fulfilled" ? results[1].value : [];
 
       if (regularRows.length) {
-        const leagueSnapshotRows = buildArchiveLeagueSnapshotRows(sliceRange(regularRows, C2S2_REGULAR_RANGES.standings));
-        renderLeagueSnapshot(leagueSnapshotRows);
-        renderActivityFeed(buildActivityItems(leagueSnapshotRows, seasonRaw));
+        renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(sliceRange(regularRows, C2S2_REGULAR_RANGES.standings)));
         const playerTable = sliceRange(regularRows, C2S2_REGULAR_RANGES.player_stats);
         const columns = detectPlayerColumns(playerTable[0] || []);
         renderLeagueLeaders(buildLeaderboard(playerTable.slice(1), columns), seasonRaw);
       } else {
         renderLeagueSnapshot([]);
         renderLeagueLeaders([], seasonRaw);
-        renderActivityFeed([]);
       }
 
       if (transactionRows.length) {
@@ -1760,7 +1600,6 @@ async function loadData() {
         ),
       ]);
       renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(standingsRows));
-      renderActivityFeed([]);
       renderLeagueLeaders([], seasonRaw);
       renderRecentTransactions([]);
     } else if (seasonRaw === "c1s6-regular" || seasonRaw === "c1s6-post") {
@@ -1771,7 +1610,6 @@ async function loadData() {
         ),
       ]);
       renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(standingsRows));
-      renderActivityFeed([]);
       renderLeagueLeaders([], seasonRaw);
       renderRecentTransactions([]);
     } else if (seasonRaw === "c1s5-regular" || seasonRaw === "c1s5-post") {
@@ -1782,7 +1620,6 @@ async function loadData() {
         ),
       ]);
       renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(standingsRows));
-      renderActivityFeed([]);
       renderLeagueLeaders([], seasonRaw);
       renderRecentTransactions([]);
     } else if (seasonRaw === "c1s3-regular" || seasonRaw === "c1s3-post") {
@@ -1793,7 +1630,6 @@ async function loadData() {
         ),
       ]);
       renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(standingsRows));
-      renderActivityFeed([]);
       renderLeagueLeaders([], seasonRaw);
       renderRecentTransactions([]);
     } else if (seasonRaw === "c1s4-regular" || seasonRaw === "c1s4-post") {
@@ -1804,7 +1640,6 @@ async function loadData() {
         ),
       ]);
       renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(standingsRows));
-      renderActivityFeed([]);
       renderLeagueLeaders([], seasonRaw);
       renderRecentTransactions([]);
     } else {
@@ -1817,9 +1652,7 @@ async function loadData() {
       const scheduleRange = seasonRaw === "c2s1-post" ? ARCHIVE_RANGES.schedule_post : ARCHIVE_RANGES.schedule_regular;
 
       if (archiveRows.length) {
-        const leagueSnapshotRows = buildArchiveLeagueSnapshotRows(sliceRange(archiveRows, ARCHIVE_RANGES.standings));
-        renderLeagueSnapshot(leagueSnapshotRows);
-        renderActivityFeed(buildActivityItems(leagueSnapshotRows, seasonRaw));
+        renderLeagueSnapshot(buildArchiveLeagueSnapshotRows(sliceRange(archiveRows, ARCHIVE_RANGES.standings)));
         if (seasonRaw === "c2s1-post") {
           const playerTable = sliceRange(archiveRows, ARCHIVE_RANGES.player_stats);
           const columns = detectPlayerColumns(playerTable[0] || []);
@@ -1831,7 +1664,6 @@ async function loadData() {
         renderLeagueSnapshot([]);
         renderFeaturedMatchups([], seasonRaw);
         renderLeagueLeaders([], seasonRaw);
-        renderActivityFeed([]);
       }
 
       if (transactionRows.length) {
@@ -1866,46 +1698,17 @@ async function loadData() {
     if (els.recentTransactions) {
       els.recentTransactions.innerHTML = buildStateCard("Transactions Unavailable", "Recent transaction data is currently unavailable.");
     }
-    if (els.activityFeed) {
-      els.activityFeed.innerHTML = buildStateCard("Activity Unavailable", "Recent league movement could not be summarized right now.");
-    }
   }
 }
 
 if (els.liveRow) {
   els.liveRow.addEventListener("click", (event) => {
-    const toggle = event.target.closest("[data-live-toggle]");
-    if (toggle) {
-      const card = toggle.closest("[data-live-index]");
-      const detail = card ? card.querySelector(".dashboard-live-detail") : null;
-      const expanded = toggle.getAttribute("aria-expanded") === "true";
-      if (!detail) return;
-      toggle.setAttribute("aria-expanded", expanded ? "false" : "true");
-      detail.hidden = expanded;
-      card.classList.toggle("is-expanded", !expanded);
-      return;
-    }
-
-    const openButton = event.target.closest("[data-live-open]");
-    if (!openButton) return;
-    const card = openButton.closest("[data-live-index]");
-    const index = card ? Number(card.dataset.liveIndex) : Number.NaN;
+    const trigger = event.target.closest("[data-live-index]");
+    if (!trigger) return;
+    const index = Number(trigger.dataset.liveIndex);
     const game = currentLiveGames[index];
     if (!game) return;
-    renderLiveModal(game, currentPlayerAverageMap);
-  });
-}
-
-if (els.liveDetails) {
-  els.liveDetails.addEventListener("click", (event) => {
-    const toggle = event.target.closest("[data-live-extra-toggle]");
-    if (!toggle) return;
-    const panel = toggle.closest(".boxscore-view-shell")?.querySelector(".dashboard-live-extra-panel");
-    if (!panel) return;
-    const expanded = toggle.getAttribute("aria-expanded") === "true";
-    toggle.setAttribute("aria-expanded", expanded ? "false" : "true");
-    toggle.textContent = expanded ? "Show extra info" : "Hide extra info";
-    panel.hidden = expanded;
+    renderLiveModal(game);
   });
 }
 
