@@ -119,6 +119,7 @@ els.featuredPanel = els.featuredMatchups ? els.featuredMatchups.closest(".panel"
 let currentLiveGames = [];
 let sheetCache = new Map();
 let lastLeagueSnapshotRows = [];
+let currentPlayerAverageMap = new Map();
 
 function isArchiveSeason(seasonRaw) {
   return seasonRaw !== "c2s3-regular";
@@ -1562,7 +1563,7 @@ function renderRecentTransactions(items) {
     .join("");
 }
 
-function renderLiveModal(game) {
+function renderLiveModal(game, playerAverageMap = currentPlayerAverageMap) {
   if (!els.liveDetails || !els.liveModal || !game) return;
 
   const renderTeamTable = (header, players) => `
@@ -1690,6 +1691,7 @@ async function loadData() {
 
       const liveGames = liveRows.length ? parseLiveGames(liveRows) : [];
       const playerAverageMap = playerRows.length ? buildPlayerAverageMap(playerRows) : new Map();
+      currentPlayerAverageMap = playerAverageMap;
       renderLiveScoring(liveGames, seasonRaw, playerAverageMap);
 
       const featuredGames = scheduleRows.length ? getFeaturedGames(buildScheduleGames(prepareDashboardScheduleRows(scheduleRows, seasonRaw), seasonRaw), liveGames) : [];
@@ -1890,7 +1892,7 @@ if (els.liveRow) {
     const index = card ? Number(card.dataset.liveIndex) : Number.NaN;
     const game = currentLiveGames[index];
     if (!game) return;
-    renderLiveModal(game);
+    renderLiveModal(game, currentPlayerAverageMap);
   });
 }
 
