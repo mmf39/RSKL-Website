@@ -932,46 +932,48 @@ function buildLiveDetailMarkup(game, playerAverageMap) {
   `;
 
   return `
-    <div class="dashboard-live-insights">
-      ${
-        topPerformer
-          ? `<div class="dashboard-live-pill dashboard-live-pill--accent">Top Performer: ${escapeHtml(
-              topPerformer.player
-            )} • ${escapeHtml(String(topPerformer.points || "0"))} pts</div>`
-          : ""
-      }
-      <div class="dashboard-live-pill">Projected favorite: ${escapeHtml(favoriteName)} • ${Math.round(
-        favoritePct * 100
-      )}% win rate</div>
-      <div class="dashboard-live-pill">Projected margin: ${escapeHtml(favoriteName)} ${formatSignedNumber(
-        projection.team1WinPct >= projection.team2WinPct
-          ? projection.team1.projected - projection.team2.projected
-          : projection.team2.projected - projection.team1.projected,
-        0
-      )}</div>
-    </div>
-    <div class="dashboard-live-projection">
-      <div class="dashboard-live-projection-bar">
-        <span class="dashboard-live-projection-fill team1" style="width:${(projection.team1WinPct * 100).toFixed(
-          1
-        )}%"></span>
-        <span class="dashboard-live-projection-fill team2" style="width:${(projection.team2WinPct * 100).toFixed(
-          1
-        )}%"></span>
+    <div class="dashboard-live-extra-content">
+      <div class="dashboard-live-insights">
+        ${
+          topPerformer
+            ? `<div class="dashboard-live-pill dashboard-live-pill--accent">Top Performer: ${escapeHtml(
+                topPerformer.player
+              )} • ${escapeHtml(String(topPerformer.points || "0"))} pts</div>`
+            : ""
+        }
+        <div class="dashboard-live-pill">Projected favorite: ${escapeHtml(favoriteName)} • ${Math.round(
+          favoritePct * 100
+        )}% win rate</div>
+        <div class="dashboard-live-pill">Projected margin: ${escapeHtml(favoriteName)} ${formatSignedNumber(
+          projection.team1WinPct >= projection.team2WinPct
+            ? projection.team1.projected - projection.team2.projected
+            : projection.team2.projected - projection.team1.projected,
+          0
+        )}</div>
       </div>
-      <div class="dashboard-live-projection-meta">
-        <strong>${escapeHtml(game.team1)}</strong>
-        <span>${Math.round(projection.team1WinPct * 100)}%</span>
-        <span>${Math.round(projection.team2WinPct * 100)}%</span>
-        <strong>${escapeHtml(game.team2)}</strong>
+      <div class="dashboard-live-projection">
+        <div class="dashboard-live-projection-bar">
+          <span class="dashboard-live-projection-fill team1" style="width:${(projection.team1WinPct * 100).toFixed(
+            1
+          )}%"></span>
+          <span class="dashboard-live-projection-fill team2" style="width:${(projection.team2WinPct * 100).toFixed(
+            1
+          )}%"></span>
+        </div>
+        <div class="dashboard-live-projection-meta">
+          <strong>${escapeHtml(game.team1)}</strong>
+          <span>${Math.round(projection.team1WinPct * 100)}%</span>
+          <span>${Math.round(projection.team2WinPct * 100)}%</span>
+          <strong>${escapeHtml(game.team2)}</strong>
+        </div>
       </div>
-    </div>
-    <div class="dashboard-live-columns">
-      ${renderTeamTable(game.team1, game.team1Players, game.team1Score, projection.team1.projected)}
-      ${renderTeamTable(game.team2, game.team2Players, game.team2Score, projection.team2.projected)}
-    </div>
-    <div class="dashboard-live-actions">
-      <button class="dashboard-inline-link" type="button" data-live-open>Open full box score</button>
+      <div class="dashboard-live-columns">
+        ${renderTeamTable(game.team1, game.team1Players, game.team1Score, projection.team1.projected)}
+        ${renderTeamTable(game.team2, game.team2Players, game.team2Score, projection.team2.projected)}
+      </div>
+      <div class="dashboard-live-actions">
+        <button class="dashboard-inline-link" type="button" data-live-open>Open full box score</button>
+      </div>
     </div>
   `;
 }
@@ -1661,6 +1663,14 @@ function renderLiveModal(game) {
       <div class="boxscore-meta">League Day: ${escapeHtml(game.dateToken || "")}</div>
       ${renderTeamTable(game.team1, game.team1Players)}
       ${renderTeamTable(game.team2, game.team2Players)}
+      <div class="dashboard-live-boxscore-toggle-wrap">
+        <button class="dashboard-inline-link" type="button" data-live-extra-toggle aria-expanded="false">
+          Show extra info
+        </button>
+      </div>
+      <div class="dashboard-live-extra-panel" hidden>
+        ${buildLiveDetailMarkup(game, playerAverageMap)}
+      </div>
     `,
     {
       gameKey: buildGameKey(game.dateToken || "", game.team1 || "", game.team2 || ""),
@@ -1949,6 +1959,19 @@ if (els.liveRow) {
     const game = currentLiveGames[index];
     if (!game) return;
     renderLiveModal(game);
+  });
+}
+
+if (els.liveDetails) {
+  els.liveDetails.addEventListener("click", (event) => {
+    const toggle = event.target.closest("[data-live-extra-toggle]");
+    if (!toggle) return;
+    const panel = toggle.closest(".boxscore-view-shell")?.querySelector(".dashboard-live-extra-panel");
+    if (!panel) return;
+    const expanded = toggle.getAttribute("aria-expanded") === "true";
+    toggle.setAttribute("aria-expanded", expanded ? "false" : "true");
+    toggle.textContent = expanded ? "Show extra info" : "Hide extra info";
+    panel.hidden = expanded;
   });
 }
 
