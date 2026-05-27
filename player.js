@@ -803,6 +803,24 @@ function parseNumber(value) {
   return Number.isNaN(num) ? null : num;
 }
 
+function parseDateValue(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  const parsed = Date.parse(text);
+  if (!Number.isNaN(parsed)) {
+    return parsed;
+  }
+  const mdy = text.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+  if (!mdy) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  let year = mdy[3] ? Number(mdy[3]) : new Date().getFullYear();
+  if (year < 100) year += 2000;
+  return new Date(year, Number(mdy[1]) - 1, Number(mdy[2])).getTime();
+}
+
 function median(numbers) {
   if (!numbers.length) {
     return null;
@@ -920,6 +938,12 @@ function buildLeaderboard(rows) {
         war: 0,
         team,
         displayName,
+        bestGame: null,
+        recentScores: [],
+        captainGames: 0,
+        captainScoreSum: 0,
+        nonCaptainGames: 0,
+        nonCaptainScoreSum: 0,
       });
     }
     const entry = totals.get(rawName);
@@ -931,6 +955,18 @@ function buildLeaderboard(rows) {
     }
     entry.sum += score;
     entry.games += 1;
+    entry.bestGame = entry.bestGame === null ? score : Math.max(entry.bestGame, score);
+    entry.recentScores.push({
+      date: parseDateValue(row[playerColumns.date]),
+      score,
+    });
+    if (isCaptainMarked(rawNameWithMarker)) {
+      entry.captainGames += 1;
+      entry.captainScoreSum += score;
+    } else {
+      entry.nonCaptainGames += 1;
+      entry.nonCaptainScoreSum += score;
+    }
     const dateKey = String(row[playerColumns.date] || "").trim();
     const baseline = baselines.get(dateKey);
     if (baseline && baseline.mean && baseline.mean > 0) {
@@ -966,6 +1002,17 @@ function buildLeaderboard(rows) {
       war: value.war,
       games: value.games,
       team: value.team || "",
+      bestGame: value.bestGame,
+      recentAvg: value.recentScores.length
+        ? value.recentScores
+            .sort((a, b) => a.date - b.date)
+            .slice(-5)
+            .reduce((sum, item) => sum + item.score, 0) /
+          Math.min(5, value.recentScores.length)
+        : 0,
+      captainGames: value.captainGames,
+      captainAvg: value.captainGames ? value.captainScoreSum / value.captainGames : null,
+      nonCaptainAvg: value.nonCaptainGames ? value.nonCaptainScoreSum / value.nonCaptainGames : null,
     }));
 }
 
@@ -1087,7 +1134,30 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
     const allStarBadge = isAllStarPlayer(selectedSeason, item.tag)
       ? '<span class="player-mark all-star-mark" title="C2S3 All Star">ASG</span>'
       : "";
-    return `${escapeHtml(item.displayName)}${rookieBadge}${risingStarsBadge}${allStarBadge}`;
+    const statusBadges = [];
+    if (item.recentAvg && item.avg && item.recentAvg - item.avg >= 40) {
+      statusBadges.push('<span class="player-insight-badge">Hot</span>');
+    } else if (item.recentAvg && item.avg && item.avg - item.recentAvg >= 40) {
+      statusBadges.push('<span class="player-insight-badge player-insight-badge--muted">Cold</span>');
+    }
+    if (item.captainGames) {
+      statusBadges.push('<span class="player-insight-badge">Captain</span>');
+    }
+    if (item.avg >= 300 && item.games >= 4) {
+      statusBadges.push('<span class="player-insight-badge">MVP Watch</span>');
+    }
+    const trendLine = `
+      <span class="player-leader-meta-line">
+        Best ${escapeHtml(formatNumber(item.bestGame || 0))} • Recent ${escapeHtml(formatNumber(item.recentAvg || item.avg || 0))}
+      </span>
+    `;
+    return `
+      <span class="player-leader-label">
+        <span class="player-leader-name">${escapeHtml(item.displayName)}${rookieBadge}${risingStarsBadge}${allStarBadge}</span>
+        ${trendLine}
+        <span class="player-insight-badges">${statusBadges.join("")}</span>
+      </span>
+    `;
   };
 
   els.results.innerHTML = `
@@ -1122,7 +1192,7 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
               <div class="leader-rank">#${index + 1}</div>
               <a class="leader-name leader-name--player" href="player-detail.html?player=${encodeURIComponent(item.tag)}&season=${encodeURIComponent(selectedSeason)}">
                 ${buildPlayerAvatarMarkup(item)}
-                <span>${playerLabel(item)}</span>
+                ${playerLabel(item)}
               </a>
               <div class="leader-team">
                 ${teamLogo(item.team)}

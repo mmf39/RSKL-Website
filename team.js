@@ -286,6 +286,7 @@ const els = {
   statTRel: document.getElementById("stat-trel"),
   statCapSpace: document.getElementById("stat-cap-space"),
   statTransactions: document.getElementById("stat-transactions"),
+  teamOverview: document.getElementById("team-overview"),
   statTeam: document.getElementById("stat-team"),
   teamViewTabs: document.getElementById("team-view-tabs"),
   historicalLink: document.getElementById("historical-link"),
@@ -2725,6 +2726,11 @@ async function loadRoster() {
   if (els.statTransactions) {
     els.statTransactions.textContent = "—";
   }
+  currentTeamProfileStats = null;
+  if (els.teamOverview) {
+    els.teamOverview.innerHTML =
+      '<div class="dashboard-state-card"><strong>Loading Team Profile</strong><span>Building record, roster, and recent-game context.</span></div>';
+  }
   if (els.statCapSpace) {
     els.statCapSpace.textContent = "—";
   }
@@ -2809,6 +2815,7 @@ async function loadRoster() {
       );
       const playerStatRows = parseCSV(await playerStatsRes.text());
       teamLeadersMap = computeTeamLeaders(playerStatRows);
+      currentTeamProfileStats = computeTeamProfileStats(teamName, playerStatRows);
       leagueStandingsMetrics = buildLeagueRowsFromC2S2(
         standingsRows,
         scheduleRows,
@@ -2864,6 +2871,7 @@ async function loadRoster() {
       const playerStatRows = sliceRange(regularRows, C2S2_REGULAR_RANGES.player_stats);
 
       teamLeadersMap = computeTeamLeaders(playerStatRows);
+      currentTeamProfileStats = computeTeamProfileStats(teamName, playerStatRows);
       leagueStandingsMetrics = buildLeagueRowsFromArchive(
         standingsTable,
         scheduleRows,
@@ -2919,6 +2927,7 @@ async function loadRoster() {
       const scheduleRows = parseCSV(await scheduleRes.text());
       const rosterRows = parseCSV(await rosterRes.text());
       const playerStatRows = parseCSV(await playerStatsRes.text());
+      currentTeamProfileStats = computeTeamProfileStats(teamName, playerStatRows);
       const shownTeam = displayTeamName(teamName);
       const rosterPlayers = rosterRows
         .slice(1)
@@ -3111,6 +3120,7 @@ async function loadRoster() {
       const scheduleRows = parseCSV(await scheduleRes.text());
       const rosterRows = parseCSV(await rosterRes.text());
       const playerStatRows = parseCSV(await playerStatsRes.text());
+      currentTeamProfileStats = computeTeamProfileStats(teamName, playerStatRows);
       const shownTeam = displayTeamName(teamName);
       const rosterPlayers = rosterRows
         .slice(1)
@@ -3257,7 +3267,19 @@ async function loadRoster() {
     }
   } catch (error) {
     els.body.innerHTML = `<tr><td>${escapeHtml(error.message)}</td></tr>`;
+    if (els.teamOverview) {
+      els.teamOverview.innerHTML =
+        '<div class="dashboard-state-card"><strong>Team Profile Unavailable</strong><span>We could not build this team summary from the current feeds.</span></div>';
+    }
   } finally {
+    if (teamName && els.teamOverview && !els.teamOverview.innerHTML.includes("Unavailable")) {
+      renderTeamOverview(teamName, {
+        wins: parseNumber(els.statWins ? els.statWins.textContent : ""),
+        loss: parseNumber(els.statLoss ? els.statLoss.textContent : ""),
+        winpct: parsePct(els.statWinPct ? els.statWinPct.textContent : ""),
+        gb: parseNumber(els.statGb ? els.statGb.textContent : ""),
+      });
+    }
     isTeamPageRefreshing = false;
   }
 }
@@ -3361,6 +3383,7 @@ let scheduleIndexes = { date: 0, team1: 1, team2: 2 };
 let liveScoreMap = new Map();
 let finalScoreMap = new Map();
 let teamLeadersMap = new Map();
+let currentTeamProfileStats = null;
 let leagueScheduleGames = [];
 
 function normalizeTeamLabel(value) {
@@ -3700,6 +3723,130 @@ function computeTeamLeaders(playerRows) {
     });
   });
   return map;
+}
+
+function computeTeamProfileStats(teamName, playerRows) {
+  if (!teamName || !Array.isArray(playerRows) || playerRows.length < 2) {
+    return null;
+  }
+  const rows = playerRows.slice(1);
+  const filtered = rows.filter((row) => teamMatches(row[1], teamName));
+  if (!filtered.length) {
+    return null;
+  }
+  let totalScore = 0;
+  let gp = 0;
+  let bestGame = null;
+  filtered.forEach((row) => {
+    const player = stripCaptainMarker(row[2] || "");
+    const score = parseAdjustedScore(row, detectPlayerColumns(playerRows[0] || []));
+    if (score === null) return;
+    totalScore += score;
+    gp += 1;
+    if (!bestGame || score > bestGame.score) {
+      bestGame = {
+        player,
+        score,
+        date: String(row[0] || "").trim(),
+      };
+    }
+  });
+  const leaders = teamLeadersMap.get(displayTeamName(teamName)) || teamLeadersMap.get(teamName) || {};
+  return {
+    totalScore,
+    gp,
+    avgScore: gp ? totalScore / gp : null,
+    bestGame,
+    topPlayer: leaders.topAvg || leaders.topRel || leaders.topWar || null,
+  };
+}
+
+function buildRecentGameItems(teamName, limit = 4) {
+  const teamKey = normalizeTeamLabel(teamName);
+  return (leagueScheduleGames || [])
+    .filter((game) => normalizeTeamLabel(game.team1) === teamKey || normalizeTeamLabel(game.team2) === teamKey)
+    .map((game) => {
+      const state = getScheduleScoreState(game.row);
+      const isTeam1 = normalizeTeamLabel(game.team1) === teamKey;
+      const myScore = isTeam1 ? state.team1Score : state.team2Score;
+      const oppScore = isTeam1 ? state.team2Score : state.team1Score;
+      const opponent = isTeam1 ? game.team2 : game.team1;
+      let result = state.status.toUpperCase();
+      if (state.status === "final") {
+        const mine = parseNumericScore(myScore);
+        const opp = parseNumericScore(oppScore);
+        if (mine !== null && opp !== null) {
+          result = mine > opp ? "W" : mine < opp ? "L" : "T";
+        }
+      }
+      return {
+        date: game.dateToken,
+        opponent,
+        state: state.status,
+        result,
+        scoreLine: myScore || oppScore ? `${myScore || "—"}-${oppScore || "—"}` : "—",
+      };
+    })
+    .filter((game) => game.state !== "upcoming" || game.date)
+    .sort((a, b) => parseDateValue(b.date) - parseDateValue(a.date))
+    .slice(0, limit);
+}
+
+function renderTeamOverview(teamName, teamRecord) {
+  if (!els.teamOverview) {
+    return;
+  }
+  const profile = currentTeamProfileStats;
+  const recent = buildRecentGameItems(teamName, 4);
+  const recordText =
+    teamRecord && Number.isFinite(teamRecord.wins) && Number.isFinite(teamRecord.loss)
+      ? `${teamRecord.wins}-${teamRecord.loss}`
+      : "—";
+  const winPctText =
+    teamRecord && Number.isFinite(teamRecord.winpct) ? teamRecord.winpct.toFixed(3) : "—";
+  const gbText = teamRecord && Number.isFinite(teamRecord.gb) ? String(teamRecord.gb) : "—";
+  const topPlayerLabel = profile?.topPlayer
+    ? `${profile.topPlayer.player} • ${profile.topPlayer.avg.toFixed(1)} avg`
+    : "No player trend yet";
+  const bestGameLabel = profile?.bestGame
+    ? `${profile.bestGame.player} • ${profile.bestGame.score.toFixed(1)}`
+    : "No completed game yet";
+  const recentMarkup = recent.length
+    ? recent
+        .map(
+          (item) => `
+            <div class="team-overview-recent-item">
+              <span>${escapeHtml(item.date)}</span>
+              <strong>${escapeHtml(item.result)}</strong>
+              <span>vs ${escapeHtml(item.opponent)}</span>
+              <span>${escapeHtml(item.scoreLine)}</span>
+            </div>
+          `
+        )
+        .join("")
+    : `<div class="team-overview-empty">Recent games will appear once this team has schedule data.</div>`;
+
+  els.teamOverview.innerHTML = `
+    <div class="team-overview-card">
+      <span class="team-overview-kicker">Record</span>
+      <strong>${escapeHtml(recordText)}</strong>
+      <small>PCT ${escapeHtml(winPctText)} • GB ${escapeHtml(gbText)}</small>
+    </div>
+    <div class="team-overview-card">
+      <span class="team-overview-kicker">Team Scoring</span>
+      <strong>${profile ? Math.round(profile.totalScore).toLocaleString() : "—"}</strong>
+      <small>${profile?.avgScore ? `${profile.avgScore.toFixed(1)} avg per player game` : "Waiting on player stats"}</small>
+    </div>
+    <div class="team-overview-card">
+      <span class="team-overview-kicker">Top Player</span>
+      <strong>${escapeHtml(topPlayerLabel)}</strong>
+      <small>Best game: ${escapeHtml(bestGameLabel)}</small>
+    </div>
+    <div class="team-overview-card team-overview-card--wide">
+      <span class="team-overview-kicker">Recent Games</span>
+      <div class="team-overview-recent">${recentMarkup}</div>
+    </div>
+  `;
 }
 
 function getScheduleScoreState(scheduleRow) {

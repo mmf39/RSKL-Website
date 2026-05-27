@@ -116,6 +116,7 @@ const els = {
   contractNotes: document.getElementById("player-contract-notes"),
   awardsPanel: document.getElementById("player-awards-panel"),
   awards: document.getElementById("player-awards"),
+  playerInsights: document.getElementById("player-insights"),
   summaryCards: Array.from(document.querySelectorAll(".summary-card-link")),
   rankGp: document.getElementById("rank-gp"),
   rankTotal: document.getElementById("rank-total"),
@@ -1837,6 +1838,91 @@ function summarizeRows(rows, baselines) {
   };
 }
 
+function buildPlayerTrendSummary(rows) {
+  const sorted = [...rows].sort(
+    (a, b) => parseDateValue(a[playerColumns.date]) - parseDateValue(b[playerColumns.date])
+  );
+  const scores = sorted
+    .map((row) => parseAdjustedScore(row))
+    .filter((value) => Number.isFinite(value));
+  const captainRows = sorted.filter((row) => isCaptainMarked(row[playerColumns.player]));
+  const nonCaptainRows = sorted.filter((row) => !isCaptainMarked(row[playerColumns.player]));
+  const captainSummary = summarizeRows(captainRows, buildDailyBaselines(rows));
+  const nonCaptainSummary = summarizeRows(nonCaptainRows, buildDailyBaselines(rows));
+  const seasonAvg = scores.length ? scores.reduce((sum, value) => sum + value, 0) / scores.length : null;
+  const recentScores = scores.slice(-5);
+  const recentAvg = recentScores.length
+    ? recentScores.reduce((sum, value) => sum + value, 0) / recentScores.length
+    : null;
+  const bestGameScore = scores.length ? Math.max(...scores) : null;
+  const bestGameRow =
+    bestGameScore === null
+      ? null
+      : sorted.find((row) => parseAdjustedScore(row) === bestGameScore) || null;
+
+  const badges = [];
+  if (recentAvg !== null && seasonAvg !== null) {
+    if (recentAvg - seasonAvg >= 40) badges.push("Hot");
+    if (seasonAvg - recentAvg >= 40) badges.push("Cold");
+  }
+  if (captainRows.length) badges.push("Captain");
+  const currentSeason = getSeason();
+  if (isRookieSeason(currentSeason, getPlayerName())) badges.push("Rookie");
+  if (scores.length >= 4 && seasonAvg !== null && seasonAvg >= 300) badges.push("MVP Watch");
+
+  return {
+    seasonAvg,
+    recentAvg,
+    recentGames: recentScores.length,
+    bestGameScore,
+    bestGameDate: bestGameRow ? String(bestGameRow[playerColumns.date] || "").trim() : "",
+    captainGames: captainRows.length,
+    captainAvg: captainSummary.avgScore,
+    nonCaptainGames: nonCaptainRows.length,
+    nonCaptainAvg: nonCaptainSummary.avgScore,
+    badges,
+  };
+}
+
+function renderPlayerInsights(rows) {
+  if (!els.playerInsights) return;
+  if (!rows.length) {
+    els.playerInsights.innerHTML =
+      '<div class="dashboard-state-card"><strong>No insights yet</strong><span>Recent trend, role split, and badge data appear once this player has logged games.</span></div>';
+    return;
+  }
+  const trend = buildPlayerTrendSummary(rows);
+  const badgeMarkup = trend.badges.length
+    ? trend.badges
+        .map((badge) => `<span class="player-insight-badge">${escapeHtml(badge)}</span>`)
+        .join("")
+    : '<span class="player-insight-badge player-insight-badge--muted">No form badge</span>';
+  els.playerInsights.innerHTML = `
+    <div class="player-insight-card">
+      <span class="player-insight-kicker">Badges</span>
+      <div class="player-insight-badges">${badgeMarkup}</div>
+      <small>Only shown when the current season data supports them.</small>
+    </div>
+    <div class="player-insight-card">
+      <span class="player-insight-kicker">Recent Trend</span>
+      <strong>${trend.recentAvg !== null ? trend.recentAvg.toFixed(1) : "—"}</strong>
+      <small>Last ${trend.recentGames || 0} games vs season avg ${trend.seasonAvg !== null ? trend.seasonAvg.toFixed(1) : "—"}</small>
+    </div>
+    <div class="player-insight-card">
+      <span class="player-insight-kicker">Best Game</span>
+      <strong>${trend.bestGameScore !== null ? trend.bestGameScore.toFixed(1) : "—"}</strong>
+      <small>${trend.bestGameDate ? `Logged on ${escapeHtml(trend.bestGameDate)}` : "Waiting on a completed game."}</small>
+    </div>
+    <div class="player-insight-card player-insight-card--wide">
+      <span class="player-insight-kicker">Captain Split</span>
+      <div class="player-insight-split">
+        <div><strong>${trend.captainAvg !== null ? trend.captainAvg.toFixed(1) : "—"}</strong><span>Captain Avg (${trend.captainGames} GP)</span></div>
+        <div><strong>${trend.nonCaptainAvg !== null ? trend.nonCaptainAvg.toFixed(1) : "—"}</strong><span>Non-Captain Avg (${trend.nonCaptainGames} GP)</span></div>
+      </div>
+    </div>
+  `;
+}
+
 function renderWeeklyModal(key) {
   if (!els.weeklyModal || !els.weeklyTitle || !els.weeklyMetrics || !els.weeklyGamesBody) {
     return;
@@ -2673,6 +2759,7 @@ async function loadPlayer() {
     renderTable([]);
     renderWeeklyKarma([]);
     updateSummary([]);
+    renderPlayerInsights([]);
     els.body.innerHTML = `<tr><td>No stats for GM entries.</td></tr>`;
     renderAwards([]);
     return;
@@ -2912,6 +2999,7 @@ async function loadPlayer() {
       }
       renderWeeklyKarma([]);
       updateSummary([], baselines);
+      renderPlayerInsights([]);
       renderCareerTeamBreakdown([], baselines, season);
       const teamName = await findTeamForPlayer(season, playerName);
       renderPlayerTeam(teamName);
@@ -2982,6 +3070,7 @@ async function loadPlayer() {
           : filtered
       );
       updateSummary(filtered, baselines);
+      renderPlayerInsights(filtered);
       renderCareerTeamBreakdown(filtered, baselines, season);
       const teamsFromStats = getTeamsFromRows(filtered);
       if (season === "career") {
@@ -3033,6 +3122,7 @@ async function loadPlayer() {
     els.body.innerHTML = `<tr><td>${escapeHtml(error.message)}</td></tr>`;
     renderWeeklyKarma([]);
     renderLeagueRanks([], playerName);
+    renderPlayerInsights([]);
   }
 }
 
