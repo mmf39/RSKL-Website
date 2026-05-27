@@ -901,78 +901,10 @@ function buildLiveDetailMarkup(game, playerAverageMap) {
   const favoriteName = projection.team1WinPct >= projection.team2WinPct ? game.team1 : game.team2;
   const favoritePct = projection.team1WinPct >= projection.team2WinPct ? projection.team1WinPct : projection.team2WinPct;
 
-  const renderTeamTable = (teamName, players, liveScore, projectedScore) => `
-    <div class="dashboard-live-team-card">
-      <div class="dashboard-live-team-head">
-        <a class="dashboard-matchup-team" href="/team.html?team=${encodeURIComponent(teamName)}">
-          ${renderSmallTeamLogo(teamName)}
-          <span>${escapeHtml(teamName)}</span>
-        </a>
-        <div class="dashboard-live-team-metrics">
-          <span>Live ${escapeHtml(String(liveScore || "0"))}</span>
-          <span>Proj ${Math.round(projectedScore)}</span>
-        </div>
-      </div>
-      <div class="dashboard-live-player-table">
-        ${(players || [])
-          .map((player) => {
-            const profile = playerAverageMap.get(normalizePlayerKey(player.player));
-            const average = Number.isFinite(profile?.avg) ? profile.avg.toFixed(1) : "—";
-            return `
-              <div class="dashboard-live-player-row">
-                <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(player.player)}">${renderPlayerName({ player: formatLivePlayerDisplay(player) }, getSeasonRaw())}</a>
-                <span>${escapeHtml(player.points || "0")}</span>
-                <span>Avg ${escapeHtml(average)}</span>
-              </div>
-            `;
-          })
-          .join("") || '<div class="boxscore-empty">No live player stats yet.</div>'}
-      </div>
-    </div>
-  `;
-
   return `
     <div class="dashboard-live-extra-content">
-      <div class="dashboard-live-insights">
-        ${
-          topPerformer
-            ? `<div class="dashboard-live-pill dashboard-live-pill--accent">Top Performer: ${escapeHtml(
-                topPerformer.player
-              )} • ${escapeHtml(String(topPerformer.points || "0"))} pts</div>`
-            : ""
-        }
-        <div class="dashboard-live-pill">Projected favorite: ${escapeHtml(favoriteName)} • ${Math.round(
-          favoritePct * 100
-        )}% win rate</div>
-        <div class="dashboard-live-pill">Projected margin: ${escapeHtml(favoriteName)} ${formatSignedNumber(
-          projection.team1WinPct >= projection.team2WinPct
-            ? projection.team1.projected - projection.team2.projected
-            : projection.team2.projected - projection.team1.projected,
-          0
-        )}</div>
-      </div>
-      <div class="dashboard-live-projection">
-        <div class="dashboard-live-projection-bar">
-          <span class="dashboard-live-projection-fill team1" style="width:${(projection.team1WinPct * 100).toFixed(
-            1
-          )}%"></span>
-          <span class="dashboard-live-projection-fill team2" style="width:${(projection.team2WinPct * 100).toFixed(
-            1
-          )}%"></span>
-        </div>
-        <div class="dashboard-live-projection-meta">
-          <strong>${escapeHtml(game.team1)}</strong>
-          <span>${Math.round(projection.team1WinPct * 100)}%</span>
-          <span>${Math.round(projection.team2WinPct * 100)}%</span>
-          <strong>${escapeHtml(game.team2)}</strong>
-        </div>
-      </div>
-      <div class="dashboard-live-columns">
-        ${renderTeamTable(game.team1, game.team1Players, game.team1Score, projection.team1.projected)}
-        ${renderTeamTable(game.team2, game.team2Players, game.team2Score, projection.team2.projected)}
-      </div>
       <div class="dashboard-live-actions">
-        <button class="dashboard-inline-link" type="button" data-live-open>Open full box score</button>
+        <button class="dashboard-inline-link" type="button" data-live-open>Open box score</button>
       </div>
     </div>
   `;
