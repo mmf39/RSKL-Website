@@ -1223,6 +1223,7 @@ body.menu-open {
   color: #fff7ed;
   font-weight: 800;
   letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
 }
 
 .dashboard-player-avatar {
@@ -1258,6 +1259,7 @@ body.menu-open {
   margin-top: 14px;
   font-size: 1.1rem;
   color: rgba(255, 236, 220, 0.78);
+  overflow-wrap: anywhere;
 }
 
 .dashboard-leader-meta {
@@ -1268,6 +1270,7 @@ body.menu-open {
   gap: 12px;
   color: rgba(255, 223, 188, 0.76);
   font-size: 1rem;
+  flex-wrap: wrap;
 }
 
 .dashboard-leader-meta--compact {
@@ -1290,23 +1293,29 @@ body.menu-open {
 }
 
 .dashboard-leader-top {
-  display: none;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .dashboard-leader-head {
   min-width: 0;
+  flex: 1 1 280px;
 }
 
 .dashboard-leader-subhead {
   margin-top: 8px;
   color: rgba(255, 223, 188, 0.74);
   font-size: 0.92rem;
+  overflow-wrap: anywhere;
 }
 
 .dashboard-leader-value-wrap {
   flex: 0 0 auto;
   text-align: right;
-  min-width: 120px;
+  min-width: 112px;
 }
 
 .dashboard-leader-value-label {
@@ -1320,24 +1329,24 @@ body.menu-open {
 .dashboard-leaders-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 28px 56px;
+  gap: 24px 40px;
   align-items: start;
 }
 
 .dashboard-leader-list {
-  margin-top: 12px;
+  margin-top: 14px;
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .dashboard-leader-rankrow {
   appearance: none;
   width: 100%;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(100px, auto);
+  grid-template-columns: auto minmax(0, 1fr) minmax(92px, auto);
   align-items: center;
-  gap: 14px;
-  padding: 14px 18px;
+  gap: 12px;
+  padding: 13px 16px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.03);
@@ -1381,6 +1390,54 @@ body.menu-open {
 @media (min-width: 1100px) {
   .dashboard-leaders-grid {
     grid-template-columns: repeat(2, minmax(520px, 1fr));
+  }
+}
+
+@media (max-width: 1099px) {
+  .dashboard-leaders-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}
+
+@media (max-width: 720px) {
+  .dashboard-leader-card {
+    padding: 18px 18px 16px;
+  }
+
+  .dashboard-leader-top {
+    gap: 12px;
+  }
+
+  .dashboard-leader-card .leader-name {
+    font-size: clamp(1.15rem, 6vw, 1.45rem);
+  }
+
+  .dashboard-leader-card .leader-value {
+    font-size: clamp(2rem, 10vw, 2.6rem);
+  }
+
+  .dashboard-leader-subhead {
+    font-size: 0.85rem;
+  }
+
+  .dashboard-leader-rankrow {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  .dashboard-leader-rankname {
+    white-space: normal;
+    line-height: 1.15;
+  }
+
+  .dashboard-leader-rankvalue {
+    white-space: nowrap;
+  }
+
+  .dashboard-leader-value-wrap {
+    min-width: 96px;
   }
 }
 
