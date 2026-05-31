@@ -5,6 +5,9 @@ const SCHEDULE_URL = "/api/sheet?name=schedule";
 const LIVE_SCORING_URL = "/api/sheet?name=live-scoring";
 const GAME_FLOW_API = "/api/game-flow";
 const PLAYER_PROFILE_URL = "/api/player-profile";
+const SUPABASE_CONFIG_URL = "/api/supabase-config";
+const PLAYER_PROFILE_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const TRANSACTIONS_CSV_URL = "/api/sheet?name=transactions";
 const ARCHIVE_URL = "/api/sheet?name=archive";
@@ -121,6 +124,11 @@ let currentLiveGames = [];
 let sheetCache = new Map();
 let lastLeagueSnapshotRows = [];
 const dashboardPlayerAvatarCache = new Map();
+let supabaseUrl = "";
+let supabaseAnon = "";
+let supabaseConfigPromise = null;
+let supabasePlayerPhotoMap = new Map();
+let supabasePlayerPhotoMapPromise = null;
 
 function isArchiveSeason(seasonRaw) {
   return seasonRaw !== "c2s3-regular";
@@ -159,6 +167,37 @@ function buildPlayerAvatarMarkup(item) {
   `;
 }
 
+function requireSupabaseConfig() {
+  return Boolean(supabaseUrl && supabaseAnon);
+}
+
+function supabaseHeaders() {
+  if (!requireSupabaseConfig()) return {};
+  return {
+    apikey: supabaseAnon,
+    Authorization: `Bearer ${supabaseAnon}`,
+  };
+}
+
+function supabaseRestUrl(path) {
+  if (!requireSupabaseConfig()) return "";
+  return `${supabaseUrl}/rest/v1${path}`;
+}
+
+async function loadSupabaseConfig() {
+  if (!supabaseConfigPromise) {
+    supabaseConfigPromise = fetch(SUPABASE_CONFIG_URL, { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        supabaseUrl = String(payload?.url || payload?.supabaseUrl || "").trim().replace(/\/$/, "");
+        supabaseAnon = String(payload?.anonKey || payload?.supabaseAnon || "").trim();
+        return requireSupabaseConfig();
+      })
+      .catch(() => false);
+  }
+  return supabaseConfigPromise;
+}
+
 async function fetchDashboardPlayerAvatarUrl(item, season) {
   const cacheKey = normalizePlayerKey(item?.tag || item?.player || "");
   if (!cacheKey) return "";
@@ -166,6 +205,32 @@ async function fetchDashboardPlayerAvatarUrl(item, season) {
     return dashboardPlayerAvatarCache.get(cacheKey) || "";
   }
   try {
+    const hasSupabase = await loadSupabaseConfig();
+    if (hasSupabase && !supabasePlayerPhotoMapPromise) {
+      supabasePlayerPhotoMapPromise = fetch(supabaseRestUrl("/player_profiles?select=player_tag,photo_url"), {
+        headers: supabaseHeaders(),
+        cache: "no-store",
+      })
+        .then((response) => (response.ok ? response.json() : []))
+        .then((rows) => {
+          supabasePlayerPhotoMap = new Map(
+            (Array.isArray(rows) ? rows : [])
+              .filter((row) => row.player_tag && row.photo_url)
+              .map((row) => [normalizePlayerKey(row.player_tag), String(row.photo_url || "").trim()])
+          );
+          return supabasePlayerPhotoMap;
+        })
+        .catch(() => new Map());
+    }
+    if (supabasePlayerPhotoMapPromise) {
+      await supabasePlayerPhotoMapPromise;
+    }
+    const supabasePhotoUrl = supabasePlayerPhotoMap.get(cacheKey) || "";
+    if (supabasePhotoUrl) {
+      dashboardPlayerAvatarCache.set(cacheKey, supabasePhotoUrl);
+      return supabasePhotoUrl;
+    }
+
     const params = new URLSearchParams();
     params.set("player", item.tag || item.player || "");
     if (item.displayName && item.displayName !== item.tag) {
@@ -176,8 +241,23 @@ async function fetchDashboardPlayerAvatarUrl(item, season) {
     }
     const response = await fetch(`${PLAYER_PROFILE_URL}?${params.toString()}`, { cache: "no-store" });
     if (!response.ok) {
-      dashboardPlayerAvatarCache.set(cacheKey, "");
-      return "";
+      const fallbackResponse = await fetch(`${PLAYER_PROFILE_SCRIPT_URL}?${params.toString()}`, { cache: "no-store" });
+      if (!fallbackResponse.ok) {
+        dashboardPlayerAvatarCache.set(cacheKey, "");
+        return "";
+      }
+      const fallbackPayload = await fallbackResponse.json().catch(() => ({}));
+      const fallbackResolved = String(
+        fallbackPayload.photoUrl ||
+          fallbackPayload.profilePictureUrl ||
+          fallbackPayload.avatarUrl ||
+          fallbackPayload.imageUrl ||
+          fallbackPayload.headshotUrl ||
+          fallbackPayload.pictureUrl ||
+          ""
+      ).trim();
+      dashboardPlayerAvatarCache.set(cacheKey, fallbackResolved);
+      return fallbackResolved;
     }
     const payload = await response.json().catch(() => ({}));
     const resolved = String(
