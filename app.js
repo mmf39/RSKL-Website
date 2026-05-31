@@ -1323,43 +1323,72 @@ function renderLeagueLeaders(rows, seasonRaw) {
     },
   ];
 
+  const selectId = "dashboard-leader-metric";
+  const defaultMetric = metrics[0];
   els.leagueLeaders.innerHTML = `
-    <div class="dashboard-leaders-grid">
-      ${metrics
-        .map((metric) => {
-          const leader = metric.pick;
-          if (!leader) {
-            return buildStateCard(metric.title, "No qualifying player.");
-          }
-          return `
-            <article class="leader-card dashboard-leader-card">
-              <div class="dashboard-leader-top">
-                <div class="dashboard-leader-head">
-                  <div class="dashboard-leader-kicker">${escapeHtml(metric.title)}</div>
-                  <a class="leader-name" href="/player-detail.html?player=${encodeURIComponent(leader.tag)}&season=${encodeURIComponent(seasonRaw)}">
-                    ${buildPlayerAvatarMarkup(leader)}
-                    <span>${escapeHtml(leader.displayName || leader.tag || "Player")}</span>
-                  </a>
-                  <div class="dashboard-leader-subhead">${escapeHtml(leader.team || "—")} • ${escapeHtml(metric.subtitle)}</div>
-                </div>
-                <div class="dashboard-leader-value-wrap">
-                  <div class="leader-value">${escapeHtml(metric.formatter(leader))}</div>
-                  <div class="dashboard-leader-value-label">${escapeHtml(metric.title.toUpperCase())}</div>
-                </div>
-              </div>
-              <div class="dashboard-leader-meta dashboard-leader-meta--compact">
-                <a class="leader-team-link" href="/team.html?team=${encodeURIComponent(leader.team)}">
-                  ${renderSmallTeamLogo(leader.team)}
-                  <span>${escapeHtml(leader.team || "—")}</span>
-                </a>
-                <span>${escapeHtml(String(leader.gp || 0))} GP</span>
-              </div>
-            </article>
-          `;
-        })
-        .join("")}
+    <div class="dashboard-leader-shell">
+      <div class="dashboard-leader-toolbar">
+        <label class="dashboard-leader-label" for="${selectId}">Leaderboard</label>
+        <select id="${selectId}" class="dashboard-leader-select">
+          ${metrics
+            .map(
+              (metric, index) => `
+                <option value="${index}" ${index === 0 ? "selected" : ""}>${escapeHtml(metric.title)}</option>
+              `
+            )
+            .join("")}
+        </select>
+      </div>
+      <div class="dashboard-leaders-grid" data-leader-grid>
+        ${renderLeaderMetricCards([defaultMetric], seasonRaw)}
+      </div>
     </div>
   `;
+
+  const select = els.leagueLeaders.querySelector(`#${selectId}`);
+  const grid = els.leagueLeaders.querySelector("[data-leader-grid]");
+  if (select && grid) {
+    select.addEventListener("change", () => {
+      const metric = metrics[Number(select.value)] || defaultMetric;
+      grid.innerHTML = renderLeaderMetricCards([metric], seasonRaw);
+    });
+  }
+}
+
+function renderLeaderMetricCards(metrics, seasonRaw) {
+  return metrics
+    .map((metric) => {
+      const leader = metric.pick;
+      if (!leader) {
+        return buildStateCard(metric.title, "No qualifying player.");
+      }
+      return `
+        <article class="leader-card dashboard-leader-card">
+          <div class="dashboard-leader-top">
+            <div class="dashboard-leader-head">
+              <div class="dashboard-leader-kicker">${escapeHtml(metric.title)}</div>
+              <a class="leader-name" href="/player-detail.html?player=${encodeURIComponent(leader.tag)}&season=${encodeURIComponent(seasonRaw)}">
+                ${buildPlayerAvatarMarkup(leader)}
+                <span>${escapeHtml(leader.displayName || leader.tag || "Player")}</span>
+              </a>
+              <div class="dashboard-leader-subhead">${escapeHtml(leader.team || "—")} • ${escapeHtml(metric.subtitle)}</div>
+            </div>
+            <div class="dashboard-leader-value-wrap">
+              <div class="leader-value">${escapeHtml(metric.formatter(leader))}</div>
+              <div class="dashboard-leader-value-label">${escapeHtml(metric.title.toUpperCase())}</div>
+            </div>
+          </div>
+          <div class="dashboard-leader-meta dashboard-leader-meta--compact">
+            <a class="leader-team-link" href="/team.html?team=${encodeURIComponent(leader.team)}">
+              ${renderSmallTeamLogo(leader.team)}
+              <span>${escapeHtml(leader.team || "—")}</span>
+            </a>
+            <span>${escapeHtml(String(leader.gp || 0))} GP</span>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 

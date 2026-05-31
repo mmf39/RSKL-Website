@@ -1326,12 +1326,40 @@ body.menu-open {
 
 .dashboard-leaders-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 26px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
 }
 
-.dashboard-leaders-grid .dashboard-leader-card:nth-child(3) {
-  grid-column: 1;
+.dashboard-leader-shell {
+  display: grid;
+  gap: 16px;
+}
+
+.dashboard-leader-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.dashboard-leader-label {
+  color: #dfb58a;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.dashboard-leader-select {
+  appearance: none;
+  border: 1px solid rgba(255, 170, 86, 0.24);
+  background: rgba(8, 15, 31, 0.92);
+  color: #fff7ed;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 0.95rem;
 }
 
 .dashboard-team-card {
