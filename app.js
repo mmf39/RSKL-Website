@@ -1306,19 +1306,19 @@ function renderLeagueLeaders(rows, seasonRaw) {
     {
       title: "Score Average",
       subtitle: "Best per-game scorer",
-      pick: [...rows].sort((a, b) => b.avg - a.avg)[0],
+      list: [...rows].sort((a, b) => b.avg - a.avg).slice(0, 5),
       formatter: (item) => item.avg.toFixed(2),
     },
     {
       title: "Total Score",
       subtitle: "Most total points",
-      pick: [...rows].sort((a, b) => b.total - a.total)[0],
+      list: [...rows].sort((a, b) => b.total - a.total).slice(0, 5),
       formatter: (item) => item.total.toFixed(0),
     },
     {
       title: "WAR",
       subtitle: "Value leader",
-      pick: [...rows].sort((a, b) => b.war - a.war)[0],
+      list: [...rows].sort((a, b) => b.war - a.war).slice(0, 5),
       formatter: (item) => item.war.toFixed(2),
     },
   ];
@@ -1330,13 +1330,51 @@ function renderLeagueLeaders(rows, seasonRaw) {
         .join("")}
     </div>
   `;
+
+  els.leagueLeaders.querySelectorAll(".dashboard-leader-card").forEach((card) => {
+    const firstRow = card.querySelector(".dashboard-leader-rankrow");
+    if (firstRow) {
+      updateLeaderPreview(card, firstRow);
+    }
+  });
+
+  if (!els.leagueLeaders.dataset.leaderBound) {
+    els.leagueLeaders.dataset.leaderBound = "1";
+    els.leagueLeaders.addEventListener("mouseover", (event) => {
+      const row = event.target.closest(".dashboard-leader-rankrow");
+      if (!row || !els.leagueLeaders.contains(row)) return;
+      const card = row.closest(".dashboard-leader-card");
+      if (card) updateLeaderPreview(card, row);
+    });
+    els.leagueLeaders.addEventListener("click", (event) => {
+      const row = event.target.closest(".dashboard-leader-rankrow");
+      if (!row || !els.leagueLeaders.contains(row)) return;
+      const card = row.closest(".dashboard-leader-card");
+      if (card) updateLeaderPreview(card, row);
+    });
+  }
 }
 
 function renderLeaderMetricCard(metric, seasonRaw) {
-  const leader = metric.pick;
-  if (!leader) {
-    return buildStateCard(metric.title, "No qualifying player.");
-  }
+  const topFive = [...(metric.list || [])].slice(0, 5);
+  const leader = topFive[0];
+  if (!leader) return buildStateCard(metric.title, "No qualifying player.");
+  const renderRow = (item, index) => {
+    const value = metric.formatter(item);
+    return `
+      <button class="dashboard-leader-rankrow ${index === 0 ? "is-top" : ""}" type="button"
+        data-leader-player="${escapeHtml(item.tag)}"
+        data-leader-team="${escapeHtml(item.team || "")}"
+        data-leader-gp="${escapeHtml(String(item.gp || 0))}"
+        data-leader-value="${escapeHtml(String(value))}"
+        data-leader-name="${escapeHtml(item.displayName || item.tag || "Player")}"
+        data-leader-avatar="${escapeHtml(item.tag || "")}">
+        <span class="dashboard-leader-rankpos">${index + 1}.</span>
+        <span class="dashboard-leader-rankname">${escapeHtml(item.displayName || item.tag || "Player")}</span>
+        <span class="dashboard-leader-rankvalue">${escapeHtml(String(value))}</span>
+      </button>
+    `;
+  };
   return `
     <article class="leader-card dashboard-leader-card">
       <div class="dashboard-leader-top">
@@ -1353,15 +1391,33 @@ function renderLeaderMetricCard(metric, seasonRaw) {
           <div class="dashboard-leader-value-label">${escapeHtml(metric.title.toUpperCase())}</div>
         </div>
       </div>
-      <div class="dashboard-leader-meta">
-        <a class="leader-team-link" href="/team.html?team=${encodeURIComponent(leader.team)}">
-          ${renderSmallTeamLogo(leader.team)}
-          <span>${escapeHtml(leader.team || "—")}</span>
-        </a>
-        <span>${escapeHtml(String(leader.gp || 0))} GP</span>
+      <div class="dashboard-leader-list" data-leader-list>
+        ${topFive.map((item, index) => renderRow(item, index)).join("")}
+      </div>
+      <div class="dashboard-leader-preview" data-leader-preview>
+        <span class="dashboard-leader-preview-avatar">${escapeHtml((leader.displayName || leader.tag || "P").replace(/^@/, "").slice(0, 1).toUpperCase())}</span>
+        <div class="dashboard-leader-preview-body">
+          <div class="dashboard-leader-preview-name">${escapeHtml(leader.displayName || leader.tag || "Player")}</div>
+          <div class="dashboard-leader-preview-meta">${escapeHtml(leader.team || "—")} • ${escapeHtml(String(leader.gp || 0))} GP • ${escapeHtml(metric.formatter(leader))}</div>
+        </div>
       </div>
     </article>
   `;
+}
+
+function updateLeaderPreview(card, row) {
+  if (!card || !row) return;
+  const previewAvatar = card.querySelector(".dashboard-leader-preview-avatar");
+  const previewName = card.querySelector(".dashboard-leader-preview-name");
+  const previewMeta = card.querySelector(".dashboard-leader-preview-meta");
+  const team = String(row.dataset.leaderTeam || "—").trim();
+  const gp = String(row.dataset.leaderGp || "0").trim();
+  const value = String(row.dataset.leaderValue || "—").trim();
+  const name = String(row.dataset.leaderName || "Player").trim();
+  const avatar = String(row.dataset.leaderAvatar || "P").trim().replace(/^@/, "").slice(0, 1).toUpperCase() || "P";
+  if (previewAvatar) previewAvatar.textContent = avatar;
+  if (previewName) previewName.textContent = name;
+  if (previewMeta) previewMeta.textContent = `${team} • ${gp} GP • ${value}`;
 }
 
 

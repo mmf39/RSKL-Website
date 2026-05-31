@@ -1331,6 +1331,99 @@ body.menu-open {
   gap: 28px 34px;
 }
 
+.dashboard-leader-list {
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.dashboard-leader-rankrow {
+  appearance: none;
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: #f8fafc;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.dashboard-leader-rankrow:hover,
+.dashboard-leader-rankrow:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(255, 180, 79, 0.42);
+  background: rgba(255, 255, 255, 0.05);
+  outline: none;
+}
+
+.dashboard-leader-rankrow.is-top {
+  background: linear-gradient(135deg, rgba(255, 166, 77, 0.15), rgba(255, 166, 77, 0.06));
+  border-color: rgba(255, 166, 77, 0.26);
+}
+
+.dashboard-leader-rankpos,
+.dashboard-leader-rankvalue {
+  font-weight: 800;
+  color: #ffbb59;
+}
+
+.dashboard-leader-rankname {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.dashboard-leader-preview {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dashboard-leader-preview-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255, 170, 86, 0.26), rgba(64, 96, 160, 0.28));
+  border: 1px solid rgba(255, 185, 116, 0.42);
+  color: #fff7ed;
+  font-size: 0.78rem;
+  font-weight: 800;
+  flex: 0 0 auto;
+}
+
+.dashboard-leader-preview-body {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.dashboard-leader-preview-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #fff7ed;
+}
+
+.dashboard-leader-preview-meta {
+  color: rgba(255, 223, 188, 0.76);
+  font-size: 0.92rem;
+}
+
 .dashboard-leaders-grid > :nth-child(3) {
   grid-column: 1;
 }
