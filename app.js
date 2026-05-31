@@ -1377,29 +1377,18 @@ function renderLeaderMetricCard(metric, seasonRaw) {
   };
   return `
     <article class="leader-card dashboard-leader-card">
-      <div class="dashboard-leader-top">
-        <div class="dashboard-leader-head">
-          <div class="dashboard-leader-kicker">${escapeHtml(metric.title)}</div>
-          <a class="leader-name" href="/player-detail.html?player=${encodeURIComponent(leader.tag)}&season=${encodeURIComponent(seasonRaw)}">
-            ${buildPlayerAvatarMarkup(leader)}
-            <span>${escapeHtml(leader.displayName || leader.tag || "Player")}</span>
-          </a>
-          <div class="dashboard-leader-subhead">${escapeHtml(leader.team || "—")} • ${escapeHtml(metric.subtitle)}</div>
-        </div>
-        <div class="dashboard-leader-value-wrap">
-          <div class="leader-value">${escapeHtml(metric.formatter(leader))}</div>
-          <div class="dashboard-leader-value-label">${escapeHtml(metric.title.toUpperCase())}</div>
-        </div>
-      </div>
-      <div class="dashboard-leader-list" data-leader-list>
-        ${topFive.map((item, index) => renderRow(item, index)).join("")}
-      </div>
+      <div class="dashboard-leader-kicker">${escapeHtml(metric.title)}</div>
+      <div class="leader-value">${escapeHtml(metric.formatter(leader))}</div>
+      <div class="dashboard-leader-subhead">${escapeHtml(metric.subtitle)}</div>
       <div class="dashboard-leader-preview" data-leader-preview>
         <span class="dashboard-leader-preview-avatar">${escapeHtml((leader.displayName || leader.tag || "P").replace(/^@/, "").slice(0, 1).toUpperCase())}</span>
         <div class="dashboard-leader-preview-body">
           <div class="dashboard-leader-preview-name">${escapeHtml(leader.displayName || leader.tag || "Player")}</div>
           <div class="dashboard-leader-preview-meta">${escapeHtml(leader.team || "—")} • ${escapeHtml(String(leader.gp || 0))} GP • ${escapeHtml(metric.formatter(leader))}</div>
         </div>
+      </div>
+      <div class="dashboard-leader-list" data-leader-list>
+        ${topFive.map((item, index) => renderRow(item, index)).join("")}
       </div>
     </article>
   `;

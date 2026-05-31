@@ -1200,7 +1200,7 @@ body.menu-open {
 }
 
 .dashboard-leader-card {
-  padding: 26px 28px 22px;
+  padding: 22px 24px 20px;
   border-radius: 24px;
   border: 1px solid rgba(96, 115, 145, 0.42);
   background:
@@ -1221,7 +1221,7 @@ body.menu-open {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  margin-top: 16px;
+  margin-top: 12px;
   font-size: clamp(1.4rem, 1.8vw, 1.9rem);
   color: #fff7ed;
   text-decoration: none;
@@ -1252,8 +1252,8 @@ body.menu-open {
 }
 
 .dashboard-leader-card .leader-value {
-  margin-top: 6px;
-  font-size: clamp(2.5rem, 3.4vw, 4rem);
+  margin-top: 8px;
+  font-size: clamp(2.3rem, 3vw, 3.4rem);
   line-height: 0.92;
   color: #ffb44f;
   font-weight: 900;
@@ -1306,7 +1306,7 @@ body.menu-open {
 }
 
 .dashboard-leader-subhead {
-  margin-top: 6px;
+  margin-top: 8px;
   color: rgba(255, 223, 188, 0.74);
   font-size: 0.92rem;
 }
@@ -1328,23 +1328,23 @@ body.menu-open {
 .dashboard-leaders-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 28px 34px;
+  gap: 22px 28px;
 }
 
 .dashboard-leader-list {
-  margin-top: 18px;
+  margin-top: 14px;
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .dashboard-leader-rankrow {
   appearance: none;
   width: 100%;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) minmax(88px, auto);
   align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
+  gap: 16px;
+  padding: 15px 18px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.03);
@@ -1382,7 +1382,7 @@ body.menu-open {
 }
 
 .dashboard-leader-preview {
-  margin-top: 18px;
+  margin: 10px 0 12px;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -1422,10 +1422,6 @@ body.menu-open {
 .dashboard-leader-preview-meta {
   color: rgba(255, 223, 188, 0.76);
   font-size: 0.92rem;
-}
-
-.dashboard-leaders-grid > :nth-child(3) {
-  grid-column: 1;
 }
 
 .dashboard-team-card {
