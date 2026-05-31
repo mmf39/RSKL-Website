@@ -1,7 +1,79 @@
 {
-  "updatedAt": "2026-05-31T13:46:51.282Z",
+  "updatedAt": "2026-05-31T14:02:10.233Z",
   "timezone": "America/New_York",
   "items": [
+    {
+      "id": "preview-2026-05-31-the-phantoms-gus-n-em",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "The Phantoms vs Gus N Em: 3 things to watch",
+      "summary": "Three quick angles to watch before The Phantoms and Gus N Em hit the 5/31 slate.",
+      "bullets": [
+        "The Phantoms bring the stronger record into this one at 6-3, so the early tone of the matchup matters.",
+        "The Phantoms will lean on @_jake (4535.1 avg) while Gus N Em answer with @juan69 (5725.7 avg).",
+        "The last meeting went Gus N Em 15085-11604 over The Phantoms on 5/14, so there is already a little revenge angle here."
+      ],
+      "teams": [
+        "The Phantoms",
+        "Gus N Em"
+      ],
+      "gameDate": "5/31",
+      "publishedAt": "2026-05-31T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-05-31-scorpions-the-lions",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Scorpions vs The Lions: 3 things to watch",
+      "summary": "Three quick angles to watch before Scorpions and The Lions hit the 5/31 slate.",
+      "bullets": [
+        "Scorpions bring the stronger record into this one at 2-7, so the early tone of the matchup matters.",
+        "Scorpions will lean on @dos (8221.8 avg) while The Lions answer with @arachnid (5437.4 avg).",
+        "The last meeting went Scorpions 59831-58893 over The Lions on 5/9, so there is already a little revenge angle here."
+      ],
+      "teams": [
+        "Scorpions",
+        "The Lions"
+      ],
+      "gameDate": "5/31",
+      "publishedAt": "2026-05-31T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-05-31-dream-team-storm",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Dream Team vs Storm: 3 things to watch",
+      "summary": "Three quick angles to watch before Dream Team and Storm hit the 5/31 slate.",
+      "bullets": [
+        "Dream Team bring the stronger record into this one at 5-4, so the early tone of the matchup matters.",
+        "Dream Team will lean on @fullofopps C (8864.0 avg) while Storm answer with @phx (5410.3 avg).",
+        "The last meeting went Dream Team 13758-11345 over Storm on 5/18, so there is already a little revenge angle here."
+      ],
+      "teams": [
+        "Dream Team",
+        "Storm"
+      ],
+      "gameDate": "5/31",
+      "publishedAt": "2026-05-31T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-05-31-turkeys-illegals",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Turkeys vs Illegals: 3 things to watch",
+      "summary": "Three quick angles to watch before Turkeys and Illegals hit the 5/31 slate.",
+      "bullets": [
+        "Turkeys bring the stronger record into this one at 8-2, so the early tone of the matchup matters.",
+        "Turkeys will lean on @jordancarter C (8960.0 avg) while Illegals answer with @dbook C (6746.0 avg).",
+        "The last meeting went Turkeys 19225-11278 over Illegals on 5/29, so there is already a little revenge angle here."
+      ],
+      "teams": [
+        "Turkeys",
+        "Illegals"
+      ],
+      "gameDate": "5/31",
+      "publishedAt": "2026-05-31T10:00:00-04:00"
+    },
     {
       "id": "transaction-cut-5-30-levandro-cut-the-snipers",
       "kind": "transaction",
