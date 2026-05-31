@@ -4,6 +4,7 @@ const TEAMS_CSV_URL = "/api/sheet?name=teams";
 const SCHEDULE_URL = "/api/sheet?name=schedule";
 const LIVE_SCORING_URL = "/api/sheet?name=live-scoring";
 const GAME_FLOW_API = "/api/game-flow";
+const PLAYER_PROFILE_URL = "/api/player-profile";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const TRANSACTIONS_CSV_URL = "/api/sheet?name=transactions";
 const ARCHIVE_URL = "/api/sheet?name=archive";
@@ -119,6 +120,7 @@ els.featuredPanel = els.featuredMatchups ? els.featuredMatchups.closest(".panel"
 let currentLiveGames = [];
 let sheetCache = new Map();
 let lastLeagueSnapshotRows = [];
+const dashboardPlayerAvatarCache = new Map();
 
 function isArchiveSeason(seasonRaw) {
   return seasonRaw !== "c2s3-regular";
@@ -138,8 +140,9 @@ function renderPlayerName(player, season, options = {}) {
 }
 
 function buildPlayerAvatarMarkup(item) {
-  const label = String(item?.displayName || item?.tag || item?.player || "P").trim();
-  const initials = label
+  const cacheKey = normalizePlayerKey(item?.tag || item?.player || "");
+  const initials = String(item?.displayName || item?.tag || item?.player || "P")
+    .trim()
     .replace(/^@/, "")
     .split(/\s+/)
     .filter(Boolean)
@@ -149,8 +152,65 @@ function buildPlayerAvatarMarkup(item) {
     .toUpperCase()
     .slice(0, 2) || "P";
   return `
-    <span class="dashboard-player-avatar" aria-hidden="true">${escapeHtml(initials)}</span>
+    <span class="dashboard-player-avatar dashboard-player-avatar--empty" data-player-avatar="${escapeHtml(cacheKey)}" aria-hidden="true">
+      <img class="dashboard-player-avatar__image" alt="" loading="lazy" />
+      <span class="dashboard-player-avatar__fallback">${escapeHtml(initials)}</span>
+    </span>
   `;
+}
+
+async function fetchDashboardPlayerAvatarUrl(item, season) {
+  const cacheKey = normalizePlayerKey(item?.tag || item?.player || "");
+  if (!cacheKey) return "";
+  if (dashboardPlayerAvatarCache.has(cacheKey)) {
+    return dashboardPlayerAvatarCache.get(cacheKey) || "";
+  }
+  try {
+    const params = new URLSearchParams();
+    params.set("player", item.tag || item.player || "");
+    if (item.displayName && item.displayName !== item.tag) {
+      params.set("displayName", item.displayName);
+    }
+    if (season) {
+      params.set("season", season);
+    }
+    const response = await fetch(`${PLAYER_PROFILE_URL}?${params.toString()}`, { cache: "no-store" });
+    if (!response.ok) {
+      dashboardPlayerAvatarCache.set(cacheKey, "");
+      return "";
+    }
+    const payload = await response.json().catch(() => ({}));
+    const resolved = String(
+      payload.photoUrl ||
+        payload.profilePictureUrl ||
+        payload.avatarUrl ||
+        payload.imageUrl ||
+        payload.headshotUrl ||
+        payload.pictureUrl ||
+        ""
+    ).trim();
+    dashboardPlayerAvatarCache.set(cacheKey, resolved);
+    return resolved;
+  } catch (_error) {
+    dashboardPlayerAvatarCache.set(cacheKey, "");
+    return "";
+  }
+}
+
+async function hydrateDashboardPlayerAvatars(items, season) {
+  await Promise.all(
+    (items || []).map(async (item) => {
+      const cacheKey = normalizePlayerKey(item?.tag || item?.player || "");
+      if (!cacheKey) return;
+      const url = await fetchDashboardPlayerAvatarUrl(item, season);
+      if (!url) return;
+      const avatar = document.querySelector(`[data-player-avatar="${CSS.escape(cacheKey)}"]`);
+      const image = avatar ? avatar.querySelector(".dashboard-player-avatar__image") : null;
+      if (!avatar || !image) return;
+      image.src = url;
+      avatar.classList.remove("dashboard-player-avatar--empty");
+    })
+  );
 }
 
 function syncDashboardPanels(seasonRaw) {
@@ -1353,6 +1413,11 @@ function renderLeagueLeaders(rows, seasonRaw) {
       if (card) updateLeaderPreview(card, row);
     });
   }
+
+  hydrateDashboardPlayerAvatars(
+    metrics.flatMap((metric) => metric.list || []).filter(Boolean).slice(0, 15),
+    seasonRaw
+  );
 }
 
 function renderLeaderMetricCard(metric, seasonRaw) {

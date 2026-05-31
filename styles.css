@@ -1240,6 +1240,30 @@ body.menu-open {
   font-weight: 800;
   letter-spacing: 0.04em;
   flex: 0 0 auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-player-avatar__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dashboard-player-avatar__fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.dashboard-player-avatar--empty .dashboard-player-avatar__image {
+  opacity: 0;
+}
+
+.dashboard-player-avatar:not(.dashboard-player-avatar--empty) .dashboard-player-avatar__fallback {
+  opacity: 0;
 }
 
 .dashboard-leader-card .leader-name:hover {
