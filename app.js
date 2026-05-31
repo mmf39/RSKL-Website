@@ -1377,14 +1377,18 @@ function renderLeaderMetricCard(metric, seasonRaw) {
   };
   return `
     <article class="leader-card dashboard-leader-card">
-      <div class="dashboard-leader-kicker">${escapeHtml(metric.title)}</div>
-      <div class="leader-value">${escapeHtml(metric.formatter(leader))}</div>
-      <div class="dashboard-leader-subhead">${escapeHtml(metric.subtitle)}</div>
-      <div class="dashboard-leader-preview" data-leader-preview>
-        <span class="dashboard-leader-preview-avatar">${escapeHtml((leader.displayName || leader.tag || "P").replace(/^@/, "").slice(0, 1).toUpperCase())}</span>
-        <div class="dashboard-leader-preview-body">
-          <div class="dashboard-leader-preview-name">${escapeHtml(leader.displayName || leader.tag || "Player")}</div>
-          <div class="dashboard-leader-preview-meta">${escapeHtml(leader.team || "—")} • ${escapeHtml(String(leader.gp || 0))} GP • ${escapeHtml(metric.formatter(leader))}</div>
+      <div class="dashboard-leader-headline">
+        <div class="dashboard-leader-hero">
+          <div class="dashboard-leader-avatar">${buildPlayerAvatarMarkup(leader)}</div>
+          <div class="dashboard-leader-hero-copy">
+            <div class="dashboard-leader-kicker">${escapeHtml(metric.title)}</div>
+            <div class="leader-name">${escapeHtml(leader.displayName || leader.tag || "Player")}</div>
+            <div class="dashboard-leader-subhead">${escapeHtml(leader.team || "—")} • ${escapeHtml(metric.subtitle)}</div>
+          </div>
+        </div>
+        <div class="dashboard-leader-hero-value">
+          <div class="leader-value">${escapeHtml(metric.formatter(leader))}</div>
+          <div class="dashboard-leader-value-label">${escapeHtml(metric.title.toUpperCase())}</div>
         </div>
       </div>
       <div class="dashboard-leader-list" data-leader-list>
@@ -1396,17 +1400,19 @@ function renderLeaderMetricCard(metric, seasonRaw) {
 
 function updateLeaderPreview(card, row) {
   if (!card || !row) return;
-  const previewAvatar = card.querySelector(".dashboard-leader-preview-avatar");
-  const previewName = card.querySelector(".dashboard-leader-preview-name");
-  const previewMeta = card.querySelector(".dashboard-leader-preview-meta");
+  const heroAvatar = card.querySelector(".dashboard-leader-avatar");
+  const heroName = card.querySelector(".dashboard-leader-hero-copy .leader-name");
+  const heroSubhead = card.querySelector(".dashboard-leader-hero-copy .dashboard-leader-subhead");
+  const heroValue = card.querySelector(".dashboard-leader-hero-value .leader-value");
   const team = String(row.dataset.leaderTeam || "—").trim();
   const gp = String(row.dataset.leaderGp || "0").trim();
   const value = String(row.dataset.leaderValue || "—").trim();
   const name = String(row.dataset.leaderName || "Player").trim();
   const avatar = String(row.dataset.leaderAvatar || "P").trim().replace(/^@/, "").slice(0, 1).toUpperCase() || "P";
-  if (previewAvatar) previewAvatar.textContent = avatar;
-  if (previewName) previewName.textContent = name;
-  if (previewMeta) previewMeta.textContent = `${team} • ${gp} GP • ${value}`;
+  if (heroAvatar) heroAvatar.textContent = avatar;
+  if (heroName) heroName.textContent = name;
+  if (heroSubhead) heroSubhead.textContent = `${team} • ${card.querySelector(".dashboard-leader-kicker")?.textContent || ""}`.trim();
+  if (heroValue) heroValue.textContent = value;
 }
 
 
