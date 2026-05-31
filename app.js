@@ -137,6 +137,22 @@ function renderPlayerName(player, season, options = {}) {
   return `${escapeHtml(label)}${badgeHtml}`;
 }
 
+function buildPlayerAvatarMarkup(item) {
+  const label = String(item?.displayName || item?.tag || item?.player || "P").trim();
+  const initials = label
+    .replace(/^@/, "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0] || "")
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "P";
+  return `
+    <span class="dashboard-player-avatar" aria-hidden="true">${escapeHtml(initials)}</span>
+  `;
+}
+
 function syncDashboardPanels(seasonRaw) {
   const hideArchiveOnly = isArchiveSeason(seasonRaw);
   if (els.livePanel) {

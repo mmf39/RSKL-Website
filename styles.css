@@ -1230,6 +1230,22 @@ body.menu-open {
   transition: color 0.16s ease, opacity 0.16s ease;
 }
 
+.dashboard-player-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255, 170, 86, 0.26), rgba(64, 96, 160, 0.28));
+  border: 1px solid rgba(255, 185, 116, 0.42);
+  color: #fff7ed;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  flex: 0 0 auto;
+}
+
 .dashboard-leader-card .leader-name:hover {
   color: #ffbf61;
   opacity: 1;
