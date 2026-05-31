@@ -1960,6 +1960,44 @@ input[type="text"] {
   font-weight: 600;
 }
 
+.leader-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.leader-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.leader-status--clinched {
+  background: rgba(34, 197, 94, 0.14);
+  color: #9ef0bc;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.leader-status--contention {
+  background: rgba(245, 158, 11, 0.14);
+  color: #ffd08a;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.leader-status--eliminated {
+  background: rgba(148, 163, 184, 0.12);
+  color: #d1d8e3;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+}
+
 .leader-value {
   font-size: 1.1rem;
   color: var(--accent-2);

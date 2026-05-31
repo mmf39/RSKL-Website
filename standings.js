@@ -40,6 +40,8 @@ const C2S2_REGULAR_RANGES = {
   schedule: "A71:E170",
   player_stats: "A151:G1150",
 };
+const CURRENT_PLAYOFF_GAMES = 15;
+const CURRENT_PLAYOFF_SPOTS_PER_DIVISION = 3;
 
 const EXCLUDED_STANDINGS_NAMES = new Set([
   "team",
@@ -596,11 +598,12 @@ function renderStandingsSection(title, rows) {
             const teamName = displayTeamName(rawTeamName);
             const link = `team.html?team=${encodeURIComponent(rawTeamName)}`;
             const logo = getTeamLogoHtml(teamName);
+            const status = row.playoffStatus ? `<span class="leader-status leader-status--${escapeHtml(row.playoffStatus.key)}">${escapeHtml(row.playoffStatus.label)}</span>` : "";
             return `
               <a class="leader-row" href="${link}">
                 <div class="leader-rank">#${index + 1}</div>
                 <div>
-                  <div class="leader-name">${logo}${escapeHtml(teamName)}</div>
+                  <div class="leader-name">${logo}${escapeHtml(teamName)}${status}</div>
                 </div>
                 <div class="leader-meta">
                   ${chips
@@ -621,6 +624,82 @@ function renderStandingsSection(title, rows) {
       </div>
     </section>
   `;
+}
+
+function buildPlayoffStatuses(rows) {
+  const ordered = [...rows].sort((a, b) => {
+    const aw = parseNumber(a.wins) ?? 0;
+    const bw = parseNumber(b.wins) ?? 0;
+    if (bw !== aw) return bw - aw;
+    const al = parseNumber(a.loss) ?? 0;
+    const bl = parseNumber(b.loss) ?? 0;
+    if (al !== bl) return al - bl;
+    const ag = parseNumber(a.gb);
+    const bg = parseNumber(b.gb);
+    if (ag !== null || bg !== null) {
+      if (ag === null) return 1;
+      if (bg === null) return -1;
+      if (ag !== bg) return ag - bg;
+    }
+    const ap = parsePct(a.winpct);
+    const bp = parsePct(b.winpct);
+    if (ap !== null || bp !== null) {
+      if (ap === null) return 1;
+      if (bp === null) return -1;
+      if (bp !== ap) return bp - ap;
+    }
+    return String(a.team || "").localeCompare(String(b.team || ""));
+  });
+  const byDivision = new Map();
+  ordered.forEach((row) => {
+    const division = getDivisionName(row.team);
+    if (!byDivision.has(division)) {
+      byDivision.set(division, []);
+    }
+    byDivision.get(division).push(row);
+  });
+
+  const statusByTeam = new Map();
+  byDivision.forEach((divisionRows) => {
+    const ranked = [...divisionRows];
+
+    const thirdPlace = ranked[CURRENT_PLAYOFF_SPOTS_PER_DIVISION - 1] || null;
+    const thirdPlaceWins = thirdPlace ? (parseNumber(thirdPlace.wins) ?? 0) : 0;
+    const thirdPlaceLosses = thirdPlace ? (parseNumber(thirdPlace.loss) ?? 0) : 0;
+
+    ranked.forEach((row, index) => {
+      const wins = parseNumber(row.wins) ?? 0;
+      const losses = parseNumber(row.loss) ?? 0;
+      const gamesPlayed = parseNumber(row.gp) ?? wins + losses;
+      const remaining = Math.max(0, CURRENT_PLAYOFF_GAMES - gamesPlayed);
+      const maxWins = wins + remaining;
+      let status = {
+        key: "contention",
+        label: "In contention",
+      };
+
+      if (index < CURRENT_PLAYOFF_SPOTS_PER_DIVISION) {
+        const fourthPlace = ranked[CURRENT_PLAYOFF_SPOTS_PER_DIVISION] || null;
+        const fourthPlaceMaxWins = fourthPlace
+          ? (parseNumber(fourthPlace.wins) ?? 0) + Math.max(0, CURRENT_PLAYOFF_GAMES - ((parseNumber(fourthPlace.gp) ?? 0)))
+          : -1;
+        if (!fourthPlace || wins > fourthPlaceMaxWins) {
+          status = { key: "clinched", label: "Clinched" };
+        }
+      } else if (maxWins < thirdPlaceWins) {
+        status = { key: "eliminated", label: "Eliminated" };
+      } else if (maxWins === thirdPlaceWins && losses > thirdPlaceLosses) {
+        status = { key: "contention", label: "In contention" };
+      }
+
+      statusByTeam.set(row.team, status);
+    });
+  });
+
+  return rows.map((row) => ({
+    ...row,
+    playoffStatus: statusByTeam.get(row.team) || { key: "contention", label: "In contention" },
+  }));
 }
 
 function renderStandings() {
@@ -1660,6 +1739,9 @@ async function loadStandings() {
         : new Map();
       leagueStandingsMetrics = buildLeagueRowsFromC2S2(standingsData, scheduleRows, playerRows);
       applyTransactionCountsToLeagueRows(leagueStandingsMetrics, transactionsByTeam);
+      if (seasonRaw === "c2s3-regular") {
+        leagueStandingsMetrics = buildPlayoffStatuses(leagueStandingsMetrics);
+      }
       renderStandings();
     } else if (seasonRaw === "c2s2-regular") {
       const [regularRes, transactionsRes] = await Promise.all([
@@ -1684,6 +1766,9 @@ async function loadStandings() {
         : new Map();
       leagueStandingsMetrics = buildLeagueRowsFromArchive(standingsTable, scheduleTable, season);
       applyTransactionCountsToLeagueRows(leagueStandingsMetrics, transactionsByTeam);
+      if (seasonRaw === "c2s2-regular") {
+        leagueStandingsMetrics = buildPlayoffStatuses(leagueStandingsMetrics);
+      }
       renderStandings();
     } else if (seasonRaw === "c1s2-regular" || seasonRaw === "c1s2-post") {
       const response = await fetch(C1S2_STANDINGS_URL, { cache: "no-store" });

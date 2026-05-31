@@ -1,7 +1,327 @@
 {
-  "updatedAt": "2026-05-26T20:16:27.872Z",
+  "updatedAt": "2026-05-31T13:46:51.282Z",
   "timezone": "America/New_York",
   "items": [
+    {
+      "id": "transaction-cut-5-30-levandro-cut-the-snipers",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @levandro",
+      "summary": "@levandro cut • The Snipers. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@levandro cut • The Snipers.",
+        "The Snipers now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "The Snipers"
+      ],
+      "publishedAt": "2026-05-31T03:38:01.920Z",
+      "transactionDate": "5/30"
+    },
+    {
+      "id": "transaction-signing-5-30-ok124-signed-the-snipers",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @ok124",
+      "summary": "@ok124 signed • The Snipers. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@ok124 signed • The Snipers.",
+        "The Snipers now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "The Snipers"
+      ],
+      "publishedAt": "2026-05-31T03:38:01.919Z",
+      "transactionDate": "5/30"
+    },
+    {
+      "id": "preview-2026-05-30-the-phantoms-gus-n-em",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "The Phantoms vs Gus N Em: 3 things to watch",
+      "summary": "Three quick angles to watch before The Phantoms and Gus N Em hit the 5/30 slate.",
+      "bullets": [
+        "The Phantoms bring the stronger record into this one at 6-3, so the early tone of the matchup matters.",
+        "The Phantoms will lean on @_jake (4535.1 avg) while Gus N Em answer with @juan69 (5725.7 avg).",
+        "The last meeting went Gus N Em 15085-11604 over The Phantoms on 5/14, so there is already a little revenge angle here."
+      ],
+      "teams": [
+        "The Phantoms",
+        "Gus N Em"
+      ],
+      "gameDate": "5/30",
+      "publishedAt": "2026-05-30T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-05-30-scorpions-the-lions",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Scorpions vs The Lions: 3 things to watch",
+      "summary": "Three quick angles to watch before Scorpions and The Lions hit the 5/30 slate.",
+      "bullets": [
+        "Scorpions bring the stronger record into this one at 2-7, so the early tone of the matchup matters.",
+        "Scorpions will lean on @dos (8221.8 avg) while The Lions answer with @arachnid (5437.4 avg).",
+        "The last meeting went Scorpions 59831-58893 over The Lions on 5/9, so there is already a little revenge angle here."
+      ],
+      "teams": [
+        "Scorpions",
+        "The Lions"
+      ],
+      "gameDate": "5/30",
+      "publishedAt": "2026-05-30T10:00:00-04:00"
+    },
+    {
+      "id": "transaction-cut-5-29-playexplainer-cut-cheerios",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @playexplainer",
+      "summary": "@playexplainer cut • Cheerios. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@playexplainer cut • Cheerios.",
+        "Cheerios now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Cheerios"
+      ],
+      "publishedAt": "2026-05-29T20:16:06.433Z",
+      "transactionDate": "5/29"
+    },
+    {
+      "id": "transaction-cut-5-29-transitionbucket-cut-cheerios",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @transitionbucket",
+      "summary": "@transitionbucket cut • Cheerios. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@transitionbucket cut • Cheerios.",
+        "Cheerios now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Cheerios"
+      ],
+      "publishedAt": "2026-05-29T20:16:06.433Z",
+      "transactionDate": "5/29"
+    },
+    {
+      "id": "transaction-signing-5-28-thug-signed-cheerios",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @thug",
+      "summary": "@thug signed • Cheerios. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@thug signed • Cheerios.",
+        "Cheerios now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Cheerios"
+      ],
+      "publishedAt": "2026-05-29T20:16:06.433Z",
+      "transactionDate": "5/28"
+    },
+    {
+      "id": "transaction-signing-5-28-risen-signed-cheerios",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @risen",
+      "summary": "@risen signed • Cheerios. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@risen signed • Cheerios.",
+        "Cheerios now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Cheerios"
+      ],
+      "publishedAt": "2026-05-29T20:16:06.433Z",
+      "transactionDate": "5/28"
+    },
+    {
+      "id": "transaction-signing-5-28-book-signed-cheerios",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @book",
+      "summary": "@book signed • Cheerios. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@book signed • Cheerios.",
+        "Cheerios now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Cheerios"
+      ],
+      "publishedAt": "2026-05-29T20:16:06.433Z",
+      "transactionDate": "5/28"
+    },
+    {
+      "id": "transaction-signing-5-29-reeseolson-signed-cheerios",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @reeseolson",
+      "summary": "@reeseolson signed • Cheerios. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@reeseolson signed • Cheerios.",
+        "Cheerios now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Cheerios"
+      ],
+      "publishedAt": "2026-05-29T20:16:06.432Z",
+      "transactionDate": "5/29"
+    },
+    {
+      "id": "transaction-signing-5-29-jay-signed-cheerios",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @jay",
+      "summary": "@jay signed • Cheerios. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@jay signed • Cheerios.",
+        "Cheerios now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Cheerios"
+      ],
+      "publishedAt": "2026-05-29T20:16:06.432Z",
+      "transactionDate": "5/29"
+    },
+    {
+      "id": "transaction-cut-5-29-tor-cut-cheerios",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @tor",
+      "summary": "@tor cut • Cheerios. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@tor cut • Cheerios.",
+        "Cheerios now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Cheerios"
+      ],
+      "publishedAt": "2026-05-29T20:16:06.432Z",
+      "transactionDate": "5/29"
+    },
+    {
+      "id": "transaction-cut-5-29-bojack-cut-cheerios",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @bojack",
+      "summary": "@bojack cut • Cheerios. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@bojack cut • Cheerios.",
+        "Cheerios now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Cheerios"
+      ],
+      "publishedAt": "2026-05-29T20:16:06.432Z",
+      "transactionDate": "5/29"
+    },
+    {
+      "id": "transaction-trade-5-29-turkeys-gets-jameswyo-cheerios-gets-c2s4-first-c2s4-2nd-turkeyrs-comp-pick",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Trade Breakdown: Turkeys and Cheerios",
+      "summary": "Turkeys and Cheerios swapped pieces, and this one deserves a closer look than a normal transaction line.",
+      "bullets": [
+        "Turkeys added @jameswyo, which could reshape their rotation right away.",
+        "Cheerios answered with C2S4 first C2S4 2nd (turkeyrs comp pick), so both sides clearly had a specific need in mind.",
+        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
+      ],
+      "teams": [
+        "Turkeys",
+        "Cheerios"
+      ],
+      "publishedAt": "2026-05-29T20:16:06.431Z",
+      "transactionDate": "5/29"
+    },
+    {
+      "id": "preview-2026-05-29-dream-team-the-snipers",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Dream Team vs The Snipers: 3 things to watch",
+      "summary": "Three quick angles to watch before Dream Team and The Snipers hit the 5/29 slate.",
+      "bullets": [
+        "The Snipers bring the stronger record into this one at 8-0, so the early tone of the matchup matters.",
+        "Dream Team will lean on @fullofopps C (8864.0 avg) while The Snipers answer with @nick72 (9329.7 avg).",
+        "The last meeting went The Snipers 70330-68457 over Dream Team on 5/9, so there is already a little revenge angle here."
+      ],
+      "teams": [
+        "Dream Team",
+        "The Snipers"
+      ],
+      "gameDate": "5/29",
+      "publishedAt": "2026-05-29T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-05-29-illegals-turkeys",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Illegals vs Turkeys: 3 things to watch",
+      "summary": "Three quick angles to watch before Illegals and Turkeys hit the 5/29 slate.",
+      "bullets": [
+        "Turkeys bring the stronger record into this one at 7-2, so the early tone of the matchup matters.",
+        "Illegals will lean on @dbook C (6746.0 avg) while Turkeys answer with @jordancarter C (8960.0 avg).",
+        "The last meeting went Turkeys 33913-32264 over Illegals on 5/6, so there is already a little revenge angle here."
+      ],
+      "teams": [
+        "Illegals",
+        "Turkeys"
+      ],
+      "gameDate": "5/29",
+      "publishedAt": "2026-05-29T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-05-29-cheerios-scorpions",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Cheerios vs Scorpions: 3 things to watch",
+      "summary": "Three quick angles to watch before Cheerios and Scorpions hit the 5/29 slate.",
+      "bullets": [
+        "Scorpions bring the stronger record into this one at 2-6, so the early tone of the matchup matters.",
+        "Cheerios will lean on @jameswyo (4921.9 avg) while Scorpions answer with @dos (8221.8 avg).",
+        "The last meeting went Cheerios 12731-9967 over Scorpions on 5/28, so there is already a little revenge angle here."
+      ],
+      "teams": [
+        "Cheerios",
+        "Scorpions"
+      ],
+      "gameDate": "5/29",
+      "publishedAt": "2026-05-29T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-05-27-the-snipers-illegals",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "The Snipers vs Illegals: 3 things to watch",
+      "summary": "Three quick angles to watch before The Snipers and Illegals hit the 5/27 slate.",
+      "bullets": [
+        "The Snipers bring the stronger record into this one at 6-0, so the early tone of the matchup matters.",
+        "The Snipers will lean on @nick72 (9329.7 avg) while Illegals answer with @dbook C (6746.0 avg).",
+        "The Snipers are 3-0 in their last 3, while Illegals are 1-2 over their last 3."
+      ],
+      "teams": [
+        "The Snipers",
+        "Illegals"
+      ],
+      "gameDate": "5/27",
+      "publishedAt": "2026-05-27T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-05-27-turkeys-the-lions",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Turkeys vs The Lions: 3 things to watch",
+      "summary": "Three quick angles to watch before Turkeys and The Lions hit the 5/27 slate.",
+      "bullets": [
+        "Turkeys bring the stronger record into this one at 5-2, so the early tone of the matchup matters.",
+        "Turkeys will lean on @jordancarter C (8960.0 avg) while The Lions answer with @arachnid (5437.4 avg).",
+        "The last meeting went Turkeys 54268-17362 over The Lions on 5/10, so there is already a little revenge angle here."
+      ],
+      "teams": [
+        "Turkeys",
+        "The Lions"
+      ],
+      "gameDate": "5/27",
+      "publishedAt": "2026-05-27T10:00:00-04:00"
+    },
     {
       "id": "preview-2026-05-26-the-phantoms-turkeys",
       "kind": "preview",
