@@ -1307,26 +1307,43 @@ function renderLeagueLeaders(rows, seasonRaw) {
     },
   ];
 
-  els.leagueLeaders.innerHTML = metrics
-    .map((metric) => {
-      if (!metric.pick) {
-        return buildStateCard(metric.title, "No qualifying player.");
-      }
-      const item = metric.pick;
-      return `
-        <article class="leader-card dashboard-leader-card">
-          <div class="dashboard-leader-kicker">${escapeHtml(metric.title)}</div>
-          <a class="leader-name" href="/player-detail.html?player=${encodeURIComponent(item.tag)}&season=${encodeURIComponent(seasonRaw)}">${renderPlayerName(item)}</a>
-          <div class="leader-value">${escapeHtml(metric.formatter(item))}</div>
-          <div class="leader-sub">${escapeHtml(metric.subtitle)}</div>
-          <div class="dashboard-leader-meta">
-            <a class="leader-team-link" href="/team.html?team=${encodeURIComponent(item.team)}">${renderSmallTeamLogo(item.team)}<span>${escapeHtml(item.team || "—")}</span></a>
-            <span>${escapeHtml(String(item.gp || 0))} GP</span>
-          </div>
-        </article>
-      `;
-    })
-    .join("");
+  els.leagueLeaders.innerHTML = `
+    <div class="dashboard-leaders-grid">
+      ${metrics
+        .map((metric) => {
+          const leader = metric.pick;
+          if (!leader) {
+            return buildStateCard(metric.title, "No qualifying player.");
+          }
+          return `
+            <article class="leader-card dashboard-leader-card">
+              <div class="dashboard-leader-top">
+                <div class="dashboard-leader-head">
+                  <div class="dashboard-leader-kicker">${escapeHtml(metric.title)}</div>
+                  <a class="leader-name" href="/player-detail.html?player=${encodeURIComponent(leader.tag)}&season=${encodeURIComponent(seasonRaw)}">
+                    ${buildPlayerAvatarMarkup(leader)}
+                    <span>${escapeHtml(leader.displayName || leader.tag || "Player")}</span>
+                  </a>
+                  <div class="dashboard-leader-subhead">${escapeHtml(leader.team || "—")} • ${escapeHtml(metric.subtitle)}</div>
+                </div>
+                <div class="dashboard-leader-value-wrap">
+                  <div class="leader-value">${escapeHtml(metric.formatter(leader))}</div>
+                  <div class="dashboard-leader-value-label">${escapeHtml(metric.title.toUpperCase())}</div>
+                </div>
+              </div>
+              <div class="dashboard-leader-meta dashboard-leader-meta--compact">
+                <a class="leader-team-link" href="/team.html?team=${encodeURIComponent(leader.team)}">
+                  ${renderSmallTeamLogo(leader.team)}
+                  <span>${escapeHtml(leader.team || "—")}</span>
+                </a>
+                <span>${escapeHtml(String(leader.gp || 0))} GP</span>
+              </div>
+            </article>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
 }
 
 

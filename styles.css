@@ -1200,24 +1200,33 @@ body.menu-open {
 }
 
 .dashboard-leader-card {
-  padding: 18px;
+  padding: 26px 28px 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(96, 115, 145, 0.42);
+  background:
+    radial-gradient(circle at top left, rgba(24, 43, 86, 0.7), transparent 32%),
+    linear-gradient(180deg, rgba(8, 15, 31, 0.98), rgba(13, 20, 41, 0.98));
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
 }
 
 .dashboard-leader-kicker {
-  color: rgba(255, 205, 153, 0.82);
+  color: #dfb58a;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 800;
 }
 
 .dashboard-leader-card .leader-name {
-  display: inline-block;
-  margin-top: 10px;
-  font-size: 1.18rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  font-size: clamp(1.4rem, 2vw, 2rem);
   color: #fff7ed;
   text-decoration: none;
   font-weight: 800;
+  letter-spacing: -0.03em;
   transition: color 0.16s ease, opacity 0.16s ease;
 }
 
@@ -1227,18 +1236,31 @@ body.menu-open {
 }
 
 .dashboard-leader-card .leader-value {
-  margin-top: 8px;
-  font-size: 2rem;
-  color: #fff7ed;
+  margin-top: 6px;
+  font-size: clamp(2.8rem, 4vw, 4.2rem);
+  line-height: 0.92;
+  color: #ffb44f;
+  font-weight: 900;
 }
 
 .dashboard-leader-card .leader-sub {
-  margin-top: 8px;
+  margin-top: 14px;
+  font-size: 1.1rem;
+  color: rgba(255, 236, 220, 0.78);
 }
 
 .dashboard-leader-meta {
-  margin-top: 16px;
+  margin-top: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   color: rgba(255, 223, 188, 0.76);
+  font-size: 1rem;
+}
+
+.dashboard-leader-meta--compact {
+  margin-top: 28px;
 }
 
 .dashboard-leader-meta .leader-team-link {
@@ -1254,6 +1276,46 @@ body.menu-open {
 .dashboard-leader-meta .leader-team-link:hover {
   color: #ffbf61;
   opacity: 1;
+}
+
+.dashboard-leader-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.dashboard-leader-head {
+  min-width: 0;
+}
+
+.dashboard-leader-subhead {
+  margin-top: 6px;
+  color: rgba(255, 223, 188, 0.74);
+  font-size: 0.92rem;
+}
+
+.dashboard-leader-value-wrap {
+  flex: 0 0 auto;
+  text-align: right;
+}
+
+.dashboard-leader-value-label {
+  color: rgba(255, 223, 188, 0.72);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: -2px;
+}
+
+.dashboard-leaders-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 26px;
+}
+
+.dashboard-leaders-grid .dashboard-leader-card:nth-child(3) {
+  grid-column: 1;
 }
 
 .dashboard-team-card {
