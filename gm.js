@@ -106,6 +106,7 @@ const els = {
   lineupCode: document.getElementById("lineup-code"),
   lineupSave: document.getElementById("lineup-save"),
   lineupStatus: document.getElementById("lineup-status"),
+  lineupOverlay: document.getElementById("lineup-submit-overlay"),
   freeAgencyVoterHandle: document.getElementById("free-agency-voter-handle"),
   freeAgencyCount: document.getElementById("free-agency-count"),
   freeAgencyPlayerList: document.getElementById("free-agency-player-list"),
@@ -314,6 +315,20 @@ function setLineupStatus(message, isError = false) {
   if (!els.lineupStatus) return;
   els.lineupStatus.textContent = message;
   els.lineupStatus.className = `gm-status ${isError ? "error" : ""}`;
+}
+
+function setLineupOverlayVisible(visible, title = "Submitting lineup", copy = "") {
+  if (!els.lineupOverlay) return;
+  els.lineupOverlay.hidden = !visible;
+  if (!visible) return;
+  const titleEl = els.lineupOverlay.querySelector(".gm-submit-overlay__title");
+  const copyEl = els.lineupOverlay.querySelector(".gm-submit-overlay__copy");
+  if (titleEl) {
+    titleEl.textContent = title;
+  }
+  if (copyEl) {
+    copyEl.textContent = copy || "Your lineup is being processed and submitted.";
+  }
 }
 
 function setFreeAgencyStatus(message, isError = false) {
@@ -2321,6 +2336,9 @@ function bindEvents() {
         setLineupStatus("Lineup is locked for this game day.", true);
         return;
       }
+      els.lineupSave.disabled = true;
+      setLineupOverlayVisible(true, "Submitting lineup");
+      setLineupStatus("Submitting lineup...");
       const checkedPlayers = Array.from(
         els.lineupPlayerList.querySelectorAll('input[data-lineup-player]:checked')
       ).map((node) => String(node.value || "").trim());
@@ -2332,9 +2350,21 @@ function bindEvents() {
         lineupSubmittedByTeam.set(team, true);
         renderLineupGameCards(team);
         setLineupStatus("Lineup submitted.");
+        setLineupOverlayVisible(true, "Lineup submitted", "Your lineup was submitted successfully.");
         updateLastUpdated();
+        setTimeout(() => {
+          setLineupOverlayVisible(false);
+        }, 1600);
       } catch (error) {
         setLineupStatus(error.message || "Unable to submit lineup.", true);
+        setLineupOverlayVisible(true, "Submission failed", error.message || "Unable to submit lineup.");
+        setTimeout(() => {
+          setLineupOverlayVisible(false);
+        }, 2400);
+      } finally {
+        if (els.lineupSave) {
+          els.lineupSave.disabled = false;
+        }
       }
     });
   }

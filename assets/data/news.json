@@ -1,7 +1,43 @@
 {
-  "updatedAt": "2026-06-01T13:15:59.307Z",
+  "updatedAt": "2026-06-01T18:16:53.960Z",
   "timezone": "America/New_York",
   "items": [
+    {
+      "id": "preview-2026-06-01-the-phantoms-gus-n-em",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "The Phantoms vs Gus N Em: 3 things to watch",
+      "summary": "Three quick angles to watch before The Phantoms and Gus N Em hit the 6/1 slate.",
+      "bullets": [
+        "Gus N Em bring the stronger record into this one at 7-3, so the early tone of the matchup matters.",
+        "The Phantoms will lean on @_jake (4336.0 avg) while Gus N Em answer with @juan69 (5524.4 avg).",
+        "The last meeting went Gus N Em 17670-12992 over The Phantoms on 5/31, so there is already a little revenge angle here."
+      ],
+      "teams": [
+        "The Phantoms",
+        "Gus N Em"
+      ],
+      "gameDate": "6/1",
+      "publishedAt": "2026-06-01T10:00:00-04:00"
+    },
+    {
+      "id": "preview-2026-06-01-scorpions-the-snipers",
+      "kind": "preview",
+      "season": "c2s3-regular",
+      "title": "Scorpions vs The Snipers: 3 things to watch",
+      "summary": "Three quick angles to watch before Scorpions and The Snipers hit the 6/1 slate.",
+      "bullets": [
+        "The Snipers bring the stronger record into this one at 9-0, so the early tone of the matchup matters.",
+        "Scorpions will lean on @dos (8221.8 avg) while The Snipers answer with @nick72 (9329.7 avg).",
+        "The last meeting went The Snipers 20881-13959 over Scorpions on 5/19, so there is already a little revenge angle here."
+      ],
+      "teams": [
+        "Scorpions",
+        "The Snipers"
+      ],
+      "gameDate": "6/1",
+      "publishedAt": "2026-06-01T10:00:00-04:00"
+    },
     {
       "id": "transaction-cut-5-29-playexplainer-cut-bad-bois",
       "kind": "transaction",

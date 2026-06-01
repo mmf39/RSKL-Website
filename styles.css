@@ -5347,6 +5347,63 @@ input[type="text"] {
   cursor: not-allowed;
 }
 
+.gm-submit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgba(5, 10, 20, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.gm-submit-overlay__panel {
+  width: min(92vw, 420px);
+  padding: 28px 26px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 164, 66, 0.24);
+  background:
+    radial-gradient(circle at top, rgba(255, 177, 77, 0.18), transparent 55%),
+    linear-gradient(180deg, rgba(14, 21, 42, 0.98), rgba(8, 13, 28, 0.98));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+  text-align: center;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+}
+
+.gm-submit-overlay__spinner {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.12);
+  border-top-color: #ffb347;
+  animation: gm-spin 0.85s linear infinite;
+}
+
+.gm-submit-overlay__title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #fff3e2;
+}
+
+.gm-submit-overlay__copy {
+  color: rgba(240, 231, 219, 0.92);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.gm-submit-overlay__subcopy {
+  color: rgba(255, 211, 160, 0.72);
+  font-size: 0.92rem;
+}
+
+@keyframes gm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 900px) {
   .gm-lineup-game-title {
     font-size: 1.25rem;
