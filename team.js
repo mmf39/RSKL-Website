@@ -40,7 +40,7 @@ const TEAM_ORDER = [
   "Turkeys",
   "Gus N Em",
   "Storm",
-  "Cheerios",
+  "Bad Bois",
   "Scorpions",
   "Illegals",
   "The Lions",
@@ -57,7 +57,7 @@ const TEAM_RANGES = {
   Bullets: "E2:F13",
   Storm: "E2:F13",
   Turkeys: "H2:I13",
-  Cheerios: "B17:C28",
+  "Bad Bois": "B17:C28",
   Yetis: "E17:F28",
   Scorpions: "E17:F28",
   Illegals: "H17:I28",
@@ -84,9 +84,9 @@ const C2S2_REGULAR_RANGES = {
 };
 const C2S2_PLAYOFF_HISTORY_ROWS = [
   ["Date", "Team 1", "Team 2", "Info", "Game Type", "Games", "Winner", "Winner Wins"],
-  ["C2S2 Game 1", "The Phantoms", "Cheerios", "Wild Card Round", "Playoffs", "1", "Cheerios", "1"],
+  ["C2S2 Game 1", "The Phantoms", "Bad Bois", "Wild Card Round", "Playoffs", "1", "Bad Bois", "1"],
   ["C2S2 Game 2", "Gus N Em", "Illegals", "Wild Card Round", "Playoffs", "1", "Gus N Em", "1"],
-  ["C2S2 Game 3", "Turkeys", "Cheerios", "Semi Finals", "Playoffs", "2", "Turkeys", "2"],
+  ["C2S2 Game 3", "Turkeys", "Bad Bois", "Semi Finals", "Playoffs", "2", "Turkeys", "2"],
   ["C2S2 Game 4", "The Lions", "Gus N Em", "Semi Finals", "Playoffs", "3", "Gus N Em", "2"],
   ["C2S2 Game 5", "Turkeys", "Gus N Em", "Finals", "Playoffs", "3", "Gus N Em", "3"],
 ];
@@ -131,7 +131,7 @@ function getRightRankCol(row) {
 
 const ARCHIVE_TEAM_ROSTERS = {
   "Gus N Em": "H1:I12",
-  Cheerios: "H16:I27",
+  "Bad Bois": "H16:I27",
   Bullets: "K1:L12",
   Storm: "K1:L12",
   Yetis: "K16:L27",
@@ -145,7 +145,7 @@ const ARCHIVE_TEAM_STANDINGS = {
   "Gus N Em": "A3:F3",
   Bullets: "A4:F4",
   Storm: "A4:F4",
-  Cheerios: "A5:F5",
+  "Bad Bois": "A5:F5",
   Yetis: "A6:F6",
   Scorpions: "A6:F6",
   Illegals: "A7:F7",
@@ -156,7 +156,7 @@ const DRAFT_CAPITAL_COLUMNS = {
   "Gus N Em": "B",
   Bullets: "C",
   Storm: "C",
-  Cheerios: "D",
+  "Bad Bois": "D",
   Yetis: "E",
   Scorpions: "E",
   "The Lions": "F",
@@ -450,7 +450,7 @@ function getTeamLogoSrc(team) {
   if (clean === "Masdog N Em" || clean === "Richer N Em" || clean === "Doggy N Em") return "/assets/gus-n-em.png";
   if (clean === "Yetis") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
-  if (clean === "Cheerios") return "/assets/cheerios.png";
+  if (clean === "Bad Bois") return "/assets/cheerios.png";
   if (clean === "Illegals") return "/assets/illegals.png";
   if (clean === "Storm" || clean === "Bullets") return "/assets/storm.png";
   if (clean === "Turkeys") return "/assets/turkeys.png";
@@ -2461,7 +2461,7 @@ function getTeamLogo(team) {
   if (clean === "Zombies") return "/assets/zombies.png";
   if (clean === "Yetis") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
-  if (clean === "Cheerios") return "/assets/cheerios.png";
+  if (clean === "Bad Bois") return "/assets/cheerios.png";
   if (clean === "Illegals") return "/assets/illegals.png";
   if (clean === "Storm" || clean === "Bullets") return "/assets/storm.png";
   if (clean === "Turkeys") return "/assets/turkeys.png";

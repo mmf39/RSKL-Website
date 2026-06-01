@@ -119,7 +119,7 @@ function renderSection(title, rows) {
   );
   const disclaimer =
     title === "The Lions"
-      ? '<p class="expansion-disclaimer">The lions used last 2 picks in trade with Cheerios</p>'
+      ? '<p class="expansion-disclaimer">The lions used last 2 picks in trade with Bad Bois</p>'
       : "";
   return `
     <section class="panel draft-round">

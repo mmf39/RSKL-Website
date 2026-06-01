@@ -5,7 +5,7 @@ const PLAYOFF_BRACKET = [
       {
         game: "Game 1",
         top: { seed: 3, team: "The Phantoms", score: 0 },
-        bottom: { seed: 6, team: "Cheerios", score: 1 },
+        bottom: { seed: 6, team: "Bad Bois", score: 1 },
       },
       {
         game: "Game 2",
@@ -20,7 +20,7 @@ const PLAYOFF_BRACKET = [
       {
         game: "Game 3",
         top: { seed: 1, team: "Turkeys", score: 2 },
-        bottom: { seed: 6, team: "Cheerios", score: 0 },
+        bottom: { seed: 6, team: "Bad Bois", score: 0 },
       },
       {
         game: "Game 4",

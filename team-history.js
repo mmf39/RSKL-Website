@@ -29,9 +29,9 @@ const C2S2_REGULAR_RANGES = {
 };
 const C2S2_PLAYOFF_HISTORY_ROWS = [
   ["Date", "Team 1", "Team 2", "Info", "Game Type", "Games", "Winner", "Winner Wins"],
-  ["C2S2 Game 1", "The Phantoms", "Cheerios", "Wild Card Round", "Playoffs", "1", "Cheerios", "1"],
+  ["C2S2 Game 1", "The Phantoms", "Bad Bois", "Wild Card Round", "Playoffs", "1", "Bad Bois", "1"],
   ["C2S2 Game 2", "Gus N Em", "Illegals", "Wild Card Round", "Playoffs", "1", "Gus N Em", "1"],
-  ["C2S2 Game 3", "Turkeys", "Cheerios", "Semi Finals", "Playoffs", "2", "Turkeys", "2"],
+  ["C2S2 Game 3", "Turkeys", "Bad Bois", "Semi Finals", "Playoffs", "2", "Turkeys", "2"],
   ["C2S2 Game 4", "The Lions", "Gus N Em", "Semi Finals", "Playoffs", "3", "Gus N Em", "2"],
   ["C2S2 Game 5", "Turkeys", "Gus N Em", "Finals", "Playoffs", "3", "Gus N Em", "3"],
 ];
@@ -46,7 +46,7 @@ const TEAM_RANGES = {
   Bullets: "E2:F13",
   Storm: "E2:F13",
   Turkeys: "H2:I13",
-  Cheerios: "B17:C28",
+  "Bad Bois": "B17:C28",
   Yetis: "E17:F28",
   Illegals: "H17:I28",
   "The Lions": "B32:C43",
@@ -282,7 +282,7 @@ function getTeamLogoSrc(team) {
   if (clean === "Zombies") return "/assets/zombies.png";
   if (clean === "Yetis") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
-  if (clean === "Cheerios") return "/assets/cheerios.png";
+  if (clean === "Bad Bois") return "/assets/cheerios.png";
   if (clean === "Illegals") return "/assets/illegals.png";
   if (clean === "Storm" || clean === "Bullets") return "/assets/storm.png";
   if (clean === "Turkeys") return "/assets/turkeys.png";

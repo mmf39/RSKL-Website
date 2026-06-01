@@ -1062,8 +1062,8 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
     if (team === "Gus N Em") {
       return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />';
     }
-    if (team === "Cheerios") {
-      return '<img class="standings-logo" src="/assets/cheerios.png" alt="Cheerios logo" />';
+    if (team === "Bad Bois") {
+      return '<img class="standings-logo" src="/assets/cheerios.png" alt="Bad Bois logo" />';
     }
     if (team === "Illegals") {
       return '<img class="standings-logo" src="/assets/illegals.png" alt="Illegals logo" />';

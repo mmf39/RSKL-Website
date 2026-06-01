@@ -200,7 +200,7 @@ function getTeamLogo(team) {
   if (clean === "Chicken Nuggets") return "/assets/chicken-nuggets.jpg";
   if (clean === "Yetis") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
-  if (clean === "Cheerios") return "/assets/cheerios.png";
+  if (clean === "Bad Bois") return "/assets/cheerios.png";
   if (clean === "Illegals") return "/assets/illegals.png";
   if (clean === "Storm") return "/assets/storm.png";
   if (clean === "Bullets") return "/assets/bullets.png";

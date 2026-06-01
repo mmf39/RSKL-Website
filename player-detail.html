@@ -14,7 +14,7 @@
     <header class="hero">
       <div class="hero-inner player-detail-hero">
         <div class="player-detail-hero-top">
-          <div class="player-detail-avatar-card" id="player-avatar-card" hidden>
+          <div class="player-detail-avatar-card" id="player-avatar-card">
             <img
               id="player-avatar-image"
               class="player-detail-avatar-image"
@@ -22,6 +22,7 @@
               loading="eager"
               fetchpriority="high"
               decoding="async" />
+            <span class="player-detail-avatar-fallback" id="player-avatar-fallback" aria-hidden="true">P</span>
           </div>
           <div class="player-detail-hero-copy">
             <div class="badge">Real Sports Karma League</div>

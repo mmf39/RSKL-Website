@@ -3783,6 +3783,15 @@ input[type="text"] {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 194, 117, 0.22), transparent 42%),
+    linear-gradient(180deg, rgba(255, 160, 62, 0.18), rgba(20, 24, 40, 0.92)),
+    rgba(12, 18, 34, 0.94);
+  border: 1px solid rgba(255, 156, 54, 0.26);
+  box-shadow: 0 18px 32px rgba(0, 0, 0, 0.22);
 }
 
 .player-detail-avatar-image {
@@ -3790,8 +3799,30 @@ input[type="text"] {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 28px;
+  border-radius: inherit;
   background: transparent;
+}
+
+.player-detail-avatar-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff4e4;
+  font-size: 4.5rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.player-detail-avatar-card:not(.player-detail-avatar-card--empty) .player-detail-avatar-fallback {
+  opacity: 0;
+}
+
+.player-detail-avatar-card--empty .player-detail-avatar-image {
+  opacity: 0;
 }
 
 .player-detail-sub {

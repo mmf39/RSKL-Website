@@ -35,7 +35,7 @@ const TEAM_ORDER = [
   "Turkeys",
   "Gus N Em",
   "Storm",
-  "Cheerios",
+  "Bad Bois",
   "Scorpions",
   "Illegals",
   "The Lions",
@@ -89,7 +89,7 @@ const KNOWN_LIVE_TEAMS = new Set(
     "turkeys",
     "gus n em",
     "storm",
-    "cheerios",
+    "bad bois",
     "scorpions",
     "illegals",
     "the lions",
@@ -544,7 +544,7 @@ function getTeamLogoSrc(name) {
   if (shown === "Masdog N Em") return "/assets/gus-n-em.png";
   if (shown === "Richer N Em") return "/assets/gus-n-em.png";
   if (shown === "Gus N Em") return "/assets/gus-n-em.png";
-  if (shown === "Cheerios") return "/assets/cheerios.png";
+  if (shown === "Bad Bois") return "/assets/cheerios.png";
   if (shown === "Illegals") return "/assets/illegals.png";
   if (shown === "Storm") return "/assets/storm.png";
   if (shown === "Turkeys") return "/assets/turkeys.png";
@@ -556,7 +556,7 @@ function getTeamColorClass(name) {
   if (clean === "turkeys") return "team-color-turkeys";
   if (clean === "gus n em") return "team-color-gus";
   if (clean === "storm") return "team-color-storm";
-  if (clean === "cheerios") return "team-color-cheerios";
+  if (clean === "bad bois") return "team-color-cheerios";
   if (clean === "scorpions" || clean === "yetis") return "team-color-yetis";
   if (clean === "illegals") return "team-color-illegals";
   if (clean === "the lions") return "team-color-lions";

@@ -63,7 +63,7 @@ const DIVISIONS = {
     primaryLabel: "North",
     secondaryLabel: "Locked PSP",
     primary: new Set(["Turkeys", "The Lions", "The Phantoms", "Gus N Em", "Illegals"]),
-    secondary: new Set(["Cheerios", "The Snipers", "Storm", "Scorpions", "Dream Team"]),
+    secondary: new Set(["Bad Bois", "The Snipers", "Storm", "Scorpions", "Dream Team"]),
   },
   c1s2: {
     primaryKey: "east",
@@ -111,7 +111,7 @@ const CURRENT_TEAMS = [
   "Turkeys",
   "Gus N Em",
   "Storm",
-  "Cheerios",
+  "Bad Bois",
   "Scorpions",
   "Illegals",
   "The Lions",
@@ -459,8 +459,8 @@ function getTeamLogoHtml(teamName) {
   if (teamName === "Gus N Em") {
     return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />';
   }
-  if (teamName === "Cheerios") {
-    return '<img class="standings-logo" src="/assets/cheerios.png" alt="Cheerios logo" />';
+  if (teamName === "Bad Bois") {
+    return '<img class="standings-logo" src="/assets/cheerios.png" alt="Bad Bois logo" />';
   }
   if (teamName === "Illegals") {
     return '<img class="standings-logo" src="/assets/illegals.png" alt="Illegals logo" />';

@@ -124,7 +124,7 @@ const TEAM_NAMES = new Set([
   "Storm",
   "Bullets",
   "Turkeys",
-  "Cheerios",
+  "Bad Bois",
   "Yetis",
   "Scorpions",
   "Illegals",
@@ -327,8 +327,8 @@ function getTeamLogo(team) {
   if (clean === "Gus N Em") {
     return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />';
   }
-  if (clean === "Cheerios") {
-    return '<img class="standings-logo" src="/assets/cheerios.png" alt="Cheerios logo" />';
+  if (clean === "Bad Bois") {
+    return '<img class="standings-logo" src="/assets/cheerios.png" alt="Bad Bois logo" />';
   }
   if (clean === "Illegals") {
     return '<img class="standings-logo" src="/assets/illegals.png" alt="Illegals logo" />';
@@ -388,7 +388,7 @@ function linkifyTeamsAndPlayers(text) {
     Storm: "Storm",
     Bullets: "Storm",
     Turkeys: "Turkeys",
-    Cheerios: "Cheerios",
+    "Bad Bois": "Bad Bois",
     Yetis: "Scorpions",
     Scorpions: "Scorpions",
     Illegals: "Illegals",
@@ -531,7 +531,7 @@ function parseDraftCapitalRows(rows) {
     "Turkeys",
     "Gus N Em",
     "Storm",
-    "Cheerios",
+    "Bad Bois",
     "Yetis",
     "The Lions",
     "The Phantoms",
@@ -802,7 +802,7 @@ function renderExpansion(rows) {
     );
     const disclaimer =
       title === "The Lions"
-        ? '<p class="expansion-disclaimer">The lions used last 2 picks in trade with Cheerios</p>'
+        ? '<p class="expansion-disclaimer">The lions used last 2 picks in trade with Bad Bois</p>'
         : "";
     return `
       <section class="panel draft-round">

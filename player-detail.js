@@ -63,7 +63,7 @@ const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
   Bullets: "E2:F13",
   Turkeys: "H2:I13",
-  Cheerios: "B17:C28",
+  "Bad Bois": "B17:C28",
   Yetis: "E17:F28",
   Illegals: "H17:I28",
   "The Lions": "B32:C43",
@@ -74,7 +74,7 @@ const TEAM_RANGES = {
 
 const ARCHIVE_TEAM_ROSTERS = {
   "Gus N Em": "H1:I12",
-  Cheerios: "H16:I27",
+  "Bad Bois": "H16:I27",
   Bullets: "K1:L12",
   Yetis: "K16:L27",
   Turkeys: "N1:O12",
@@ -86,6 +86,7 @@ const els = {
   sub: document.getElementById("player-sub"),
   avatarCard: document.getElementById("player-avatar-card"),
   avatarImage: document.getElementById("player-avatar-image"),
+  avatarFallback: document.getElementById("player-avatar-fallback"),
   lastUpdated: document.getElementById("last-updated"),
   head: document.querySelector("#player-games thead"),
   body: document.querySelector("#player-games tbody"),
@@ -193,14 +194,27 @@ function setPlayerAvatar(url, playerName) {
     return;
   }
   const cleanUrl = String(url || "").trim();
+  const fallbackLetter = String(playerName || "P").trim().replace(/^@/, "").slice(0, 1).toUpperCase() || "P";
+  if (els.avatarFallback) {
+    els.avatarFallback.textContent = fallbackLetter;
+  }
   if (!cleanUrl) {
-    els.avatarCard.hidden = true;
     els.avatarImage.removeAttribute("src");
+    els.avatarImage.alt = `${String(playerName || "Player").trim() || "Player"} profile picture`;
+    els.avatarCard.classList.add("player-detail-avatar-card--empty");
     return;
   }
   els.avatarImage.src = cleanUrl;
   els.avatarImage.alt = `${String(playerName || "Player").trim() || "Player"} profile picture`;
-  els.avatarCard.hidden = false;
+  els.avatarCard.classList.remove("player-detail-avatar-card--empty");
+  els.avatarImage.addEventListener(
+    "error",
+    () => {
+      els.avatarCard.classList.add("player-detail-avatar-card--empty");
+      els.avatarImage.removeAttribute("src");
+    },
+    { once: true }
+  );
 }
 
 function findProfileImageUrl(value, depth = 0) {
@@ -1482,8 +1496,8 @@ function getTeamLogoHtml(teamName) {
     ? '<img class="player-team-logo" src="/assets/yetis.png" alt="Yetis logo" />'
     : shownTeam === "Gus N Em"
     ? '<img class="player-team-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />'
-    : shownTeam === "Cheerios"
-    ? '<img class="player-team-logo" src="/assets/cheerios.png" alt="Cheerios logo" />'
+    : shownTeam === "Bad Bois"
+    ? '<img class="player-team-logo" src="/assets/cheerios.png" alt="Bad Bois logo" />'
     : shownTeam === "Illegals"
     ? '<img class="player-team-logo" src="/assets/illegals.png" alt="Illegals logo" />'
     : shownTeam === "Storm" || shownTeam === "Bullets"
