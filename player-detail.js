@@ -1497,7 +1497,7 @@ function getTeamLogoHtml(teamName) {
     : shownTeam === "Gus N Em"
     ? '<img class="player-team-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />'
     : shownTeam === "Bad Bois"
-    ? '<img class="player-team-logo" src="/assets/cheerios.png" alt="Bad Bois logo" />'
+    ? '<img class="player-team-logo" src="https://media.realapp.com/assets/user/default/large/4JZRj4DJ_29132497.webp" alt="Bad Bois logo" />'
     : shownTeam === "Illegals"
     ? '<img class="player-team-logo" src="/assets/illegals.png" alt="Illegals logo" />'
     : shownTeam === "Storm" || shownTeam === "Bullets"

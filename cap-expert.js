@@ -200,7 +200,8 @@ function getTeamLogo(team) {
   if (clean === "Chicken Nuggets") return "/assets/chicken-nuggets.jpg";
   if (clean === "Yetis") return "/assets/yetis.png";
   if (clean === "Gus N Em") return "/assets/gus-n-em.png";
-  if (clean === "Bad Bois") return "/assets/cheerios.png";
+  if (clean === "Bad Bois")
+    return "https://media.realapp.com/assets/user/default/large/4JZRj4DJ_29132497.webp";
   if (clean === "Illegals") return "/assets/illegals.png";
   if (clean === "Storm") return "/assets/storm.png";
   if (clean === "Bullets") return "/assets/bullets.png";

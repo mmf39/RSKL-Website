@@ -544,7 +544,8 @@ function getTeamLogoSrc(name) {
   if (shown === "Masdog N Em") return "/assets/gus-n-em.png";
   if (shown === "Richer N Em") return "/assets/gus-n-em.png";
   if (shown === "Gus N Em") return "/assets/gus-n-em.png";
-  if (shown === "Bad Bois") return "/assets/cheerios.png";
+  if (shown === "Bad Bois")
+    return "https://media.realapp.com/assets/user/default/large/4JZRj4DJ_29132497.webp";
   if (shown === "Illegals") return "/assets/illegals.png";
   if (shown === "Storm") return "/assets/storm.png";
   if (shown === "Turkeys") return "/assets/turkeys.png";

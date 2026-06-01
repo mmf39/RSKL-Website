@@ -328,7 +328,7 @@ function getTeamLogo(team) {
     return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />';
   }
   if (clean === "Bad Bois") {
-    return '<img class="standings-logo" src="/assets/cheerios.png" alt="Bad Bois logo" />';
+    return '<img class="standings-logo" src="https://media.realapp.com/assets/user/default/large/4JZRj4DJ_29132497.webp" alt="Bad Bois logo" />';
   }
   if (clean === "Illegals") {
     return '<img class="standings-logo" src="/assets/illegals.png" alt="Illegals logo" />';

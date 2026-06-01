@@ -1063,7 +1063,7 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
       return '<img class="standings-logo" src="/assets/gus-n-em.png" alt="Gus N Em logo" />';
     }
     if (team === "Bad Bois") {
-      return '<img class="standings-logo" src="/assets/cheerios.png" alt="Bad Bois logo" />';
+      return '<img class="standings-logo" src="https://media.realapp.com/assets/user/default/large/4JZRj4DJ_29132497.webp" alt="Bad Bois logo" />';
     }
     if (team === "Illegals") {
       return '<img class="standings-logo" src="/assets/illegals.png" alt="Illegals logo" />';
