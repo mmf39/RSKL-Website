@@ -5357,6 +5357,10 @@ input[type="text"] {
   backdrop-filter: blur(8px);
 }
 
+.gm-submit-overlay[hidden] {
+  display: none !important;
+}
+
 .gm-submit-overlay__panel {
   width: min(92vw, 420px);
   padding: 28px 26px;
