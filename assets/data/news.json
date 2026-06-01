@@ -1,7 +1,187 @@
 {
-  "updatedAt": "2026-06-01T12:16:26.064Z",
+  "updatedAt": "2026-06-01T13:15:59.307Z",
   "timezone": "America/New_York",
   "items": [
+    {
+      "id": "transaction-cut-5-29-playexplainer-cut-bad-bois",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @playexplainer",
+      "summary": "@playexplainer cut • Bad Bois. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@playexplainer cut • Bad Bois.",
+        "Bad Bois now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Bad Bois"
+      ],
+      "publishedAt": "2026-06-01T13:15:59.301Z",
+      "transactionDate": "5/29"
+    },
+    {
+      "id": "transaction-cut-5-29-transitionbucket-cut-bad-bois",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @transitionbucket",
+      "summary": "@transitionbucket cut • Bad Bois. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@transitionbucket cut • Bad Bois.",
+        "Bad Bois now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Bad Bois"
+      ],
+      "publishedAt": "2026-06-01T13:15:59.301Z",
+      "transactionDate": "5/29"
+    },
+    {
+      "id": "transaction-signing-5-28-thug-signed-bad-bois",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @thug",
+      "summary": "@thug signed • Bad Bois. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@thug signed • Bad Bois.",
+        "Bad Bois now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Bad Bois"
+      ],
+      "publishedAt": "2026-06-01T13:15:59.301Z",
+      "transactionDate": "5/28"
+    },
+    {
+      "id": "transaction-signing-5-28-risen-signed-bad-bois",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @risen",
+      "summary": "@risen signed • Bad Bois. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@risen signed • Bad Bois.",
+        "Bad Bois now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Bad Bois"
+      ],
+      "publishedAt": "2026-06-01T13:15:59.301Z",
+      "transactionDate": "5/28"
+    },
+    {
+      "id": "transaction-signing-5-28-book-signed-bad-bois",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @book",
+      "summary": "@book signed • Bad Bois. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@book signed • Bad Bois.",
+        "Bad Bois now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Bad Bois"
+      ],
+      "publishedAt": "2026-06-01T13:15:59.301Z",
+      "transactionDate": "5/28"
+    },
+    {
+      "id": "transaction-signing-5-29-reeseolson-signed-bad-bois",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @reeseolson",
+      "summary": "@reeseolson signed • Bad Bois. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@reeseolson signed • Bad Bois.",
+        "Bad Bois now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Bad Bois"
+      ],
+      "publishedAt": "2026-06-01T13:15:59.301Z",
+      "transactionDate": "5/29"
+    },
+    {
+      "id": "transaction-signing-5-29-jay-signed-bad-bois",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @jay",
+      "summary": "@jay signed • Bad Bois. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@jay signed • Bad Bois.",
+        "Bad Bois now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Bad Bois"
+      ],
+      "publishedAt": "2026-06-01T13:15:59.301Z",
+      "transactionDate": "5/29"
+    },
+    {
+      "id": "transaction-cut-5-29-tor-cut-bad-bois",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @tor",
+      "summary": "@tor cut • Bad Bois. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@tor cut • Bad Bois.",
+        "Bad Bois now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Bad Bois"
+      ],
+      "publishedAt": "2026-06-01T13:15:59.301Z",
+      "transactionDate": "5/29"
+    },
+    {
+      "id": "transaction-cut-5-29-bojack-cut-bad-bois",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @bojack",
+      "summary": "@bojack cut • Bad Bois. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@bojack cut • Bad Bois.",
+        "Bad Bois now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "Bad Bois"
+      ],
+      "publishedAt": "2026-06-01T13:15:59.301Z",
+      "transactionDate": "5/29"
+    },
+    {
+      "id": "transaction-trade-5-29-turkeys-gets-jameswyo-bad-bois-gets-c2s4-first-c2s4-2nd-turkeyrs-comp-pick",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Trade Breakdown: Turkeys and Bad Bois",
+      "summary": "Turkeys and Bad Bois swapped pieces, and this one deserves a closer look than a normal transaction line.",
+      "bullets": [
+        "Turkeys added @jameswyo, which could reshape their rotation right away.",
+        "Bad Bois answered with C2S4 first C2S4 2nd (turkeyrs comp pick), so both sides clearly had a specific need in mind.",
+        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
+      ],
+      "teams": [
+        "Turkeys",
+        "Bad Bois"
+      ],
+      "publishedAt": "2026-06-01T13:15:59.301Z",
+      "transactionDate": "5/29"
+    },
+    {
+      "id": "transaction-trade-5-3-bad-bois-gets-bojack-and-playexplainer-the-phantoms-gets-c2s3-1st-round-pick",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Trade Breakdown: Bad Bois and The Phantoms",
+      "summary": "Bad Bois and The Phantoms swapped pieces, and this one deserves a closer look than a normal transaction line.",
+      "bullets": [
+        "Bad Bois added @bojack and @playexplainer, which could reshape their rotation right away.",
+        "The Phantoms answered with C2S3 1st round pick, so both sides clearly had a specific need in mind.",
+        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
+      ],
+      "teams": [
+        "Bad Bois",
+        "The Phantoms"
+      ],
+      "publishedAt": "2026-06-01T13:15:59.301Z",
+      "transactionDate": "5/3"
+    },
     {
       "id": "preview-2026-05-31-the-phantoms-gus-n-em",
       "kind": "preview",
@@ -141,168 +321,6 @@
       ],
       "gameDate": "5/30",
       "publishedAt": "2026-05-30T10:00:00-04:00"
-    },
-    {
-      "id": "transaction-cut-5-29-playexplainer-cut-cheerios",
-      "kind": "transaction",
-      "season": "c2s3-regular",
-      "title": "Transaction Breakdown: @playexplainer",
-      "summary": "@playexplainer cut • Bad Bois. This is the quick AI read on what the move could mean.",
-      "bullets": [
-        "@playexplainer cut • Bad Bois.",
-        "Bad Bois now have a little more roster pressure around that spot."
-      ],
-      "teams": [
-        "Bad Bois"
-      ],
-      "publishedAt": "2026-05-29T20:16:06.433Z",
-      "transactionDate": "5/29"
-    },
-    {
-      "id": "transaction-cut-5-29-transitionbucket-cut-cheerios",
-      "kind": "transaction",
-      "season": "c2s3-regular",
-      "title": "Transaction Breakdown: @transitionbucket",
-      "summary": "@transitionbucket cut • Bad Bois. This is the quick AI read on what the move could mean.",
-      "bullets": [
-        "@transitionbucket cut • Bad Bois.",
-        "Bad Bois now have a little more roster pressure around that spot."
-      ],
-      "teams": [
-        "Bad Bois"
-      ],
-      "publishedAt": "2026-05-29T20:16:06.433Z",
-      "transactionDate": "5/29"
-    },
-    {
-      "id": "transaction-signing-5-28-thug-signed-cheerios",
-      "kind": "transaction",
-      "season": "c2s3-regular",
-      "title": "Transaction Breakdown: @thug",
-      "summary": "@thug signed • Bad Bois. This is the quick AI read on what the move could mean.",
-      "bullets": [
-        "@thug signed • Bad Bois.",
-        "Bad Bois now have a little more roster pressure around that spot."
-      ],
-      "teams": [
-        "Bad Bois"
-      ],
-      "publishedAt": "2026-05-29T20:16:06.433Z",
-      "transactionDate": "5/28"
-    },
-    {
-      "id": "transaction-signing-5-28-risen-signed-cheerios",
-      "kind": "transaction",
-      "season": "c2s3-regular",
-      "title": "Transaction Breakdown: @risen",
-      "summary": "@risen signed • Bad Bois. This is the quick AI read on what the move could mean.",
-      "bullets": [
-        "@risen signed • Bad Bois.",
-        "Bad Bois now have a little more roster pressure around that spot."
-      ],
-      "teams": [
-        "Bad Bois"
-      ],
-      "publishedAt": "2026-05-29T20:16:06.433Z",
-      "transactionDate": "5/28"
-    },
-    {
-      "id": "transaction-signing-5-28-book-signed-cheerios",
-      "kind": "transaction",
-      "season": "c2s3-regular",
-      "title": "Transaction Breakdown: @book",
-      "summary": "@book signed • Bad Bois. This is the quick AI read on what the move could mean.",
-      "bullets": [
-        "@book signed • Bad Bois.",
-        "Bad Bois now have a little more roster pressure around that spot."
-      ],
-      "teams": [
-        "Bad Bois"
-      ],
-      "publishedAt": "2026-05-29T20:16:06.433Z",
-      "transactionDate": "5/28"
-    },
-    {
-      "id": "transaction-signing-5-29-reeseolson-signed-cheerios",
-      "kind": "transaction",
-      "season": "c2s3-regular",
-      "title": "Transaction Breakdown: @reeseolson",
-      "summary": "@reeseolson signed • Bad Bois. This is the quick AI read on what the move could mean.",
-      "bullets": [
-        "@reeseolson signed • Bad Bois.",
-        "Bad Bois now have a little more roster pressure around that spot."
-      ],
-      "teams": [
-        "Bad Bois"
-      ],
-      "publishedAt": "2026-05-29T20:16:06.432Z",
-      "transactionDate": "5/29"
-    },
-    {
-      "id": "transaction-signing-5-29-jay-signed-cheerios",
-      "kind": "transaction",
-      "season": "c2s3-regular",
-      "title": "Transaction Breakdown: @jay",
-      "summary": "@jay signed • Bad Bois. This is the quick AI read on what the move could mean.",
-      "bullets": [
-        "@jay signed • Bad Bois.",
-        "Bad Bois now have a little more roster pressure around that spot."
-      ],
-      "teams": [
-        "Bad Bois"
-      ],
-      "publishedAt": "2026-05-29T20:16:06.432Z",
-      "transactionDate": "5/29"
-    },
-    {
-      "id": "transaction-cut-5-29-tor-cut-cheerios",
-      "kind": "transaction",
-      "season": "c2s3-regular",
-      "title": "Transaction Breakdown: @tor",
-      "summary": "@tor cut • Bad Bois. This is the quick AI read on what the move could mean.",
-      "bullets": [
-        "@tor cut • Bad Bois.",
-        "Bad Bois now have a little more roster pressure around that spot."
-      ],
-      "teams": [
-        "Bad Bois"
-      ],
-      "publishedAt": "2026-05-29T20:16:06.432Z",
-      "transactionDate": "5/29"
-    },
-    {
-      "id": "transaction-cut-5-29-bojack-cut-cheerios",
-      "kind": "transaction",
-      "season": "c2s3-regular",
-      "title": "Transaction Breakdown: @bojack",
-      "summary": "@bojack cut • Bad Bois. This is the quick AI read on what the move could mean.",
-      "bullets": [
-        "@bojack cut • Bad Bois.",
-        "Bad Bois now have a little more roster pressure around that spot."
-      ],
-      "teams": [
-        "Bad Bois"
-      ],
-      "publishedAt": "2026-05-29T20:16:06.432Z",
-      "transactionDate": "5/29"
-    },
-    {
-      "id": "transaction-trade-5-29-turkeys-gets-jameswyo-cheerios-gets-c2s4-first-c2s4-2nd-turkeyrs-comp-pick",
-      "kind": "transaction",
-      "season": "c2s3-regular",
-      "title": "Trade Breakdown: Turkeys and Bad Bois",
-      "summary": "Turkeys and Bad Bois swapped pieces, and this one deserves a closer look than a normal transaction line.",
-      "bullets": [
-        "Turkeys added @jameswyo, which could reshape their rotation right away.",
-        "Bad Bois answered with C2S4 first C2S4 2nd (turkeyrs comp pick), so both sides clearly had a specific need in mind.",
-        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
-      ],
-      "teams": [
-        "Turkeys",
-        "Bad Bois"
-      ],
-      "publishedAt": "2026-05-29T20:16:06.431Z",
-      "transactionDate": "5/29"
     },
     {
       "id": "preview-2026-05-29-dream-team-the-snipers",
@@ -581,24 +599,6 @@
       ],
       "publishedAt": "2026-05-23T14:16:55.813Z",
       "transactionDate": "5/4"
-    },
-    {
-      "id": "transaction-trade-5-3-cheerios-gets-bojack-and-playexplainer-the-phantoms-gets-c2s3-1st-round-pick",
-      "kind": "transaction",
-      "season": "c2s3-regular",
-      "title": "Trade Breakdown: Bad Bois and The Phantoms",
-      "summary": "Bad Bois and The Phantoms swapped pieces, and this one deserves a closer look than a normal transaction line.",
-      "bullets": [
-        "Bad Bois added @bojack and @playexplainer, which could reshape their rotation right away.",
-        "The Phantoms answered with C2S3 1st round pick, so both sides clearly had a specific need in mind.",
-        "This is the kind of move to track over the next slate, because the real value will show up in roles, minutes, and who absorbs the usage."
-      ],
-      "teams": [
-        "Bad Bois",
-        "The Phantoms"
-      ],
-      "publishedAt": "2026-05-23T14:16:55.813Z",
-      "transactionDate": "5/3"
     },
     {
       "id": "transaction-trade-5-3-dream-team-gets-c2s3-1st-round-pick-gaston-rifting-c2s3-2nd-round-pick-scorpions-gets-c2s3-1st-round-pick-dos-gtlover-c2s3-2nd-c2s4-3rd-via-dream-team",
