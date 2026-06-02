@@ -1,7 +1,39 @@
 {
-  "updatedAt": "2026-06-01T19:16:57.135Z",
+  "updatedAt": "2026-06-02T14:35:55.233Z",
   "timezone": "America/New_York",
   "items": [
+    {
+      "id": "transaction-signing--levandro-signed-6-1-the-snipers",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @levandro",
+      "summary": "@levandro signed • 6-1 The Snipers. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@levandro signed • 6-1 The Snipers.",
+        "6-1 The Snipers now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "6-1 The Snipers"
+      ],
+      "publishedAt": "2026-06-02T01:21:05.654Z",
+      "transactionDate": "—"
+    },
+    {
+      "id": "transaction-cut--ok124-cut-6-1-the-snipers",
+      "kind": "transaction",
+      "season": "c2s3-regular",
+      "title": "Transaction Breakdown: @ok124",
+      "summary": "@ok124 cut • 6-1 The Snipers. This is the quick AI read on what the move could mean.",
+      "bullets": [
+        "@ok124 cut • 6-1 The Snipers.",
+        "6-1 The Snipers now have a little more roster pressure around that spot."
+      ],
+      "teams": [
+        "6-1 The Snipers"
+      ],
+      "publishedAt": "2026-06-02T01:21:05.654Z",
+      "transactionDate": "—"
+    },
     {
       "id": "preview-2026-06-01-the-phantoms-gus-n-em",
       "kind": "preview",
