@@ -4022,6 +4022,117 @@ input[type="text"] {
   font-size: 0.95rem;
 }
 
+.records-page .records-hero-panel {
+  overflow: hidden;
+}
+
+.records-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.records-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.record-card {
+  min-height: 100%;
+}
+
+.record-card-head h2 {
+  margin: 4px 0 0;
+  font-family: var(--font-head);
+  letter-spacing: 0.04em;
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.record-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.record-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) minmax(54px, auto);
+  gap: 12px;
+  align-items: start;
+  padding: 14px;
+  border: 1px solid rgba(255, 140, 26, 0.22);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 140, 26, 0.12), rgba(255, 140, 26, 0.02)),
+    rgba(255, 255, 255, 0.03);
+}
+
+.record-row--top {
+  border-color: rgba(255, 179, 71, 0.62);
+  box-shadow: 0 18px 38px rgba(255, 140, 26, 0.12);
+}
+
+.record-rank {
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 140, 26, 0.18);
+  color: var(--accent-2);
+  font-weight: 800;
+}
+
+.record-main {
+  min-width: 0;
+}
+
+.record-team {
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.record-meta {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.record-value {
+  color: var(--accent-2);
+  font-family: var(--font-head);
+  font-size: 2.6rem;
+  line-height: 0.9;
+  text-align: right;
+}
+
+.record-details {
+  margin-top: 10px;
+}
+
+.record-details summary {
+  cursor: pointer;
+  color: var(--accent-2);
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+
+.record-details ol {
+  margin: 10px 0 0;
+  padding-left: 22px;
+  color: var(--muted);
+  line-height: 1.5;
+  font-size: 0.82rem;
+}
+
+.record-details li + li {
+  margin-top: 4px;
+}
+
 .leader-grid {
   display: grid;
   gap: 10px;
@@ -7147,5 +7258,34 @@ input[type="text"] {
 
   .news-filter-wrap .season-select {
     width: min(100%, 220px);
+  }
+}
+
+@media (max-width: 1100px) {
+  .records-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .records-page .panel-head {
+    align-items: stretch;
+  }
+
+  .records-page .standings-scope-tabs {
+    width: 100%;
+  }
+
+  .records-page .standings-scope-tab {
+    flex: 1 1 0;
+  }
+
+  .record-row {
+    grid-template-columns: 30px minmax(0, 1fr) 46px;
+    padding: 12px;
+  }
+
+  .record-value {
+    font-size: 2.2rem;
   }
 }
