@@ -538,8 +538,50 @@ function collectPlayerRankStreaks(rows, type) {
   return streaks.sort((a, b) => b.length - a.length || a.team.localeCompare(b.team));
 }
 
+function median(numbers) {
+  if (!numbers.length) return null;
+  const sorted = [...numbers].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function collectStarterMedianRanks(rows) {
+  const byPlayerSeason = new Map();
+  rows.forEach((row) => {
+    if (!Number.isFinite(row.rank)) return;
+    const key = `${row.season}|${normalizeLoose(row.player)}`;
+    if (!byPlayerSeason.has(key)) {
+      byPlayerSeason.set(key, { player: row.player, season: row.season, rows: [] });
+    }
+    byPlayerSeason.get(key).rows.push(row);
+  });
+
+  return Array.from(byPlayerSeason.values())
+    .filter((entry) => entry.rows.length >= 5)
+    .map((entry) => {
+      const sortedRows = entry.rows.sort((a, b) => a.dateOrder - b.dateOrder || a.sourceIndex - b.sourceIndex);
+      return {
+        type: "starterMedianRank",
+        team: entry.player,
+        season: entry.season,
+        length: median(sortedRows.map((row) => row.rank)),
+        start: sortedRows[0],
+        end: sortedRows[sortedRows.length - 1],
+        games: sortedRows,
+        playerRecord: true,
+        valueLabel: "medianRank",
+      };
+    })
+    .sort((a, b) => a.length - b.length || a.team.localeCompare(b.team));
+}
+
 function playerRecordCards(rows) {
   return [
+    {
+      title: "Starter Median Rank",
+      note: "Best median rank among players with at least five recorded games.",
+      rows: collectStarterMedianRanks(rows).slice(0, 10),
+    },
     {
       title: "Top 100 Streaks",
       note: "Most games in a row ranking top 100.",
@@ -568,6 +610,13 @@ function gameSummary(game, team) {
 function playerGameSummary(game) {
   const team = game.team ? `, ${game.team}` : "";
   return `${game.date}: rank ${game.rank}, score ${game.score}${team}`;
+}
+
+function formatRecordValue(row) {
+  if (row.valueLabel === "medianRank") {
+    return Number.isInteger(row.length) ? String(row.length) : row.length.toFixed(1);
+  }
+  return String(row.length);
 }
 
 function renderRecordCard(card) {
@@ -603,7 +652,7 @@ function renderRecordCard(card) {
                   <ol>${gameItems}</ol>
                 </details>
               </div>
-              <div class="record-value">${row.length}</div>
+              <div class="record-value">${escapeHtml(formatRecordValue(row))}</div>
             </article>
           `;
         })
@@ -627,7 +676,7 @@ function renderRecordSection(id, title, cards) {
   return `
     <section class="record-section" data-record-section="${escapeHtml(id)}" ${id === activeSection ? "" : "hidden"}>
       <div class="record-section-head">
-        <span class="dashboard-kicker">Records</span>
+        <span class="dashboard-kicker">Streaks</span>
         <h2>${escapeHtml(title)}</h2>
       </div>
       <div class="records-grid records-grid--cards">${cards.map(renderRecordCard).join("")}</div>
