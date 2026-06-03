@@ -3778,6 +3778,7 @@ function getTeamGameResult(teamName, scheduleRow) {
             : scheduleRow[scheduleIndexes.team1]
         ),
         date: String(scheduleRow[scheduleIndexes.date] || "").trim(),
+        row: scheduleRow,
       };
     }
   }
@@ -3795,6 +3796,7 @@ function getTeamGameResult(teamName, scheduleRow) {
     score: `${mine}-${opp}`,
     opponent: displayTeamName(isTeam1 ? team2 : team1),
     date: String(scheduleRow[scheduleIndexes.date] || "").trim(),
+    row: scheduleRow,
   };
 }
 
@@ -3824,13 +3826,13 @@ function renderTeamForm(teamName, rows) {
       .slice(-5)
       .map(
         (game) => `
-          <span class="team-form-game ${game.result.toLowerCase()}">
+          <button class="team-form-game ${game.result.toLowerCase()}" type="button" data-form-game-index="${teamScheduleRows.indexOf(game.row)}" aria-label="Open ${escapeHtml(game.date)} box score against ${escapeHtml(game.opponent)}">
             <span class="team-form-pill ${game.result.toLowerCase()}">${escapeHtml(game.result)}</span>
             <span class="team-form-game-meta">
               <span>${escapeHtml(game.opponent)}</span>
               <small>${escapeHtml(game.score || "Score not recorded")}</small>
             </span>
-          </span>
+          </button>
         `
       )
       .join("");
@@ -4453,6 +4455,17 @@ els.scheduleBody.addEventListener("click", (event) => {
 });
 
 document.addEventListener("click", (event) => {
+  const formGame = event.target.closest("[data-form-game-index]");
+  if (formGame) {
+    const index = Number(formGame.dataset.formGameIndex);
+    const scheduleRow = els.scheduleBody?.querySelector(`.schedule-row[data-index="${index}"]`);
+    if (scheduleRow) {
+      scheduleRow.scrollIntoView({ behavior: "smooth", block: "center" });
+      scheduleRow.click();
+    }
+    return;
+  }
+
   if (event.target.matches("[data-close=\"true\"]")) {
     els.modal.hidden = true;
   }

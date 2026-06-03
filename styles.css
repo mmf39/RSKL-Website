@@ -4215,11 +4215,34 @@ input[type="text"] {
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  min-width: 132px;
-  padding: 8px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
+  min-width: 124px;
+  padding: 9px 12px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  appearance: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease, border-color 0.15s ease;
+}
+
+.team-form-game:hover,
+.team-form-game:focus-visible {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.team-form-game.w {
+  border-color: rgba(56, 224, 141, 0.48);
+  background: linear-gradient(145deg, rgba(16, 96, 61, 0.96), rgba(8, 57, 43, 0.96));
+}
+
+.team-form-game.l {
+  border-color: rgba(255, 92, 92, 0.5);
+  background: linear-gradient(145deg, rgba(117, 39, 51, 0.96), rgba(72, 27, 45, 0.96));
+}
+
+.team-form-game.t {
+  border-color: rgba(255, 179, 71, 0.52);
+  background: linear-gradient(145deg, rgba(123, 81, 27, 0.96), rgba(76, 51, 24, 0.96));
 }
 
 .team-form-game-meta {
@@ -4241,32 +4264,35 @@ input[type="text"] {
 }
 
 .team-form-game-meta small {
-  color: var(--muted);
+  color: rgba(255, 247, 237, 0.72);
   font-size: 0.68rem;
   font-weight: 700;
 }
 
 .team-page #stat-last-five {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
-  gap: 10px;
-  white-space: normal;
+  gap: 8px;
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  white-space: nowrap;
 }
 
 .team-form-pill.w {
-  background: rgba(56, 224, 141, 0.16);
-  color: #38e08d;
+  background: rgba(255, 255, 255, 0.16);
+  color: #d8ffe8;
 }
 
 .team-form-pill.l {
-  background: rgba(255, 92, 92, 0.16);
-  color: #ff6b6b;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffe0e0;
 }
 
 .team-form-pill.t {
-  background: rgba(255, 179, 71, 0.16);
-  color: var(--accent-2);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff0cf;
 }
 
 @media (max-width: 1200px) {
