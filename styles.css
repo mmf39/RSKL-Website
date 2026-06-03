@@ -4039,6 +4039,28 @@ input[type="text"] {
   align-items: start;
 }
 
+.records-page > .container > .records-grid {
+  grid-template-columns: 1fr;
+  gap: 28px;
+}
+
+.records-grid--cards {
+  margin-top: 14px;
+}
+
+.record-section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.record-section-head h2 {
+  margin: 0;
+  font-family: var(--font-head);
+  letter-spacing: 0.04em;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+}
+
 .record-card {
   min-height: 100%;
 }

@@ -42,13 +42,11 @@ const SUPPLEMENTAL_REGULAR_WIN_STREAKS = [
 
 const els = {
   grid: document.getElementById("records-grid"),
-  tabs: document.getElementById("records-phase-tabs"),
   updated: document.getElementById("last-updated"),
 };
 
 let recordsState = { regular: [], postseason: [] };
 let playerRecordsState = { regular: [], postseason: [] };
-let activePhase = "regular";
 
 function parseCSV(text) {
   const rows = [];
@@ -508,17 +506,17 @@ function collectPlayerRankStreaks(rows, type) {
 function playerRecordCards(rows) {
   return [
     {
-      title: "T100 Streaks",
+      title: "Top 100 Streaks",
       note: "Most games in a row ranking top 100.",
       rows: collectPlayerRankStreaks(rows, "top100").slice(0, 10),
     },
     {
-      title: "T50 Streaks",
+      title: "Top 50 Streaks",
       note: "Most games in a row ranking top 50.",
       rows: collectPlayerRankStreaks(rows, "top50").slice(0, 10),
     },
     {
-      title: "Outside T1000 Streaks",
+      title: "Outside Top 1000 Streaks",
       note: "Most games in a row ranking outside the top 1000.",
       rows: collectPlayerRankStreaks(rows, "outside1000").slice(0, 10),
     },
@@ -583,11 +581,25 @@ function renderRecordCard(card) {
   `;
 }
 
+function renderRecordSection(title, cards) {
+  return `
+    <section class="record-section">
+      <div class="record-section-head">
+        <span class="dashboard-kicker">Records</span>
+        <h2>${escapeHtml(title)}</h2>
+      </div>
+      <div class="records-grid records-grid--cards">${cards.map(renderRecordCard).join("")}</div>
+    </section>
+  `;
+}
+
 function renderRecords() {
-  const games = recordsState[activePhase] || [];
-  const playerRows = playerRecordsState[activePhase] || [];
-  const cards = [...recordCards(games, activePhase), ...playerRecordCards(playerRows)];
-  els.grid.innerHTML = cards.map(renderRecordCard).join("");
+  els.grid.innerHTML = [
+    renderRecordSection("Team Regular Season", recordCards(recordsState.regular || [], "regular")),
+    renderRecordSection("Team Postseason", recordCards(recordsState.postseason || [], "postseason")),
+    renderRecordSection("Player Regular Season", playerRecordCards(playerRecordsState.regular || [])),
+    renderRecordSection("Player Postseason", playerRecordCards(playerRecordsState.postseason || [])),
+  ].join("");
 }
 
 async function fetchCsv(url) {
@@ -646,18 +658,6 @@ async function loadRecords() {
     els.updated.textContent = `Last updated: ${new Date().toLocaleString()}`;
   }
   renderRecords();
-}
-
-if (els.tabs) {
-  els.tabs.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-phase]");
-    if (!button) return;
-    activePhase = button.dataset.phase || "regular";
-    els.tabs.querySelectorAll("[data-phase]").forEach((tab) => {
-      tab.classList.toggle("active", tab === button);
-    });
-    renderRecords();
-  });
 }
 
 loadRecords().catch((error) => {
