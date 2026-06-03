@@ -286,6 +286,8 @@ const els = {
   statTRel: document.getElementById("stat-trel"),
   statCapSpace: document.getElementById("stat-cap-space"),
   statTransactions: document.getElementById("stat-transactions"),
+  statCurrentStreak: document.getElementById("stat-current-streak"),
+  statLastFive: document.getElementById("stat-last-five"),
   statTeam: document.getElementById("stat-team"),
   teamViewTabs: document.getElementById("team-view-tabs"),
   historicalLink: document.getElementById("historical-link"),
@@ -3741,6 +3743,73 @@ function getScheduleScoreState(scheduleRow) {
   return { status: "upcoming", team1Score: "", team2Score: "" };
 }
 
+function parseScoreValue(value) {
+  const parsed = Number(String(value || "").replace(/,/g, "").trim());
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getTeamGameResult(teamName, scheduleRow) {
+  if (scheduleIndexes.winner !== undefined && scheduleIndexes.winner !== -1) {
+    const winner = displayTeamName(String(scheduleRow[scheduleIndexes.winner] || "").trim());
+    if (winner) {
+      return {
+        result: teamMatches(winner, teamName) ? "W" : "L",
+        score: "",
+        opponent: displayTeamName(
+          teamMatches(scheduleRow[scheduleIndexes.team1], teamName)
+            ? scheduleRow[scheduleIndexes.team2]
+            : scheduleRow[scheduleIndexes.team1]
+        ),
+        date: String(scheduleRow[scheduleIndexes.date] || "").trim(),
+      };
+    }
+  }
+
+  const state = getScheduleScoreState(scheduleRow);
+  if (state.status !== "final") return null;
+  const team1 = String(scheduleRow[scheduleIndexes.team1] || "").trim();
+  const team2 = String(scheduleRow[scheduleIndexes.team2] || "").trim();
+  const isTeam1 = teamMatches(team1, teamName);
+  const mine = parseScoreValue(isTeam1 ? state.team1Score : state.team2Score);
+  const opp = parseScoreValue(isTeam1 ? state.team2Score : state.team1Score);
+  if (mine === null || opp === null) return null;
+  return {
+    result: mine > opp ? "W" : mine < opp ? "L" : "T",
+    score: `${mine}-${opp}`,
+    opponent: displayTeamName(isTeam1 ? team2 : team1),
+    date: String(scheduleRow[scheduleIndexes.date] || "").trim(),
+  };
+}
+
+function renderTeamForm(teamName, rows) {
+  const results = rows
+    .map((row) => getTeamGameResult(teamName, row))
+    .filter(Boolean);
+
+  if (!results.length) {
+    if (els.statCurrentStreak) els.statCurrentStreak.textContent = "—";
+    if (els.statLastFive) els.statLastFive.textContent = "—";
+    return;
+  }
+
+  const last = results[results.length - 1];
+  let streakCount = 0;
+  for (let i = results.length - 1; i >= 0; i -= 1) {
+    if (results[i].result !== last.result) break;
+    streakCount += 1;
+  }
+
+  if (els.statCurrentStreak) {
+    els.statCurrentStreak.textContent = `${last.result}${streakCount}`;
+  }
+  if (els.statLastFive) {
+    els.statLastFive.innerHTML = results
+      .slice(-5)
+      .map((game) => `<span class="team-form-pill ${game.result.toLowerCase()}">${escapeHtml(game.result)}</span>`)
+      .join("");
+  }
+}
+
 function buildLiveBoxMarkup(scoreState, scheduleRow) {
   const payload = scoreState && scoreState.livePayload ? scoreState.livePayload : null;
   if (!payload) {
@@ -3971,6 +4040,7 @@ function getScheduleIndexes(headers, season) {
   let date = findIdx(["date"]);
   let team1 = findIdx(["team 1", "team1", "away"]);
   let team2 = findIdx(["team 2", "team2", "home"]);
+  const winner = findIdx(["winner"]);
 
   if (date === -1 || team1 === -1 || team2 === -1) {
     if (season === "c2s2") {
@@ -3988,7 +4058,7 @@ function getScheduleIndexes(headers, season) {
     }
   }
 
-  return { date, team1, team2 };
+  return { date, team1, team2, winner };
 }
 
 function getC2S2ScheduleRows(rows, range = C2S2_SCHEDULE_RANGE) {
@@ -4039,6 +4109,7 @@ function updateTeamSchedule(teamName, scheduleRows, boxScoreData, season) {
   teamScheduleRows = filtered;
   boxScoreRows = boxScoreData.slice(0, 1000);
   finalScoreMap = buildFinalScoreMap(boxScoreRows);
+  renderTeamForm(teamName, filtered);
   renderSchedule(trimmedHeaders, trimmedRows);
 }
 

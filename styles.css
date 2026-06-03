@@ -4032,6 +4032,13 @@ input[type="text"] {
   line-height: 1.6;
 }
 
+.records-section-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
 .records-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -4059,6 +4066,10 @@ input[type="text"] {
   font-family: var(--font-head);
   letter-spacing: 0.04em;
   font-size: clamp(2.5rem, 5vw, 4rem);
+}
+
+.record-section[hidden] {
+  display: none;
 }
 
 .record-card {
@@ -4118,6 +4129,24 @@ input[type="text"] {
   line-height: 1.1;
 }
 
+.record-identity-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.record-identity-logo,
+.record-team .rskl-player-link__avatar {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .record-meta {
   margin-top: 5px;
   color: var(--muted);
@@ -4153,6 +4182,43 @@ input[type="text"] {
 
 .record-details li + li {
   margin-top: 4px;
+}
+
+.stats-grid-form {
+  margin-top: 12px;
+  grid-template-columns: minmax(150px, 0.7fr) minmax(220px, 1.3fr);
+}
+
+.stat-box-wide {
+  min-width: 0;
+}
+
+.team-form-pill {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-right: 6px;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 900;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+}
+
+.team-form-pill.w {
+  background: rgba(56, 224, 141, 0.16);
+  color: #38e08d;
+}
+
+.team-form-pill.l {
+  background: rgba(255, 92, 92, 0.16);
+  color: #ff6b6b;
+}
+
+.team-form-pill.t {
+  background: rgba(255, 179, 71, 0.16);
+  color: var(--accent-2);
 }
 
 .leader-grid {

@@ -42,11 +42,13 @@ const SUPPLEMENTAL_REGULAR_WIN_STREAKS = [
 
 const els = {
   grid: document.getElementById("records-grid"),
+  sectionTabs: document.getElementById("records-section-tabs"),
   updated: document.getElementById("last-updated"),
 };
 
 let recordsState = { regular: [], postseason: [] };
 let playerRecordsState = { regular: [], postseason: [] };
+let activeSection = "team-regular-season";
 
 function parseCSV(text) {
   const rows = [];
@@ -139,6 +141,39 @@ function displayTeamName(value) {
     yetis: "Yetis",
   };
   return aliases[normalized] || name;
+}
+
+function getTeamLogoSrc(team) {
+  const clean = displayTeamName(team);
+  if (clean === "The Future" || clean === "Dream Team") return "/assets/dream-team.jpg";
+  if (clean === "The Lions") return "/assets/the-lions.png";
+  if (clean === "The Snipers") return "/assets/the-snipers.png";
+  if (clean === "The Phantoms") return "/assets/the-phantoms.png";
+  if (clean === "Scorpions") return "/assets/mayeday.jpg";
+  if (clean === "ALEK Manoahs") return "/assets/alek-manoahs.jpg";
+  if (clean === "Bees") return "/assets/bees.jpg";
+  if (clean === "Broncos") return "/assets/broncos.jpg";
+  if (clean === "Burritos") return "/assets/burritos.jpg";
+  if (clean === "Cobras") return "/assets/cobras.png";
+  if (clean === "Karma Avengers") return "/assets/karma-avengers.png";
+  if (clean === "Mafia") return "/assets/mafia.png";
+  if (clean === "Mets" || clean === "The Mets") return "/assets/mets.png";
+  if (clean === "Phoenix" || clean === "The Phoenix") return "/assets/phoenix.png";
+  if (clean === "Thunderhawks") return "/assets/thunderhawks.png";
+  if (clean === "The Currents" || clean === "Currents") return "/assets/the-currents.png";
+  if (clean === "Whatsgrass") return "/assets/whatsgrass.png";
+  if (clean === "Wolves") return "/assets/wolves.png";
+  if (clean === "Zombies") return "/assets/zombies.png";
+  if (clean === "Chicken Nuggets") return "/assets/chicken-nuggets.jpg";
+  if (clean === "Masdog N Em" || clean === "Richer N Em" || clean === "Doggy N Em") return "/assets/gus-n-em.png";
+  if (clean === "Yetis") return "/assets/yetis.png";
+  if (clean === "Gus N Em") return "/assets/gus-n-em.png";
+  if (clean === "Bad Bois")
+    return "https://media.realapp.com/assets/user/default/large/4JZRj4DJ_29132497.webp";
+  if (clean === "Illegals") return "/assets/illegals.png";
+  if (clean === "Storm" || clean === "Bullets") return "/assets/storm.png";
+  if (clean === "Turkeys") return "/assets/turkeys.png";
+  return "";
 }
 
 function normalizeLoose(value) {
@@ -550,11 +585,18 @@ function renderRecordCard(card) {
             row.supplemental || !row.games.length
               ? "Verified record"
               : `${escapeHtml(row.start.date)} to ${escapeHtml(row.end.date)}`;
+          const logoSrc = row.playerRecord ? "" : getTeamLogoSrc(row.team);
+          const logoHtml = logoSrc
+            ? `<img class="record-identity-logo" src="${logoSrc}" alt="${escapeHtml(row.team)} logo" />`
+            : "";
+          const identityHtml = row.playerRecord
+            ? `<a class="record-identity-link roster-link" href="/player-detail.html?player=${encodeURIComponent(row.team)}"><span>${escapeHtml(row.team)}</span></a>`
+            : `<a class="record-identity-link roster-link" href="/team.html?team=${encodeURIComponent(row.team)}">${logoHtml}<span>${escapeHtml(row.team)}</span></a>`;
           return `
             <article class="record-row ${index === 0 ? "record-row--top" : ""}">
               <div class="record-rank">${index + 1}</div>
               <div class="record-main">
-                <div class="record-team">${escapeHtml(row.team)}</div>
+                <div class="record-team">${identityHtml}</div>
                 <div class="record-meta">${escapeHtml(row.season)} • ${range}</div>
                 <details class="record-details">
                   <summary>Games in streak</summary>
@@ -581,9 +623,9 @@ function renderRecordCard(card) {
   `;
 }
 
-function renderRecordSection(title, cards) {
+function renderRecordSection(id, title, cards) {
   return `
-    <section class="record-section">
+    <section class="record-section" data-record-section="${escapeHtml(id)}" ${id === activeSection ? "" : "hidden"}>
       <div class="record-section-head">
         <span class="dashboard-kicker">Records</span>
         <h2>${escapeHtml(title)}</h2>
@@ -595,11 +637,14 @@ function renderRecordSection(title, cards) {
 
 function renderRecords() {
   els.grid.innerHTML = [
-    renderRecordSection("Team Regular Season", recordCards(recordsState.regular || [], "regular")),
-    renderRecordSection("Team Postseason", recordCards(recordsState.postseason || [], "postseason")),
-    renderRecordSection("Player Regular Season", playerRecordCards(playerRecordsState.regular || [])),
-    renderRecordSection("Player Postseason", playerRecordCards(playerRecordsState.postseason || [])),
+    renderRecordSection("team-regular-season", "Team Regular Season", recordCards(recordsState.regular || [], "regular")),
+    renderRecordSection("team-postseason", "Team Postseason", recordCards(recordsState.postseason || [], "postseason")),
+    renderRecordSection("player-regular-season", "Player Regular Season", playerRecordCards(playerRecordsState.regular || [])),
+    renderRecordSection("player-postseason", "Player Postseason", playerRecordCards(playerRecordsState.postseason || [])),
   ].join("");
+  if (window.rsklEnhancePlayerLinks) {
+    window.rsklEnhancePlayerLinks(els.grid);
+  }
 }
 
 async function fetchCsv(url) {
@@ -663,3 +708,15 @@ async function loadRecords() {
 loadRecords().catch((error) => {
   els.grid.innerHTML = `<div class="dashboard-state-card">Unable to load records: ${escapeHtml(error.message)}</div>`;
 });
+
+if (els.sectionTabs) {
+  els.sectionTabs.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-section]");
+    if (!button) return;
+    activeSection = button.dataset.section || "team-regular-season";
+    els.sectionTabs.querySelectorAll("[data-section]").forEach((tab) => {
+      tab.classList.toggle("active", tab === button);
+    });
+    renderRecords();
+  });
+}
