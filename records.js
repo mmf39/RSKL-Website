@@ -1,6 +1,7 @@
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const CURRENT_BOXSCORE_URL = "/api/sheet?name=boxscore";
+const CURRENT_PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 
 const C1_POST_SCHEDULES = [
   ["C1S2", "/assets/data/c1s2-post-schedule.csv"],
@@ -10,13 +11,23 @@ const C1_POST_SCHEDULES = [
   ["C1S6", "/assets/data/c1s6-post-schedule.csv"],
 ];
 
+const C1_PLAYER_STATS = [
+  ["C1S2", "/assets/data/c1s2-player-stats.csv"],
+  ["C1S3", "/assets/data/c1s3-player-stats.csv"],
+  ["C1S4", "/assets/data/c1s4-player-stats.csv"],
+  ["C1S5", "/assets/data/c1s5-player-stats.csv"],
+  ["C1S6", "/assets/data/c1s6-player-stats.csv"],
+];
+
 const ARCHIVE_RANGES = {
   scheduleRegular: "G31:J80",
   boxscorePost: "L31:R149",
+  playerStatsPost: "A45:F117",
 };
 
 const C2S2_RANGES = {
   boxscoreRegular: "K60:R1059",
+  playerStatsRegular: "A151:G1150",
 };
 
 const SUPPLEMENTAL_REGULAR_WIN_STREAKS = [
@@ -36,6 +47,7 @@ const els = {
 };
 
 let recordsState = { regular: [], postseason: [] };
+let playerRecordsState = { regular: [], postseason: [] };
 let activePhase = "regular";
 
 function parseCSV(text) {
@@ -259,6 +271,85 @@ function buildPostseasonScheduleGames(rows, season) {
     }));
 }
 
+function detectPlayerColumns(headers) {
+  const normalized = headers.map((header) => normalizeLoose(header));
+  const pick = (checks, fallback) => {
+    const index = normalized.findIndex((header) => checks.some((check) => header.includes(check)));
+    return index >= 0 ? index : fallback;
+  };
+  return {
+    date: pick(["date", "game"], 0),
+    team: pick(["team"], 1),
+    player: pick(["player"], 2),
+    score: pick(["score", "points"], 3),
+    rank: pick(["rank"], 4),
+    opponent: pick(["opponent"], 5),
+  };
+}
+
+function parseNumber(value) {
+  const normalized = String(value ?? "").replace(/,/g, "").trim();
+  if (!normalized) return null;
+  const number = Number(normalized);
+  return Number.isFinite(number) ? number : null;
+}
+
+function getDateOrder(value) {
+  const raw = String(value || "").trim();
+  const recorded = raw.match(/recorded game\s*(\d+)/i);
+  if (recorded) return Number(recorded[1]);
+  const date = raw.match(/^(\d{1,2})\/(\d{1,2})/);
+  if (date) return Number(date[1]) * 100 + Number(date[2]);
+  return 0;
+}
+
+function normalizePlayerName(value) {
+  return String(value || "").trim().replace(/\s+/g, " ");
+}
+
+function buildPlayerStatRows(rows, season, phase) {
+  if (!rows.length) return [];
+  const columns = detectPlayerColumns(rows[0] || []);
+  const entries = rows
+    .slice(1)
+    .map((row, index) => {
+      const player = normalizePlayerName(row[columns.player]);
+      const date = String(row[columns.date] || "").trim();
+      const score = parseNumber(row[columns.score]);
+      const rank = parseNumber(row[columns.rank]);
+      if (!player || !date || score === null) return null;
+      return {
+        season,
+        phase,
+        date,
+        dateOrder: getDateOrder(date),
+        team: displayTeamName(row[columns.team]),
+        player,
+        score,
+        rank,
+        opponent: displayTeamName(row[columns.opponent]),
+        sourceIndex: index,
+      };
+    })
+    .filter(Boolean);
+
+  const byDate = new Map();
+  entries.forEach((entry) => {
+    const key = `${season}|${entry.date}`;
+    if (!byDate.has(key)) byDate.set(key, []);
+    byDate.get(key).push(entry);
+  });
+
+  byDate.forEach((dateEntries) => {
+    const ranked = [...dateEntries].sort((a, b) => b.score - a.score || a.player.localeCompare(b.player));
+    ranked.forEach((entry, index) => {
+      if (entry.rank === null) entry.rank = index + 1;
+    });
+  });
+
+  return entries;
+}
+
 function getTeamResult(game, team) {
   const teamWon = teamKey(game.winner) === teamKey(team);
   const tied = teamKey(game.winner) === "tie";
@@ -369,6 +460,71 @@ function recordCards(games, phase) {
   ];
 }
 
+function collectPlayerRankStreaks(rows, type) {
+  const byPlayerSeason = new Map();
+  rows.forEach((row) => {
+    const key = `${row.season}|${normalizeLoose(row.player)}`;
+    if (!byPlayerSeason.has(key)) {
+      byPlayerSeason.set(key, { player: row.player, season: row.season, rows: [] });
+    }
+    byPlayerSeason.get(key).rows.push(row);
+  });
+
+  const streaks = [];
+  byPlayerSeason.forEach(({ player, season, rows: playerRows }) => {
+    let current = [];
+    const finishCurrent = () => {
+      if (!current.length) return;
+      streaks.push({
+        type,
+        team: player,
+        season,
+        length: current.length,
+        start: current[0],
+        end: current[current.length - 1],
+        games: current,
+        playerRecord: true,
+      });
+      current = [];
+    };
+
+    playerRows
+      .sort((a, b) => a.dateOrder - b.dateOrder || a.sourceIndex - b.sourceIndex)
+      .forEach((row) => {
+        const matches =
+          type === "top50" ? row.rank <= 50 : type === "top100" ? row.rank <= 100 : row.rank > 1000;
+        if (matches) {
+          current.push(row);
+        } else {
+          finishCurrent();
+        }
+      });
+    finishCurrent();
+  });
+
+  return streaks.sort((a, b) => b.length - a.length || a.team.localeCompare(b.team));
+}
+
+function playerRecordCards(rows) {
+  return [
+    {
+      title: "T100 Streaks",
+      note: "Most games in a row ranking top 100.",
+      rows: collectPlayerRankStreaks(rows, "top100").slice(0, 10),
+    },
+    {
+      title: "T50 Streaks",
+      note: "Most games in a row ranking top 50.",
+      rows: collectPlayerRankStreaks(rows, "top50").slice(0, 10),
+    },
+    {
+      title: "Outside T1000 Streaks",
+      note: "Most games in a row ranking outside the top 1000.",
+      rows: collectPlayerRankStreaks(rows, "outside1000").slice(0, 10),
+    },
+  ];
+}
+
 function gameSummary(game, team) {
   const opponent = teamKey(game.team1) === teamKey(team) ? game.team2 : game.team1;
   const result = getTeamResult(game, team).toUpperCase();
@@ -376,12 +532,21 @@ function gameSummary(game, team) {
   return `${game.date}: ${result} vs ${opponent}${score}`;
 }
 
+function playerGameSummary(game) {
+  const team = game.team ? `, ${game.team}` : "";
+  return `${game.date}: rank ${game.rank}, score ${game.score}${team}`;
+}
+
 function renderRecordCard(card) {
   const rows = card.rows.length
     ? card.rows
         .map((row, index) => {
           const gameItems = row.games.length
-            ? row.games.map((game) => `<li>${escapeHtml(gameSummary(game, row.team))}</li>`).join("")
+            ? row.games
+                .map((game) =>
+                  `<li>${escapeHtml(row.playerRecord ? playerGameSummary(game) : gameSummary(game, row.team))}</li>`
+                )
+                .join("")
             : "<li>Games not recorded</li>";
           const range =
             row.supplemental || !row.games.length
@@ -420,7 +585,8 @@ function renderRecordCard(card) {
 
 function renderRecords() {
   const games = recordsState[activePhase] || [];
-  const cards = recordCards(games, activePhase);
+  const playerRows = playerRecordsState[activePhase] || [];
+  const cards = [...recordCards(games, activePhase), ...playerRecordCards(playerRows)];
   els.grid.innerHTML = cards.map(renderRecordCard).join("");
 }
 
@@ -439,12 +605,22 @@ async function fetchCsvSafe(url) {
 }
 
 async function loadRecords() {
-  const [archiveRows, c2s2Rows, currentRows, ...c1PostRows] = await Promise.all([
+  const [
+    archiveRows,
+    c2s2Rows,
+    currentRows,
+    currentPlayerRows,
+    ...legacyRows
+  ] = await Promise.all([
     fetchCsvSafe(ARCHIVE_URL),
     fetchCsvSafe(C2S2_REGULAR_URL),
     fetchCsvSafe(CURRENT_BOXSCORE_URL),
+    fetchCsvSafe(CURRENT_PLAYER_STATS_URL),
     ...C1_POST_SCHEDULES.map(([, url]) => fetchCsvSafe(url)),
+    ...C1_PLAYER_STATS.map(([, url]) => fetchCsvSafe(url)),
   ]);
+  const c1PostRows = legacyRows.slice(0, C1_POST_SCHEDULES.length);
+  const c1PlayerRows = legacyRows.slice(C1_POST_SCHEDULES.length);
 
   const postseason = [
     ...c1PostRows.flatMap((rows, index) => buildPostseasonScheduleGames(rows, C1_POST_SCHEDULES[index][0])),
@@ -458,6 +634,14 @@ async function loadRecords() {
   ];
 
   recordsState = { regular, postseason };
+  playerRecordsState = {
+    regular: [
+      ...c1PlayerRows.flatMap((rows, index) => buildPlayerStatRows(rows, C1_PLAYER_STATS[index][0], "regular")),
+      ...buildPlayerStatRows(sliceRange(c2s2Rows, C2S2_RANGES.playerStatsRegular), "C2S2", "regular"),
+      ...buildPlayerStatRows(currentPlayerRows, "C2S3", "regular"),
+    ],
+    postseason: buildPlayerStatRows(sliceRange(archiveRows, ARCHIVE_RANGES.playerStatsPost), "C2S1", "postseason"),
+  };
   if (els.updated) {
     els.updated.textContent = `Last updated: ${new Date().toLocaleString()}`;
   }
