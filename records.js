@@ -19,6 +19,16 @@ const C2S2_RANGES = {
   boxscoreRegular: "K60:R1059",
 };
 
+const SUPPLEMENTAL_REGULAR_WIN_STREAKS = [
+  { team: "Masdog N Em", season: "C1S3", length: 14 },
+  { team: "Turkeys", season: "C2S2", length: 15 },
+  { team: "Cobras", season: "C1S4", length: 11 },
+  { team: "The Snipers", season: "C2S3", length: 9 },
+  { team: "The Phantoms", season: "C2S2", length: 8 },
+  { team: "Whatsgrass", season: "C1S4", length: 7 },
+  { team: "Gus N Em", season: "C1S5", length: 7 },
+];
+
 const els = {
   grid: document.getElementById("records-grid"),
   tabs: document.getElementById("records-phase-tabs"),
@@ -306,17 +316,50 @@ function collectStreaks(games, type) {
   return streaks.sort((a, b) => b.length - a.length || a.team.localeCompare(b.team));
 }
 
-function recordCards(games) {
+function mergeSupplementalWinStreaks(streaks) {
+  const merged = [...streaks];
+
+  SUPPLEMENTAL_REGULAR_WIN_STREAKS.forEach((record) => {
+    const existing = merged.find(
+      (streak) =>
+        teamKey(streak.team) === teamKey(record.team) &&
+        String(streak.season).toLowerCase() === String(record.season).toLowerCase()
+    );
+    if (existing && existing.length >= record.length) return;
+
+    if (existing) {
+      existing.length = record.length;
+      existing.start = { date: "Verified record" };
+      existing.end = { date: "Verified record" };
+      existing.games = [];
+      existing.supplemental = true;
+      return;
+    }
+
+    merged.push({
+      type: "wins",
+      team: record.team,
+      season: record.season,
+      length: record.length,
+      start: { date: "Verified record" },
+      end: { date: "Verified record" },
+      games: [],
+      supplemental: true,
+    });
+  });
+
+  return merged.sort((a, b) => b.length - a.length || a.team.localeCompare(b.team));
+}
+
+function recordCards(games, phase) {
+  const winRows = collectStreaks(games, "wins");
+  const rows = phase === "regular" ? mergeSupplementalWinStreaks(winRows) : winRows;
+
   return [
     {
       title: "Longest Win Streak",
       note: "Consecutive wins inside one season phase.",
-      rows: collectStreaks(games, "wins").slice(0, 5),
-    },
-    {
-      title: "Longest Unbeaten Streak",
-      note: "Wins and ties count. Losses stop the streak.",
-      rows: collectStreaks(games, "unbeaten").slice(0, 5),
+      rows: rows.slice(0, 10),
     },
     {
       title: "Longest Losing Streak",
@@ -337,15 +380,19 @@ function renderRecordCard(card) {
   const rows = card.rows.length
     ? card.rows
         .map((row, index) => {
-          const gameItems = row.games
-            .map((game) => `<li>${escapeHtml(gameSummary(game, row.team))}</li>`)
-            .join("");
+          const gameItems = row.games.length
+            ? row.games.map((game) => `<li>${escapeHtml(gameSummary(game, row.team))}</li>`).join("")
+            : "<li>Games not recorded</li>";
+          const range =
+            row.supplemental || !row.games.length
+              ? "Verified record"
+              : `${escapeHtml(row.start.date)} to ${escapeHtml(row.end.date)}`;
           return `
             <article class="record-row ${index === 0 ? "record-row--top" : ""}">
               <div class="record-rank">${index + 1}</div>
               <div class="record-main">
                 <div class="record-team">${escapeHtml(row.team)}</div>
-                <div class="record-meta">${escapeHtml(row.season)} • ${escapeHtml(row.start.date)} to ${escapeHtml(row.end.date)}</div>
+                <div class="record-meta">${escapeHtml(row.season)} • ${range}</div>
                 <details class="record-details">
                   <summary>Games in streak</summary>
                   <ol>${gameItems}</ol>
@@ -373,7 +420,7 @@ function renderRecordCard(card) {
 
 function renderRecords() {
   const games = recordsState[activePhase] || [];
-  const cards = recordCards(games);
+  const cards = recordCards(games, activePhase);
   els.grid.innerHTML = cards.map(renderRecordCard).join("");
 }
 
