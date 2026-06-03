@@ -2742,9 +2742,10 @@ input[type="text"] {
     linear-gradient(145deg, rgba(20, 26, 45, 0.92), rgba(4, 13, 30, 0.94));
   display: grid;
   gap: 16px;
-  text-align: left;
+  text-align: center;
   min-height: 116px;
   align-content: space-between;
+  justify-items: center;
   transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   cursor: pointer;
 }
@@ -2756,6 +2757,7 @@ input[type="text"] {
 }
 
 .team-page .stat-box span {
+  display: block;
   color: rgba(255, 220, 187, 0.68);
   font-size: 0.7rem;
   text-transform: uppercase;
@@ -2771,6 +2773,7 @@ input[type="text"] {
   line-height: 1;
   letter-spacing: 0;
   white-space: nowrap;
+  max-width: 100%;
 }
 
 .team-page #stat-transactions a,
@@ -4199,14 +4202,56 @@ input[type="text"] {
 .team-form-pill {
   display: inline-grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  margin-right: 6px;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
   font-size: 0.84rem;
   font-weight: 900;
   background: rgba(255, 255, 255, 0.08);
   color: var(--muted);
+}
+
+.team-form-game {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 132px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.team-form-game-meta {
+  display: grid;
+  gap: 1px;
+  text-align: left;
+  min-width: 0;
+}
+
+.team-form-game-meta span {
+  color: #fff7ed;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-form-game-meta small {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.team-page #stat-last-five {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  white-space: normal;
 }
 
 .team-form-pill.w {

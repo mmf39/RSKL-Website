@@ -3822,7 +3822,17 @@ function renderTeamForm(teamName, rows) {
   if (els.statLastFive) {
     els.statLastFive.innerHTML = results
       .slice(-5)
-      .map((game) => `<span class="team-form-pill ${game.result.toLowerCase()}">${escapeHtml(game.result)}</span>`)
+      .map(
+        (game) => `
+          <span class="team-form-game ${game.result.toLowerCase()}">
+            <span class="team-form-pill ${game.result.toLowerCase()}">${escapeHtml(game.result)}</span>
+            <span class="team-form-game-meta">
+              <span>${escapeHtml(game.opponent)}</span>
+              <small>${escapeHtml(game.score || "Score not recorded")}</small>
+            </span>
+          </span>
+        `
+      )
       .join("");
   }
 }
