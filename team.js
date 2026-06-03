@@ -284,6 +284,7 @@ const els = {
   statSos: document.getElementById("stat-sos"),
   statPam: document.getElementById("stat-pam"),
   statTRel: document.getElementById("stat-trel"),
+  statStarterMedianRank: document.getElementById("stat-starter-median-rank"),
   statCapSpace: document.getElementById("stat-cap-space"),
   statTransactions: document.getElementById("stat-transactions"),
   statCurrentStreak: document.getElementById("stat-current-streak"),
@@ -1927,11 +1928,17 @@ function parseAdjustedScore(row, columns) {
 function updateAdvancedTeamStats(values) {
   if (els.statPam) {
     els.statPam.textContent =
-      values && Number.isFinite(values.pam) ? values.pam.toFixed(2) : "—";
+      values && Number.isFinite(values.pam) ? Math.round(values.pam).toString() : "—";
   }
   if (els.statTRel) {
     els.statTRel.textContent =
       values && Number.isFinite(values.tRel) ? values.tRel.toFixed(3) : "—";
+  }
+  if (els.statStarterMedianRank) {
+    els.statStarterMedianRank.textContent =
+      values && Number.isFinite(values.starterMedianRank)
+        ? Math.round(values.starterMedianRank).toString()
+        : "—";
   }
 }
 
@@ -2007,12 +2014,16 @@ function computeAdvancedTeamStats(teamName, allRows) {
       return;
     }
     if (!playerAgg.has(player)) {
-      playerAgg.set(player, { relSum: 0, relGames: 0, gp: 0 });
+      playerAgg.set(player, { relSum: 0, relGames: 0, gp: 0, ranks: [] });
     }
     const agg = playerAgg.get(player);
     agg.relSum += score / med;
     agg.relGames += 1;
     agg.gp += 1;
+    const rank = parseNumber(row[columns.rank]);
+    if (rank !== null) {
+      agg.ranks.push(rank);
+    }
   });
 
   if (!teamTotalsByDate.size) {
@@ -2043,10 +2054,16 @@ function computeAdvancedTeamStats(teamName, allRows) {
     tRelWeight += agg.gp;
   });
 
+  const starterMedianRanks = Array.from(playerAgg.values())
+    .filter((agg) => agg.gp >= 5 && agg.ranks.length)
+    .map((agg) => median(agg.ranks))
+    .filter((value) => value !== null);
+
   return {
     pam,
     apPam: pctGames ? pctSum / pctGames : null,
     tRel: tRelWeight ? tRelWeighted / tRelWeight : null,
+    starterMedianRank: median(starterMedianRanks),
   };
 }
 
