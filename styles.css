@@ -2722,32 +2722,28 @@ input[type="text"] {
 
 .team-page .stats-grid {
   display: grid;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
-.team-page .stats-grid-top {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  width: 100%;
-}
-
-.team-page .stats-grid-bottom {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  margin-bottom: 0;
+.team-page .stats-grid-standings {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   width: 100%;
 }
 
 .team-page .stat-box {
-  border: 1px solid rgba(255, 165, 84, 0.24);
-  border-radius: 18px;
-  padding: 16px 12px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 165, 84, 0.2);
+  border-radius: 14px;
+  padding: 18px 16px;
   background:
-    linear-gradient(180deg, rgba(255, 163, 71, 0.1), rgba(15, 23, 42, 0.16) 26%, rgba(8, 15, 31, 0.84)),
-    rgba(8, 15, 31, 0.86);
+    linear-gradient(180deg, rgba(255, 179, 71, 0.08), rgba(255, 179, 71, 0) 30%),
+    linear-gradient(145deg, rgba(20, 26, 45, 0.92), rgba(4, 13, 30, 0.94));
   display: grid;
-  gap: 8px;
+  gap: 16px;
   text-align: left;
-  min-height: 110px;
+  min-height: 116px;
   align-content: space-between;
   transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   cursor: pointer;
@@ -2760,18 +2756,21 @@ input[type="text"] {
 }
 
 .team-page .stat-box span {
-  color: rgba(255, 220, 187, 0.72);
-  font-size: 0.74rem;
+  color: rgba(255, 220, 187, 0.68);
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.11em;
   font-weight: 800;
+  line-height: 1.25;
 }
 
 .team-page .stat-box strong {
   color: #fff7ed;
   font-weight: 800;
-  font-size: 2.15rem;
+  font-size: clamp(2rem, 4vw, 3.05rem);
   line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
 }
 
 .team-page #stat-transactions a,
@@ -4184,12 +4183,16 @@ input[type="text"] {
   margin-top: 4px;
 }
 
-.stats-grid-form {
+.team-page .stats-grid-form {
   margin-top: 12px;
-  grid-template-columns: minmax(150px, 0.7fr) minmax(220px, 1.3fr);
+  grid-template-columns: minmax(220px, 1fr) minmax(360px, 2fr);
 }
 
-.stat-box-wide {
+.team-page .stats-grid-form .stat-box {
+  min-height: 118px;
+}
+
+.team-page .stat-box-wide {
   min-width: 0;
 }
 
@@ -4219,6 +4222,12 @@ input[type="text"] {
 .team-form-pill.t {
   background: rgba(255, 179, 71, 0.16);
   color: var(--accent-2);
+}
+
+@media (max-width: 1200px) {
+  .team-page .stats-grid-standings {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .leader-grid {
@@ -6483,14 +6492,13 @@ input[type="text"] {
     margin-inline: 0;
   }
 
-  .team-page .stats-grid-top {
+  .team-page .stats-grid-standings {
     min-width: 0;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .team-page .stats-grid-bottom {
-    min-width: 0;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .team-page .stats-grid-form {
+    grid-template-columns: 1fr;
   }
 
   .team-page .stat-box {
@@ -6747,9 +6755,12 @@ input[type="text"] {
     font-size: 1.3rem;
   }
 
-  .team-page .stats-grid-top,
-  .team-page .stats-grid-bottom {
+  .team-page .stats-grid-standings {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .team-page .stats-grid-form {
+    grid-template-columns: 1fr;
   }
 
   .team-page .stat-box {
@@ -6873,8 +6884,8 @@ input[type="text"] {
   .home-feature-links,
   .dashboard-team-metrics,
   .player-summary,
-  .team-page .stats-grid-top,
-  .team-page .stats-grid-bottom {
+  .team-page .stats-grid-standings,
+  .team-page .stats-grid-form {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -7029,9 +7040,12 @@ input[type="text"] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .team-page .stats-grid-top,
-  .team-page .stats-grid-bottom {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+  .team-page .stats-grid-standings {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .team-page .stats-grid-form {
+    grid-template-columns: minmax(220px, 1fr) minmax(360px, 2fr);
   }
 }
 
