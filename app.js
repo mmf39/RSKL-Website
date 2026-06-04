@@ -1680,7 +1680,7 @@ function renderDashboardArticles(articles) {
 async function loadDashboardArticles() {
   if (!els.dashboardNews) return;
   try {
-    const response = await fetch(NEWS_ARTICLES_API, { cache: "no-store" });
+    const response = await fetch(`${NEWS_ARTICLES_API}?content=articles`, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`Fetch failed: ${response.status}`);
     }

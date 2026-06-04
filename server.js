@@ -511,6 +511,19 @@ async function fetchNewsArticles(options = {}) {
   return Array.isArray(rows) ? rows.map(sanitizeArticle) : [];
 }
 
+async function fetchLegacyNewsArticles(limit = 12) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return [];
+  }
+  const params = new URLSearchParams();
+  params.set("select", "id,title,summary,body,author,status,created_at,updated_at");
+  params.set("status", "eq.published");
+  params.set("order", "created_at.desc");
+  params.set("limit", String(Number(limit || 12)));
+  const rows = await supabaseRequest("GET", `/rest/v1/news_articles?${params.toString()}`);
+  return Array.isArray(rows) ? rows.map(sanitizeArticle) : [];
+}
+
 async function patchSupabasePlayerTag(table, oldTag, payload) {
   const rows = await supabaseRequest(
     "PATCH",
@@ -556,12 +569,21 @@ const server = http.createServer((req, res) => {
               : content === "game"
               ? "game_preview"
               : "article";
-          const articles = await fetchNewsArticles({
-            limit: content === "game" ? 200 : 12,
-            contentType,
-            season,
-            gameKey,
-          });
+          let articles = [];
+          try {
+            articles = await fetchNewsArticles({
+              limit: content === "game" ? 200 : 12,
+              contentType,
+              season,
+              gameKey,
+            });
+          } catch (error) {
+            if (content === "game") throw error;
+            articles = await fetchLegacyNewsArticles(12);
+          }
+          if (!articles.length && content !== "game") {
+            articles = await fetchLegacyNewsArticles(12).catch(() => []);
+          }
           if (content === "game") {
             const summaries = await fetchNewsArticles({
               limit: 200,

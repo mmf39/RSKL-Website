@@ -183,22 +183,49 @@ async function fetchArticles(options = {}) {
   return Array.isArray(rows) ? rows.map(sanitizeArticle) : [];
 }
 
+async function fetchLegacyArticles(limit = 12) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return [];
+  }
+  const params = new URLSearchParams();
+  params.set("select", "id,title,summary,body,author,status,created_at,updated_at");
+  params.set("status", "eq.published");
+  params.set("order", "created_at.desc");
+  params.set("limit", String(Number(limit || 12)));
+  const rows = await requestJson(
+    "GET",
+    `${SUPABASE_URL}/rest/v1/${ARTICLES_TABLE}?${params.toString()}`,
+    supabaseHeaders({ Accept: "application/json" })
+  );
+  return Array.isArray(rows) ? rows.map(sanitizeArticle) : [];
+}
+
 module.exports = async (req, res) => {
   if (req.method === "GET") {
     try {
       const parsedUrl = new URL(req.url || "/api/articles", "http://localhost");
       const query = { ...Object.fromEntries(parsedUrl.searchParams.entries()), ...(req.query || {}) };
-      const articles = await fetchArticles({
-        limit: query.content === "game" ? 200 : 12,
-        contentType:
-          query.type === "game_preview" || query.type === "game_summary"
-            ? query.type
-            : query.content === "game"
-            ? "game_preview"
-            : "article",
-        season: query.season || "",
-        gameKey: query.game_key || "",
-      });
+      const contentType =
+        query.type === "game_preview" || query.type === "game_summary"
+          ? query.type
+          : query.content === "game"
+          ? "game_preview"
+          : "article";
+      let articles = [];
+      try {
+        articles = await fetchArticles({
+          limit: query.content === "game" ? 200 : 12,
+          contentType,
+          season: query.season || "",
+          gameKey: query.game_key || "",
+        });
+      } catch (error) {
+        if (query.content === "game") throw error;
+        articles = await fetchLegacyArticles(12);
+      }
+      if (!articles.length && query.content !== "game") {
+        articles = await fetchLegacyArticles(12).catch(() => []);
+      }
       if (query.content === "game") {
         const summaries = await fetchArticles({
           limit: 200,
