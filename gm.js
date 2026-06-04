@@ -2036,7 +2036,7 @@ async function publishArticle() {
   const title = String(els.articleTitle?.value || "").trim();
   const summary = String(els.articleSummary?.value || "").trim();
   const body = String(els.articleBody?.value || "").trim();
-  const author = String(els.articleAuthor?.value || "").trim();
+  const author = String(els.articleAuthor?.value || gmSession?.user?.email || "").trim();
   const contentType = String(els.articleType?.value || "article").trim();
   const selectedGame = commishArticleGames.find((game) => game.gameKey === String(els.articleGame?.value || ""));
   if (!title || !body) {

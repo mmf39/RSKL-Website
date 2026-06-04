@@ -167,10 +167,15 @@ async function fetchArticles(options = {}) {
   const contentType = String(options.contentType || "article").trim();
   const season = String(options.season || "").trim();
   const gameKey = String(options.gameKey || "").trim();
+  const id = String(options.id || "").trim();
   const params = new URLSearchParams();
   params.set("select", "id,title,summary,body,author,content_type,game_key,season,date_token,team1,team2,status,created_at,updated_at");
   params.set("status", "eq.published");
-  params.set("content_type", `eq.${contentType}`);
+  if (id) {
+    params.set("id", `eq.${id}`);
+  } else {
+    params.set("content_type", `eq.${contentType}`);
+  }
   if (season) params.set("season", `eq.${season}`);
   if (gameKey) params.set("game_key", `eq.${gameKey}`);
   params.set("order", "created_at.desc");
@@ -218,6 +223,7 @@ module.exports = async (req, res) => {
           contentType,
           season: query.season || "",
           gameKey: query.game_key || "",
+          id: query.id || "",
         });
       } catch (error) {
         if (query.content === "game") throw error;

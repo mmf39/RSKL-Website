@@ -1662,16 +1662,19 @@ function renderDashboardArticles(articles) {
     .map((article) => {
       const title = String(article?.title || "Untitled Article").trim();
       const excerpt = buildArticleExcerpt(article);
-      const author = String(article?.author || "Commissioner").trim();
+      const rawAuthor = String(article?.author || "").trim();
+      const author = rawAuthor.toLowerCase() === "commissioner" ? "" : rawAuthor;
+      const articleId = String(article?.id || "").trim();
+      const href = articleId ? `/article.html?id=${encodeURIComponent(articleId)}` : "";
       return `
-        <article class="dashboard-news-card">
+        <a class="dashboard-news-card dashboard-news-link" href="${escapeHtml(href || "#")}">
           <div class="dashboard-news-meta">
             <span>${escapeHtml(formatArticleDate(article?.created_at || article?.updated_at))}</span>
-            <span>${escapeHtml(author)}</span>
+            ${author ? `<span>${escapeHtml(author)}</span>` : ""}
           </div>
           <h3>${escapeHtml(title)}</h3>
           <p>${escapeHtml(excerpt || "No article text.")}</p>
-        </article>
+        </a>
       `;
     })
     .join("");

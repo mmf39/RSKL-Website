@@ -499,7 +499,11 @@ async function fetchNewsArticles(options = {}) {
   const params = new URLSearchParams();
   params.set("select", "id,title,summary,body,author,content_type,game_key,season,date_token,team1,team2,status,created_at,updated_at");
   params.set("status", "eq.published");
-  params.set("content_type", `eq.${String(options.contentType || "article").trim()}`);
+  if (options.id) {
+    params.set("id", `eq.${String(options.id).trim()}`);
+  } else {
+    params.set("content_type", `eq.${String(options.contentType || "article").trim()}`);
+  }
   if (options.season) params.set("season", `eq.${String(options.season).trim()}`);
   if (options.gameKey) params.set("game_key", `eq.${String(options.gameKey).trim()}`);
   params.set("order", "created_at.desc");
@@ -563,6 +567,7 @@ const server = http.createServer((req, res) => {
           const type = String(url.searchParams.get("type") || "").trim();
           const season = String(url.searchParams.get("season") || "").trim();
           const gameKey = String(url.searchParams.get("game_key") || "").trim();
+          const id = String(url.searchParams.get("id") || "").trim();
           const contentType =
             type === "game_preview" || type === "game_summary"
               ? type
@@ -576,6 +581,7 @@ const server = http.createServer((req, res) => {
               contentType,
               season,
               gameKey,
+              id,
             });
           } catch (error) {
             if (content === "game") throw error;
