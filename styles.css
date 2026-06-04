@@ -1137,6 +1137,33 @@ body.menu-open {
   margin: 0;
 }
 
+.article-mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffb347;
+  font-weight: 800;
+  text-decoration: none;
+  vertical-align: middle;
+}
+
+.article-mention:hover {
+  text-decoration: underline;
+}
+
+.article-mention-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 179, 71, 0.46);
+  object-fit: cover;
+  background: rgba(12, 18, 34, 0.94);
+}
+
+.article-mention--empty .article-mention-avatar {
+  display: none;
+}
+
 .dashboard-live-card {
   width: 100%;
   text-align: left;

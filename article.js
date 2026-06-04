@@ -1,5 +1,7 @@
 const ARTICLE_API = "/api/articles";
+const PLAYER_PROFILE_URL = "/api/player-profile";
 const articleView = document.getElementById("article-view");
+const mentionAvatarCache = new Map();
 
 function escapeHtml(value) {
   return String(value)
@@ -21,6 +23,126 @@ function formatArticleDate(value) {
   });
 }
 
+function normalizeMention(value) {
+  return String(value || "").trim().replace(/^@/, "").toLowerCase();
+}
+
+function findProfileImageUrl(value, depth = 0) {
+  if (!value || depth > 4) return "";
+  if (typeof value === "string") {
+    const clean = value.trim();
+    return /^https?:\/\//i.test(clean) || clean.startsWith("data:image/") ? clean : "";
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const nested = findProfileImageUrl(item, depth + 1);
+      if (nested) return nested;
+    }
+    return "";
+  }
+  if (typeof value !== "object") return "";
+
+  const preferredKeys = [
+    "photoUrl",
+    "photoURL",
+    "photo_url",
+    "profilePhoto",
+    "profilePhotoUrl",
+    "profile_photo",
+    "profile_photo_url",
+    "profilePicture",
+    "profilePictureUrl",
+    "profile_picture",
+    "profile_picture_url",
+    "avatar",
+    "avatarUrl",
+    "avatar_url",
+    "image",
+    "imageUrl",
+    "image_url",
+    "headshot",
+    "headshotUrl",
+    "headshot_url",
+    "picture",
+    "pictureUrl",
+    "picture_url",
+    "pfp",
+  ];
+
+  for (const key of preferredKeys) {
+    if (Object.prototype.hasOwnProperty.call(value, key)) {
+      const direct = findProfileImageUrl(value[key], depth + 1);
+      if (direct) return direct;
+    }
+  }
+
+  for (const item of Object.values(value)) {
+    const nested = findProfileImageUrl(item, depth + 1);
+    if (nested) return nested;
+  }
+  return "";
+}
+
+function renderArticleText(value) {
+  const text = String(value || "");
+  const mentionRegex = /(^|[^\w@])(@[A-Za-z0-9_.-]+)/g;
+  let html = "";
+  let lastIndex = 0;
+  let match;
+
+  while ((match = mentionRegex.exec(text))) {
+    const prefix = match[1] || "";
+    const mention = match[2] || "";
+    const mentionStart = match.index + prefix.length;
+    html += escapeHtml(text.slice(lastIndex, mentionStart));
+    const cleanMention = mention.replace(/[.,!?;:]+$/g, "");
+    const trailing = mention.slice(cleanMention.length);
+    const key = normalizeMention(cleanMention);
+    html += `<a class="article-mention article-mention--empty" href="/player-detail.html?player=${encodeURIComponent(cleanMention)}" data-article-mention="${escapeHtml(key)}"><img class="article-mention-avatar" alt="" loading="lazy" /><span>${escapeHtml(cleanMention)}</span></a>${escapeHtml(trailing)}`;
+    lastIndex = mentionStart + mention.length;
+  }
+
+  html += escapeHtml(text.slice(lastIndex));
+  return html.replace(/\n/g, "<br>");
+}
+
+async function fetchMentionAvatar(mention) {
+  const key = normalizeMention(mention);
+  if (!key) return "";
+  if (mentionAvatarCache.has(key)) return mentionAvatarCache.get(key) || "";
+  try {
+    const player = mention.startsWith("@") ? mention : `@${mention}`;
+    const response = await fetch(`${PLAYER_PROFILE_URL}?player=${encodeURIComponent(player)}`, {
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error(`Request failed (${response.status})`);
+    const payload = await response.json();
+    const url = findProfileImageUrl(payload);
+    mentionAvatarCache.set(key, url || "");
+    return url || "";
+  } catch (_error) {
+    mentionAvatarCache.set(key, "");
+    return "";
+  }
+}
+
+async function hydrateArticleMentions() {
+  const mentions = Array.from(document.querySelectorAll("[data-article-mention]"));
+  const unique = Array.from(new Set(mentions.map((node) => node.dataset.articleMention || "").filter(Boolean)));
+  await Promise.all(
+    unique.map(async (key) => {
+      const url = await fetchMentionAvatar(key);
+      if (!url) return;
+      document.querySelectorAll(`[data-article-mention="${CSS.escape(key)}"]`).forEach((node) => {
+        const img = node.querySelector(".article-mention-avatar");
+        if (!img) return;
+        img.src = url;
+        node.classList.remove("article-mention--empty");
+      });
+    })
+  );
+}
+
 function renderArticle(article) {
   if (!articleView) return;
   if (!article) {
@@ -36,7 +158,7 @@ function renderArticle(article) {
     .split(/\n{2,}/)
     .map((part) => part.trim())
     .filter(Boolean)
-    .map((part) => `<p>${escapeHtml(part).replace(/\n/g, "<br>")}</p>`)
+    .map((part) => `<p>${renderArticleText(part)}</p>`)
     .join("");
 
   articleView.innerHTML = `
@@ -49,6 +171,7 @@ function renderArticle(article) {
       <div class="article-full-body">${paragraphs || "<p>No article text.</p>"}</div>
     </article>
   `;
+  hydrateArticleMentions();
 }
 
 async function loadArticle() {
