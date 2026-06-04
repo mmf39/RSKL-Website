@@ -10,6 +10,7 @@ const PLAYER_PROFILE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const TRANSACTIONS_CSV_URL = "/api/sheet?name=transactions";
+const NEWS_ARTICLES_API = "/api/articles";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const C1S2_REGULAR_SCHEDULE_URL = "/assets/data/c1s2-regular-schedule.csv";
@@ -112,6 +113,7 @@ const els = {
   featuredMatchups: document.getElementById("featured-matchups"),
   leagueLeaders: document.getElementById("league-leaders"),
   recentTransactions: document.getElementById("recent-transactions"),
+  dashboardNews: document.getElementById("dashboard-news"),
   liveModal: document.getElementById("live-modal"),
   liveDetails: document.getElementById("live-details"),
 };
@@ -680,6 +682,9 @@ function setDashboardLoading() {
   }
   if (els.recentTransactions) {
     els.recentTransactions.innerHTML = `<div class="dashboard-transactions-list">${buildSkeletonCard(3)}${buildSkeletonCard(3)}</div>`;
+  }
+  if (els.dashboardNews) {
+    els.dashboardNews.innerHTML = `<div class="dashboard-news-list">${buildSkeletonCard(3)}${buildSkeletonCard(3)}</div>`;
   }
   if (els.teamsGrid) {
     els.teamsGrid.innerHTML = `<div class="dashboard-feature-grid">${buildSkeletonCard(3)}${buildSkeletonCard(3)}${buildSkeletonCard(3)}</div>`;
@@ -1628,6 +1633,64 @@ function renderRecentTransactions(items) {
     .join("");
 }
 
+function formatArticleDate(value) {
+  if (!value) return "Recently";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Recently";
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function buildArticleExcerpt(article) {
+  const summary = String(article?.summary || "").trim();
+  if (summary) return summary;
+  const body = String(article?.body || "").replace(/\s+/g, " ").trim();
+  return body.length > 180 ? `${body.slice(0, 177)}...` : body;
+}
+
+function renderDashboardArticles(articles) {
+  if (!els.dashboardNews) return;
+  if (!articles.length) {
+    els.dashboardNews.innerHTML = buildStateCard("No Articles", "No league articles have been published yet.");
+    return;
+  }
+
+  els.dashboardNews.innerHTML = articles
+    .map((article) => {
+      const title = String(article?.title || "Untitled Article").trim();
+      const excerpt = buildArticleExcerpt(article);
+      const author = String(article?.author || "Commissioner").trim();
+      return `
+        <article class="dashboard-news-card">
+          <div class="dashboard-news-meta">
+            <span>${escapeHtml(formatArticleDate(article?.created_at || article?.updated_at))}</span>
+            <span>${escapeHtml(author)}</span>
+          </div>
+          <h3>${escapeHtml(title)}</h3>
+          <p>${escapeHtml(excerpt || "No article text.")}</p>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+async function loadDashboardArticles() {
+  if (!els.dashboardNews) return;
+  try {
+    const response = await fetch(NEWS_ARTICLES_API, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Fetch failed: ${response.status}`);
+    }
+    const payload = await response.json();
+    renderDashboardArticles(Array.isArray(payload?.articles) ? payload.articles : []);
+  } catch (_error) {
+    els.dashboardNews.innerHTML = buildStateCard("Articles Unavailable", "League articles could not be loaded right now.");
+  }
+}
+
 function renderLiveModal(game) {
   if (!els.liveDetails || !els.liveModal || !game) return;
 
@@ -1674,6 +1737,7 @@ function renderLiveModal(game) {
 
 async function loadData() {
   setDashboardLoading();
+  loadDashboardArticles();
   const seasonRaw = getSeasonRaw();
   syncDashboardPanels(seasonRaw);
 

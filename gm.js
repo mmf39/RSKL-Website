@@ -5,6 +5,7 @@ const POWER_RANKINGS_URL = "/api/sheet?name=power-rankings";
 const SCHEDULE_URL = "/api/sheet?name=schedule";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const PLAYER_RENAME_SYNC_API = "/api/player-rename-sync";
+const NEWS_ARTICLES_API = "/api/articles";
 const GM_ACCESS_TOKEN_KEY = "rskl_gm_access_token";
 const GM_REFRESH_TOKEN_KEY = "rskl_gm_refresh_token";
 const GM_SESSION_USER_KEY = "rskl_gm_user";
@@ -62,10 +63,18 @@ const els = {
   authCard: document.getElementById("gm-auth-card"),
   authedShell: document.getElementById("gm-authed-shell"),
   commishCard: document.getElementById("gm-commish-card"),
+  articleCard: document.getElementById("gm-article-card"),
   commishTab: document.getElementById("gm-commish-tab"),
   lockGamesList: document.getElementById("gm-lock-games-list"),
   lockSave: document.getElementById("gm-lock-save"),
   lockStatus: document.getElementById("gm-lock-status"),
+  articleTitle: document.getElementById("gm-article-title"),
+  articleSummary: document.getElementById("gm-article-summary"),
+  articleBody: document.getElementById("gm-article-body"),
+  articleAuthor: document.getElementById("gm-article-author"),
+  articlePublish: document.getElementById("gm-article-publish"),
+  articleStatus: document.getElementById("gm-article-status"),
+  articleList: document.getElementById("gm-article-list"),
   tabTradePanel: document.getElementById("gm-tab-trade"),
   tabRenamePanel: document.getElementById("gm-tab-rename"),
   tabLineupPanel: document.getElementById("gm-tab-lineup"),
@@ -347,6 +356,12 @@ function setLockStatus(message, isError = false) {
   if (!els.lockStatus) return;
   els.lockStatus.textContent = message;
   els.lockStatus.className = `gm-status ${isError ? "error" : ""}`;
+}
+
+function setArticleStatus(message, isError = false) {
+  if (!els.articleStatus) return;
+  els.articleStatus.textContent = message;
+  els.articleStatus.className = `gm-status ${isError ? "error" : ""}`;
 }
 
 function setAuthStatus(message, isError = false) {
@@ -660,8 +675,14 @@ function applyAuthUi() {
   if (els.commishCard) {
     els.commishCard.hidden = !(signedIn && isCommish());
   }
+  if (els.articleCard) {
+    els.articleCard.hidden = !(signedIn && isCommish());
+  }
   if (els.commishTab) {
     els.commishTab.hidden = !(signedIn && isCommish());
+  }
+  if (signedIn && isCommish()) {
+    loadArticlesForCommish();
   }
   if (els.sessionMeta) {
     els.sessionMeta.hidden = !signedIn;
@@ -1845,6 +1866,98 @@ function renderCommishLockGames() {
     .join("");
 }
 
+function formatArticleDate(value) {
+  if (!value) return "Recently";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Recently";
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function renderArticleList(articles) {
+  if (!els.articleList) return;
+  if (!articles.length) {
+    els.articleList.innerHTML = '<div class="gm-empty">No published articles yet.</div>';
+    return;
+  }
+  els.articleList.innerHTML = articles
+    .slice(0, 5)
+    .map((article) => {
+      const title = String(article?.title || "Untitled Article").trim();
+      const summary = String(article?.summary || article?.body || "").replace(/\s+/g, " ").trim();
+      return `
+        <div class="gm-readonly-card">
+          <div class="gm-readonly-title">${escapeHtml(title)}</div>
+          <div>${escapeHtml(formatArticleDate(article?.created_at || article?.updated_at))}</div>
+          <div>${escapeHtml(summary.length > 140 ? `${summary.slice(0, 137)}...` : summary)}</div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+async function loadArticlesForCommish() {
+  if (!els.articleList || !isCommish()) return;
+  try {
+    const response = await fetch(NEWS_ARTICLES_API, { cache: "no-store" });
+    if (!response.ok) throw new Error(`Request failed (${response.status})`);
+    const payload = await response.json();
+    renderArticleList(Array.isArray(payload?.articles) ? payload.articles : []);
+  } catch (error) {
+    els.articleList.innerHTML = `<div class="gm-empty">${escapeHtml(error.message || "Unable to load articles.")}</div>`;
+  }
+}
+
+async function publishArticle() {
+  if (!isSignedInGm() || !isCommish()) {
+    setArticleStatus("Commissioner access required.", true);
+    return;
+  }
+  const title = String(els.articleTitle?.value || "").trim();
+  const summary = String(els.articleSummary?.value || "").trim();
+  const body = String(els.articleBody?.value || "").trim();
+  const author = String(els.articleAuthor?.value || "").trim();
+  if (!title || !body) {
+    setArticleStatus("Add a headline and article text.", true);
+    return;
+  }
+
+  if (els.articlePublish) {
+    els.articlePublish.disabled = true;
+    els.articlePublish.textContent = "Publishing...";
+  }
+  setArticleStatus("Publishing article...");
+  try {
+    const response = await fetch(NEWS_ARTICLES_API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${gmSession?.access_token || ""}`,
+      },
+      body: JSON.stringify({ title, summary, body, author }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload?.ok === false) {
+      throw new Error(payload?.message || `Request failed (${response.status})`);
+    }
+    if (els.articleTitle) els.articleTitle.value = "";
+    if (els.articleSummary) els.articleSummary.value = "";
+    if (els.articleBody) els.articleBody.value = "";
+    setArticleStatus("Article published.");
+    renderArticleList(Array.isArray(payload?.articles) ? payload.articles : []);
+  } catch (error) {
+    setArticleStatus(error.message || "Unable to publish article.", true);
+  } finally {
+    if (els.articlePublish) {
+      els.articlePublish.disabled = false;
+      els.articlePublish.textContent = "Publish Article";
+    }
+  }
+}
+
 function renderPowerRankingsTeam(team) {
   if (!els.powerRankingsList) return;
   if (!team) {
@@ -2116,6 +2229,9 @@ function bindEvents() {
         setLockStatus(error.message || "Unable to save lock times.", true);
       }
     });
+  }
+  if (els.articlePublish) {
+    els.articlePublish.addEventListener("click", publishArticle);
   }
   if (els.authSignUp) {
     els.authSignUp.addEventListener("click", async () => {

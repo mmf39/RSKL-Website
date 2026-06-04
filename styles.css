@@ -1039,7 +1039,8 @@ body.menu-open {
 .dashboard-live-list,
 .dashboard-feature-grid,
 .dashboard-leader-grid,
-.dashboard-transactions-list {
+.dashboard-transactions-list,
+.dashboard-news-list {
   display: grid;
   gap: 16px;
 }
@@ -1048,6 +1049,47 @@ body.menu-open {
 .dashboard-feature-grid,
 .dashboard-leader-grid {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.dashboard-news-list {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.dashboard-news-card {
+  min-height: 210px;
+  padding: 22px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 160, 67, 0.28);
+  background:
+    linear-gradient(180deg, rgba(255, 163, 71, 0.1), rgba(8, 15, 31, 0.94)),
+    rgba(8, 15, 31, 0.9);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-news-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: rgba(255, 228, 196, 0.68);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dashboard-news-card h3 {
+  margin: 0 0 12px;
+  color: #fff7ed;
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.dashboard-news-card p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.82);
+  line-height: 1.55;
 }
 
 .dashboard-live-card {
@@ -5220,6 +5262,23 @@ input[type="text"] {
   color: rgba(226, 232, 240, 0.6);
 }
 
+.gm-textarea {
+  min-height: 108px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.gm-article-body-input {
+  min-height: 220px;
+}
+
+.gm-article-actions {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
 .gm-actions {
   display: flex;
   gap: 10px;
@@ -6862,8 +6921,13 @@ input[type="text"] {
   .dashboard-transaction-head,
   .dashboard-matchup-head,
   .dashboard-team-top,
-  .dashboard-leader-meta {
+  .dashboard-leader-meta,
+  .dashboard-news-meta {
     align-items: flex-start;
+  }
+
+  .gm-article-actions {
+    grid-template-columns: 1fr;
   }
 
   .player-detail-summary-panel .panel-head,

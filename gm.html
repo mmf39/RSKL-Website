@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css?v=20260510a" />
+    <link rel="stylesheet" href="styles.css?v=20260604news1" />
   </head>
   <body>
     <div class="bg"></div>
@@ -73,7 +73,7 @@
             <button class="gm-tab" type="button" data-gm-tab="rename">Player Name Change</button>
             <button class="gm-tab" type="button" data-gm-tab="lineup">Lineup Submit</button>
             <button class="gm-tab" type="button" data-gm-tab="power">Power Rankings Vote</button>
-            <button class="gm-tab" type="button" data-gm-tab="commish" id="gm-commish-tab" hidden>Lock Times</button>
+            <button class="gm-tab" type="button" data-gm-tab="commish" id="gm-commish-tab" hidden>Commish</button>
             <div id="gm-lineup-tab-meta" class="gm-tab gm-tab-info">Due —</div>
           </div>
           <div id="gm-session-meta" class="gm-session-meta" hidden>
@@ -247,6 +247,27 @@
             <button id="gm-lock-save" class="btn" type="button">Save Lock Times</button>
             <div id="gm-lock-status" class="gm-status"></div>
           </div>
+          <div class="gm-card" id="gm-article-card" hidden>
+            <div class="label">Commissioner: Write League Article</div>
+            <label class="label" for="gm-article-title">Headline</label>
+            <input id="gm-article-title" class="text-input" type="text" maxlength="120" placeholder="Article headline" />
+
+            <label class="label" for="gm-article-summary">Short Summary</label>
+            <textarea id="gm-article-summary" class="text-input gm-textarea" rows="3" maxlength="260" placeholder="Short front-page summary"></textarea>
+
+            <label class="label" for="gm-article-body">Article</label>
+            <textarea id="gm-article-body" class="text-input gm-textarea gm-article-body-input" rows="8" placeholder="Write the article here"></textarea>
+
+            <div class="gm-article-actions">
+              <input id="gm-article-author" class="text-input" type="text" maxlength="60" placeholder="Author name" />
+              <button id="gm-article-publish" class="btn" type="button">Publish Article</button>
+            </div>
+            <div id="gm-article-status" class="gm-status"></div>
+            <div class="gm-readonly-group">
+              <div class="label">Latest Articles</div>
+              <div id="gm-article-list" class="gm-readonly-list"></div>
+            </div>
+          </div>
         </div>
         </div>
       </section>
@@ -256,7 +277,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="gm.js?v=20260505g"></script>
+    <script src="gm.js?v=20260604news1"></script>
       <script src="header-nav.js?v=20260504e"></script>
   </body>
 </html>

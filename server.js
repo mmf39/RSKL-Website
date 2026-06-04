@@ -444,6 +444,49 @@ async function writeBadgeOverrides(data) {
   return safeData;
 }
 
+function sanitizeArticle(row) {
+  return {
+    id: row?.id || "",
+    title: String(row?.title || "").trim(),
+    summary: String(row?.summary || "").trim(),
+    body: String(row?.body || "").trim(),
+    author: String(row?.author || "Commissioner").trim(),
+    status: String(row?.status || "published").trim(),
+    created_at: row?.created_at || "",
+    updated_at: row?.updated_at || "",
+  };
+}
+
+function validateArticlePayload(payload) {
+  const title = String(payload?.title || "").trim();
+  const summary = String(payload?.summary || "").trim();
+  const body = String(payload?.body || "").trim();
+  const author = String(payload?.author || "Commissioner").trim() || "Commissioner";
+  if (!title || !body) {
+    const error = new Error("Headline and article text are required.");
+    error.status = 400;
+    throw error;
+  }
+  return {
+    title: title.slice(0, 120),
+    summary: summary.slice(0, 260),
+    body,
+    author: author.slice(0, 60),
+    status: "published",
+  };
+}
+
+async function fetchNewsArticles(limit = 12) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return [];
+  }
+  const rows = await supabaseRequest(
+    "GET",
+    `/rest/v1/news_articles?select=id,title,summary,body,author,status,created_at,updated_at&status=eq.published&order=created_at.desc&limit=${limit}`
+  );
+  return Array.isArray(rows) ? rows.map(sanitizeArticle) : [];
+}
+
 async function patchSupabasePlayerTag(table, oldTag, payload) {
   const rows = await supabaseRequest(
     "PATCH",
@@ -472,6 +515,44 @@ const server = http.createServer((req, res) => {
         send(res, 500, JSON.stringify({ ok: false, message: error.message }), "application/json; charset=utf-8");
       }
     })();
+    return;
+  }
+
+  if (url.pathname === "/api/articles") {
+    if (req.method === "GET") {
+      (async () => {
+        try {
+          const articles = await fetchNewsArticles(12);
+          send(res, 200, JSON.stringify({ ok: true, articles }), "application/json; charset=utf-8");
+        } catch (error) {
+          send(res, 500, JSON.stringify({ ok: false, message: error.message, articles: [] }), "application/json; charset=utf-8");
+        }
+      })();
+      return;
+    }
+    if (req.method === "POST") {
+      (async () => {
+        try {
+          await assertCommishRequest(req);
+          const payload = await readJsonBody(req);
+          const article = validateArticlePayload(payload);
+          await supabaseRequest("POST", "/rest/v1/news_articles", [article], {
+            Prefer: "return=representation",
+          });
+          const articles = await fetchNewsArticles(12);
+          send(res, 200, JSON.stringify({ ok: true, articles }), "application/json; charset=utf-8");
+        } catch (error) {
+          send(
+            res,
+            error.status || 500,
+            JSON.stringify({ ok: false, message: error.message }),
+            "application/json; charset=utf-8"
+          );
+        }
+      })();
+      return;
+    }
+    send(res, 405, JSON.stringify({ ok: false, message: "Method not allowed." }), "application/json; charset=utf-8");
     return;
   }
 
