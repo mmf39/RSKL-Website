@@ -75,6 +75,9 @@ const els = {
   articlePublish: document.getElementById("gm-article-publish"),
   articleStatus: document.getElementById("gm-article-status"),
   articleList: document.getElementById("gm-article-list"),
+  articleType: document.getElementById("gm-article-type"),
+  articleGameGroup: document.getElementById("gm-article-game-group"),
+  articleGame: document.getElementById("gm-article-game"),
   tabTradePanel: document.getElementById("gm-tab-trade"),
   tabRenamePanel: document.getElementById("gm-tab-rename"),
   tabLineupPanel: document.getElementById("gm-tab-lineup"),
@@ -141,6 +144,7 @@ let supabaseAnon = "";
 let gmSession = null;
 let gmAssignment = null;
 let commishUpcomingGames = [];
+let commishArticleGames = [];
 let lineupSubmittedByTeam = new Map();
 let localGameLocksByDate = {};
 let freeAgencySelection = [];
@@ -287,6 +291,10 @@ function normalizeName(value) {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, " ");
+}
+
+function buildGameKey(dateToken, team1, team2) {
+  return `${String(dateToken || "").trim()}|${normalizeName(displayTeamName(team1))}|${normalizeName(displayTeamName(team2))}`;
 }
 
 function escapeHtml(value) {
@@ -1839,6 +1847,90 @@ async function loadUpcomingScheduleGames() {
     }));
 }
 
+async function loadScheduleGamesForArticles() {
+  const response = await fetch(SCHEDULE_URL, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Schedule fetch failed: ${response.status}`);
+  }
+  const rows = parseCSV(await response.text()).filter((row) =>
+    row.some((cell) => String(cell || "").trim() !== "")
+  );
+  if (!rows.length) return [];
+
+  const header = rows[0].map((h) => String(h || "").trim().toLowerCase());
+  const body = rows.slice(1);
+  const dateIdx = header.findIndex((h) => h === "date");
+  const t1Idx = header.findIndex((h) => h === "team 1" || h === "away");
+  const t2Idx = header.findIndex((h) => h === "team 2" || h === "home");
+  const statusIdx = header.findIndex((h) => h === "status");
+  const typeIdx = header.findIndex((h) => h === "type" || h === "game type");
+
+  return body
+    .map((row) => {
+      const dateText = normalizeScheduleDateKey(row[dateIdx >= 0 ? dateIdx : 0] || "");
+      const team1 = displayTeamName(String(row[t1Idx >= 0 ? t1Idx : 1] || "").trim());
+      const team2 = displayTeamName(String(row[t2Idx >= 0 ? t2Idx : 2] || "").trim());
+      const status = String(row[statusIdx] || "").trim();
+      const gameType = String(row[typeIdx] || "").trim();
+      const when = parseScheduleDateValue(dateText);
+      if (!team1 || !team2 || !dateText) return null;
+      return {
+        dateText,
+        team1,
+        team2,
+        status,
+        gameType,
+        when,
+        gameKey: buildGameKey(dateText, team1, team2),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      const aTime = a.when ? a.when.getTime() : 0;
+      const bTime = b.when ? b.when.getTime() : 0;
+      return bTime - aTime;
+    });
+}
+
+function renderArticleGameOptions() {
+  if (!els.articleGame) return;
+  const selected = els.articleGame.value;
+  els.articleGame.innerHTML = [
+    '<option value="">Select game</option>',
+    ...commishArticleGames.map((game) => {
+      const label = `${game.dateText} • ${game.team1} vs ${game.team2}`;
+      return `<option value="${escapeHtml(game.gameKey)}">${escapeHtml(label)}</option>`;
+    }),
+  ].join("");
+  if (selected && commishArticleGames.some((game) => game.gameKey === selected)) {
+    els.articleGame.value = selected;
+  }
+}
+
+function syncArticleWriterMode() {
+  const type = String(els.articleType?.value || "article").trim();
+  const needsGame = type === "game_preview" || type === "game_summary";
+  if (els.articleGameGroup) {
+    els.articleGameGroup.hidden = !needsGame;
+  }
+  if (els.articleTitle) {
+    els.articleTitle.placeholder =
+      type === "game_preview"
+        ? "Game preview headline"
+        : type === "game_summary"
+        ? "Game summary headline"
+        : "Article headline";
+  }
+  if (els.articleBody) {
+    els.articleBody.placeholder =
+      type === "game_preview"
+        ? "Write the game preview here"
+        : type === "game_summary"
+        ? "Write the game summary here"
+        : "Write the article here";
+  }
+}
+
 function renderCommishLockGames() {
   if (!els.lockGamesList) return;
   if (!commishUpcomingGames.length) {
@@ -1920,8 +2012,14 @@ async function publishArticle() {
   const summary = String(els.articleSummary?.value || "").trim();
   const body = String(els.articleBody?.value || "").trim();
   const author = String(els.articleAuthor?.value || "").trim();
+  const contentType = String(els.articleType?.value || "article").trim();
+  const selectedGame = commishArticleGames.find((game) => game.gameKey === String(els.articleGame?.value || ""));
   if (!title || !body) {
-    setArticleStatus("Add a headline and article text.", true);
+    setArticleStatus("Add a headline and text.", true);
+    return;
+  }
+  if ((contentType === "game_preview" || contentType === "game_summary") && !selectedGame) {
+    setArticleStatus("Select a game for this post.", true);
     return;
   }
 
@@ -1937,7 +2035,18 @@ async function publishArticle() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${gmSession?.access_token || ""}`,
       },
-      body: JSON.stringify({ title, summary, body, author }),
+      body: JSON.stringify({
+        title,
+        summary,
+        body,
+        author,
+        content_type: contentType,
+        game_key: selectedGame?.gameKey || "",
+        season: localStorage.getItem("season") || "c2s3-regular",
+        date_token: selectedGame?.dateText || "",
+        team1: selectedGame?.team1 || "",
+        team2: selectedGame?.team2 || "",
+      }),
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload?.ok === false) {
@@ -1946,14 +2055,14 @@ async function publishArticle() {
     if (els.articleTitle) els.articleTitle.value = "";
     if (els.articleSummary) els.articleSummary.value = "";
     if (els.articleBody) els.articleBody.value = "";
-    setArticleStatus("Article published.");
+    setArticleStatus("Published.");
     renderArticleList(Array.isArray(payload?.articles) ? payload.articles : []);
   } catch (error) {
     setArticleStatus(error.message || "Unable to publish article.", true);
   } finally {
     if (els.articlePublish) {
       els.articlePublish.disabled = false;
-      els.articlePublish.textContent = "Publish Article";
+      els.articlePublish.textContent = "Publish";
     }
   }
 }
@@ -2232,6 +2341,9 @@ function bindEvents() {
   }
   if (els.articlePublish) {
     els.articlePublish.addEventListener("click", publishArticle);
+  }
+  if (els.articleType) {
+    els.articleType.addEventListener("change", syncArticleWriterMode);
   }
   if (els.authSignUp) {
     els.authSignUp.addEventListener("click", async () => {
@@ -2681,6 +2793,13 @@ async function init() {
       commishUpcomingGames = [];
     }
     try {
+      commishArticleGames = await loadScheduleGamesForArticles();
+      renderArticleGameOptions();
+    } catch (_) {
+      commishArticleGames = [];
+      renderArticleGameOptions();
+    }
+    try {
       tradeBlocksCache = await fetchTradeBlocksFromSheet();
     } catch (error) {
       tradeBlocksCache = {};
@@ -2709,6 +2828,7 @@ async function init() {
       els.powerTeamSelect ? els.powerTeamSelect.value : ""
     );
     renderPowerVotesView();
+    syncArticleWriterMode();
     updateLastUpdated();
   } catch (error) {
     setTradeStatus(error.message, true);

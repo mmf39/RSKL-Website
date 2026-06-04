@@ -3193,6 +3193,23 @@ input[type="text"] {
   color: #cbd5e1;
 }
 
+.game-preview-link {
+  display: inline-flex;
+  justify-self: center;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 159, 26, 0.72);
+  background: rgba(255, 159, 26, 0.12);
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .calendar-game-details {
   margin-top: 8px;
   display: grid;
@@ -3252,6 +3269,10 @@ input[type="text"] {
   border-color: rgba(248, 113, 113, 0.45);
 }
 
+.game-recap-card.manual {
+  background: rgba(17, 30, 58, 0.78);
+}
+
 .game-recap-eyebrow {
   font-size: 0.72rem;
   font-weight: 800;
@@ -3259,6 +3280,13 @@ input[type="text"] {
   text-transform: uppercase;
   color: #ffb347;
   margin-bottom: 8px;
+}
+
+.game-recap-title {
+  margin: 0 0 8px;
+  color: #fff7ed;
+  font-size: 1.2rem;
+  line-height: 1.2;
 }
 
 .game-recap-lede {

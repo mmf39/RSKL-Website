@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css?v=20260604news1" />
+    <link rel="stylesheet" href="styles.css?v=20260604gamecontent1" />
   </head>
   <body>
     <div class="bg"></div>
@@ -248,7 +248,21 @@
             <div id="gm-lock-status" class="gm-status"></div>
           </div>
           <div class="gm-card" id="gm-article-card" hidden>
-            <div class="label">Commissioner: Write League Article</div>
+            <div class="label">Commissioner: Write Content</div>
+            <label class="label" for="gm-article-type">Content Type</label>
+            <select id="gm-article-type" class="text-input">
+              <option value="article">Front Page Article</option>
+              <option value="game_preview">Game Preview</option>
+              <option value="game_summary">Game Summary</option>
+            </select>
+
+            <div id="gm-article-game-group" class="gm-readonly-group" hidden>
+              <label class="label" for="gm-article-game">Game</label>
+              <select id="gm-article-game" class="text-input">
+                <option value="">Select game</option>
+              </select>
+            </div>
+
             <label class="label" for="gm-article-title">Headline</label>
             <input id="gm-article-title" class="text-input" type="text" maxlength="120" placeholder="Article headline" />
 
@@ -260,7 +274,7 @@
 
             <div class="gm-article-actions">
               <input id="gm-article-author" class="text-input" type="text" maxlength="60" placeholder="Author name" />
-              <button id="gm-article-publish" class="btn" type="button">Publish Article</button>
+              <button id="gm-article-publish" class="btn" type="button">Publish</button>
             </div>
             <div id="gm-article-status" class="gm-status"></div>
             <div class="gm-readonly-group">
@@ -277,7 +291,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="gm.js?v=20260604news1"></script>
+    <script src="gm.js?v=20260604gamecontent1"></script>
       <script src="header-nav.js?v=20260504e"></script>
   </body>
 </html>

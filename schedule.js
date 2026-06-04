@@ -4,6 +4,7 @@ const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const GAME_FLOW_API = "/api/game-flow";
+const NEWS_ARTICLES_API = "/api/articles";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const C1S2_REGULAR_SCHEDULE_URL = "/assets/data/c1s2-regular-schedule.csv";
@@ -41,6 +42,7 @@ let selectedDateKey = "";
 let scheduleLoadToken = 0;
 let gameScoreStateCache = new Map();
 let scheduleRenderFrame = 0;
+let gameContentMap = new Map();
 
 const ARCHIVE_RANGES = {
   schedule_regular: "G31:I79",
@@ -379,6 +381,50 @@ function buildGameKey(dateToken, team1, team2) {
   return `${String(dateToken || "").trim()}|${normalizeTeamName(team1)}|${normalizeTeamName(team2)}`;
 }
 
+function buildGameContentMapKey(contentType, gameKey) {
+  return `${String(contentType || "").trim()}|${String(gameKey || "").trim()}`;
+}
+
+function getGameContent(game, contentType) {
+  const gameKey = buildGameKey(game?.dateToken || "", game?.team1 || "", game?.team2 || "");
+  return gameContentMap.get(buildGameContentMapKey(contentType, gameKey)) || null;
+}
+
+function renderManualGameContent(article, eyebrow) {
+  if (!article || !String(article.body || "").trim()) return "";
+  const title = String(article.title || "").trim();
+  const body = String(article.body || "").trim();
+  return `
+    <section class="game-recap-card manual">
+      <div class="game-recap-eyebrow">${escapeHtml(eyebrow)}</div>
+      ${title ? `<h3 class="game-recap-title">${escapeHtml(title)}</h3>` : ""}
+      <p class="game-recap-lede">${escapeHtml(body)}</p>
+    </section>
+  `;
+}
+
+async function loadGameContent() {
+  try {
+    const response = await fetch(`${NEWS_ARTICLES_API}?content=game&season=${encodeURIComponent(getSeasonRaw())}`, {
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+    const payload = await response.json();
+    const map = new Map();
+    (Array.isArray(payload?.articles) ? payload.articles : []).forEach((article) => {
+      const type = String(article?.content_type || "").trim();
+      const gameKey = String(article?.game_key || "").trim();
+      if (!type || !gameKey || !String(article?.body || "").trim()) return;
+      const key = buildGameContentMapKey(type, gameKey);
+      if (!map.has(key)) map.set(key, article);
+    });
+    gameContentMap = map;
+    scheduleRenderScheduleViews();
+  } catch (_error) {
+    gameContentMap = new Map();
+  }
+}
+
 function parseTeamHeader(value) {
   const text = String(value || "").trim();
   if (!text) return { name: "", score: "" };
@@ -489,82 +535,6 @@ function extractLeagueDay(rows) {
   const parts = raw.split(":");
   const value = parts.length > 1 ? parts[1].trim() : raw.trim();
   return normalizeDateToken(value) || value;
-}
-
-function parseRecapPoints(value) {
-  const num = Number(String(value || "").replace(/[^\d.-]/g, ""));
-  return Number.isFinite(num) ? num : null;
-}
-
-function getTopPerformer(players) {
-  return (players || [])
-    .map((player) => ({ ...player, numericPoints: parseRecapPoints(player.points) }))
-    .filter((player) => player.player && player.numericPoints !== null)
-    .sort((a, b) => b.numericPoints - a.numericPoints)[0] || null;
-}
-
-function buildGameRecapMarkup({
-  dateLabel,
-  team1Name,
-  team2Name,
-  team1Score,
-  team2Score,
-  team1Players,
-  team2Players,
-  status,
-}) {
-  const cleanTeam1 = displayTeamName(team1Name);
-  const cleanTeam2 = displayTeamName(team2Name);
-  const score1 = parseRecapPoints(team1Score);
-  const score2 = parseRecapPoints(team2Score);
-  if (score1 === null || score2 === null) {
-    return "";
-  }
-
-  const isLive = status === "live";
-  const winnerName = score1 >= score2 ? cleanTeam1 : cleanTeam2;
-  const loserName = winnerName === cleanTeam1 ? cleanTeam2 : cleanTeam1;
-  const winnerScore = winnerName === cleanTeam1 ? score1 : score2;
-  const loserScore = winnerName === cleanTeam1 ? score2 : score1;
-  const margin = Math.abs(score1 - score2);
-  const top1 = getTopPerformer(team1Players);
-  const top2 = getTopPerformer(team2Players);
-  const overallTop = [top1, top2].filter(Boolean).sort((a, b) => b.numericPoints - a.numericPoints)[0] || null;
-  const losingTop = winnerName === cleanTeam1 ? top2 : top1;
-  const leadVerb = isLive ? "lead" : "beat";
-  const tone =
-    margin <= 250
-      ? isLive
-        ? "It is still tight heading toward the finish."
-        : "It came down to a tight finish."
-      : margin >= 1500
-      ? isLive
-        ? "They have created real separation."
-        : "They controlled the game comfortably."
-      : isLive
-      ? "They have the edge right now."
-      : "They gradually pulled away.";
-
-  const bullets = [];
-  if (overallTop) {
-    bullets.push(`${overallTop.player} led all scorers with ${overallTop.numericPoints.toFixed(0)} points.`);
-  }
-  if (losingTop && (!overallTop || losingTop.player !== overallTop.player)) {
-    bullets.push(`${loserName} still got a strong outing from ${losingTop.player}, who finished with ${losingTop.numericPoints.toFixed(0)}.`);
-  }
-  if (!bullets.length) {
-    bullets.push(`${winnerName} ${isLive ? "have the stronger box score so far." : "finished with the stronger box score overall."}`);
-  }
-
-  return `
-    <section class="game-recap-card ${escapeHtml(isLive ? "live" : "final")}">
-      <div class="game-recap-eyebrow">${escapeHtml(isLive ? "AI Live Recap" : "AI Game Recap")}</div>
-      <p class="game-recap-lede">${escapeHtml(`${winnerName} ${leadVerb} ${loserName} ${winnerScore}-${loserScore}${dateLabel ? ` on ${dateLabel}` : ""}. ${tone}`)}</p>
-      <div class="game-recap-notes">
-        ${bullets.map((bullet) => `<div class="game-recap-note">${escapeHtml(bullet)}</div>`).join("")}
-      </div>
-    </section>
-  `;
 }
 
 function buildLiveScoreMap(rows) {
@@ -1034,18 +1004,7 @@ function getBoxScorePayload(game) {
       ${!hasTeamScores ? '<div class="boxscore-empty">Player stats not recorded.</div>' : ""}
     </div>
   `;
-  const recapHtml = hasPlayerStats
-    ? buildGameRecapMarkup({
-        dateLabel: game.dateToken,
-        team1Name: parsed1.name || game.team1,
-        team2Name: parsed2.name || game.team2,
-        team1Score: parsed1.score || "",
-        team2Score: parsed2.score || "",
-        team1Players: team1,
-        team2Players: team2,
-        status: "final",
-      })
-    : "";
+  const recapHtml = renderManualGameContent(getGameContent(game, "game_summary"), "Game Summary");
 
   return {
     team1Header: parsed1.name || game.team1,
@@ -1065,7 +1024,7 @@ function getBoxScorePayload(game) {
         ${renderTeamTable(team1, team1Header)}
         ${renderTeamTable(team2, team2Header)}
       `
-      : teamOnlyHtml,
+      : `${recapHtml}${teamOnlyHtml}`,
   };
 }
 
@@ -1168,16 +1127,7 @@ function buildLiveBoxMarkup(game, livePayload) {
       ${rows || '<div class="boxscore-empty">No stats available.</div>'}
     </div>`;
   };
-  return `${buildGameRecapMarkup({
-    dateLabel: game.dateToken,
-    team1Name: parsed1.name || game.team1,
-    team2Name: parsed2.name || game.team2,
-    team1Score: livePayload.team1Score || "",
-    team2Score: livePayload.team2Score || "",
-    team1Players: livePayload.team1Players || [],
-    team2Players: livePayload.team2Players || [],
-    status: "live",
-  })}
+  return `${renderManualGameContent(getGameContent(game, "game_summary"), "Game Summary")}
     <div class="boxscore-meta">League Day: ${escapeHtml(game.dateToken)}</div>
     ${renderTeam(livePayload.team1Header, livePayload.team1Players)}
     ${renderTeam(livePayload.team2Header, livePayload.team2Players)}`;
@@ -1347,6 +1297,7 @@ function setBoxScoreView(root, view) {
 }
 
 function buildPreviewMarkup(game) {
+  const manualPreview = renderManualGameContent(getGameContent(game, "game_preview"), "Game Preview");
   const previewForTeam = (teamName, opponentName) => {
     const history = scheduleGames
       .filter((g) => {
@@ -1380,7 +1331,7 @@ function buildPreviewMarkup(game) {
     </div>`;
   };
 
-  return `<div class="preview-grid">
+  return `${manualPreview}<div class="preview-grid">
     ${previewForTeam(game.team1, game.team2)}
     ${previewForTeam(game.team2, game.team1)}
   </div>`;
@@ -1431,6 +1382,10 @@ function buildGameCards(games) {
           }${escapeHtml(scoreState.team2Score)}</span>`
         : "";
       const isTodayGame = g.dateToken === getTodayToken();
+      const manualPreview = getGameContent(g, "game_preview");
+      const previewLink = scoreState.status === "upcoming" && manualPreview
+        ? '<button class="game-preview-link" type="button">Game Preview</button>'
+        : "";
       return `
         <div class="calendar-game ${isTodayGame ? "today-game" : ""}" data-game-index="${g.idx}" aria-expanded="false">
           <div class="calendar-game-date">${escapeHtml(g.dateToken)}</div>
@@ -1442,6 +1397,7 @@ function buildGameCards(games) {
           <div class="calendar-game-status ${escapeHtml(scoreState.status)}">
             <strong>${escapeHtml(scoreState.label)}</strong>
           </div>
+          ${previewLink}
           <div class="calendar-game-details" hidden></div>
         </div>
       `;
@@ -1623,6 +1579,7 @@ function applyInitialScheduleRows(rows, season) {
     ? upcomingGames[0].dateToken
     : scheduleGames[0].dateToken;
   scheduleRenderScheduleViews();
+  loadGameContent();
   updateLastUpdated();
 }
 

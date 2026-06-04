@@ -78,6 +78,12 @@ function sanitizeArticle(row) {
     summary: String(row?.summary || "").trim(),
     body: String(row?.body || "").trim(),
     author: String(row?.author || "Commissioner").trim(),
+    content_type: String(row?.content_type || "article").trim(),
+    game_key: String(row?.game_key || "").trim(),
+    season: String(row?.season || "").trim(),
+    date_token: String(row?.date_token || "").trim(),
+    team1: String(row?.team1 || "").trim(),
+    team2: String(row?.team2 || "").trim(),
     status: String(row?.status || "published").trim(),
     created_at: row?.created_at || "",
     updated_at: row?.updated_at || "",
@@ -85,6 +91,10 @@ function sanitizeArticle(row) {
 }
 
 function validateArticle(payload) {
+  const allowedTypes = new Set(["article", "game_preview", "game_summary"]);
+  const contentType = allowedTypes.has(String(payload?.content_type || "").trim())
+    ? String(payload.content_type).trim()
+    : "article";
   const title = String(payload?.title || "").trim();
   const summary = String(payload?.summary || "").trim();
   const body = String(payload?.body || "").trim();
@@ -99,6 +109,12 @@ function validateArticle(payload) {
     summary: summary.slice(0, 260),
     body,
     author: author.slice(0, 60),
+    content_type: contentType,
+    game_key: String(payload?.game_key || "").trim(),
+    season: String(payload?.season || "").trim(),
+    date_token: String(payload?.date_token || "").trim(),
+    team1: String(payload?.team1 || "").trim(),
+    team2: String(payload?.team2 || "").trim(),
     status: "published",
   };
 }
@@ -143,13 +159,25 @@ async function assertCommish(req) {
   }
 }
 
-async function fetchArticles(limit = 12) {
+async function fetchArticles(options = {}) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return [];
   }
+  const limit = Number(options.limit || 12);
+  const contentType = String(options.contentType || "article").trim();
+  const season = String(options.season || "").trim();
+  const gameKey = String(options.gameKey || "").trim();
+  const params = new URLSearchParams();
+  params.set("select", "id,title,summary,body,author,content_type,game_key,season,date_token,team1,team2,status,created_at,updated_at");
+  params.set("status", "eq.published");
+  params.set("content_type", `eq.${contentType}`);
+  if (season) params.set("season", `eq.${season}`);
+  if (gameKey) params.set("game_key", `eq.${gameKey}`);
+  params.set("order", "created_at.desc");
+  params.set("limit", String(limit));
   const rows = await requestJson(
     "GET",
-    `${SUPABASE_URL}/rest/v1/${ARTICLES_TABLE}?select=id,title,summary,body,author,status,created_at,updated_at&status=eq.published&order=created_at.desc&limit=${limit}`,
+    `${SUPABASE_URL}/rest/v1/${ARTICLES_TABLE}?${params.toString()}`,
     supabaseHeaders({ Accept: "application/json" })
   );
   return Array.isArray(rows) ? rows.map(sanitizeArticle) : [];
@@ -158,7 +186,29 @@ async function fetchArticles(limit = 12) {
 module.exports = async (req, res) => {
   if (req.method === "GET") {
     try {
-      const articles = await fetchArticles(12);
+      const parsedUrl = new URL(req.url || "/api/articles", "http://localhost");
+      const query = { ...Object.fromEntries(parsedUrl.searchParams.entries()), ...(req.query || {}) };
+      const articles = await fetchArticles({
+        limit: query.content === "game" ? 200 : 12,
+        contentType:
+          query.type === "game_preview" || query.type === "game_summary"
+            ? query.type
+            : query.content === "game"
+            ? "game_preview"
+            : "article",
+        season: query.season || "",
+        gameKey: query.game_key || "",
+      });
+      if (query.content === "game") {
+        const summaries = await fetchArticles({
+          limit: 200,
+          contentType: "game_summary",
+          season: query.season || "",
+          gameKey: query.game_key || "",
+        });
+        sendJson(res, 200, { ok: true, articles: [...articles, ...summaries] });
+        return;
+      }
       sendJson(res, 200, { ok: true, articles });
     } catch (error) {
       sendJson(res, 500, { ok: false, message: error.message, articles: [] });
@@ -180,7 +230,7 @@ module.exports = async (req, res) => {
         supabaseHeaders({ Prefer: "return=representation" }),
         JSON.stringify([article])
       );
-      const articles = await fetchArticles(12);
+      const articles = await fetchArticles({ limit: 12, contentType: article.content_type });
       sendJson(res, 200, { ok: true, articles });
     } catch (error) {
       sendJson(res, error.status || 500, { ok: false, message: error.message });
