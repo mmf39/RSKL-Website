@@ -579,6 +579,31 @@ async function refreshAuthSession(refreshToken) {
   return data;
 }
 
+async function ensureFreshAccessToken() {
+  if (!gmSession?.access_token && !gmSession?.refresh_token) {
+    throw new Error("Sign in again before publishing.");
+  }
+  if (!gmSession?.refresh_token) {
+    return gmSession.access_token;
+  }
+  try {
+    const tokenData = await refreshAuthSession(gmSession.refresh_token);
+    gmSession = {
+      ...gmSession,
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token || gmSession.refresh_token,
+    };
+    persistAuthState();
+    return gmSession.access_token;
+  } catch (_error) {
+    clearAuthState();
+    gmSession = null;
+    gmAssignment = null;
+    applyAuthUi();
+    throw new Error("Your session expired. Sign in again, then publish.");
+  }
+}
+
 async function signOutAuth() {
   if (!gmSession?.access_token) return;
   try {
@@ -2029,11 +2054,12 @@ async function publishArticle() {
   }
   setArticleStatus("Publishing article...");
   try {
+    const accessToken = await ensureFreshAccessToken();
     const response = await fetch(NEWS_ARTICLES_API, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${gmSession?.access_token || ""}`,
+        Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
         title,
