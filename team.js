@@ -3745,6 +3745,17 @@ function getScheduleScoreState(scheduleRow) {
       team2Score: final.team2Score || "",
     };
   }
+  if (scheduleIndexes.winner !== undefined && scheduleIndexes.winner !== -1) {
+    const winner = String(scheduleRow[scheduleIndexes.winner] || "").trim();
+    if (winner) {
+      return {
+        status: "final",
+        team1Score: "",
+        team2Score: "",
+        winner: displayTeamName(winner),
+      };
+    }
+  }
   const payload = buildBoxScore(getTeamName(), scheduleRow, getSeason());
   if (payload) {
     const p1 = parseTeamHeader(payload.team1Name);
@@ -3758,6 +3769,23 @@ function getScheduleScoreState(scheduleRow) {
     }
   }
   return { status: "upcoming", team1Score: "", team2Score: "" };
+}
+
+function buildScheduleFallbackBoxScore(scheduleRow) {
+  if (!scheduleRow) return null;
+  const dateToken = String(scheduleRow[scheduleIndexes.date] || "").trim();
+  const team1 = displayTeamName(String(scheduleRow[scheduleIndexes.team1] || "").trim());
+  const team2 = displayTeamName(String(scheduleRow[scheduleIndexes.team2] || "").trim());
+  const state = getScheduleScoreState(scheduleRow);
+  if (state.status !== "final") return null;
+  return {
+    dateLabel: `League Day: ${dateToken}`,
+    team1Name: state.team1Score ? `${team1} (${state.team1Score})` : team1,
+    team2Name: state.team2Score ? `${team2} (${state.team2Score})` : team2,
+    team1: [],
+    team2: [],
+    winner: state.winner || "",
+  };
 }
 
 function parseScoreValue(value) {
@@ -3976,20 +4004,29 @@ function buildGameFlowMarkup(team1Name, team2Name, snapshots) {
 }
 
 function buildBoxScoreViewShell(innerHtml, config) {
+  const showFlow = config.showFlow !== false;
   return `
     <div class="boxscore-view-shell"
       data-flow-game-key="${escapeHtml(config.gameKey)}"
       data-flow-season="${escapeHtml(config.season)}"
       data-flow-team1="${escapeHtml(config.team1Name)}"
       data-flow-team2="${escapeHtml(config.team2Name)}">
-      <div class="boxscore-view-tabs">
-        <button class="boxscore-view-tab active" type="button" data-box-view="boxscore">Box Score</button>
-        <button class="boxscore-view-tab" type="button" data-box-view="flow">Game Flow</button>
-      </div>
+      ${
+        showFlow
+          ? `<div class="boxscore-view-tabs">
+              <button class="boxscore-view-tab active" type="button" data-box-view="boxscore">Box Score</button>
+              <button class="boxscore-view-tab" type="button" data-box-view="flow">Game Flow</button>
+            </div>`
+          : ""
+      }
       <div class="boxscore-view-panel" data-box-panel="boxscore">${innerHtml}</div>
-      <div class="boxscore-view-panel" data-box-panel="flow" hidden>
-        <div class="boxscore-empty">Loading game flow…</div>
-      </div>
+      ${
+        showFlow
+          ? `<div class="boxscore-view-panel" data-box-panel="flow" hidden>
+              <div class="boxscore-empty">Loading game flow…</div>
+            </div>`
+          : ""
+      }
     </div>
   `;
 }
@@ -4149,6 +4186,10 @@ function buildBoxScore(teamName, scheduleRow, season) {
   const dateToken = String(scheduleRow[scheduleIndexes.date] || "").trim();
   const team1Name = scheduleRow[scheduleIndexes.team1] || "";
   const team2Name = scheduleRow[scheduleIndexes.team2] || "";
+  const winnerName =
+    scheduleIndexes.winner !== undefined && scheduleIndexes.winner !== -1
+      ? displayTeamName(String(scheduleRow[scheduleIndexes.winner] || "").trim())
+      : "";
 
   const isDateRow = (row) => {
     const a = String(row[0] || "");
@@ -4169,6 +4210,7 @@ function buildBoxScore(teamName, scheduleRow, season) {
       team2Name,
       team1: [],
       team2: [],
+      winner: winnerName,
     };
   }
 
@@ -4230,6 +4272,7 @@ function buildBoxScore(teamName, scheduleRow, season) {
       team2Name,
       team1: [],
       team2: [],
+      winner: winnerName,
     };
   }
 
@@ -4266,16 +4309,13 @@ function buildBoxScore(teamName, scheduleRow, season) {
 
 function buildBoxScoreMarkup(boxScore) {
   if (!boxScore) {
-    return '<div class="boxscore-empty">No stats available.</div>';
+    return '<div class="boxscore-empty">Box score not recorded.</div>';
   }
   const parsedTeam1 = parseTeamHeader(boxScore.team1Name);
   const parsedTeam2 = parseTeamHeader(boxScore.team2Name);
   const cleanTeamLabel = (name) =>
     String(name || "").replace(/\([^)]*\)/g, "").trim();
   const renderTeamTable = (rows, header) => {
-    if (!rows.length) {
-      return "<div class=\"boxscore-empty\">No stats available.</div>";
-    }
     const teamLink = `team.html?team=${encodeURIComponent(
       cleanTeamLabel(header)
     )}`;
@@ -4298,9 +4338,10 @@ function buildBoxScoreMarkup(boxScore) {
         <span>Rank</span>
       </div>
     `;
-    const body = rows
-      .map(
-        (row) => `
+    const body = rows.length
+      ? rows
+          .map(
+            (row) => `
           <div class="boxscore-row">
             <a class="boxscore-link" href="/player-detail.html?player=${encodeURIComponent(
               String(row.player || "").trim()
@@ -4309,22 +4350,53 @@ function buildBoxScoreMarkup(boxScore) {
             <span>${escapeHtml(row.rank)}</span>
           </div>
         `
-      )
-      .join("");
+          )
+          .join("")
+      : '<div class="boxscore-empty">Player stats not recorded.</div>';
     return `<div class="boxscore-table">${headerLine}${headerRow}${body}</div>`;
   };
 
+  const hasPlayerStats = (boxScore.team1 || []).length || (boxScore.team2 || []).length;
+  if (!hasPlayerStats) {
+    const hasTeamScores = Boolean(parsedTeam1.score && parsedTeam2.score);
+    return `
+      <div class="boxscore-meta">${escapeHtml(boxScore.dateLabel || "")}</div>
+      <div class="boxscore-table">
+        <div class="boxscore-row"><span>Team</span><span>${hasTeamScores ? "Score" : "Result"}</span><span></span></div>
+        <div class="boxscore-row">
+          <a class="boxscore-link" href="/team.html?team=${encodeURIComponent(parsedTeam1.name || boxScore.team1Name)}">${escapeHtml(parsedTeam1.name || boxScore.team1Name)}</a>
+          <span>${hasTeamScores ? escapeHtml(parsedTeam1.score) : boxScore.winner && teamMatches(boxScore.winner, parsedTeam1.name || boxScore.team1Name) ? "Win" : "Loss"}</span>
+          <span></span>
+        </div>
+        <div class="boxscore-row">
+          <a class="boxscore-link" href="/team.html?team=${encodeURIComponent(parsedTeam2.name || boxScore.team2Name)}">${escapeHtml(parsedTeam2.name || boxScore.team2Name)}</a>
+          <span>${hasTeamScores ? escapeHtml(parsedTeam2.score) : boxScore.winner && teamMatches(boxScore.winner, parsedTeam2.name || boxScore.team2Name) ? "Win" : "Loss"}</span>
+          <span></span>
+        </div>
+        ${!hasTeamScores ? '<div class="boxscore-empty">Player stats not recorded.</div>' : ""}
+      </div>
+    `;
+  }
   return `
-    ${buildGameRecapMarkup({
-      dateLabel: boxScore.dateLabel || "",
-      team1Name: parsedTeam1.name || boxScore.team1Name,
-      team2Name: parsedTeam2.name || boxScore.team2Name,
-      team1Score: parsedTeam1.score || "",
-      team2Score: parsedTeam2.score || "",
-      team1Players: boxScore.team1 || [],
-      team2Players: boxScore.team2 || [],
-      status: "final",
-    })}
+    ${
+      hasPlayerStats
+        ? buildGameRecapMarkup({
+            dateLabel: boxScore.dateLabel || "",
+            team1Name: parsedTeam1.name || boxScore.team1Name,
+            team2Name: parsedTeam2.name || boxScore.team2Name,
+            team1Score: parsedTeam1.score || "",
+            team2Score: parsedTeam2.score || "",
+            team1Players: boxScore.team1 || [],
+            team2Players: boxScore.team2 || [],
+            status: "final",
+          })
+        : ""
+    }
+    ${
+      boxScore.winner
+        ? `<div class="boxscore-meta">Winner: ${escapeHtml(boxScore.winner)}</div>`
+        : ""
+    }
     <div class="boxscore-meta">${escapeHtml(boxScore.dateLabel || "")}</div>
     <div class="boxscore-card">
       ${renderTeamTable(boxScore.team1, boxScore.team1Name)}
@@ -4396,7 +4468,7 @@ els.scheduleBody.addEventListener("click", (event) => {
   }
   const index = Number(rowEl.dataset.index);
   const scheduleRow = teamScheduleRows[index];
-  const boxScore = buildBoxScore(getTeamName(), scheduleRow, getSeason());
+  const boxScore = buildBoxScore(getTeamName(), scheduleRow, getSeason()) || buildScheduleFallbackBoxScore(scheduleRow);
   const detailRow = els.scheduleBody.querySelector(
     `.schedule-detail-row[data-detail-index="${index}"]`
   );
@@ -4449,6 +4521,7 @@ els.scheduleBody.addEventListener("click", (event) => {
         season: getSeason(),
         team1Name: parsed1.name || scheduleRow[scheduleIndexes.team1] || "",
         team2Name: parsed2.name || scheduleRow[scheduleIndexes.team2] || "",
+        showFlow: Boolean((boxScore?.team1 || []).length || (boxScore?.team2 || []).length),
       });
     }
   }

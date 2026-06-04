@@ -781,6 +781,7 @@ function buildGames(rows, season) {
   let team1Index = findIdx(["team 1", "team1", "away"]);
   let team2Index = findIdx(["team 2", "team2", "home"]);
   let gameTypeIndex = findIdx(["game type", "type"]);
+  let winnerIndex = findIdx(["winner"]);
 
   if (season === "c2s2") {
     if (dateIndex === -1) dateIndex = 0;
@@ -804,6 +805,7 @@ function buildGames(rows, season) {
       const team2 = displayTeamName(String(row[team2Index] || "").trim());
       const gameTypeRaw = gameTypeIndex >= 0 ? String(row[gameTypeIndex] || "").trim() : "";
       const gameType = normalizeGameType(gameTypeRaw);
+      const winner = winnerIndex >= 0 ? displayTeamName(String(row[winnerIndex] || "").trim()) : "";
       if (!dateToken || !team1 || !team2) return null;
       return {
         rawDate,
@@ -811,6 +813,7 @@ function buildGames(rows, season) {
         dateObj,
         team1,
         team2,
+        winner,
         gameTypeRaw,
         gameType,
       };
@@ -939,6 +942,7 @@ function findBoxScoreRowsForGame(game) {
 
 function getBoxScorePayload(game) {
   const rows = findBoxScoreRowsForGame(game);
+  const scoreFallback = finalScoreMap.get(buildGameKey(game.dateToken, game.team1, game.team2));
 
   const toTeamRows = (rowsIn, side) => {
     if (side === 1) {
@@ -949,9 +953,15 @@ function getBoxScorePayload(game) {
 
   const team1Rows = toTeamRows(rows, 1);
   const team2Rows = toTeamRows(rows, 2);
-  const team1Header = team1Rows.length ? team1Rows[0][0] : game.team1;
+  const team1Header = team1Rows.length
+    ? team1Rows[0][0]
+    : scoreFallback?.team1Score
+    ? `${game.team1} (${scoreFallback.team1Score})`
+    : game.team1;
   const team2Header = team2Rows.length
     ? team2Rows[0][getRightNameCol(team2Rows[0])]
+    : scoreFallback?.team2Score
+    ? `${game.team2} (${scoreFallback.team2Score})`
     : game.team2;
 
   const mapRows = (arr, side) =>
@@ -991,7 +1001,7 @@ function getBoxScorePayload(game) {
             `
           )
           .join("")
-      : '<div class="boxscore-empty">No stats available.</div>';
+      : '<div class="boxscore-empty">Player stats not recorded.</div>';
 
     return `
       <div class="boxscore-card">
@@ -1005,16 +1015,37 @@ function getBoxScorePayload(game) {
   const parsed1 = parseTeamHeader(team1Header);
   const parsed2 = parseTeamHeader(team2Header);
   const finalScore = parsed1.score && parsed2.score ? `${parsed1.score}-${parsed2.score}` : "";
-  const recapHtml = buildGameRecapMarkup({
-    dateLabel: game.dateToken,
-    team1Name: parsed1.name || game.team1,
-    team2Name: parsed2.name || game.team2,
-    team1Score: parsed1.score || "",
-    team2Score: parsed2.score || "",
-    team1Players: team1,
-    team2Players: team2,
-    status: "final",
-  });
+  const hasPlayerStats = team1.length || team2.length;
+  const hasTeamScores = Boolean(parsed1.score && parsed2.score);
+  const teamOnlyHtml = `
+    <div class="boxscore-meta">League Day: ${escapeHtml(game.dateToken)}</div>
+    <div class="boxscore-table">
+      <div class="boxscore-row"><span>Team</span><span>${hasTeamScores ? "Score" : "Result"}</span><span></span></div>
+      <div class="boxscore-row">
+        <a class="boxscore-link" href="/team.html?team=${encodeURIComponent(parsed1.name || game.team1)}">${escapeHtml(parsed1.name || game.team1)}</a>
+        <span>${hasTeamScores ? escapeHtml(parsed1.score) : game.winner && normalizeTeamName(game.winner) === normalizeTeamName(parsed1.name || game.team1) ? "Win" : "Loss"}</span>
+        <span></span>
+      </div>
+      <div class="boxscore-row">
+        <a class="boxscore-link" href="/team.html?team=${encodeURIComponent(parsed2.name || game.team2)}">${escapeHtml(parsed2.name || game.team2)}</a>
+        <span>${hasTeamScores ? escapeHtml(parsed2.score) : game.winner && normalizeTeamName(game.winner) === normalizeTeamName(parsed2.name || game.team2) ? "Win" : "Loss"}</span>
+        <span></span>
+      </div>
+      ${!hasTeamScores ? '<div class="boxscore-empty">Player stats not recorded.</div>' : ""}
+    </div>
+  `;
+  const recapHtml = hasPlayerStats
+    ? buildGameRecapMarkup({
+        dateLabel: game.dateToken,
+        team1Name: parsed1.name || game.team1,
+        team2Name: parsed2.name || game.team2,
+        team1Score: parsed1.score || "",
+        team2Score: parsed2.score || "",
+        team1Players: team1,
+        team2Players: team2,
+        status: "final",
+      })
+    : "";
 
   return {
     team1Header: parsed1.name || game.team1,
@@ -1025,12 +1056,16 @@ function getBoxScorePayload(game) {
     team2,
     finalScore,
     recapHtml,
-    html: `
-      ${recapHtml}
-      <div class="boxscore-meta">League Day: ${escapeHtml(game.dateToken)}</div>
-      ${renderTeamTable(team1, team1Header)}
-      ${renderTeamTable(team2, team2Header)}
-    `,
+    hasPlayerStats,
+    html: hasPlayerStats
+      ? `
+        ${recapHtml}
+        ${game.winner ? `<div class="boxscore-meta">Winner: ${escapeHtml(game.winner)}</div>` : ""}
+        <div class="boxscore-meta">League Day: ${escapeHtml(game.dateToken)}</div>
+        ${renderTeamTable(team1, team1Header)}
+        ${renderTeamTable(team2, team2Header)}
+      `
+      : teamOnlyHtml,
   };
 }
 
@@ -1078,6 +1113,18 @@ function getGameScoreState(game) {
       team2Score: payload.team2Score || "",
       team1Outcome: outcomes.team1,
       team2Outcome: outcomes.team2,
+    };
+    gameScoreStateCache.set(cacheKey, state);
+    return state;
+  }
+  if (game.winner) {
+    const state = {
+      status: "final",
+      label: "FINAL",
+      team1Score: "",
+      team2Score: "",
+      team1Outcome: normalizeTeamName(game.winner) === normalizeTeamName(game.team1) ? "win" : "loss",
+      team2Outcome: normalizeTeamName(game.winner) === normalizeTeamName(game.team2) ? "win" : "loss",
     };
     gameScoreStateCache.set(cacheKey, state);
     return state;
@@ -1232,20 +1279,29 @@ function buildGameFlowMarkup(team1Name, team2Name, snapshots) {
 }
 
 function buildBoxScoreViewShell(innerHtml, config) {
+  const showFlow = config.showFlow !== false;
   return `
     <div class="boxscore-view-shell"
       data-flow-game-key="${escapeHtml(config.gameKey)}"
       data-flow-season="${escapeHtml(config.season)}"
       data-flow-team1="${escapeHtml(config.team1Name)}"
       data-flow-team2="${escapeHtml(config.team2Name)}">
-      <div class="boxscore-view-tabs">
-        <button class="boxscore-view-tab active" type="button" data-box-view="boxscore">Box Score</button>
-        <button class="boxscore-view-tab" type="button" data-box-view="flow">Game Flow</button>
-      </div>
+      ${
+        showFlow
+          ? `<div class="boxscore-view-tabs">
+              <button class="boxscore-view-tab active" type="button" data-box-view="boxscore">Box Score</button>
+              <button class="boxscore-view-tab" type="button" data-box-view="flow">Game Flow</button>
+            </div>`
+          : ""
+      }
       <div class="boxscore-view-panel" data-box-panel="boxscore">${innerHtml}</div>
-      <div class="boxscore-view-panel" data-box-panel="flow" hidden>
-        <div class="boxscore-empty">Loading game flow…</div>
-      </div>
+      ${
+        showFlow
+          ? `<div class="boxscore-view-panel" data-box-panel="flow" hidden>
+              <div class="boxscore-empty">Loading game flow…</div>
+            </div>`
+          : ""
+      }
     </div>
   `;
 }
@@ -1504,6 +1560,7 @@ function bindCalendarEvents() {
           season: getSeasonRaw(),
           team1Name: parsed1.name || game.team1,
           team2Name: parsed2.name || game.team2,
+          showFlow: payload.hasPlayerStats,
         });
       }
       details.dataset.loaded = "1";

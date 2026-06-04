@@ -112,7 +112,6 @@ const els = {
   featuredMatchups: document.getElementById("featured-matchups"),
   leagueLeaders: document.getElementById("league-leaders"),
   recentTransactions: document.getElementById("recent-transactions"),
-  activityFeed: document.getElementById("activity-feed"),
   liveModal: document.getElementById("live-modal"),
   liveDetails: document.getElementById("live-details"),
 };
@@ -609,26 +608,6 @@ function buildSkeletonCard(lines = 3) {
   `;
 }
 
-function formatNewsTimestamp(value) {
-  const parsed = Date.parse(String(value || ""));
-  if (Number.isNaN(parsed)) {
-    return "Scheduled";
-  }
-  return new Date(parsed).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function formatNewsKind(value) {
-  if (value === "preview") return "Preview";
-  if (value === "recap") return "Recap";
-  if (value === "transaction") return "Transactions";
-  return "League News";
-}
-
 function prepareDashboardScheduleRows(rows, seasonRaw) {
   if (!rows.length) return [];
   if (seasonRaw !== "c2s3-regular") return rows;
@@ -704,9 +683,6 @@ function setDashboardLoading() {
   }
   if (els.teamsGrid) {
     els.teamsGrid.innerHTML = `<div class="dashboard-feature-grid">${buildSkeletonCard(3)}${buildSkeletonCard(3)}${buildSkeletonCard(3)}</div>`;
-  }
-  if (els.activityFeed) {
-    els.activityFeed.innerHTML = `<div class="dashboard-activity-list">${buildSkeletonCard(3)}${buildSkeletonCard(3)}</div>`;
   }
 }
 
