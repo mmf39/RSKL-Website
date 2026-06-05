@@ -490,7 +490,7 @@ async function fetchGmAssignment(userId) {
   const rows = await requestJson(
     `${supabaseUrl}/rest/v1/gm_assignments${query}`,
     {
-      headers: authHeaders(true),
+      headers: await authHeadersFresh(),
     }
   );
   const row = Array.isArray(rows) ? rows[0] : null;
@@ -523,7 +523,7 @@ async function fetchLegacyGmProfile(userId) {
     userId
   )}&limit=1`;
   const rows = await requestJson(`${supabaseUrl}/rest/v1/gm_users${query}`, {
-    headers: authHeaders(true),
+    headers: await authHeadersFresh(),
   });
   const row = Array.isArray(rows) ? rows[0] : null;
   if (!row || row.is_gm === false) {
@@ -581,7 +581,7 @@ async function refreshAuthSession(refreshToken) {
 
 async function ensureFreshAccessToken() {
   if (!gmSession?.access_token && !gmSession?.refresh_token) {
-    throw new Error("Sign in again before publishing.");
+    throw new Error("Sign in again to continue.");
   }
   if (!gmSession?.refresh_token) {
     return gmSession.access_token;
@@ -600,8 +600,16 @@ async function ensureFreshAccessToken() {
     gmSession = null;
     gmAssignment = null;
     applyAuthUi();
-    throw new Error("Your session expired. Sign in again, then publish.");
+    throw new Error("Your session expired. Sign in again, then try again.");
   }
+}
+
+async function authHeadersFresh(extra = {}) {
+  const accessToken = await ensureFreshAccessToken();
+  return {
+    ...authHeaders(true, accessToken),
+    ...extra,
+  };
 }
 
 async function signOutAuth() {
@@ -609,7 +617,7 @@ async function signOutAuth() {
   try {
     await requestJson(`${supabaseUrl}/auth/v1/logout`, {
       method: "POST",
-      headers: authHeaders(true),
+      headers: await authHeadersFresh(),
       body: JSON.stringify({}),
     });
   } catch (_) {
@@ -933,11 +941,10 @@ async function saveGameLocksToSheet(locks) {
     throw new Error("No valid lock rows.");
   }
 
-  const accessToken = await ensureFreshAccessToken();
   const response = await fetch(`${supabaseUrl}/rest/v1/${GM_GAME_LOCKS_TABLE}`, {
     method: "POST",
     headers: {
-      ...authHeaders(true, accessToken),
+      ...(await authHeadersFresh()),
       Prefer: "resolution=merge-duplicates,return=representation",
     },
     body: JSON.stringify(rows),
@@ -965,11 +972,10 @@ async function fetchGameLocksFromSheet() {
   if (!gmSession?.access_token) {
     return localGameLocksByDate;
   }
-  const accessToken = await ensureFreshAccessToken();
   const response = await fetch(
     `${supabaseUrl}/rest/v1/${GM_GAME_LOCKS_TABLE}?select=date_text,lock_at,updated_at&order=date_text.asc`,
     {
-      headers: authHeaders(true, accessToken),
+      headers: await authHeadersFresh(),
       cache: "no-store",
     }
   );
@@ -1479,7 +1485,7 @@ async function fetchFreeAgencySelectionFromSupabase() {
     `&voter_handle=eq.${encodeURIComponent(voterHandle.startsWith("@") ? voterHandle : `@${voterHandle}`)}` +
     `&limit=1`;
   const response = await fetch(`${supabaseUrl}/rest/v1/${GM_ALL_STAR_VOTES_TABLE}${query}`, {
-    headers: authHeaders(true),
+    headers: await authHeadersFresh(),
     cache: "no-store",
   });
   if (!response.ok) {
@@ -1519,7 +1525,7 @@ async function saveFreeAgencySelectionToSupabase(selection) {
     {
       method: "POST",
       headers: {
-        ...authHeaders(true),
+        ...(await authHeadersFresh()),
         Prefer: "resolution=merge-duplicates,return=representation",
       },
       body: JSON.stringify([payload]),
@@ -1547,7 +1553,7 @@ async function fetchAllStarResultsFromSupabase() {
   const response = await fetch(
     `${supabaseUrl}/rest/v1/${GM_ALL_STAR_VOTES_TABLE}?select=voter_handle,votes,updated_at&order=updated_at.desc`,
     {
-      headers: authHeaders(true),
+      headers: await authHeadersFresh(),
       cache: "no-store",
     }
   );
@@ -2056,12 +2062,10 @@ async function publishArticle() {
   }
   setArticleStatus("Publishing article...");
   try {
-    const accessToken = await ensureFreshAccessToken();
     const response = await fetch(NEWS_ARTICLES_API, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
+        ...(await authHeadersFresh()),
       },
       body: JSON.stringify({
         title,
@@ -2741,7 +2745,7 @@ async function init() {
       try {
         let tokenData = { access_token: savedToken, refresh_token: savedRefresh };
         let user = null;
-        if (!tokenData.access_token && tokenData.refresh_token) {
+        if (tokenData.refresh_token) {
           tokenData = await refreshAuthSession(tokenData.refresh_token);
           user = await fetchAuthUser(tokenData.access_token);
         } else {
