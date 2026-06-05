@@ -3678,6 +3678,114 @@ function formatTeamHeaderWithScore(teamName, score) {
     : cleanTeam;
 }
 
+function buildScheduleGameFromRow(scheduleRow) {
+  if (!scheduleRow) return null;
+  const dateToken = normalizeDateToken(scheduleRow[scheduleIndexes.date]);
+  const team1 = displayTeamName(String(scheduleRow[scheduleIndexes.team1] || "").trim());
+  const team2 = displayTeamName(String(scheduleRow[scheduleIndexes.team2] || "").trim());
+  const winner =
+    scheduleIndexes.winner !== undefined && scheduleIndexes.winner !== -1
+      ? displayTeamName(String(scheduleRow[scheduleIndexes.winner] || "").trim())
+      : "";
+  if (!dateToken || !team1 || !team2) return null;
+  return { dateToken, team1, team2, winner };
+}
+
+function findBoxScoreRowsForScheduleRow(scheduleRow) {
+  const game = buildScheduleGameFromRow(scheduleRow);
+  if (!game || !boxScoreRows.length) return [];
+  const tokenMatches = (cell, token) => normalizeDateToken(cell) === token;
+  const isDateRow = (row) => {
+    const a = String(row[0] || "");
+    const b = String(row[1] || "");
+    return tokenMatches(a, game.dateToken) || tokenMatches(b, game.dateToken);
+  };
+
+  const start = boxScoreRows.findIndex(isDateRow);
+  if (start === -1) return [];
+
+  let end = boxScoreRows.length;
+  for (let i = start + 1; i < boxScoreRows.length; i += 1) {
+    if (isDateRow(boxScoreRows[i])) {
+      end = i;
+      break;
+    }
+  }
+
+  const dayRows = boxScoreRows.slice(start + 1, end);
+  const blocks = [];
+  let current = null;
+  dayRows.forEach((row) => {
+    const left = String(row[0] || "").trim();
+    const right = String(row[getRightNameCol(row)] || "").trim();
+    const isHeader =
+      left &&
+      right &&
+      !isPlayerCell(left) &&
+      !isPlayerCell(right) &&
+      !isPlayerLabelRow(left, right) &&
+      !left.includes("League Day") &&
+      !right.includes("League Day");
+    const isPlayer = isPlayerCell(left) || isPlayerCell(right);
+    if (isHeader) {
+      current = [row];
+      blocks.push(current);
+      return;
+    }
+    if (isPlayer && current) {
+      current.push(row);
+    }
+  });
+
+  const target1 = normalizeTeamLabel(game.team1);
+  const target2 = normalizeTeamLabel(game.team2);
+  return (
+    blocks.find((block) => {
+      const header = block[0] || [];
+      const h1 = normalizeTeamLabel(parseTeamHeader(header[0]).name);
+      const h2 = normalizeTeamLabel(parseTeamHeader(header[getRightNameCol(header)]).name);
+      const exact = (h1 === target1 && h2 === target2) || (h1 === target2 && h2 === target1);
+      const fuzzy =
+        ((h1.includes(target1) || target1.includes(h1)) &&
+          (h2.includes(target2) || target2.includes(h2))) ||
+        ((h1.includes(target2) || target2.includes(h1)) &&
+          (h2.includes(target1) || target1.includes(h2)));
+      return exact || fuzzy;
+    }) || []
+  );
+}
+
+function getBoxScorePayloadForScheduleRow(scheduleRow) {
+  const game = buildScheduleGameFromRow(scheduleRow);
+  if (!game) return null;
+  const rows = findBoxScoreRowsForScheduleRow(scheduleRow);
+  const scoreFallback = getFinalScoreForScheduleRow(scheduleRow);
+  const team1Rows = rows.filter((row) => String(row[0] || "").trim() !== "");
+  const team2Rows = rows.filter((row) => String(row[getRightNameCol(row)] || "").trim() !== "");
+  const team1Header = team1Rows.length
+    ? team1Rows[0][0]
+    : scoreFallback?.team1Score
+    ? `${game.team1} (${scoreFallback.team1Score})`
+    : game.team1;
+  const team2Header = team2Rows.length
+    ? team2Rows[0][getRightNameCol(team2Rows[0])]
+    : scoreFallback?.team2Score
+    ? `${game.team2} (${scoreFallback.team2Score})`
+    : game.team2;
+  const parsed1 = parseTeamHeader(team1Header);
+  const parsed2 = parseTeamHeader(team2Header);
+  return {
+    team1Header,
+    team2Header,
+    team1Score: parsed1.score || "",
+    team2Score: parsed2.score || "",
+    finalScore: parsed1.score && parsed2.score ? `${parsed1.score}-${parsed2.score}` : "",
+    hasPlayerStats:
+      team1Rows.slice(1).some((row) => isPlayerCell(row[0])) ||
+      team2Rows.slice(1).some((row) => isPlayerCell(row[getRightNameCol(row)])),
+  };
+}
+
 function parseDateObj(token) {
   const m = String(token || "").match(/^(\d{1,2})\/(\d{1,2})$/);
   if (!m) return null;
@@ -3744,10 +3852,12 @@ function computeTeamLeaders(playerRows) {
 }
 
 function getScheduleScoreState(scheduleRow) {
-  const dateToken = normalizeDateToken(scheduleRow[scheduleIndexes.date]);
-  const team1 = String(scheduleRow[scheduleIndexes.team1] || "").trim();
-  const team2 = String(scheduleRow[scheduleIndexes.team2] || "").trim();
-  const live = liveScoreMap.get(buildGameKey(dateToken, team1, team2));
+  const game = buildScheduleGameFromRow(scheduleRow);
+  if (!game) {
+    return { status: "upcoming", team1Score: "", team2Score: "" };
+  }
+  const cacheKey = buildGameKey(game.dateToken, game.team1, game.team2);
+  const live = liveScoreMap.get(cacheKey);
   if (live) {
     return {
       status: "live",
@@ -3757,52 +3867,44 @@ function getScheduleScoreState(scheduleRow) {
     };
   }
 
-  const final = getFinalScoreForScheduleRow(scheduleRow);
-  if (final && (final.team1Score || final.team2Score)) {
+  const final = finalScoreMap.get(cacheKey);
+  if (final && final.team1Score && final.team2Score) {
     return {
       status: "final",
-      team1Score: final.team1Score || "",
-      team2Score: final.team2Score || "",
+      team1Score: final.team1Score,
+      team2Score: final.team2Score,
     };
   }
+
+  const payload = getBoxScorePayloadForScheduleRow(scheduleRow);
+  if (payload?.finalScore) {
+    return {
+      status: "final",
+      team1Score: payload.team1Score || "",
+      team2Score: payload.team2Score || "",
+    };
+  }
+
   const statusText =
     scheduleIndexes.status !== undefined && scheduleIndexes.status !== -1
       ? String(scheduleRow[scheduleIndexes.status] || "").trim()
       : "";
   const isMarkedComplete = /(final|complete|completed)/i.test(statusText);
   if (isMarkedComplete) {
-    const payload = buildBoxScore(getTeamName(), scheduleRow, getSeason());
-    const p1 = parseTeamHeader(payload?.team1Name || "");
-    const p2 = parseTeamHeader(payload?.team2Name || "");
     return {
       status: "final",
-      team1Score: p1.score || "",
-      team2Score: p2.score || "",
+      team1Score: payload?.team1Score || "",
+      team2Score: payload?.team2Score || "",
       winner: "",
     };
   }
-  if (scheduleIndexes.winner !== undefined && scheduleIndexes.winner !== -1) {
-    const winner = String(scheduleRow[scheduleIndexes.winner] || "").trim();
-    if (winner) {
-      return {
-        status: "final",
-        team1Score: "",
-        team2Score: "",
-        winner: displayTeamName(winner),
-      };
-    }
-  }
-  const payload = buildBoxScore(getTeamName(), scheduleRow, getSeason());
-  if (payload) {
-    const p1 = parseTeamHeader(payload.team1Name);
-    const p2 = parseTeamHeader(payload.team2Name);
-    if (p1.score !== "" && p2.score !== "") {
-      return {
-        status: "final",
-        team1Score: p1.score,
-        team2Score: p2.score,
-      };
-    }
+  if (game.winner) {
+    return {
+      status: "final",
+      team1Score: "",
+      team2Score: "",
+      winner: game.winner,
+    };
   }
   return { status: "upcoming", team1Score: "", team2Score: "" };
 }
@@ -4231,81 +4333,8 @@ function buildBoxScore(teamName, scheduleRow, season) {
   const fallbackTeam1Name = formatTeamHeaderWithScore(team1Name, finalScore?.team1Score);
   const fallbackTeam2Name = formatTeamHeaderWithScore(team2Name, finalScore?.team2Score);
 
-  const isDateRow = (row) => {
-    const a = String(row[0] || "");
-    const b = String(row[1] || "");
-    return (
-      (a.includes("League Day") && dateToken && a.includes(dateToken)) ||
-      (b.includes("League Day") && dateToken && b.includes(dateToken)) ||
-      (dateToken && a.includes(dateToken)) ||
-      (dateToken && b.includes(dateToken))
-    );
-  };
-
-  const matchIndex = boxScoreRows.findIndex(isDateRow);
-  if (matchIndex === -1) {
-    return {
-      dateLabel: `League Day: ${dateToken}`,
-      team1Name: fallbackTeam1Name,
-      team2Name: fallbackTeam2Name,
-      team1: [],
-      team2: [],
-      winner: winnerName,
-    };
-  }
-
-  let dayEnd = boxScoreRows.length;
-  for (let i = matchIndex + 1; i < boxScoreRows.length; i += 1) {
-    if (isDateRow(boxScoreRows[i])) {
-      dayEnd = i;
-      break;
-    }
-  }
-  const dayRows = boxScoreRows.slice(matchIndex + 1, dayEnd);
-  const blocks = [];
-  let current = null;
-  dayRows.forEach((row) => {
-    const left = String(row[0] || "").trim();
-    const right = String(row[4] || "").trim();
-    const isHeader =
-      left &&
-      right &&
-      !isPlayerCell(left) &&
-      !isPlayerCell(right) &&
-      !isPlayerLabelRow(left, right) &&
-      !left.includes("League Day") &&
-      !right.includes("League Day");
-    const isPlayer = isPlayerCell(left) || isPlayerCell(right);
-    if (isHeader) {
-      current = [row];
-      blocks.push(current);
-      return;
-    }
-    if (isPlayer && current) {
-      current.push(row);
-    }
-  });
-
-  const normalizedTeam1 = normalizeTeamLabel(team1Name);
-  const normalizedTeam2 = normalizeTeamLabel(team2Name);
-  const selectedBlock = blocks.find((block) => {
-    const header = block[0] || [];
-    const h1 = normalizeTeamLabel(parseTeamHeader(header[0]).name);
-    const h2 = normalizeTeamLabel(
-      parseTeamHeader(header[getRightNameCol(header)]).name
-    );
-    const exact =
-      (h1 === normalizedTeam1 && h2 === normalizedTeam2) ||
-      (h1 === normalizedTeam2 && h2 === normalizedTeam1);
-    const fuzzy =
-      ((h1.includes(normalizedTeam1) || normalizedTeam1.includes(h1)) &&
-        (h2.includes(normalizedTeam2) || normalizedTeam2.includes(h2))) ||
-      ((h1.includes(normalizedTeam2) || normalizedTeam2.includes(h1)) &&
-        (h2.includes(normalizedTeam1) || normalizedTeam1.includes(h2)));
-    return exact || fuzzy;
-  });
-
-  if (!selectedBlock) {
+  const selectedBlock = findBoxScoreRowsForScheduleRow(scheduleRow);
+  if (!selectedBlock.length) {
     return {
       dateLabel: `League Day: ${dateToken}`,
       team1Name: fallbackTeam1Name,
