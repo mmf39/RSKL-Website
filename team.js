@@ -3765,6 +3765,22 @@ function getScheduleScoreState(scheduleRow) {
       team2Score: final.team2Score || "",
     };
   }
+  const statusText =
+    scheduleIndexes.status !== undefined && scheduleIndexes.status !== -1
+      ? String(scheduleRow[scheduleIndexes.status] || "").trim()
+      : "";
+  const isMarkedComplete = /(final|complete|completed)/i.test(statusText);
+  if (isMarkedComplete) {
+    const payload = buildBoxScore(getTeamName(), scheduleRow, getSeason());
+    const p1 = parseTeamHeader(payload?.team1Name || "");
+    const p2 = parseTeamHeader(payload?.team2Name || "");
+    return {
+      status: "final",
+      team1Score: p1.score || "",
+      team2Score: p2.score || "",
+      winner: "",
+    };
+  }
   if (scheduleIndexes.winner !== undefined && scheduleIndexes.winner !== -1) {
     const winner = String(scheduleRow[scheduleIndexes.winner] || "").trim();
     if (winner) {
@@ -4127,6 +4143,7 @@ function getScheduleIndexes(headers, season) {
   let team1 = findIdx(["team 1", "team1", "away"]);
   let team2 = findIdx(["team 2", "team2", "home"]);
   const winner = findIdx(["winner"]);
+  const status = findIdx(["status"]);
 
   if (date === -1 || team1 === -1 || team2 === -1) {
     if (season === "c2s2") {
@@ -4144,7 +4161,7 @@ function getScheduleIndexes(headers, season) {
     }
   }
 
-  return { date, team1, team2, winner };
+  return { date, team1, team2, winner, status };
 }
 
 function getC2S2ScheduleRows(rows, range = C2S2_SCHEDULE_RANGE) {
