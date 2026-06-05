@@ -1383,8 +1383,12 @@ function buildGameCards(games) {
         : "";
       const isTodayGame = g.dateToken === getTodayToken();
       const manualPreview = getGameContent(g, "game_preview");
+      const manualSummary = getGameContent(g, "game_summary");
       const previewLink = scoreState.status === "upcoming" && manualPreview
         ? '<button class="game-preview-link" type="button">Game Preview</button>'
+        : "";
+      const reviewLink = scoreState.status === "final" && manualSummary?.id
+        ? `<a class="game-preview-link game-review-link" href="/article.html?id=${encodeURIComponent(manualSummary.id)}">Game Review</a>`
         : "";
       return `
         <div class="calendar-game ${isTodayGame ? "today-game" : ""}" data-game-index="${g.idx}" aria-expanded="false">
@@ -1397,7 +1401,7 @@ function buildGameCards(games) {
           <div class="calendar-game-status ${escapeHtml(scoreState.status)}">
             <strong>${escapeHtml(scoreState.label)}</strong>
           </div>
-          ${previewLink}
+          ${previewLink || reviewLink}
           <div class="calendar-game-details" hidden></div>
         </div>
       `;

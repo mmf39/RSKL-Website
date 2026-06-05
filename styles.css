@@ -3280,6 +3280,11 @@ input[type="text"] {
   font-size: 0.92rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  text-decoration: none;
+}
+
+.game-preview-link:hover {
+  border-color: rgba(255, 190, 92, 0.92);
 }
 
 .calendar-game-details {
