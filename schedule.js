@@ -416,7 +416,7 @@ function buildGameArticleLinks(game, options = {}) {
     links.push(`<a class="game-preview-link" href="/article.html?id=${encodeURIComponent(manualPreview.id)}">Game Preview</a>`);
   }
   if (manualSummary?.id && options.includeSummary !== false) {
-    links.push(`<a class="game-preview-link game-review-link" href="/article.html?id=${encodeURIComponent(manualSummary.id)}">Game Review</a>`);
+    links.push(`<a class="game-preview-link game-review-link" href="/article.html?id=${encodeURIComponent(manualSummary.id)}">Game Summary</a>`);
   }
   return links.join("");
 }
