@@ -112,13 +112,11 @@ const LIVE_RIGHT_POINTS_COL = 6;
 const LIVE_RIGHT_RANK_COL = 7;
 
 function getRightNameCol(row) {
-  if (Array.isArray(row) && row.length >= 8) {
-    return 4;
-  }
-  if (Array.isArray(row) && row.length >= 4) {
-    return 2;
-  }
-  return 4;
+  const rightF = String(row?.[5] || "").trim();
+  const rightE = String(row?.[4] || "").trim();
+  if (rightF) return 5;
+  if (rightE) return 4;
+  return LIVE_RIGHT_NAME_COL;
 }
 
 function getRightPointsCol(row) {
@@ -4267,6 +4265,23 @@ function getScheduleIndexes(headers, season) {
 }
 
 function getC2S2ScheduleRows(rows, range = C2S2_SCHEDULE_RANGE) {
+  if (range === C2S2_SCHEDULE_RANGE) {
+    const headerRowIndex = rows.findIndex((row) => {
+      const header = row.map((value) => String(value || "").trim().toLowerCase());
+      return (
+        header.some((value) => value === "date" || value.includes("date")) &&
+        header.some(
+          (value) => value.includes("team 1") || value.includes("team1") || value.includes("away")
+        ) &&
+        header.some(
+          (value) => value.includes("team 2") || value.includes("team2") || value.includes("home")
+        )
+      );
+    });
+    if (headerRowIndex >= 0) {
+      return rows.slice(headerRowIndex);
+    }
+  }
   const sliced = sliceRange(rows, range);
   return [["Date", "Team 1", "Team 2", "Info", "Game Type"], ...sliced];
 }
