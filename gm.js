@@ -933,10 +933,11 @@ async function saveGameLocksToSheet(locks) {
     throw new Error("No valid lock rows.");
   }
 
+  const accessToken = await ensureFreshAccessToken();
   const response = await fetch(`${supabaseUrl}/rest/v1/${GM_GAME_LOCKS_TABLE}`, {
     method: "POST",
     headers: {
-      ...authHeaders(true),
+      ...authHeaders(true, accessToken),
       Prefer: "resolution=merge-duplicates,return=representation",
     },
     body: JSON.stringify(rows),
@@ -964,10 +965,11 @@ async function fetchGameLocksFromSheet() {
   if (!gmSession?.access_token) {
     return localGameLocksByDate;
   }
+  const accessToken = await ensureFreshAccessToken();
   const response = await fetch(
     `${supabaseUrl}/rest/v1/${GM_GAME_LOCKS_TABLE}?select=date_text,lock_at,updated_at&order=date_text.asc`,
     {
-      headers: authHeaders(true),
+      headers: authHeaders(true, accessToken),
       cache: "no-store",
     }
   );
