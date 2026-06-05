@@ -3442,6 +3442,11 @@ input[type="text"] {
   gap: 14px;
 }
 
+.boxscore-action-row {
+  display: flex;
+  justify-content: center;
+}
+
 .boxscore-view-tabs {
   display: inline-flex;
   align-items: center;

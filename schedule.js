@@ -403,6 +403,13 @@ function renderManualGameContent(article, eyebrow) {
   `;
 }
 
+function buildGameReviewLink(game) {
+  const manualSummary = getGameContent(game, "game_summary");
+  return manualSummary?.id
+    ? `<a class="game-preview-link game-review-link" href="/article.html?id=${encodeURIComponent(manualSummary.id)}">Game Review</a>`
+    : "";
+}
+
 async function loadGameContent() {
   try {
     const response = await fetch(`${NEWS_ARTICLES_API}?content=game&season=${encodeURIComponent(getSeasonRaw())}`, {
@@ -419,6 +426,10 @@ async function loadGameContent() {
       if (!map.has(key)) map.set(key, article);
     });
     gameContentMap = map;
+    document.querySelectorAll(".calendar-game-details[data-loaded]").forEach((node) => {
+      node.removeAttribute("data-loaded");
+      node.innerHTML = "";
+    });
     scheduleRenderScheduleViews();
   } catch (_error) {
     gameContentMap = new Map();
@@ -1236,6 +1247,7 @@ function buildBoxScoreViewShell(innerHtml, config) {
       data-flow-season="${escapeHtml(config.season)}"
       data-flow-team1="${escapeHtml(config.team1Name)}"
       data-flow-team2="${escapeHtml(config.team2Name)}">
+      ${config.reviewLink ? `<div class="boxscore-action-row">${config.reviewLink}</div>` : ""}
       ${
         showFlow
           ? `<div class="boxscore-view-tabs">
@@ -1383,13 +1395,10 @@ function buildGameCards(games) {
         : "";
       const isTodayGame = g.dateToken === getTodayToken();
       const manualPreview = getGameContent(g, "game_preview");
-      const manualSummary = getGameContent(g, "game_summary");
       const previewLink = scoreState.status === "upcoming" && manualPreview
         ? '<button class="game-preview-link" type="button">Game Preview</button>'
         : "";
-      const reviewLink = scoreState.status === "final" && manualSummary?.id
-        ? `<a class="game-preview-link game-review-link" href="/article.html?id=${encodeURIComponent(manualSummary.id)}">Game Review</a>`
-        : "";
+      const reviewLink = scoreState.status === "final" ? buildGameReviewLink(g) : "";
       return `
         <div class="calendar-game ${isTodayGame ? "today-game" : ""}" data-game-index="${g.idx}" aria-expanded="false">
           <div class="calendar-game-date">${escapeHtml(g.dateToken)}</div>
@@ -1521,6 +1530,7 @@ function bindCalendarEvents() {
           team1Name: parsed1.name || game.team1,
           team2Name: parsed2.name || game.team2,
           showFlow: payload.hasPlayerStats,
+          reviewLink: buildGameReviewLink(game),
         });
       }
       details.dataset.loaded = "1";
