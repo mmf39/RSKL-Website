@@ -3,6 +3,7 @@ const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
 const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const GAME_FLOW_API = "/api/game-flow";
+const NEWS_ARTICLES_API = "/api/articles";
 const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
@@ -1724,9 +1725,10 @@ function renderSchedule(headers, dataRows) {
             .map(({ h: header, index: i }) => {
               const value = row[i] ?? "";
               const headerLabel = String(header || "").toLowerCase();
-              const isTeamCol = String(header || "")
-                .toLowerCase()
-                .includes("team");
+              const isTeamCol =
+                headerLabel.includes("team") ||
+                headerLabel.includes("home") ||
+                headerLabel.includes("away");
               const isTypeCol = headerLabel.includes("type");
               const shown = displayTeamName(value);
               const logo = getTeamLogo(shown);
@@ -3381,6 +3383,7 @@ let liveScoreMap = new Map();
 let finalScoreMap = new Map();
 let teamLeadersMap = new Map();
 let leagueScheduleGames = [];
+let gameContentMap = new Map();
 
 function normalizeTeamLabel(value) {
   const normalized = displayTeamName(String(value || ""))
@@ -3400,6 +3403,62 @@ function normalizeDateToken(value) {
 
 function buildGameKey(dateToken, team1, team2) {
   return `${normalizeDateToken(dateToken)}|${normalizeTeamLabel(team1)}|${normalizeTeamLabel(team2)}`;
+}
+
+function buildGameContentMapKey(contentType, gameKey) {
+  return `${String(contentType || "").trim()}|${String(gameKey || "").trim()}`;
+}
+
+function getGameContent(game, contentType) {
+  const gameKey = buildGameKey(game?.dateToken || "", game?.team1 || "", game?.team2 || "");
+  const reverseGameKey = buildGameKey(game?.dateToken || "", game?.team2 || "", game?.team1 || "");
+  return (
+    gameContentMap.get(buildGameContentMapKey(contentType, gameKey)) ||
+    gameContentMap.get(buildGameContentMapKey(contentType, reverseGameKey)) ||
+    null
+  );
+}
+
+function buildGameArticleLinks(game, options = {}) {
+  const manualPreview = getGameContent(game, "game_preview");
+  const manualSummary = getGameContent(game, "game_summary");
+  const links = [];
+  if (manualPreview?.id && options.includePreview !== false) {
+    links.push(`<a class="game-preview-link" href="/article.html?id=${encodeURIComponent(manualPreview.id)}">Game Preview</a>`);
+  }
+  if (manualSummary?.id && options.includeSummary !== false) {
+    links.push(`<a class="game-preview-link game-review-link" href="/article.html?id=${encodeURIComponent(manualSummary.id)}">Game Summary</a>`);
+  }
+  return links.join("");
+}
+
+async function loadGameContent() {
+  try {
+    const response = await fetch(`${NEWS_ARTICLES_API}?content=game&season=${encodeURIComponent(getSeason())}`, {
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+    const payload = await response.json();
+    const map = new Map();
+    (Array.isArray(payload?.articles) ? payload.articles : []).forEach((article) => {
+      const type = String(article?.content_type || "").trim();
+      const gameKey = String(article?.game_key || "").trim();
+      if (!type || !gameKey || !String(article?.body || "").trim()) return;
+      [
+        gameKey,
+        buildGameKey(article?.date_token || "", article?.team1 || "", article?.team2 || ""),
+        buildGameKey(article?.date_token || "", article?.team2 || "", article?.team1 || ""),
+      ]
+        .filter((key) => key && !key.includes("||"))
+        .forEach((candidateKey) => {
+          const key = buildGameContentMapKey(type, candidateKey);
+          if (!map.has(key)) map.set(key, article);
+        });
+    });
+    gameContentMap = map;
+  } catch (_error) {
+    gameContentMap = new Map();
+  }
 }
 
 function isPlayerLabelRow(left, right) {
@@ -4461,21 +4520,16 @@ function buildBoxScoreMarkup(boxScore) {
       </div>
     `;
   }
+  const articleLinks = buildGameArticleLinks(
+    {
+      dateToken: normalizeDateToken(boxScore.dateLabel || ""),
+      team1: parsedTeam1.name || boxScore.team1Name,
+      team2: parsedTeam2.name || boxScore.team2Name,
+    },
+    { includePreview: true, includeSummary: true }
+  );
   return `
-    ${
-      hasPlayerStats
-        ? buildGameRecapMarkup({
-            dateLabel: boxScore.dateLabel || "",
-            team1Name: parsedTeam1.name || boxScore.team1Name,
-            team2Name: parsedTeam2.name || boxScore.team2Name,
-            team1Score: parsedTeam1.score || "",
-            team2Score: parsedTeam2.score || "",
-            team1Players: boxScore.team1 || [],
-            team2Players: boxScore.team2 || [],
-            status: "final",
-          })
-        : ""
-    }
+    ${articleLinks ? `<div class="boxscore-action-row">${articleLinks}</div>` : ""}
     ${
       boxScore.winner
         ? `<div class="boxscore-meta">Winner: ${escapeHtml(boxScore.winner)}</div>`
@@ -4632,5 +4686,5 @@ initSeasonSelect();
 initStandingsInteractions();
 initHistoryTabs();
 initTeamViewTabs();
-loadRoster();
+loadGameContent().finally(() => loadRoster());
 setInterval(loadRoster, AUTO_REFRESH_MS);
