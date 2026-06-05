@@ -3445,6 +3445,8 @@ input[type="text"] {
 .boxscore-action-row {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .boxscore-view-tabs {

@@ -387,7 +387,12 @@ function buildGameContentMapKey(contentType, gameKey) {
 
 function getGameContent(game, contentType) {
   const gameKey = buildGameKey(game?.dateToken || "", game?.team1 || "", game?.team2 || "");
-  return gameContentMap.get(buildGameContentMapKey(contentType, gameKey)) || null;
+  const reverseGameKey = buildGameKey(game?.dateToken || "", game?.team2 || "", game?.team1 || "");
+  return (
+    gameContentMap.get(buildGameContentMapKey(contentType, gameKey)) ||
+    gameContentMap.get(buildGameContentMapKey(contentType, reverseGameKey)) ||
+    null
+  );
 }
 
 function renderManualGameContent(article, eyebrow) {
@@ -403,11 +408,17 @@ function renderManualGameContent(article, eyebrow) {
   `;
 }
 
-function buildGameReviewLink(game) {
+function buildGameArticleLinks(game, options = {}) {
+  const manualPreview = getGameContent(game, "game_preview");
   const manualSummary = getGameContent(game, "game_summary");
-  return manualSummary?.id
-    ? `<a class="game-preview-link game-review-link" href="/article.html?id=${encodeURIComponent(manualSummary.id)}">Game Review</a>`
-    : "";
+  const links = [];
+  if (manualPreview?.id && options.includePreview !== false) {
+    links.push(`<a class="game-preview-link" href="/article.html?id=${encodeURIComponent(manualPreview.id)}">Game Preview</a>`);
+  }
+  if (manualSummary?.id && options.includeSummary !== false) {
+    links.push(`<a class="game-preview-link game-review-link" href="/article.html?id=${encodeURIComponent(manualSummary.id)}">Game Review</a>`);
+  }
+  return links.join("");
 }
 
 async function loadGameContent() {
@@ -422,8 +433,12 @@ async function loadGameContent() {
       const type = String(article?.content_type || "").trim();
       const gameKey = String(article?.game_key || "").trim();
       if (!type || !gameKey || !String(article?.body || "").trim()) return;
-      const key = buildGameContentMapKey(type, gameKey);
-      if (!map.has(key)) map.set(key, article);
+      [gameKey, buildGameKey(article?.date_token || "", article?.team1 || "", article?.team2 || ""), buildGameKey(article?.date_token || "", article?.team2 || "", article?.team1 || "")]
+        .filter((key) => key && !key.includes("||"))
+        .forEach((candidateKey) => {
+          const key = buildGameContentMapKey(type, candidateKey);
+          if (!map.has(key)) map.set(key, article);
+        });
     });
     gameContentMap = map;
     document.querySelectorAll(".calendar-game-details[data-loaded]").forEach((node) => {
@@ -1310,6 +1325,7 @@ function setBoxScoreView(root, view) {
 
 function buildPreviewMarkup(game) {
   const manualPreview = renderManualGameContent(getGameContent(game, "game_preview"), "Game Preview");
+  const articleLinks = buildGameArticleLinks(game);
   const previewForTeam = (teamName, opponentName) => {
     const history = scheduleGames
       .filter((g) => {
@@ -1343,7 +1359,7 @@ function buildPreviewMarkup(game) {
     </div>`;
   };
 
-  return `${manualPreview}<div class="preview-grid">
+  return `${articleLinks ? `<div class="boxscore-action-row">${articleLinks}</div>` : ""}${manualPreview}<div class="preview-grid">
     ${previewForTeam(game.team1, game.team2)}
     ${previewForTeam(game.team2, game.team1)}
   </div>`;
@@ -1394,11 +1410,10 @@ function buildGameCards(games) {
           }${escapeHtml(scoreState.team2Score)}</span>`
         : "";
       const isTodayGame = g.dateToken === getTodayToken();
-      const manualPreview = getGameContent(g, "game_preview");
-      const previewLink = scoreState.status === "upcoming" && manualPreview
-        ? '<button class="game-preview-link" type="button">Game Preview</button>'
-        : "";
-      const reviewLink = scoreState.status === "final" ? buildGameReviewLink(g) : "";
+      const articleLinks = buildGameArticleLinks(g, {
+        includePreview: scoreState.status === "upcoming" || scoreState.status === "final",
+        includeSummary: scoreState.status === "final" || scoreState.status === "live",
+      });
       return `
         <div class="calendar-game ${isTodayGame ? "today-game" : ""}" data-game-index="${g.idx}" aria-expanded="false">
           <div class="calendar-game-date">${escapeHtml(g.dateToken)}</div>
@@ -1410,7 +1425,7 @@ function buildGameCards(games) {
           <div class="calendar-game-status ${escapeHtml(scoreState.status)}">
             <strong>${escapeHtml(scoreState.label)}</strong>
           </div>
-          ${previewLink || reviewLink}
+          ${articleLinks ? `<div class="boxscore-action-row">${articleLinks}</div>` : ""}
           <div class="calendar-game-details" hidden></div>
         </div>
       `;
@@ -1516,10 +1531,11 @@ function bindCalendarEvents() {
           {
             gameKey: buildGameKey(game.dateToken, parsed1.name || game.team1, parsed2.name || game.team2),
             season: getSeasonRaw(),
-            team1Name: parsed1.name || game.team1,
-            team2Name: parsed2.name || game.team2,
-          }
-        );
+          team1Name: parsed1.name || game.team1,
+          team2Name: parsed2.name || game.team2,
+          reviewLink: buildGameArticleLinks(game),
+        }
+      );
       } else {
         const payload = getBoxScorePayload(game);
         const parsed1 = parseTeamHeader(payload.team1Header || game.team1);
@@ -1530,7 +1546,7 @@ function bindCalendarEvents() {
           team1Name: parsed1.name || game.team1,
           team2Name: parsed2.name || game.team2,
           showFlow: payload.hasPlayerStats,
-          reviewLink: buildGameReviewLink(game),
+          reviewLink: buildGameArticleLinks(game),
         });
       }
       details.dataset.loaded = "1";
