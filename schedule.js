@@ -395,19 +395,6 @@ function getGameContent(game, contentType) {
   );
 }
 
-function renderManualGameContent(article, eyebrow) {
-  if (!article || !String(article.body || "").trim()) return "";
-  const title = String(article.title || "").trim();
-  const body = String(article.body || "").trim();
-  return `
-    <section class="game-recap-card manual">
-      <div class="game-recap-eyebrow">${escapeHtml(eyebrow)}</div>
-      ${title ? `<h3 class="game-recap-title">${escapeHtml(title)}</h3>` : ""}
-      <p class="game-recap-lede">${escapeHtml(body)}</p>
-    </section>
-  `;
-}
-
 function buildGameArticleLinks(game, options = {}) {
   const manualPreview = getGameContent(game, "game_preview");
   const manualSummary = getGameContent(game, "game_summary");
@@ -1030,8 +1017,6 @@ function getBoxScorePayload(game) {
       ${!hasTeamScores ? '<div class="boxscore-empty">Player stats not recorded.</div>' : ""}
     </div>
   `;
-  const recapHtml = renderManualGameContent(getGameContent(game, "game_summary"), "Game Summary");
-
   return {
     team1Header: parsed1.name || game.team1,
     team2Header: parsed2.name || game.team2,
@@ -1040,17 +1025,15 @@ function getBoxScorePayload(game) {
     team1,
     team2,
     finalScore,
-    recapHtml,
     hasPlayerStats,
     html: hasPlayerStats
       ? `
-        ${recapHtml}
         ${game.winner ? `<div class="boxscore-meta">Winner: ${escapeHtml(game.winner)}</div>` : ""}
         <div class="boxscore-meta">League Day: ${escapeHtml(game.dateToken)}</div>
         ${renderTeamTable(team1, team1Header)}
         ${renderTeamTable(team2, team2Header)}
       `
-      : `${recapHtml}${teamOnlyHtml}`,
+      : teamOnlyHtml,
   };
 }
 
@@ -1153,8 +1136,7 @@ function buildLiveBoxMarkup(game, livePayload) {
       ${rows || '<div class="boxscore-empty">No stats available.</div>'}
     </div>`;
   };
-  return `${renderManualGameContent(getGameContent(game, "game_summary"), "Game Summary")}
-    <div class="boxscore-meta">League Day: ${escapeHtml(game.dateToken)}</div>
+  return `<div class="boxscore-meta">League Day: ${escapeHtml(game.dateToken)}</div>
     ${renderTeam(livePayload.team1Header, livePayload.team1Players)}
     ${renderTeam(livePayload.team2Header, livePayload.team2Players)}`;
 }
@@ -1324,7 +1306,6 @@ function setBoxScoreView(root, view) {
 }
 
 function buildPreviewMarkup(game) {
-  const manualPreview = renderManualGameContent(getGameContent(game, "game_preview"), "Game Preview");
   const articleLinks = buildGameArticleLinks(game);
   const previewForTeam = (teamName, opponentName) => {
     const history = scheduleGames
@@ -1359,7 +1340,7 @@ function buildPreviewMarkup(game) {
     </div>`;
   };
 
-  return `${articleLinks ? `<div class="boxscore-action-row">${articleLinks}</div>` : ""}${manualPreview}<div class="preview-grid">
+  return `${articleLinks ? `<div class="boxscore-action-row">${articleLinks}</div>` : ""}<div class="preview-grid">
     ${previewForTeam(game.team1, game.team2)}
     ${previewForTeam(game.team2, game.team1)}
   </div>`;

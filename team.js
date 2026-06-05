@@ -3640,9 +3640,9 @@ function buildFinalScoreMap(rows) {
       continue;
     }
     const left = String(row[0] || "").trim();
-    const right = String(row[LIVE_RIGHT_NAME_COL] || "").trim();
+    const right = String(row[getRightNameCol(row)] || "").trim();
     if (!day || !left || !right) continue;
-    if (left.startsWith("@") || right.startsWith("@")) continue;
+    if (isPlayerCell(left) || isPlayerCell(right)) continue;
     const t1 = parseTeamHeader(left);
     const t2 = parseTeamHeader(right);
     if (!t1.name || !t2.name || t1.score === "" || t2.score === "") continue;
@@ -3656,6 +3656,26 @@ function buildFinalScoreMap(rows) {
     });
   }
   return map;
+}
+
+function getFinalScoreForScheduleRow(scheduleRow) {
+  if (!scheduleRow) return null;
+  const dateToken = normalizeDateToken(scheduleRow[scheduleIndexes.date]);
+  const team1 = String(scheduleRow[scheduleIndexes.team1] || "").trim();
+  const team2 = String(scheduleRow[scheduleIndexes.team2] || "").trim();
+  if (!dateToken || !team1 || !team2) return null;
+  return (
+    finalScoreMap.get(buildGameKey(dateToken, team1, team2)) ||
+    finalScoreMap.get(buildGameKey(dateToken, team2, team1)) ||
+    null
+  );
+}
+
+function formatTeamHeaderWithScore(teamName, score) {
+  const cleanTeam = displayTeamName(String(teamName || "").trim());
+  return score !== undefined && score !== null && String(score).trim() !== ""
+    ? `${cleanTeam} (${String(score).trim()})`
+    : cleanTeam;
 }
 
 function parseDateObj(token) {
@@ -3737,7 +3757,7 @@ function getScheduleScoreState(scheduleRow) {
     };
   }
 
-  const final = finalScoreMap.get(buildGameKey(dateToken, team1, team2));
+  const final = getFinalScoreForScheduleRow(scheduleRow);
   if (final && (final.team1Score || final.team2Score)) {
     return {
       status: "final",
@@ -4190,6 +4210,9 @@ function buildBoxScore(teamName, scheduleRow, season) {
     scheduleIndexes.winner !== undefined && scheduleIndexes.winner !== -1
       ? displayTeamName(String(scheduleRow[scheduleIndexes.winner] || "").trim())
       : "";
+  const finalScore = getFinalScoreForScheduleRow(scheduleRow);
+  const fallbackTeam1Name = formatTeamHeaderWithScore(team1Name, finalScore?.team1Score);
+  const fallbackTeam2Name = formatTeamHeaderWithScore(team2Name, finalScore?.team2Score);
 
   const isDateRow = (row) => {
     const a = String(row[0] || "");
@@ -4206,8 +4229,8 @@ function buildBoxScore(teamName, scheduleRow, season) {
   if (matchIndex === -1) {
     return {
       dateLabel: `League Day: ${dateToken}`,
-      team1Name,
-      team2Name,
+      team1Name: fallbackTeam1Name,
+      team2Name: fallbackTeam2Name,
       team1: [],
       team2: [],
       winner: winnerName,
@@ -4268,8 +4291,8 @@ function buildBoxScore(teamName, scheduleRow, season) {
   if (!selectedBlock) {
     return {
       dateLabel: `League Day: ${dateToken}`,
-      team1Name,
-      team2Name,
+      team1Name: fallbackTeam1Name,
+      team2Name: fallbackTeam2Name,
       team1: [],
       team2: [],
       winner: winnerName,
@@ -4281,10 +4304,10 @@ function buildBoxScore(teamName, scheduleRow, season) {
     (row) => String(row[getRightNameCol(row)] || "").trim() !== ""
   );
 
-  const team1Header = team1Rows.length ? team1Rows[0][0] : team1Name;
+  const team1Header = team1Rows.length ? team1Rows[0][0] : fallbackTeam1Name;
   const team2Header = team2Rows.length
     ? team2Rows[0][getRightNameCol(team2Rows[0])]
-    : team2Name;
+    : fallbackTeam2Name;
 
   return {
     dateLabel: `League Day: ${dateToken}`,
