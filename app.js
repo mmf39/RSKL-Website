@@ -285,11 +285,12 @@ async function hydrateDashboardPlayerAvatars(items, season) {
       if (!cacheKey) return;
       const url = await fetchDashboardPlayerAvatarUrl(item, season);
       if (!url) return;
-      const avatar = document.querySelector(`[data-player-avatar="${CSS.escape(cacheKey)}"]`);
-      const image = avatar ? avatar.querySelector(".dashboard-player-avatar__image") : null;
-      if (!avatar || !image) return;
-      image.src = url;
-      avatar.classList.remove("dashboard-player-avatar--empty");
+      document.querySelectorAll(`[data-player-avatar="${CSS.escape(cacheKey)}"]`).forEach((avatar) => {
+        const image = avatar.querySelector(".dashboard-player-avatar__image");
+        if (!image) return;
+        image.src = url;
+        avatar.classList.remove("dashboard-player-avatar--empty");
+      });
     })
   );
 }
