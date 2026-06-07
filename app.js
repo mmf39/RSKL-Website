@@ -1653,24 +1653,37 @@ function buildArticleExcerpt(article) {
 
 function renderDashboardArticles(articles) {
   if (!els.dashboardNews) return;
-  if (!articles.length) {
+  const latestArticles = (Array.isArray(articles) ? articles : []).slice(0, 3);
+  if (!latestArticles.length) {
     els.dashboardNews.innerHTML = buildStateCard("No Articles", "No league articles have been published yet.");
     return;
   }
 
-  els.dashboardNews.innerHTML = articles
+  const authorItems = [];
+  els.dashboardNews.innerHTML = latestArticles
     .map((article) => {
       const title = String(article?.title || "Untitled Article").trim();
       const excerpt = buildArticleExcerpt(article);
       const rawAuthor = String(article?.author || "").trim();
       const author = rawAuthor.toLowerCase() === "commissioner" ? "" : rawAuthor;
+      if (author) {
+        authorItems.push({ tag: author, player: author, displayName: author });
+      }
       const articleId = String(article?.id || "").trim();
       const href = articleId ? `/article.html?id=${encodeURIComponent(articleId)}` : "";
       return `
         <a class="dashboard-news-card dashboard-news-link" href="${escapeHtml(href || "#")}">
           <div class="dashboard-news-meta">
             <span>${escapeHtml(formatArticleDate(article?.created_at || article?.updated_at))}</span>
-            ${author ? `<span>${escapeHtml(author)}</span>` : ""}
+            ${
+              author
+                ? `<span class="dashboard-news-author">${buildPlayerAvatarMarkup({
+                    tag: author,
+                    player: author,
+                    displayName: author,
+                  })}<span>${escapeHtml(author)}</span></span>`
+                : ""
+            }
           </div>
           <h3>${escapeHtml(title)}</h3>
           <p>${escapeHtml(excerpt || "No article text.")}</p>
@@ -1678,6 +1691,7 @@ function renderDashboardArticles(articles) {
       `;
     })
     .join("");
+  hydrateDashboardPlayerAvatars(authorItems, getSeasonRaw());
 }
 
 async function loadDashboardArticles() {

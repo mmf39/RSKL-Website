@@ -1091,6 +1091,20 @@ body.menu-open {
   text-transform: uppercase;
 }
 
+.dashboard-news-author {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dashboard-news-author .dashboard-player-avatar {
+  width: 28px;
+  height: 28px;
+  font-size: 0.68rem;
+}
+
 .dashboard-news-card h3 {
   margin: 0 0 12px;
   color: #fff7ed;
