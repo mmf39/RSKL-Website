@@ -238,6 +238,40 @@
           </div>
         </div>
         <div id="gm-tab-commish" class="gm-tab-panel" hidden>
+          <div class="gm-card" id="gm-user-roles-card" hidden>
+            <div class="label">Commissioner: User Roles</div>
+            <label class="label" for="gm-role-user-id">User ID or Email</label>
+            <input id="gm-role-user-id" class="text-input" type="text" placeholder="Supabase auth user ID or email" />
+
+            <label class="label" for="gm-role-select">Role</label>
+            <select id="gm-role-select" class="text-input">
+              <option value="gm">GM</option>
+              <option value="reporter">Reporter</option>
+              <option value="commish">Commissioner</option>
+            </select>
+
+            <label class="label" for="gm-role-team">Team</label>
+            <select id="gm-role-team" class="text-input">
+              <option value="">No team</option>
+              <option value="Gus N Em">Gus N Em</option>
+              <option value="Storm">Storm</option>
+              <option value="Turkeys">Turkeys</option>
+              <option value="Bad Bois">Bad Bois</option>
+              <option value="Scorpions">Scorpions</option>
+              <option value="Illegals">Illegals</option>
+              <option value="The Lions">The Lions</option>
+              <option value="Dream Team">Dream Team</option>
+              <option value="The Snipers">The Snipers</option>
+              <option value="The Phantoms">The Phantoms</option>
+            </select>
+
+            <button id="gm-role-save" class="btn" type="button">Save User Role</button>
+            <div id="gm-role-status" class="gm-status"></div>
+            <div class="gm-readonly-group">
+              <div class="label">Current Roles</div>
+              <div id="gm-role-list" class="gm-readonly-list"></div>
+            </div>
+          </div>
           <div class="gm-card" id="gm-commish-card">
             <div class="label">Commissioner: Set Game Lock Times</div>
             <div class="gm-readonly-group">
@@ -248,7 +282,7 @@
             <div id="gm-lock-status" class="gm-status"></div>
           </div>
           <div class="gm-card" id="gm-article-card" hidden>
-            <div class="label">Commissioner: Write Content</div>
+            <div class="label">Write Content</div>
             <label class="label" for="gm-article-type">Content Type</label>
             <select id="gm-article-type" class="text-input">
               <option value="article">Front Page Article</option>
@@ -291,7 +325,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="gm.js?v=20260605authrefresh1"></script>
+    <script src="gm.js?v=20260608reporters1"></script>
       <script src="header-nav.js?v=20260504e"></script>
   </body>
 </html>

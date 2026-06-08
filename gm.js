@@ -6,6 +6,7 @@ const SCHEDULE_URL = "/api/sheet?name=schedule";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const PLAYER_RENAME_SYNC_API = "/api/player-rename-sync";
 const NEWS_ARTICLES_API = "/api/articles";
+const GM_ASSIGNMENTS_API = "/api/gm-assignments";
 const GM_ACCESS_TOKEN_KEY = "rskl_gm_access_token";
 const GM_REFRESH_TOKEN_KEY = "rskl_gm_refresh_token";
 const GM_SESSION_USER_KEY = "rskl_gm_user";
@@ -64,7 +65,14 @@ const els = {
   authedShell: document.getElementById("gm-authed-shell"),
   commishCard: document.getElementById("gm-commish-card"),
   articleCard: document.getElementById("gm-article-card"),
+  userRolesCard: document.getElementById("gm-user-roles-card"),
   commishTab: document.getElementById("gm-commish-tab"),
+  roleUserId: document.getElementById("gm-role-user-id"),
+  roleSelect: document.getElementById("gm-role-select"),
+  roleTeam: document.getElementById("gm-role-team"),
+  roleSave: document.getElementById("gm-role-save"),
+  roleStatus: document.getElementById("gm-role-status"),
+  roleList: document.getElementById("gm-role-list"),
   lockGamesList: document.getElementById("gm-lock-games-list"),
   lockSave: document.getElementById("gm-lock-save"),
   lockStatus: document.getElementById("gm-lock-status"),
@@ -143,6 +151,7 @@ let supabaseUrl = "";
 let supabaseAnon = "";
 let gmSession = null;
 let gmAssignment = null;
+let gmAssignmentsCache = [];
 let commishUpcomingGames = [];
 let commishArticleGames = [];
 let lineupSubmittedByTeam = new Map();
@@ -501,10 +510,12 @@ async function fetchGmAssignment(userId) {
   const team = String(row.team || "").trim();
   const commishByRole =
     role === "commish" || role === "commissioner" || role === "admin";
+  const reporterByRole = role === "reporter" || role === "media" || role === "writer";
   const allowed =
     row.is_gm === true ||
     row.is_commish === true ||
     commishByRole ||
+    reporterByRole ||
     !!team;
   if (!allowed) {
     return null;
@@ -515,6 +526,7 @@ async function fetchGmAssignment(userId) {
     role,
     is_gm: row.is_gm === true || !!team,
     is_commish: row.is_commish === true || commishByRole,
+    is_reporter: reporterByRole,
   };
 }
 
@@ -633,6 +645,15 @@ function isCommish() {
   return !!gmAssignment?.is_commish;
 }
 
+function isReporter() {
+  const role = String(gmAssignment?.role || "").trim().toLowerCase();
+  return !!gmAssignment?.is_reporter || role === "reporter" || role === "media" || role === "writer";
+}
+
+function canWriteArticles() {
+  return isCommish() || isReporter();
+}
+
 function isSignedInGm() {
   return !!gmSession?.user?.id && !!gmAssignment;
 }
@@ -646,6 +667,12 @@ function canEditTeam(team) {
   if (isCommish()) return true;
   const mine = getAuthorizedTeam();
   return !!mine && sameTeam(mine, team);
+}
+
+function canSubmitPowerRankings(team) {
+  if (!isSignedInGm()) return false;
+  if (isCommish() || isReporter()) return true;
+  return canEditTeam(team);
 }
 
 function ensureCanEditTeam(team, setStatusFn) {
@@ -669,7 +696,7 @@ function syncTeamSelectorsToAuth() {
   ].filter(Boolean);
 
   const assignedTeam = getAuthorizedTeam();
-  const allowAnyTeam = isCommish();
+  const allowAnyTeam = isCommish() || isReporter();
 
   selects.forEach((select) => {
     Array.from(select.options).forEach((opt) => {
@@ -716,14 +743,20 @@ function applyAuthUi() {
   if (els.commishCard) {
     els.commishCard.hidden = !(signedIn && isCommish());
   }
+  if (els.userRolesCard) {
+    els.userRolesCard.hidden = !(signedIn && isCommish());
+  }
   if (els.articleCard) {
-    els.articleCard.hidden = !(signedIn && isCommish());
+    els.articleCard.hidden = !(signedIn && canWriteArticles());
   }
   if (els.commishTab) {
-    els.commishTab.hidden = !(signedIn && isCommish());
+    els.commishTab.hidden = !(signedIn && canWriteArticles());
+  }
+  if (signedIn && canWriteArticles()) {
+    loadArticlesForWriter();
   }
   if (signedIn && isCommish()) {
-    loadArticlesForCommish();
+    loadGmAssignmentsForCommish();
   }
   if (els.sessionMeta) {
     els.sessionMeta.hidden = !signedIn;
@@ -755,10 +788,11 @@ function applyAuthUi() {
   if (signedIn) {
     const email = gmSession?.user?.email || "GM";
     const team = displayTeamName(getAuthorizedTeam()) || "No team assigned";
+    const role = String(gmAssignment?.role || "gm").trim() || "gm";
     if (els.sessionSummary) {
-      els.sessionSummary.textContent = `${email} • ${team}`;
+      els.sessionSummary.textContent = `${email} • ${team} • ${role}`;
     }
-    setAuthStatus(`Signed in as ${email} • Team: ${team}`);
+    setAuthStatus(`Signed in as ${email} • Team: ${team} • Role: ${role}`);
   } else {
     if (els.sessionSummary) {
       els.sessionSummary.textContent = "";
@@ -2024,8 +2058,96 @@ function renderArticleList(articles) {
     .join("");
 }
 
-async function loadArticlesForCommish() {
-  if (!els.articleList || !isCommish()) return;
+function setRoleStatus(message, isError = false) {
+  if (!els.roleStatus) return;
+  els.roleStatus.textContent = message;
+  els.roleStatus.className = `gm-status ${isError ? "error" : ""}`;
+}
+
+function renderGmAssignments(assignments) {
+  if (!els.roleList) return;
+  if (!assignments.length) {
+    els.roleList.innerHTML = '<div class="gm-empty">No user roles found.</div>';
+    return;
+  }
+  els.roleList.innerHTML = assignments
+    .map((assignment) => {
+      const role = String(assignment?.role || "gm").trim() || "gm";
+      const team = displayTeamName(assignment?.team || "") || "No team";
+      const userId = String(assignment?.user_id || "").trim();
+      return `
+        <button class="gm-readonly-card gm-role-card" type="button" data-role-user-id="${escapeHtml(userId)}" data-role="${escapeHtml(role)}" data-role-team="${escapeHtml(assignment?.team || "")}">
+          <div class="gm-readonly-title">${escapeHtml(role.toUpperCase())} • ${escapeHtml(team)}</div>
+          <div>${escapeHtml(userId)}</div>
+        </button>
+      `;
+    })
+    .join("");
+}
+
+async function loadGmAssignmentsForCommish() {
+  if (!els.roleList || !isCommish()) return;
+  try {
+    const response = await fetch(GM_ASSIGNMENTS_API, {
+      headers: await authHeadersFresh(),
+      cache: "no-store",
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload?.ok === false) {
+      throw new Error(payload?.message || `Request failed (${response.status})`);
+    }
+    gmAssignmentsCache = Array.isArray(payload?.assignments) ? payload.assignments : [];
+    renderGmAssignments(gmAssignmentsCache);
+  } catch (error) {
+    els.roleList.innerHTML = `<div class="gm-empty">${escapeHtml(error.message || "Unable to load user roles.")}</div>`;
+  }
+}
+
+async function saveGmAssignmentRole() {
+  if (!isSignedInGm() || !isCommish()) {
+    setRoleStatus("Commissioner access required.", true);
+    return;
+  }
+  const userId = String(els.roleUserId?.value || "").trim();
+  const role = String(els.roleSelect?.value || "gm").trim();
+  const team = String(els.roleTeam?.value || "").trim();
+  if (!userId) {
+    setRoleStatus("Enter the Supabase user ID.", true);
+    return;
+  }
+  if (role === "gm" && !team) {
+    setRoleStatus("Select a team for GM role, or choose Reporter.", true);
+    return;
+  }
+  if (els.roleSave) {
+    els.roleSave.disabled = true;
+    els.roleSave.textContent = "Saving...";
+  }
+  try {
+    const response = await fetch(GM_ASSIGNMENTS_API, {
+      method: "POST",
+      headers: await authHeadersFresh(),
+      body: JSON.stringify({ user_id: userId, role, team }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload?.ok === false) {
+      throw new Error(payload?.message || `Request failed (${response.status})`);
+    }
+    gmAssignmentsCache = Array.isArray(payload?.assignments) ? payload.assignments : [];
+    renderGmAssignments(gmAssignmentsCache);
+    setRoleStatus("User role saved.");
+  } catch (error) {
+    setRoleStatus(error.message || "Unable to save user role.", true);
+  } finally {
+    if (els.roleSave) {
+      els.roleSave.disabled = false;
+      els.roleSave.textContent = "Save User Role";
+    }
+  }
+}
+
+async function loadArticlesForWriter() {
+  if (!els.articleList || !canWriteArticles()) return;
   try {
     const response = await fetch(NEWS_ARTICLES_API, { cache: "no-store" });
     if (!response.ok) throw new Error(`Request failed (${response.status})`);
@@ -2037,8 +2159,8 @@ async function loadArticlesForCommish() {
 }
 
 async function publishArticle() {
-  if (!isSignedInGm() || !isCommish()) {
-    setArticleStatus("Commissioner access required.", true);
+  if (!isSignedInGm() || !canWriteArticles()) {
+    setArticleStatus("Reporter access required.", true);
     return;
   }
   const title = String(els.articleTitle?.value || "").trim();
@@ -2377,6 +2499,19 @@ function bindEvents() {
   if (els.articleType) {
     els.articleType.addEventListener("change", syncArticleWriterMode);
   }
+  if (els.roleSave) {
+    els.roleSave.addEventListener("click", saveGmAssignmentRole);
+  }
+  if (els.roleList) {
+    els.roleList.addEventListener("click", (event) => {
+      const card = event.target.closest("[data-role-user-id]");
+      if (!card) return;
+      if (els.roleUserId) els.roleUserId.value = card.dataset.roleUserId || "";
+      if (els.roleSelect) els.roleSelect.value = card.dataset.role || "gm";
+      if (els.roleTeam) els.roleTeam.value = card.dataset.roleTeam || "";
+      setRoleStatus("Loaded role for editing.");
+    });
+  }
   if (els.authSignUp) {
     els.authSignUp.addEventListener("click", async () => {
       const email = String(els.authEmail?.value || "").trim();
@@ -2688,7 +2823,8 @@ function bindEvents() {
         setPowerStatus("Select a team first.", true);
         return;
       }
-      if (!ensureCanEditTeam(team, setPowerStatus)) {
+      if (!canSubmitPowerRankings(team)) {
+        setPowerStatus("GM or reporter access required.", true);
         return;
       }
       const rankings = Array.from(

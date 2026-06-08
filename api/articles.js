@@ -119,7 +119,7 @@ function validateArticle(payload) {
   };
 }
 
-async function assertCommish(req) {
+async function assertArticleWriter(req) {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
     const error = new Error("Missing Supabase server configuration.");
     error.status = 500;
@@ -128,7 +128,7 @@ async function assertCommish(req) {
   const authHeader = String(req.headers.authorization || "").trim();
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
   if (!token) {
-    const error = new Error("Commissioner authorization required.");
+    const error = new Error("Reporter authorization required.");
     error.status = 401;
     throw error;
   }
@@ -139,7 +139,7 @@ async function assertCommish(req) {
   });
   const userId = String(user?.id || "").trim();
   if (!userId) {
-    const error = new Error("Invalid commissioner session.");
+    const error = new Error("Invalid reporter session.");
     error.status = 401;
     throw error;
   }
@@ -152,8 +152,9 @@ async function assertCommish(req) {
   const row = Array.isArray(rows) ? rows[0] : null;
   const role = String(row?.role || "").trim().toLowerCase();
   const isCommish = row?.is_commish === true || role === "commish" || role === "commissioner" || role === "admin";
-  if (!isCommish) {
-    const error = new Error("Only the commissioner can publish articles.");
+  const isReporter = role === "reporter" || role === "media" || role === "writer";
+  if (!isCommish && !isReporter) {
+    const error = new Error("Only commissioners and reporters can publish articles.");
     error.status = 403;
     throw error;
   }
@@ -251,7 +252,7 @@ module.exports = async (req, res) => {
 
   if (req.method === "POST") {
     try {
-      await assertCommish(req);
+      await assertArticleWriter(req);
       let payload = req.body;
       if (!payload || typeof payload !== "object") {
         payload = JSON.parse((await readBody(req)) || "{}");

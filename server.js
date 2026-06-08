@@ -172,6 +172,52 @@ async function assertCommishRequest(req) {
   }
 }
 
+async function assertArticleWriterRequest(req) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
+    const error = new Error("Missing Supabase server configuration.");
+    error.status = 500;
+    throw error;
+  }
+  const authHeader = String(req.headers.authorization || "").trim();
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  if (!token) {
+    const error = new Error("Reporter authorization required.");
+    error.status = 401;
+    throw error;
+  }
+  const user = await requestJsonWithHeaders(
+    "GET",
+    `${SUPABASE_URL}/auth/v1/user?apikey=${encodeURIComponent(SUPABASE_ANON_KEY)}`,
+    {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${token}`,
+    }
+  );
+  const userId = String(user?.id || "").trim();
+  if (!userId) {
+    const error = new Error("Invalid reporter session.");
+    error.status = 401;
+    throw error;
+  }
+  const rows = await requestJsonWithHeaders(
+    "GET",
+    `${SUPABASE_URL}/rest/v1/gm_assignments?select=user_id,role,is_commish&user_id=eq.${encodeURIComponent(userId)}&limit=1`,
+    {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    }
+  );
+  const row = Array.isArray(rows) ? rows[0] : null;
+  const role = String(row?.role || "").trim().toLowerCase();
+  const isCommish = row?.is_commish === true || role === "commish" || role === "commissioner" || role === "admin";
+  const isReporter = role === "reporter" || role === "media" || role === "writer";
+  if (!isCommish && !isReporter) {
+    const error = new Error("Only commissioners and reporters can publish articles.");
+    error.status = 403;
+    throw error;
+  }
+}
+
 function serveFile(res, filePath) {
   fs.readFile(filePath, (err, data) => {
     if (err) {
@@ -610,7 +656,7 @@ const server = http.createServer((req, res) => {
     if (req.method === "POST") {
       (async () => {
         try {
-          await assertCommishRequest(req);
+          await assertArticleWriterRequest(req);
           const payload = await readJsonBody(req);
           const article = validateArticlePayload(payload);
           await supabaseRequest("POST", "/rest/v1/news_articles", [article], {
@@ -844,6 +890,12 @@ const server = http.createServer((req, res) => {
     }
 
     send(res, 405, JSON.stringify({ ok: false, message: "Method not allowed." }), "application/json; charset=utf-8");
+    return;
+  }
+
+  if (url.pathname === "/api/gm-assignments") {
+    const handler = require("./api/gm-assignments");
+    handler(req, res);
     return;
   }
 
