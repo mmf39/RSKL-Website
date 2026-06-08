@@ -2133,6 +2133,73 @@ input[type="text"] {
   border-color: rgba(255, 183, 3, 0.35);
 }
 
+.magic-number-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.magic-number-card {
+  border: 1px solid rgba(255, 160, 67, 0.24);
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.82);
+  color: inherit;
+  overflow: hidden;
+}
+
+.magic-number-card summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.magic-number-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.magic-number-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: #fff7ed;
+  font-weight: 800;
+}
+
+.magic-number-value {
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.magic-number-breakdown {
+  border-top: 1px solid rgba(255, 160, 67, 0.18);
+  padding: 0 16px 16px;
+  color: rgba(226, 232, 240, 0.86);
+}
+
+.magic-number-breakdown p {
+  margin: 12px 0;
+  line-height: 1.45;
+}
+
+.magic-number-facts {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  font-size: 0.92rem;
+}
+
+.magic-number-facts strong {
+  color: #fff7ed;
+}
+
 .stat-definitions .panel-head {
   margin-bottom: 12px;
 }

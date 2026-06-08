@@ -789,6 +789,113 @@ function buildPlayoffStatuses(rows) {
   }));
 }
 
+function buildMagicNumberRows(rows) {
+  const config = getDivisionConfig();
+  const rowsByDivision = new Map();
+  rows.forEach((row) => {
+    const division = getDivisionName(row.team);
+    if (!rowsByDivision.has(division)) rowsByDivision.set(division, []);
+    rowsByDivision.get(division).push(row);
+  });
+
+  const output = [];
+  rowsByDivision.forEach((divisionRows, division) => {
+    const ranked = sortStandingsRows(divisionRows);
+    const cutoff = ranked[CURRENT_PLAYOFF_SPOTS_PER_DIVISION] || null;
+    ranked.forEach((row, index) => {
+      const wins = parseNumber(row.wins) ?? 0;
+      const losses = parseNumber(row.loss) ?? 0;
+      const gp = parseNumber(row.gp) ?? wins + losses;
+      const remaining = Math.max(0, CURRENT_PLAYOFF_GAMES - gp);
+      const target = index < CURRENT_PLAYOFF_SPOTS_PER_DIVISION
+        ? cutoff
+        : ranked[CURRENT_PLAYOFF_SPOTS_PER_DIVISION - 1] || null;
+      const targetWins = target ? (parseNumber(target.wins) ?? 0) : 0;
+      const targetLosses = target ? (parseNumber(target.loss) ?? 0) : 0;
+      const targetGp = target ? (parseNumber(target.gp) ?? targetWins + targetLosses) : 0;
+      const targetRemaining = Math.max(0, CURRENT_PLAYOFF_GAMES - targetGp);
+      output.push({
+        ...row,
+        division,
+        rankInDivision: index + 1,
+        wins,
+        losses,
+        remaining,
+        target,
+        targetWins,
+        targetLosses,
+        targetRemaining,
+        targetMaxWins: targetWins + targetRemaining,
+        magic: index < CURRENT_PLAYOFF_SPOTS_PER_DIVISION
+          ? target
+            ? Math.max(0, CURRENT_PLAYOFF_GAMES + 1 - wins - targetLosses)
+            : 0
+          : null,
+        isInPlayoffPosition: index < CURRENT_PLAYOFF_SPOTS_PER_DIVISION,
+      });
+    });
+  });
+
+  const divisionOrder = new Map([
+    [config.primaryLabel, 0],
+    [config.secondaryLabel, 1],
+  ]);
+  return output.sort((a, b) => {
+    const ad = divisionOrder.get(a.division) ?? 9;
+    const bd = divisionOrder.get(b.division) ?? 9;
+    if (ad !== bd) return ad - bd;
+    return a.rankInDivision - b.rankInDivision;
+  });
+}
+
+function renderMagicNumberSection(rows) {
+  if (getSeasonRaw() === ALL_TIME_SEASON) return "";
+  const magicRows = buildMagicNumberRows(rows);
+  if (!magicRows.length) return "";
+  return `
+    <section class="leader-section magic-number-section">
+      <h2 class="leader-section-title">Magic Numbers</h2>
+      <div class="magic-number-grid">
+        ${magicRows
+          .map((row) => {
+            const teamName = displayTeamName(row.team);
+            const logo = getTeamLogoHtml(teamName);
+            const targetName = row.target ? displayTeamName(row.target.team) : "";
+            const magicText = row.magic === null ? "—" : row.magic === 0 ? "Clinched" : String(row.magic);
+            const summary = row.isInPlayoffPosition
+              ? row.magic === 0
+                ? `${teamName} has clinched a playoff spot.`
+                : `${row.magic} combined ${teamName} win(s) and ${targetName} loss(es) clinch a playoff spot.`
+              : `${teamName} is outside the playoff line and must pass ${targetName || "the playoff cutoff"}.`;
+            return `
+              <details class="magic-number-card">
+                <summary>
+                  <span class="magic-number-team">${logo}<span>${escapeHtml(teamName)}</span></span>
+                  <span class="magic-number-value">${escapeHtml(magicText)}</span>
+                </summary>
+                <div class="magic-number-breakdown">
+                  <p>${escapeHtml(summary)}</p>
+                  <div class="magic-number-facts">
+                    <span>Division: <strong>${escapeHtml(row.division)}</strong></span>
+                    <span>Record: <strong>${escapeHtml(`${row.wins}-${row.losses}`)}</strong></span>
+                    <span>Games Left: <strong>${escapeHtml(String(row.remaining))}</strong></span>
+                    ${
+                      row.target
+                        ? `<span>Cutoff Team: <strong>${escapeHtml(targetName)} (${escapeHtml(`${row.targetWins}-${row.targetLosses}`)})</strong></span>
+                           <span>${escapeHtml(targetName)} Max Wins: <strong>${escapeHtml(String(row.targetMaxWins))}</strong></span>`
+                        : ""
+                    }
+                  </div>
+                </div>
+              </details>
+            `;
+          })
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
 function renderStandings() {
   if (!leagueStandingsMetrics.length) {
     els.leaderboard.innerHTML = "<p>No standings data available.</p>";
@@ -806,15 +913,15 @@ function renderStandings() {
   );
 
   if (scope === config.primaryKey || (scope === "north" && config.primaryKey === "north")) {
-    els.leaderboard.innerHTML = renderStandingsSection(`${config.primaryLabel} Division`, primaryRows);
+    els.leaderboard.innerHTML = `${renderStandingsSection(`${config.primaryLabel} Division`, primaryRows)}${renderMagicNumberSection(primaryRows)}`;
     return;
   }
   if (scope === config.secondaryKey || (scope === "south" && config.secondaryKey === "south")) {
-    els.leaderboard.innerHTML = renderStandingsSection(`${config.secondaryLabel} Division`, secondaryRows);
+    els.leaderboard.innerHTML = `${renderStandingsSection(`${config.secondaryLabel} Division`, secondaryRows)}${renderMagicNumberSection(secondaryRows)}`;
     return;
   }
   const leagueTitle = getSeasonRaw() === ALL_TIME_SEASON ? "All-Time Standings" : "League Standings";
-  els.leaderboard.innerHTML = renderStandingsSection(leagueTitle, leagueRows);
+  els.leaderboard.innerHTML = `${renderStandingsSection(leagueTitle, leagueRows)}${renderMagicNumberSection(leagueRows)}`;
 }
 
 function stripCaptainMarker(value) {
