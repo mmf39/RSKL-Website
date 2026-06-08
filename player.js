@@ -21,6 +21,7 @@ const els = {
   minGp: document.getElementById("player-min-gp"),
   results: document.getElementById("player-results"),
   filter: document.getElementById("player-filter"),
+  teamFilter: document.getElementById("player-team-filter"),
 };
 
 let playerRows = [];
@@ -969,9 +970,40 @@ function buildLeaderboard(rows) {
     }));
 }
 
-function renderLeaderboard(list, query, metric, minGp = 0) {
+function normalizeTeamFilterValue(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function populateTeamFilter(list) {
+  if (!els.teamFilter) return;
+  const currentValue = els.teamFilter.value;
+  const teams = Array.from(
+    new Set(
+      (Array.isArray(list) ? list : [])
+        .map((item) => String(item.team || "").trim())
+        .filter(Boolean)
+        .map((team) => displayTeamName(team))
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
+  els.teamFilter.innerHTML = `
+    <option value="">All Teams</option>
+    ${teams
+      .map((team) => `<option value="${escapeHtml(team)}">${escapeHtml(team)}</option>`)
+      .join("")}
+  `;
+  if (teams.some((team) => normalizeTeamFilterValue(team) === normalizeTeamFilterValue(currentValue))) {
+    els.teamFilter.value = currentValue;
+  }
+}
+
+function renderLeaderboard(list, query, metric, minGp = 0, teamFilter = "") {
   const gpFloor = Number.isFinite(Number(minGp)) ? Math.max(0, Number(minGp)) : 0;
-  const filteredByGp = list.filter((item) => Number(item.games || 0) >= gpFloor);
+  const selectedTeam = normalizeTeamFilterValue(teamFilter);
+  const filteredByTeam = selectedTeam
+    ? list.filter((item) => normalizeTeamFilterValue(displayTeamName(item.team)) === selectedTeam)
+    : list;
+  const filteredByGp = filteredByTeam.filter((item) => Number(item.games || 0) >= gpFloor);
   const filtered = query
     ? filteredByGp.filter((item) => {
         const name = String(item.displayName || "").toLowerCase();
@@ -1002,7 +1034,7 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
     sorted.sort((a, b) => b.avg - a.avg);
   }
 
-  const visible = query ? sorted : sorted.slice(0, 25);
+  const visible = query || selectedTeam ? sorted : sorted.slice(0, 25);
   const selectedSeason = getPlayerSeason();
   const formatNumber = (value, digits = 2) => {
     const num = Number(value);
@@ -1145,6 +1177,17 @@ function renderLeaderboard(list, query, metric, minGp = 0) {
   hydrateVisiblePlayerAvatars(visible, selectedSeason);
 }
 
+function refreshLeaderboard() {
+  const query = els.search ? els.search.value.trim().toLowerCase() : "";
+  renderLeaderboard(
+    leaderboardRows,
+    query,
+    els.filter ? els.filter.value : "avg_score",
+    els.minGp ? els.minGp.value : 0,
+    els.teamFilter ? els.teamFilter.value : ""
+  );
+}
+
 async function loadPlayerStats() {
   try {
     await loadPlayerOverrides();
@@ -1230,16 +1273,11 @@ async function loadPlayerStats() {
     }
     updateLastUpdated();
     leaderboardRows = buildLeaderboard(playerRows);
+    populateTeamFilter(leaderboardRows);
     if (season === "c2s1-regular") {
       els.results.innerHTML = "<p>No stats available for C2S1 Regular Season.</p>";
     } else {
-      const query = els.search.value.trim().toLowerCase();
-      renderLeaderboard(
-        leaderboardRows,
-        query,
-        els.filter.value,
-        els.minGp ? els.minGp.value : 0
-      );
+      refreshLeaderboard();
     }
   } catch (error) {
     els.results.innerHTML = `<p>${escapeHtml(error.message)}</p>`;
@@ -1247,29 +1285,22 @@ async function loadPlayerStats() {
 }
 
 els.search.addEventListener("input", () => {
-  const query = els.search.value.trim().toLowerCase();
-  renderLeaderboard(
-    leaderboardRows,
-    query,
-    els.filter.value,
-    els.minGp ? els.minGp.value : 0
-  );
+  refreshLeaderboard();
 });
 
 els.filter.addEventListener("change", () => {
-  const query = els.search.value.trim().toLowerCase();
-  renderLeaderboard(
-    leaderboardRows,
-    query,
-    els.filter.value,
-    els.minGp ? els.minGp.value : 0
-  );
+  refreshLeaderboard();
 });
+
+if (els.teamFilter) {
+  els.teamFilter.addEventListener("change", () => {
+    refreshLeaderboard();
+  });
+}
 
 if (els.minGp) {
   els.minGp.addEventListener("input", () => {
-    const query = els.search.value.trim().toLowerCase();
-    renderLeaderboard(leaderboardRows, query, els.filter.value, els.minGp.value);
+    refreshLeaderboard();
   });
 }
 
