@@ -4019,17 +4019,41 @@ input[type="text"] {
 }
 
 .player-star-rating {
-  min-height: 26px;
-  color: #ffb13b;
-  font-size: 1.15rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-shadow: 0 8px 24px rgba(255, 136, 19, 0.24);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .player-star-rating:empty {
   display: none;
+}
+
+.player-star {
+  width: 38px;
+  height: 36px;
+  display: inline-flex;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.28));
+}
+
+.player-star svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.player-star-fill {
+  fill: #ffb13b;
+  stroke: none;
+}
+
+.player-star-outline {
+  fill: transparent;
+  stroke: #fff8ef;
+  stroke-width: 8;
+  stroke-linejoin: round;
+  stroke-linecap: round;
 }
 
 .player-detail-avatar-card {

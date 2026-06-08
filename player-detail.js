@@ -1892,7 +1892,23 @@ function renderPlayerStarRating(summary) {
     return;
   }
   els.starRating.hidden = false;
-  els.starRating.textContent = `${rating}/5 Stars`;
+  els.starRating.setAttribute("aria-label", `${rating} out of 5 stars`);
+  els.starRating.innerHTML = Array.from({ length: 5 }, (_, index) => {
+    const fillPercent = Math.max(0, Math.min(100, (rating - index) * 100));
+    return `
+      <span class="player-star" style="--star-fill:${fillPercent}%">
+        <svg viewBox="0 0 100 96" aria-hidden="true" focusable="false">
+          <defs>
+            <clipPath id="player-star-clip-${index}">
+              <rect x="0" y="0" width="${fillPercent}" height="96"></rect>
+            </clipPath>
+          </defs>
+          <path class="player-star-fill" clip-path="url(#player-star-clip-${index})" d="M50 5 62.8 34.2 94.4 37.5 70.8 58.8 77.5 90 50 74.1 22.5 90 29.2 58.8 5.6 37.5 37.2 34.2 50 5Z"></path>
+          <path class="player-star-outline" d="M50 5 62.8 34.2 94.4 37.5 70.8 58.8 77.5 90 50 74.1 22.5 90 29.2 58.8 5.6 37.5 37.2 34.2 50 5Z"></path>
+        </svg>
+      </span>
+    `;
+  }).join("");
 }
 
 function renderWeeklyModal(key) {
