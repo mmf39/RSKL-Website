@@ -285,6 +285,7 @@ const els = {
   statTRel: document.getElementById("stat-trel"),
   statStarterMedianRank: document.getElementById("stat-starter-median-rank"),
   statCapSpace: document.getElementById("stat-cap-space"),
+  statAverageStars: document.getElementById("stat-average-stars"),
   statTransactions: document.getElementById("stat-transactions"),
   statCurrentStreak: document.getElementById("stat-current-streak"),
   statLastFive: document.getElementById("stat-last-five"),
@@ -1925,6 +1926,34 @@ function parseAdjustedScore(row, columns) {
   return isCaptainMarked(playerCell) ? base - 0.5 : base;
 }
 
+function getPlayerStarRatingForStats(gp, avgRank, war) {
+  const games = Number(gp || 0);
+  if (!games) {
+    return null;
+  }
+  if (games > 7) {
+    const rankValue = Number(avgRank);
+    if (!Number.isFinite(rankValue)) return null;
+    if (rankValue > 1000) return 1;
+    if (rankValue > 500) return 2;
+    if (rankValue > 400) return 3;
+    if (rankValue > 300) return 3.5;
+    if (rankValue > 200) return 4;
+    if (rankValue > 100) return 4.5;
+    return 5;
+  }
+
+  const warValue = Number(war);
+  if (!Number.isFinite(warValue)) return null;
+  if (warValue < -1) return 1;
+  if (warValue < -0.5) return 2;
+  if (warValue < 0.5) return 3;
+  if (warValue < 1) return 3.5;
+  if (warValue < 2) return 4;
+  if (warValue < 2.5) return 4.5;
+  return 5;
+}
+
 function updateAdvancedTeamStats(values) {
   if (els.statPam) {
     els.statPam.textContent =
@@ -1939,6 +1968,10 @@ function updateAdvancedTeamStats(values) {
       values && Number.isFinite(values.starterMedianRank)
         ? Math.round(values.starterMedianRank).toString()
         : "—";
+  }
+  if (els.statAverageStars) {
+    els.statAverageStars.textContent =
+      values && Number.isFinite(values.averageStars) ? `${values.averageStars.toFixed(1)}/5` : "—";
   }
 }
 
@@ -2014,12 +2047,17 @@ function computeAdvancedTeamStats(teamName, allRows) {
       return;
     }
     if (!playerAgg.has(player)) {
-      playerAgg.set(player, { relSum: 0, relGames: 0, gp: 0, ranks: [] });
+      playerAgg.set(player, { relSum: 0, relGames: 0, gp: 0, ranks: [], war: 0 });
     }
     const agg = playerAgg.get(player);
     agg.relSum += score / med;
     agg.relGames += 1;
     agg.gp += 1;
+    const replacementScore = 0.9 * med;
+    const avgMargin = 0.92 * med;
+    if (avgMargin > 0) {
+      agg.war += (score - replacementScore) / avgMargin;
+    }
     const rank = parseNumber(row[columns.rank]);
     if (rank !== null) {
       agg.ranks.push(rank);
@@ -2058,12 +2096,22 @@ function computeAdvancedTeamStats(teamName, allRows) {
     .filter((agg) => agg.gp >= 5 && agg.ranks.length)
     .map((agg) => median(agg.ranks))
     .filter((value) => value !== null);
+  const playerStars = Array.from(playerAgg.values())
+    .map((agg) => {
+      const avgRank =
+        agg.ranks.length ? agg.ranks.reduce((sum, value) => sum + value, 0) / agg.ranks.length : null;
+      return getPlayerStarRatingForStats(agg.gp, avgRank, agg.war);
+    })
+    .filter((value) => Number.isFinite(value));
 
   return {
     pam,
     apPam: pctGames ? pctSum / pctGames : null,
     tRel: tRelWeight ? tRelWeighted / tRelWeight : null,
     starterMedianRank: median(starterMedianRanks),
+    averageStars: playerStars.length
+      ? playerStars.reduce((sum, value) => sum + value, 0) / playerStars.length
+      : null,
   };
 }
 

@@ -1858,7 +1858,7 @@ function getPlayerStarRating(summary) {
   }
 
   const gp = Number(summary.gp || 0);
-  if (gp >= 7) {
+  if (gp > 7) {
     const avgRank = Number(summary.avgRank);
     if (!Number.isFinite(avgRank)) return null;
     if (avgRank > 1000) return 1;
