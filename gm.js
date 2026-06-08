@@ -672,7 +672,7 @@ function canEditTeam(team) {
 
 function canSubmitPowerRankings(team) {
   if (!isSignedInGm()) return false;
-  if (isCommish()) return true;
+  if (isCommish() || isReporter()) return true;
   return canEditTeam(team);
 }
 
@@ -697,7 +697,7 @@ function syncTeamSelectorsToAuth() {
   ].filter(Boolean);
 
   const assignedTeam = getAuthorizedTeam();
-  const allowAnyTeam = isCommish();
+  const allowAnyTeam = isCommish() || isReporter();
 
   selects.forEach((select) => {
     Array.from(select.options).forEach((opt) => {
@@ -754,7 +754,7 @@ function applyAuthUi() {
   if (els.commishTab) {
     els.commishTab.hidden = !(signedIn && isCommish());
   }
-  ["trade", "rename", "lineup", "power"].forEach((tabName) => {
+  ["trade", "rename", "lineup"].forEach((tabName) => {
     const button = els.tabButtons.find((tabButton) => tabButton.dataset.gmTab === tabName);
     if (button) {
       button.hidden = reporterOnly;
