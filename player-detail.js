@@ -83,6 +83,7 @@ const ARCHIVE_TEAM_ROSTERS = {
 
 const els = {
   name: document.getElementById("player-name"),
+  starRating: document.getElementById("player-star-rating"),
   sub: document.getElementById("player-sub"),
   avatarCard: document.getElementById("player-avatar-card"),
   avatarImage: document.getElementById("player-avatar-image"),
@@ -1851,6 +1852,49 @@ function summarizeRows(rows, baselines) {
   };
 }
 
+function getPlayerStarRating(summary) {
+  if (!summary || !summary.gp) {
+    return null;
+  }
+
+  const gp = Number(summary.gp || 0);
+  if (gp >= 7) {
+    const avgRank = Number(summary.avgRank);
+    if (!Number.isFinite(avgRank)) return null;
+    if (avgRank > 1000) return 1;
+    if (avgRank > 500) return 2;
+    if (avgRank > 400) return 3;
+    if (avgRank > 300) return 3.5;
+    if (avgRank > 200) return 4;
+    if (avgRank > 100) return 4.5;
+    return 5;
+  }
+
+  const war = Number(summary.war);
+  if (!Number.isFinite(war)) return null;
+  if (war < -1) return 1;
+  if (war < -0.5) return 2;
+  if (war < 0.5) return 3;
+  if (war < 1) return 3.5;
+  if (war < 2) return 4;
+  if (war < 2.5) return 4.5;
+  return 5;
+}
+
+function renderPlayerStarRating(summary) {
+  if (!els.starRating) {
+    return;
+  }
+  const rating = getPlayerStarRating(summary);
+  if (rating === null) {
+    els.starRating.textContent = "";
+    els.starRating.hidden = true;
+    return;
+  }
+  els.starRating.hidden = false;
+  els.starRating.textContent = `${rating}/5 Stars`;
+}
+
 function renderWeeklyModal(key) {
   if (!els.weeklyModal || !els.weeklyTitle || !els.weeklyMetrics || !els.weeklyGamesBody) {
     return;
@@ -1922,6 +1966,7 @@ function renderWeeklyModal(key) {
 
 function updateSummary(rows, baselines) {
   const summary = summarizeRows(rows, baselines);
+  renderPlayerStarRating(summary);
   if (!summary.gp) {
     els.sumTotal.textContent = "—";
     els.sumAvgScore.textContent = "—";

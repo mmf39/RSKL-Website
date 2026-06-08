@@ -4018,6 +4018,20 @@ input[type="text"] {
   flex: 0 0 auto;
 }
 
+.player-star-rating {
+  min-height: 26px;
+  color: #ffb13b;
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 8px 24px rgba(255, 136, 19, 0.24);
+}
+
+.player-star-rating:empty {
+  display: none;
+}
+
 .player-detail-avatar-card {
   width: 156px;
   height: 156px;
