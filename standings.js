@@ -29,6 +29,7 @@ let requestedMetric = "wins";
 let advancedByTeam = new Map();
 let transactionsByTeam = new Map();
 let leagueStandingsMetrics = [];
+let scheduleRowsForTiebreakers = [];
 const STANDINGS_SCOPE_KEY = "standings_scope";
 
 const ARCHIVE_RANGES = {
@@ -356,6 +357,18 @@ function sliceRange(rows, range) {
 }
 
 function getC2S2ScheduleRows(rows) {
+  const headerRowIndex = rows.findIndex((row) => {
+    const header = row.map((value) => String(value || "").trim().toLowerCase());
+    return (
+      header.some((value) => value === "date" || value.includes("date")) &&
+      header.some(
+        (value) => value.includes("team 1") || value.includes("team1") || value.includes("away") || value.includes("home")
+      )
+    );
+  });
+  if (headerRowIndex >= 0) {
+    return rows.slice(headerRowIndex);
+  }
   const sliced = sliceRange(rows, C2S2_SCHEDULE_RANGE);
   return [["Date", "Team 1", "Team 2", "Info", "Game Type"], ...sliced];
 }
@@ -521,8 +534,82 @@ function sortStandingsRows(rows) {
     if (metricOrder(requestedMetric) === "asc") {
       return av - bv;
     }
-    return bv - av;
+    const metricDiff = bv - av;
+    if (metricDiff) {
+      return metricDiff;
+    }
+    if (requestedMetric === "wins" || requestedMetric === "winpct") {
+      const tiebreaker = compareStandingsTiebreakers(a, b);
+      if (tiebreaker) return tiebreaker;
+    }
+    return String(a.team || "").localeCompare(String(b.team || ""));
   });
+}
+
+function compareNullableDesc(a, b) {
+  const av = Number.isFinite(a) ? a : null;
+  const bv = Number.isFinite(b) ? b : null;
+  if (av === null && bv === null) return 0;
+  if (av === null) return 1;
+  if (bv === null) return -1;
+  return bv - av;
+}
+
+function getTiebreakerWinnerFromResult(result, team1, team2) {
+  const text = String(result || "").trim();
+  if (!text) return "";
+  const lower = text.toLowerCase();
+  if (teamMatches(text, team1)) return displayTeamName(team1);
+  if (teamMatches(text, team2)) return displayTeamName(team2);
+  if (lower.includes("team 1") || lower.includes("home")) return displayTeamName(team1);
+  if (lower.includes("team 2") || lower.includes("away")) return displayTeamName(team2);
+  return "";
+}
+
+function getHeadToHeadWins(teamA, teamB) {
+  if (!teamA || !teamB || !scheduleRowsForTiebreakers.length) {
+    return null;
+  }
+  const headers = scheduleRowsForTiebreakers[0] || [];
+  const idx = getScheduleIndexes(headers, getSeason());
+  const lower = headers.map((h) => String(h || "").trim().toLowerCase());
+  const resultIdx = lower.findIndex((h) => h === "result" || h.includes("winner"));
+  if (resultIdx === -1) {
+    return null;
+  }
+
+  let winsA = 0;
+  let winsB = 0;
+  scheduleRowsForTiebreakers.slice(1).forEach((row) => {
+    const team1 = displayTeamName(String(row[idx.team1] || "").trim());
+    const team2 = displayTeamName(String(row[idx.team2] || "").trim());
+    const isMatch =
+      (teamMatches(team1, teamA) && teamMatches(team2, teamB)) ||
+      (teamMatches(team1, teamB) && teamMatches(team2, teamA));
+    if (!isMatch) return;
+    const winner = getTiebreakerWinnerFromResult(row[resultIdx], team1, team2);
+    if (!winner) return;
+    if (teamMatches(winner, teamA)) winsA += 1;
+    if (teamMatches(winner, teamB)) winsB += 1;
+  });
+
+  if (!winsA && !winsB) return null;
+  return { winsA, winsB };
+}
+
+function compareStandingsTiebreakers(a, b) {
+  const h2h = getHeadToHeadWins(a.team, b.team);
+  if (h2h && h2h.winsA !== h2h.winsB) {
+    return h2h.winsB - h2h.winsA;
+  }
+
+  const totalScoreCompare = compareNullableDesc(a.totalScore, b.totalScore);
+  if (totalScoreCompare) return totalScoreCompare;
+
+  const sosCompare = compareNullableDesc(a.sos, b.sos);
+  if (sosCompare) return sosCompare;
+
+  return 0;
 }
 
 function getDivisionName(teamName) {
@@ -754,6 +841,7 @@ function buildLeagueRowsFromC2S2(standingsRows, scheduleRows, playerRows) {
         sos: computeTeamSOS(metricRow.team, scheduleRows, winPctMap, "c2s2", gp),
         pam: typeof advanced.pam === "number" ? advanced.pam : null,
         trel: typeof advanced.tRel === "number" ? advanced.tRel : null,
+        totalScore: typeof advanced.totalScore === "number" ? advanced.totalScore : null,
         transactions: 0,
       };
     })
@@ -846,6 +934,7 @@ function buildLeagueRowsFromArchive(standingsTable, scheduleTable, season) {
         sos: computeTeamSOS(team, scheduleTable, winPctMap, season),
         pam: null,
         trel: null,
+        totalScore: null,
         transactions: 0,
       };
     })
@@ -1176,9 +1265,11 @@ function computeAdvancedTeamStats(teamName, allRows) {
   }
 
   let pam = 0;
+  let totalScore = 0;
   let tRelWeighted = 0;
   let tRelWeight = 0;
   teamTotalsByDate.forEach((teamTotal, date) => {
+    totalScore += teamTotal;
     const med = teamMedianByDate.get(date);
     if (!med || med <= 0) {
       return;
@@ -1198,6 +1289,7 @@ function computeAdvancedTeamStats(teamName, allRows) {
   return {
     pam,
     tRel: tRelWeight ? tRelWeighted / tRelWeight : null,
+    totalScore,
   };
 }
 
@@ -1361,7 +1453,9 @@ function computeAdvancedByTeam(allRows) {
 
   teamTotalsByDate.forEach((totals, team) => {
     let pam = 0;
+    let totalScore = 0;
     totals.forEach((teamTotal, date) => {
+      totalScore += teamTotal;
       const med = teamMedianByDate.get(date);
       if (!med || med <= 0) {
         return;
@@ -1384,6 +1478,7 @@ function computeAdvancedByTeam(allRows) {
     map.set(team, {
       pam,
       tRel: tRelWeight ? tRelWeighted / tRelWeight : null,
+      totalScore,
     });
   });
 
@@ -1708,6 +1803,7 @@ async function loadStandings() {
     if (seasonRaw === ALL_TIME_SEASON) {
       standingsHeaders = [];
       standingsRows = [];
+      scheduleRowsForTiebreakers = [];
       transactionsByTeam = new Map();
       leagueStandingsMetrics = await buildAllTimeLeagueStandings();
       if (["gb", "sos", "pam", "trel", "transactions"].includes(requestedMetric)) {
@@ -1727,6 +1823,7 @@ async function loadStandings() {
 
       const standingsData = parseCSV(await standingsRes.text());
       const scheduleRows = getC2S2ScheduleRows(parseCSV(await scheduleRes.text()));
+      scheduleRowsForTiebreakers = scheduleRows;
       const playerRows = parseCSV(await playerStatsRes.text());
       if (!standingsData.length) {
         throw new Error("No data found.");
@@ -1755,6 +1852,7 @@ async function loadStandings() {
       const regularRows = parseCSV(await regularRes.text());
       const standingsTable = sliceRange(regularRows, C2S2_REGULAR_RANGES.standings);
       const scheduleTable = sliceRange(regularRows, C2S2_REGULAR_RANGES.schedule);
+      scheduleRowsForTiebreakers = scheduleTable;
       if (!standingsTable.length) {
         throw new Error("No data found.");
       }
@@ -1778,6 +1876,7 @@ async function loadStandings() {
       const rows = parseCSV(await response.text());
       standingsHeaders = rows[0] || [];
       standingsRows = rows.slice(1);
+      scheduleRowsForTiebreakers = [];
       transactionsByTeam = new Map();
       leagueStandingsMetrics = standingsRows.map((row) => ({
         team: String(row[1] || "").trim(),
@@ -1800,6 +1899,7 @@ async function loadStandings() {
       const rows = parseCSV(await response.text());
       standingsHeaders = rows[0] || [];
       standingsRows = rows.slice(1);
+      scheduleRowsForTiebreakers = [];
       transactionsByTeam = new Map();
       leagueStandingsMetrics = standingsRows.map((row) => ({
         team: String(row[1] || "").trim(),
@@ -1822,6 +1922,7 @@ async function loadStandings() {
       const rows = parseCSV(await response.text());
       standingsHeaders = rows[0] || [];
       standingsRows = rows.slice(1);
+      scheduleRowsForTiebreakers = [];
       transactionsByTeam = new Map();
       leagueStandingsMetrics = standingsRows.map((row) => ({
         team: String(row[1] || "").trim(),
@@ -1844,6 +1945,7 @@ async function loadStandings() {
       const rows = parseCSV(await response.text());
       standingsHeaders = rows[0] || [];
       standingsRows = rows.slice(1);
+      scheduleRowsForTiebreakers = [];
       transactionsByTeam = new Map();
       leagueStandingsMetrics = standingsRows.map((row) => ({
         team: String(row[1] || "").trim(),
@@ -1866,6 +1968,7 @@ async function loadStandings() {
       const rows = parseCSV(await response.text());
       standingsHeaders = rows[0] || [];
       standingsRows = rows.slice(1);
+      scheduleRowsForTiebreakers = [];
       transactionsByTeam = new Map();
       leagueStandingsMetrics = standingsRows.map((row) => ({
         team: String(row[1] || "").trim(),
@@ -1889,6 +1992,7 @@ async function loadStandings() {
       const rows = parseCSV(await response.text());
       const standingsTable = sliceRange(rows, ARCHIVE_RANGES.standings);
       const scheduleTable = sliceRange(rows, "G31:I79");
+      scheduleRowsForTiebreakers = scheduleTable;
       if (!standingsTable.length) {
         throw new Error("No data found.");
       }
