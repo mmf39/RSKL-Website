@@ -65,14 +65,8 @@ const els = {
   authedShell: document.getElementById("gm-authed-shell"),
   commishCard: document.getElementById("gm-commish-card"),
   articleCard: document.getElementById("gm-article-card"),
-  userRolesCard: document.getElementById("gm-user-roles-card"),
+  articlesTab: document.getElementById("gm-articles-tab"),
   commishTab: document.getElementById("gm-commish-tab"),
-  roleUserId: document.getElementById("gm-role-user-id"),
-  roleSelect: document.getElementById("gm-role-select"),
-  roleTeam: document.getElementById("gm-role-team"),
-  roleSave: document.getElementById("gm-role-save"),
-  roleStatus: document.getElementById("gm-role-status"),
-  roleList: document.getElementById("gm-role-list"),
   lockGamesList: document.getElementById("gm-lock-games-list"),
   lockSave: document.getElementById("gm-lock-save"),
   lockStatus: document.getElementById("gm-lock-status"),
@@ -91,6 +85,7 @@ const els = {
   tabLineupPanel: document.getElementById("gm-tab-lineup"),
   tabFreeAgencyPanel: document.getElementById("gm-tab-free-agency"),
   tabPowerPanel: document.getElementById("gm-tab-power"),
+  tabArticlesPanel: document.getElementById("gm-tab-articles"),
   tabCommishPanel: document.getElementById("gm-tab-commish"),
   lineupTabMeta: document.getElementById("gm-lineup-tab-meta"),
   sessionMeta: document.getElementById("gm-session-meta"),
@@ -250,6 +245,8 @@ function setActiveTab(tab) {
       ? "free-agency"
       : tab === "power"
       ? "power"
+      : tab === "articles"
+      ? "articles"
       : tab === "commish"
       ? "commish"
       : "trade";
@@ -267,6 +264,9 @@ function setActiveTab(tab) {
   }
   if (els.tabPowerPanel) {
     els.tabPowerPanel.hidden = active !== "power";
+  }
+  if (els.tabArticlesPanel) {
+    els.tabArticlesPanel.hidden = active !== "articles";
   }
   if (els.tabCommishPanel) {
     els.tabCommishPanel.hidden = active !== "commish";
@@ -665,13 +665,14 @@ function sameTeam(a, b) {
 function canEditTeam(team) {
   if (!isSignedInGm()) return false;
   if (isCommish()) return true;
+  if (isReporter()) return false;
   const mine = getAuthorizedTeam();
   return !!mine && sameTeam(mine, team);
 }
 
 function canSubmitPowerRankings(team) {
   if (!isSignedInGm()) return false;
-  if (isCommish() || isReporter()) return true;
+  if (isCommish()) return true;
   return canEditTeam(team);
 }
 
@@ -696,7 +697,7 @@ function syncTeamSelectorsToAuth() {
   ].filter(Boolean);
 
   const assignedTeam = getAuthorizedTeam();
-  const allowAnyTeam = isCommish() || isReporter();
+  const allowAnyTeam = isCommish();
 
   selects.forEach((select) => {
     Array.from(select.options).forEach((opt) => {
@@ -721,6 +722,7 @@ function syncTeamSelectorsToAuth() {
 
 function applyAuthUi() {
   const signedIn = isSignedInGm();
+  const reporterOnly = signedIn && isReporter() && !isCommish();
 
   els.codeLabels.forEach((node) => {
     node.hidden = true;
@@ -743,20 +745,28 @@ function applyAuthUi() {
   if (els.commishCard) {
     els.commishCard.hidden = !(signedIn && isCommish());
   }
-  if (els.userRolesCard) {
-    els.userRolesCard.hidden = !(signedIn && isCommish());
-  }
   if (els.articleCard) {
     els.articleCard.hidden = !(signedIn && canWriteArticles());
   }
+  if (els.articlesTab) {
+    els.articlesTab.hidden = !(signedIn && canWriteArticles());
+  }
   if (els.commishTab) {
-    els.commishTab.hidden = !(signedIn && canWriteArticles());
+    els.commishTab.hidden = !(signedIn && isCommish());
+  }
+  ["trade", "rename", "lineup", "power"].forEach((tabName) => {
+    const button = els.tabButtons.find((tabButton) => tabButton.dataset.gmTab === tabName);
+    if (button) {
+      button.hidden = reporterOnly;
+    }
+  });
+  if (reporterOnly) {
+    setActiveTab("articles");
+  } else if (els.tabCommishPanel && !isCommish() && !els.tabCommishPanel.hidden) {
+    setActiveTab(canWriteArticles() ? "articles" : "trade");
   }
   if (signedIn && canWriteArticles()) {
     loadArticlesForWriter();
-  }
-  if (signedIn && isCommish()) {
-    loadGmAssignmentsForCommish();
   }
   if (els.sessionMeta) {
     els.sessionMeta.hidden = !signedIn;
