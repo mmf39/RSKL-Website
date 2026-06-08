@@ -623,7 +623,7 @@ function getDivisionName(teamName) {
 function getStandingsScope() {
   const raw = String(localStorage.getItem(STANDINGS_SCOPE_KEY) || "league").toLowerCase();
   const config = getDivisionConfig();
-  return raw === config.primaryKey || raw === config.secondaryKey || raw === "north" || raw === "south"
+  return raw === config.primaryKey || raw === config.secondaryKey || raw === "north" || raw === "south" || raw === "magic"
     ? raw
     : "league";
 }
@@ -848,13 +848,13 @@ function buildMagicNumberRows(rows) {
   });
 }
 
-function renderMagicNumberSection(rows) {
+function renderMagicNumberSection(rows, options = {}) {
   if (getSeasonRaw() === ALL_TIME_SEASON) return "";
   const magicRows = buildMagicNumberRows(rows);
   if (!magicRows.length) return "";
   return `
     <section class="leader-section magic-number-section">
-      <h2 class="leader-section-title">Magic Numbers</h2>
+      ${options.showTitle === false ? "" : '<h2 class="leader-section-title">Magic Numbers</h2>'}
       <div class="magic-number-grid">
         ${magicRows
           .map((row) => {
@@ -912,16 +912,20 @@ function renderStandings() {
     leagueStandingsMetrics.filter((row) => getDivisionName(row.team) === config.secondaryLabel)
   );
 
+  if (scope === "magic") {
+    els.leaderboard.innerHTML = renderMagicNumberSection(leagueRows, { showTitle: false });
+    return;
+  }
   if (scope === config.primaryKey || (scope === "north" && config.primaryKey === "north")) {
-    els.leaderboard.innerHTML = `${renderStandingsSection(`${config.primaryLabel} Division`, primaryRows)}${renderMagicNumberSection(primaryRows)}`;
+    els.leaderboard.innerHTML = renderStandingsSection(`${config.primaryLabel} Division`, primaryRows);
     return;
   }
   if (scope === config.secondaryKey || (scope === "south" && config.secondaryKey === "south")) {
-    els.leaderboard.innerHTML = `${renderStandingsSection(`${config.secondaryLabel} Division`, secondaryRows)}${renderMagicNumberSection(secondaryRows)}`;
+    els.leaderboard.innerHTML = renderStandingsSection(`${config.secondaryLabel} Division`, secondaryRows);
     return;
   }
   const leagueTitle = getSeasonRaw() === ALL_TIME_SEASON ? "All-Time Standings" : "League Standings";
-  els.leaderboard.innerHTML = `${renderStandingsSection(leagueTitle, leagueRows)}${renderMagicNumberSection(leagueRows)}`;
+  els.leaderboard.innerHTML = renderStandingsSection(leagueTitle, leagueRows);
 }
 
 function stripCaptainMarker(value) {
