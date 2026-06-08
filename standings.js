@@ -814,6 +814,18 @@ function buildMagicNumberRows(rows) {
       const targetLosses = target ? (parseNumber(target.loss) ?? 0) : 0;
       const targetGp = target ? (parseNumber(target.gp) ?? targetWins + targetLosses) : 0;
       const targetRemaining = Math.max(0, CURRENT_PLAYOFF_GAMES - targetGp);
+      const targetMaxWins = targetWins + targetRemaining;
+      const magic = index < CURRENT_PLAYOFF_SPOTS_PER_DIVISION
+        ? target
+          ? Math.max(0, CURRENT_PLAYOFF_GAMES + 1 - wins - targetLosses)
+          : 0
+        : null;
+      const maxWins = wins + remaining;
+      const isEliminated = Boolean(target) && maxWins < targetWins;
+      const doesNotControlFuture =
+        !isEliminated &&
+        Boolean(target) &&
+        (index >= CURRENT_PLAYOFF_SPOTS_PER_DIVISION || (magic !== null && magic > remaining));
       output.push({
         ...row,
         division,
@@ -825,12 +837,11 @@ function buildMagicNumberRows(rows) {
         targetWins,
         targetLosses,
         targetRemaining,
-        targetMaxWins: targetWins + targetRemaining,
-        magic: index < CURRENT_PLAYOFF_SPOTS_PER_DIVISION
-          ? target
-            ? Math.max(0, CURRENT_PLAYOFF_GAMES + 1 - wins - targetLosses)
-            : 0
-          : null,
+        targetMaxWins,
+        maxWins,
+        magic,
+        isEliminated,
+        doesNotControlFuture,
         isInPlayoffPosition: index < CURRENT_PLAYOFF_SPOTS_PER_DIVISION,
       });
     });
@@ -861,8 +872,20 @@ function renderMagicNumberSection(rows, options = {}) {
             const teamName = displayTeamName(row.team);
             const logo = getTeamLogoHtml(teamName);
             const targetName = row.target ? displayTeamName(row.target.team) : "";
-            const magicText = row.magic === null ? "—" : row.magic === 0 ? "Clinched" : String(row.magic);
-            const summary = row.isInPlayoffPosition
+            const magicText = row.isEliminated
+              ? "Eliminated"
+              : row.doesNotControlFuture
+              ? "Dont Control Future"
+              : row.magic === null
+              ? "—"
+              : row.magic === 0
+              ? "Clinched"
+              : String(row.magic);
+            const summary = row.isEliminated
+              ? `${teamName} is eliminated because its max wins (${row.maxWins}) cannot catch the cutoff.`
+              : row.doesNotControlFuture
+              ? `${teamName} still has a path, but needs help from other results.`
+              : row.isInPlayoffPosition
               ? row.magic === 0
                 ? `${teamName} has clinched a playoff spot.`
                 : `${row.magic} combined ${teamName} win(s) and ${targetName} loss(es) clinch a playoff spot.`
