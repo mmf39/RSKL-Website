@@ -210,6 +210,7 @@
             <label class="label" for="power-team-select">Team</label>
             <select id="power-team-select" class="text-input">
               <option value="">Select team</option>
+              <option value="__REPORTER__">Reporter</option>
               <option value="Gus N Em">Gus N Em</option>
               <option value="Storm">Storm</option>
               <option value="Turkeys">Turkeys</option>
@@ -221,6 +222,10 @@
               <option value="The Snipers">The Snipers</option>
               <option value="The Phantoms">The Phantoms</option>
             </select>
+            <div id="power-reporter-group" hidden>
+              <label class="label" for="power-reporter-handle">Type your @ on Real</label>
+              <input id="power-reporter-handle" class="text-input" type="text" placeholder="@yourhandle" />
+            </div>
 
             <div class="label">Rank teams #1 to #10</div>
             <button id="power-randomize" class="btn ghost" type="button">Randomize Ballot</button>
@@ -294,7 +299,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="gm.js?v=20260608reporters3"></script>
+    <script src="gm.js?v=20260608reporters4"></script>
       <script src="header-nav.js?v=20260504e"></script>
   </body>
 </html>

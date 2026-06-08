@@ -14,6 +14,8 @@ const GM_ASSIGNMENT_KEY = "rskl_gm_assignment";
 const GM_LOCAL_LOCKS_KEY = "rskl_local_game_locks";
 const GM_FREE_AGENCY_KEY = "rskl_gm_free_agency_selection";
 const GM_FREE_AGENCY_VOTER_KEY = "rskl_gm_free_agency_voter_handle";
+const GM_POWER_REPORTER_HANDLE_KEY = "rskl_power_reporter_handle";
+const POWER_REPORTER_VALUE = "__REPORTER__";
 const GM_GAME_LOCKS_TABLE = "gm_game_locks";
 const GM_ALL_STAR_VOTES_TABLE = "gm_all_star_votes_public";
 
@@ -130,6 +132,8 @@ const els = {
   freeAgencySave: document.getElementById("free-agency-save"),
   freeAgencyStatus: document.getElementById("free-agency-status"),
   powerTeamSelect: document.getElementById("power-team-select"),
+  powerReporterGroup: document.getElementById("power-reporter-group"),
+  powerReporterHandle: document.getElementById("power-reporter-handle"),
   powerRankingsList: document.getElementById("power-rankings-list"),
   powerRandomize: document.getElementById("power-randomize"),
   powerCode: document.getElementById("power-code"),
@@ -672,8 +676,24 @@ function canEditTeam(team) {
 
 function canSubmitPowerRankings(team) {
   if (!isSignedInGm()) return false;
+  if (team === POWER_REPORTER_VALUE) return isReporter() || isCommish();
   if (isCommish() || isReporter()) return true;
   return canEditTeam(team);
+}
+
+function formatReporterHandle(value) {
+  const clean = String(value || "").trim();
+  if (!clean) return "";
+  return clean.startsWith("@") ? clean : `@${clean}`;
+}
+
+function getPowerVoteStorageKey(team, handle = "") {
+  if (team !== POWER_REPORTER_VALUE) {
+    return team;
+  }
+  const cleanHandle = formatReporterHandle(handle).replace(/\s+/g, "");
+  const stamp = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
+  return `Reporter ${cleanHandle || "@unknown"} ${stamp}`;
 }
 
 function ensureCanEditTeam(team, setStatusFn) {
@@ -702,6 +722,10 @@ function syncTeamSelectorsToAuth() {
   selects.forEach((select) => {
     Array.from(select.options).forEach((opt) => {
       if (!opt.value) return;
+      if (opt.value === POWER_REPORTER_VALUE) {
+        opt.disabled = !(isCommish() || isReporter());
+        return;
+      }
       opt.disabled =
         !allowAnyTeam && assignedTeam ? !sameTeam(opt.value, assignedTeam) : false;
     });
@@ -788,6 +812,10 @@ function applyAuthUi() {
   }
 
   syncTeamSelectorsToAuth();
+  if (reporterOnly && els.powerTeamSelect) {
+    els.powerTeamSelect.value = POWER_REPORTER_VALUE;
+    els.powerTeamSelect.disabled = true;
+  }
   renderSelectedTeam(els.teamSelect ? els.teamSelect.value : "");
   renderRenameTeam(els.renameTeamSelect ? els.renameTeamSelect.value : "");
   renderLineupTeam(els.lineupTeamSelect ? els.lineupTeamSelect.value : "");
@@ -1190,6 +1218,7 @@ async function savePowerVoteToSheet(team, vote) {
     action: "savePowerRankings",
     team,
     teamName: team,
+    reporterHandle: String(vote.reporterHandle || "").trim(),
     rankings,
     rankingsCsv: rankings.join(", "),
     updatedAt: vote.updatedAt || new Date().toISOString(),
@@ -2233,11 +2262,17 @@ async function publishArticle() {
 
 function renderPowerRankingsTeam(team) {
   if (!els.powerRankingsList) return;
+  if (els.powerReporterGroup) {
+    els.powerReporterGroup.hidden = team !== POWER_REPORTER_VALUE;
+  }
+  if (els.powerReporterHandle && team === POWER_REPORTER_VALUE && !els.powerReporterHandle.value) {
+    els.powerReporterHandle.value = localStorage.getItem(GM_POWER_REPORTER_HANDLE_KEY) || "";
+  }
   if (!team) {
     els.powerRankingsList.innerHTML = '<div class="gm-empty">Select a team.</div>';
     return;
   }
-  const saved = powerVotesCache[team];
+  const saved = team === POWER_REPORTER_VALUE ? null : powerVotesCache[team];
   const pick = (index) =>
     saved && Array.isArray(saved.rankings) && saved.rankings[index]
       ? saved.rankings[index]
@@ -2279,6 +2314,10 @@ function renderPowerVotesView() {
   const selectedTeam = els.powerTeamSelect ? els.powerTeamSelect.value : "";
   if (!selectedTeam) {
     els.powerVotesView.innerHTML = '<div class="gm-empty">Select a team to view your ballot.</div>';
+    return;
+  }
+  if (selectedTeam === POWER_REPORTER_VALUE) {
+    els.powerVotesView.innerHTML = '<div class="gm-empty">Reporter ballots are saved as new responses every time.</div>';
     return;
   }
   const vote = powerVotesCache[selectedTeam] || {};
@@ -2837,6 +2876,15 @@ function bindEvents() {
         setPowerStatus("GM or reporter access required.", true);
         return;
       }
+      const reporterHandle =
+        team === POWER_REPORTER_VALUE ? formatReporterHandle(els.powerReporterHandle?.value || "") : "";
+      if (team === POWER_REPORTER_VALUE && !reporterHandle) {
+        setPowerStatus("Type your @ on Real first.", true);
+        return;
+      }
+      if (reporterHandle) {
+        localStorage.setItem(GM_POWER_REPORTER_HANDLE_KEY, reporterHandle);
+      }
       const rankings = Array.from(
         els.powerRankingsList.querySelectorAll("select[data-power-rank]")
       ).map((node) => String(node.value || "").trim());
@@ -2854,17 +2902,23 @@ function bindEvents() {
         rankings,
         updatedAt: new Date().toISOString(),
       };
+      const storageTeam = getPowerVoteStorageKey(team, reporterHandle);
 
       try {
-        await savePowerVoteToSheet(team, vote);
+        await savePowerVoteToSheet(storageTeam, {
+          ...vote,
+          reporterHandle,
+        });
       } catch (error) {
         setPowerStatus(error.message || "Unable to save power rankings vote.", true);
         return;
       }
 
-      powerVotesCache[team] = vote;
+      if (team !== POWER_REPORTER_VALUE) {
+        powerVotesCache[team] = vote;
+      }
       renderPowerVotesView();
-      setPowerStatus("Power rankings vote submitted.");
+      setPowerStatus(team === POWER_REPORTER_VALUE ? "Reporter power rankings response submitted." : "Power rankings vote submitted.");
       updateLastUpdated();
     });
   }
