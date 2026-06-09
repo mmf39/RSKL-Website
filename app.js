@@ -1031,6 +1031,25 @@ function setLocalBracketEntries(entries) {
   localStorage.setItem(BRACKET_CHALLENGE_LOCAL_KEY, JSON.stringify(entries.slice(0, 50)));
 }
 
+function upsertLocalBracketEntry(entry) {
+  const nextEntry = normalizeBracketEntry(entry);
+  const entries = getLocalBracketEntries().map(normalizeBracketEntry);
+  const existingIndex = entries.findIndex((saved) => saved.handle.toLowerCase() === nextEntry.handle.toLowerCase());
+  if (existingIndex >= 0) {
+    entries[existingIndex] = {
+      ...entries[existingIndex],
+      ...nextEntry,
+      created_at: entries[existingIndex].created_at || nextEntry.created_at,
+      updated_at: nextEntry.updated_at || new Date().toISOString(),
+    };
+  } else {
+    entries.unshift(nextEntry);
+  }
+  const dedupedEntries = dedupeBracketEntries(entries);
+  setLocalBracketEntries(dedupedEntries);
+  return dedupedEntries;
+}
+
 function normalizeBracketEntry(row) {
   const picks = row?.picks && typeof row.picks === "object" ? row.picks : {};
   return {
@@ -1039,7 +1058,18 @@ function normalizeBracketEntry(row) {
     champion: String(row?.champion || picks.championship || "").trim(),
     picks,
     created_at: row?.created_at || row?.updated_at || new Date().toISOString(),
+    updated_at: row?.updated_at || row?.created_at || new Date().toISOString(),
   };
+}
+
+function dedupeBracketEntries(entries) {
+  const seen = new Set();
+  return (Array.isArray(entries) ? entries : []).filter((entry) => {
+    const key = String(entry.handle || "").trim().toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function formatBracketHandle(value) {
@@ -1073,16 +1103,26 @@ function getBracketChallengePicks() {
 function renderBracketPickButton(groupKey, seed, disabled = false, selectedValue = "") {
   const team = getBracketTeamValue(seed);
   if (!team) return "";
+  const record = seed.wins !== null && seed.losses !== null && seed.wins !== undefined && seed.losses !== undefined ? `${seed.wins}-${seed.losses}` : "Pick";
   return `
-    <label class="bracket-pick-option">
+    <label class="dashboard-bracket-team bracket-pick-option ${disabled ? "bracket-pick-option--disabled" : ""}">
       <input type="radio" name="bracket-${escapeHtml(groupKey)}" value="${escapeHtml(team)}" ${disabled ? "disabled" : ""} ${team === selectedValue ? "checked" : ""} />
-      <span>
-        ${renderSmallTeamLogo(team)}
-        <strong>${escapeHtml(team)}</strong>
-        ${seed?.seedLabel ? `<em>${escapeHtml(seed.seedLabel)}</em>` : ""}
-      </span>
+      <span class="dashboard-bracket-seed">${escapeHtml(seed?.seedLabel || "—")}</span>
+      ${renderSmallTeamLogo(team)}
+      <span class="dashboard-bracket-name">${escapeHtml(team)}</span>
+      <span class="dashboard-bracket-record">${escapeHtml(record)}</span>
     </label>
   `;
+}
+
+function getBracketEntryForHandle(handle) {
+  const normalizedHandle = String(handle || "").trim().toLowerCase();
+  if (!normalizedHandle) return null;
+  return bracketChallengeEntries.find((entry) => String(entry.handle || "").trim().toLowerCase() === normalizedHandle) || null;
+}
+
+function getCurrentBracketEntry() {
+  return getBracketEntryForHandle(getConfirmedBracketHandle());
 }
 
 function renderBracketChallengeEntries(entries) {
@@ -1114,15 +1154,16 @@ async function loadBracketChallengeEntries() {
     if (!response.ok) throw new Error("Bracket API unavailable.");
     const payload = await response.json().catch(() => ({}));
     bracketChallengeEntries = Array.isArray(payload?.entries)
-      ? payload.entries.map(normalizeBracketEntry)
-      : getLocalBracketEntries().map(normalizeBracketEntry);
+      ? dedupeBracketEntries(payload.entries.map(normalizeBracketEntry))
+      : dedupeBracketEntries(getLocalBracketEntries().map(normalizeBracketEntry));
   } catch (_error) {
-    bracketChallengeEntries = getLocalBracketEntries().map(normalizeBracketEntry);
+    bracketChallengeEntries = dedupeBracketEntries(getLocalBracketEntries().map(normalizeBracketEntry));
   }
   const entriesEl = document.getElementById("bracket-entry-list");
   if (entriesEl) {
     entriesEl.innerHTML = renderBracketChallengeEntries(bracketChallengeEntries);
   }
+  applyExistingBracketEntry();
 }
 
 async function saveBracketChallengeEntry() {
@@ -1154,15 +1195,16 @@ async function saveBracketChallengeEntry() {
     champion: picks.championship,
     picks,
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   });
   localStorage.setItem(BRACKET_CHALLENGE_HANDLE_KEY, handle);
   localStorage.setItem(BRACKET_CHALLENGE_CONFIRMED_KEY, "1");
   if (saveButton) {
     saveButton.disabled = true;
-    saveButton.textContent = "Submitting...";
+    saveButton.textContent = "Saving...";
   }
   if (statusEl) {
-    statusEl.textContent = "Submitting bracket...";
+    statusEl.textContent = "Saving bracket...";
     statusEl.className = "bracket-status";
   }
 
@@ -1182,15 +1224,14 @@ async function saveBracketChallengeEntry() {
     }
     const payload = await response.json().catch(() => ({}));
     bracketChallengeEntries = Array.isArray(payload?.entries)
-      ? payload.entries.map(normalizeBracketEntry)
-      : [entry, ...bracketChallengeEntries];
+      ? dedupeBracketEntries(payload.entries.map(normalizeBracketEntry))
+      : dedupeBracketEntries([entry, ...bracketChallengeEntries]);
     if (statusEl) {
-      statusEl.textContent = "Bracket submitted.";
+      statusEl.textContent = "Bracket saved. You can keep editing it for now.";
       statusEl.className = "bracket-status success";
     }
   } catch (error) {
-    bracketChallengeEntries = [entry, ...getLocalBracketEntries().map(normalizeBracketEntry)];
-    setLocalBracketEntries(bracketChallengeEntries);
+    bracketChallengeEntries = upsertLocalBracketEntry(entry);
     if (statusEl) {
       statusEl.textContent = error.message || "Bracket saved locally.";
       statusEl.className = "bracket-status";
@@ -1198,7 +1239,7 @@ async function saveBracketChallengeEntry() {
   } finally {
     if (saveButton) {
       saveButton.disabled = false;
-      saveButton.textContent = "Submit Bracket";
+      saveButton.textContent = "Save Bracket";
     }
     const entriesEl = document.getElementById("bracket-entry-list");
     if (entriesEl) {
@@ -1228,9 +1269,38 @@ function confirmBracketChallengeHandle() {
   }
 }
 
+function setBracketPickValue(key, value) {
+  const input = Array.from(document.querySelectorAll(`[name="bracket-${key}"]`)).find(
+    (option) => option.value === String(value || "")
+  );
+  if (input) {
+    input.checked = true;
+    return true;
+  }
+  return false;
+}
+
+function applyExistingBracketEntry() {
+  const entry = getCurrentBracketEntry();
+  if (!entry?.picks) return;
+  setBracketPickValue("northWildCard", entry.picks.northWildCard);
+  setBracketPickValue("lockedWildCard", entry.picks.lockedWildCard);
+  syncBracketChallengeDependentRounds();
+  setBracketPickValue("northFinal", entry.picks.northFinal);
+  setBracketPickValue("lockedFinal", entry.picks.lockedFinal);
+  syncBracketChallengeDependentRounds();
+  setBracketPickValue("championship", entry.picks.championship);
+  const statusEl = document.getElementById("bracket-status");
+  if (statusEl) {
+    statusEl.textContent = "Your saved bracket is loaded. You can edit it for now.";
+    statusEl.className = "bracket-status success";
+  }
+}
+
 function syncBracketChallengeDependentRounds() {
   if (!currentBracketChallengeSeeds) return;
   const matchups = getBracketMatchupsFromSeeds(currentBracketChallengeSeeds);
+  const isConfirmed = Boolean(getConfirmedBracketHandle());
   const picks = getBracketChallengePicks();
   const northFinalTeams = [matchups.northFinal.bye, { team: picks.northWildCard, seedLabel: "WC" }].filter((team) => getBracketTeamValue(team));
   const lockedFinalTeams = [matchups.lockedFinal.bye, { team: picks.lockedWildCard, seedLabel: "WC" }].filter((team) => getBracketTeamValue(team));
@@ -1238,10 +1308,14 @@ function syncBracketChallengeDependentRounds() {
   const lockedFinalEl = document.getElementById("bracket-locked-final-picks");
   const championshipEl = document.getElementById("bracket-championship-picks");
   if (northFinalEl) {
-    northFinalEl.innerHTML = northFinalTeams.map((team) => renderBracketPickButton("northFinal", team, !picks.northWildCard, picks.northFinal)).join("");
+    northFinalEl.innerHTML = northFinalTeams.length
+      ? northFinalTeams.map((team) => renderBracketPickButton("northFinal", team, !isConfirmed || !picks.northWildCard, picks.northFinal)).join("")
+      : renderBracketPlaceholder("Pick North WC");
   }
   if (lockedFinalEl) {
-    lockedFinalEl.innerHTML = lockedFinalTeams.map((team) => renderBracketPickButton("lockedFinal", team, !picks.lockedWildCard, picks.lockedFinal)).join("");
+    lockedFinalEl.innerHTML = lockedFinalTeams.length
+      ? lockedFinalTeams.map((team) => renderBracketPickButton("lockedFinal", team, !isConfirmed || !picks.lockedWildCard, picks.lockedFinal)).join("")
+      : renderBracketPlaceholder("Pick Locked WC");
   }
   const updatedPicks = getBracketChallengePicks();
   const finalTeams = [
@@ -1250,8 +1324,8 @@ function syncBracketChallengeDependentRounds() {
   ].filter(Boolean);
   if (championshipEl) {
     championshipEl.innerHTML = finalTeams.length
-      ? finalTeams.map((team) => renderBracketPickButton("championship", team, finalTeams.length < 2, updatedPicks.championship)).join("")
-      : `<div class="bracket-entry-empty">Pick both division winners first.</div>`;
+      ? finalTeams.map((team) => renderBracketPickButton("championship", team, !isConfirmed || finalTeams.length < 2, updatedPicks.championship)).join("")
+      : renderBracketPlaceholder("Pick Finalists");
   }
 }
 
@@ -1262,6 +1336,7 @@ function renderBracketChallenge(seeds) {
   const savedHandle = localStorage.getItem(BRACKET_CHALLENGE_HANDLE_KEY) || "";
   const confirmedHandle = getConfirmedBracketHandle();
   const isConfirmed = Boolean(confirmedHandle);
+  const currentEntry = getBracketEntryForHandle(confirmedHandle);
   els.bracketChallenge.innerHTML = `
     <div class="bracket-challenge-head">
       <div>
@@ -1270,60 +1345,75 @@ function renderBracketChallenge(seeds) {
       </div>
       <div class="bracket-points">Scoring: WC 1 • Semis 2 • Finals 4</div>
     </div>
-    <div class="bracket-challenge-grid">
-      <section class="bracket-entry-card">
+    <div class="bracket-challenge-control">
+      <div class="bracket-entry-card">
         <label class="bracket-handle-label" for="bracket-handle">Your Real @</label>
         <div class="bracket-handle-lock">
           <input id="bracket-handle" class="bracket-handle-input" type="text" placeholder="@yourname" value="${escapeHtml(confirmedHandle || savedHandle)}" ${isConfirmed ? "disabled" : ""} />
           <button id="bracket-confirm-user" class="btn ghost bracket-confirm-user" type="button" ${isConfirmed ? "disabled" : ""}>${isConfirmed ? "Confirmed" : "Confirm User"}</button>
         </div>
         <div class="bracket-confirm-note">
-          ${isConfirmed ? `${escapeHtml(confirmedHandle)} is locked for this bracket.` : "Confirm your user before making picks. You cannot edit it after confirming."}
+          ${isConfirmed ? `${escapeHtml(confirmedHandle)} is locked to your bracket. Picks can still be edited for now.` : "Confirm your user before making picks."}
         </div>
-        <div class="bracket-pick-shell" ${isConfirmed ? "" : "hidden"}>
-          <div class="bracket-pick-round">
-            <h4>Wild Card</h4>
-            <div class="bracket-pick-match">
-              <span>${escapeHtml(matchups.northWildCard.label)}</span>
-              ${matchups.northWildCard.teams.map((team) => renderBracketPickButton("northWildCard", team)).join("")}
-            </div>
-            <div class="bracket-pick-match">
-              <span>${escapeHtml(matchups.lockedWildCard.label)}</span>
-              ${matchups.lockedWildCard.teams.map((team) => renderBracketPickButton("lockedWildCard", team)).join("")}
-            </div>
-          </div>
-          <div class="bracket-pick-round">
-            <h4>Semifinals</h4>
-            <div class="bracket-pick-match">
-              <span>${escapeHtml(matchups.northFinal.label)}</span>
-              <div id="bracket-north-final-picks" class="bracket-dependent-picks"></div>
-            </div>
-            <div class="bracket-pick-match">
-              <span>${escapeHtml(matchups.lockedFinal.label)}</span>
-              <div id="bracket-locked-final-picks" class="bracket-dependent-picks"></div>
-            </div>
-          </div>
-          <div class="bracket-pick-round">
-            <h4>Championship</h4>
-            <div class="bracket-pick-match">
-              <span>${escapeHtml(matchups.championship.label)}</span>
-              <div id="bracket-championship-picks" class="bracket-dependent-picks"></div>
-            </div>
-          </div>
-          <button id="bracket-save" class="btn ghost bracket-save" type="button">Submit Bracket</button>
+        <div id="bracket-status" class="bracket-status" role="status">${currentEntry ? "Your saved bracket is loaded. You can edit it for now." : ""}</div>
+      </div>
+    </div>
+    <div class="dashboard-bracket-rounds bracket-challenge-rounds">
+      <section class="dashboard-bracket-round">
+        <div class="dashboard-bracket-round-head">
+          <h3>Wild Card</h3>
+          <span>Pick each division wild card winner.</span>
         </div>
-        <div id="bracket-status" class="bracket-status" role="status"></div>
+        <div class="dashboard-bracket-games">
+          <article class="dashboard-bracket-game">
+            <div class="dashboard-bracket-game-label">${escapeHtml(matchups.northWildCard.label)}</div>
+            ${matchups.northWildCard.teams.map((team) => renderBracketPickButton("northWildCard", team, !isConfirmed, currentEntry?.picks?.northWildCard)).join("")}
+          </article>
+          <article class="dashboard-bracket-game">
+            <div class="dashboard-bracket-game-label">${escapeHtml(matchups.lockedWildCard.label)}</div>
+            ${matchups.lockedWildCard.teams.map((team) => renderBracketPickButton("lockedWildCard", team, !isConfirmed, currentEntry?.picks?.lockedWildCard)).join("")}
+          </article>
+        </div>
       </section>
-      <section class="bracket-entry-card">
-        <div class="bracket-entry-card-head">
-          <h4>Submitted Brackets</h4>
-          <span>Champion picks</span>
+      <section class="dashboard-bracket-round">
+        <div class="dashboard-bracket-round-head">
+          <h3>Semifinals</h3>
+          <span>Division winners receive byes.</span>
         </div>
-        <div id="bracket-entry-list" class="bracket-entry-list">
-          ${renderBracketChallengeEntries(bracketChallengeEntries)}
+        <div class="dashboard-bracket-games">
+          <article class="dashboard-bracket-game">
+            <div class="dashboard-bracket-game-label">${escapeHtml(matchups.northFinal.label)}</div>
+            <div id="bracket-north-final-picks" class="bracket-dependent-picks"></div>
+          </article>
+          <article class="dashboard-bracket-game">
+            <div class="dashboard-bracket-game-label">${escapeHtml(matchups.lockedFinal.label)}</div>
+            <div id="bracket-locked-final-picks" class="bracket-dependent-picks"></div>
+          </article>
+        </div>
+      </section>
+      <section class="dashboard-bracket-round">
+        <div class="dashboard-bracket-round-head">
+          <h3>Championship</h3>
+          <span>Pick the RSKL Finals winner.</span>
+        </div>
+        <div class="dashboard-bracket-games">
+          <article class="dashboard-bracket-game">
+            <div class="dashboard-bracket-game-label">${escapeHtml(matchups.championship.label)}</div>
+            <div id="bracket-championship-picks" class="bracket-dependent-picks"></div>
+          </article>
         </div>
       </section>
     </div>
+    <button id="bracket-save" class="btn ghost bracket-save" type="button" ${isConfirmed ? "" : "disabled"}>Save Bracket</button>
+    <section class="bracket-entry-card bracket-submitted-card">
+      <div class="bracket-entry-card-head">
+        <h4>Submitted Brackets</h4>
+        <span>Champion picks</span>
+      </div>
+      <div id="bracket-entry-list" class="bracket-entry-list">
+        ${renderBracketChallengeEntries(bracketChallengeEntries)}
+      </div>
+    </section>
   `;
   syncBracketChallengeDependentRounds();
   loadBracketChallengeEntries();

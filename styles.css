@@ -1297,13 +1297,6 @@ body.menu-open {
   white-space: nowrap;
 }
 
-.bracket-challenge-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
-  gap: 16px;
-  align-items: start;
-}
-
 .bracket-entry-card {
   display: grid;
   gap: 16px;
@@ -1317,7 +1310,6 @@ body.menu-open {
 }
 
 .bracket-handle-label,
-.bracket-pick-round h4,
 .bracket-entry-card-head h4 {
   margin: 0;
   color: rgba(255, 228, 196, 0.78);
@@ -1326,8 +1318,7 @@ body.menu-open {
   text-transform: uppercase;
 }
 
-.bracket-handle-label,
-.bracket-pick-round h4 {
+.bracket-handle-label {
   font-size: 0.82rem;
 }
 
@@ -1370,32 +1361,20 @@ body.menu-open {
   line-height: 1.4;
 }
 
-.bracket-pick-shell {
+.bracket-challenge-control {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
-.bracket-pick-round,
-.bracket-pick-match,
 .bracket-dependent-picks {
   display: grid;
-  gap: 10px;
-}
-
-.bracket-pick-match {
-  padding: 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 160, 67, 0.16);
-  background: rgba(6, 12, 27, 0.56);
-}
-
-.bracket-pick-match > span {
-  color: rgba(226, 232, 240, 0.76);
-  font-weight: 900;
+  gap: 8px;
 }
 
 .bracket-pick-option {
   cursor: pointer;
+  position: relative;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
 }
 
 .bracket-pick-option input {
@@ -1404,57 +1383,28 @@ body.menu-open {
   pointer-events: none;
 }
 
-.bracket-pick-option > span {
-  display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  min-height: 50px;
-  padding: 9px 11px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 160, 67, 0.2);
-  background: rgba(8, 15, 31, 0.86);
-  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
-}
-
-.bracket-pick-option:hover > span {
+.bracket-pick-option:hover {
   border-color: rgba(255, 183, 77, 0.5);
 }
 
-.bracket-pick-option input:checked + span {
+.bracket-pick-option:has(input:checked) {
   border-color: rgba(255, 140, 26, 0.9);
   background: rgba(255, 140, 26, 0.18);
   box-shadow: inset 0 0 0 1px rgba(255, 177, 59, 0.22);
 }
 
-.bracket-pick-option input:disabled + span {
+.bracket-pick-option--disabled {
   cursor: not-allowed;
   opacity: 0.55;
-}
-
-.bracket-pick-option .standings-logo {
-  width: 34px;
-  height: 34px;
-}
-
-.bracket-pick-option strong {
-  min-width: 0;
-  overflow: hidden;
-  color: #fff7ed;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bracket-pick-option em {
-  color: #ffb13b;
-  font-style: normal;
-  font-family: var(--font-display);
-  font-weight: 900;
 }
 
 .bracket-save {
   width: 100%;
   justify-content: center;
+}
+
+.bracket-submitted-card {
+  margin-top: 2px;
 }
 
 .bracket-status {
@@ -7758,7 +7708,6 @@ input[type="text"] {
   .dashboard-trade-sides,
   .dashboard-team-metrics,
   .dashboard-bracket-rounds,
-  .bracket-challenge-grid,
   .player-summary,
   .fa-controls,
   .controls {

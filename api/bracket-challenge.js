@@ -98,6 +98,16 @@ function sanitizeEntry(row) {
   };
 }
 
+function dedupeEntries(entries) {
+  const seen = new Set();
+  return entries.filter((entry) => {
+    const key = `${entry.season}:${entry.handle}`.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function validatePayload(payload) {
   const handle = normalizeHandle(payload?.handle || payload?.user_handle);
   const picks = payload?.picks && typeof payload.picks === "object" ? payload.picks : {};
@@ -120,6 +130,7 @@ function validatePayload(payload) {
     picks,
     champion: String(payload?.champion || picks.championship || "").trim(),
     score: 0,
+    updated_at: new Date().toISOString(),
   };
 }
 
@@ -130,7 +141,40 @@ async function fetchEntries() {
     `${SUPABASE_URL}/rest/v1/${TABLE}?select=id,season,handle,picks,champion,score,created_at,updated_at&season=eq.c2s3-playoffs&order=created_at.desc&limit=100`,
     supabaseHeaders({ Accept: "application/json" })
   );
-  return Array.isArray(rows) ? rows.map(sanitizeEntry) : [];
+  return Array.isArray(rows) ? dedupeEntries(rows.map(sanitizeEntry)) : [];
+}
+
+async function fetchExistingEntry(entry) {
+  const rows = await requestJson(
+    "GET",
+    `${SUPABASE_URL}/rest/v1/${TABLE}?select=id&season=eq.${encodeURIComponent(entry.season)}&handle=eq.${encodeURIComponent(entry.handle)}&order=created_at.desc&limit=1`,
+    supabaseHeaders({ Accept: "application/json" })
+  );
+  return Array.isArray(rows) && rows[0] ? rows[0] : null;
+}
+
+async function saveEntry(entry) {
+  const existing = await fetchExistingEntry(entry);
+  if (existing?.id) {
+    await requestJson(
+      "PATCH",
+      `${SUPABASE_URL}/rest/v1/${TABLE}?id=eq.${encodeURIComponent(existing.id)}`,
+      supabaseHeaders({ Prefer: "return=representation" }),
+      JSON.stringify({
+        picks: entry.picks,
+        champion: entry.champion,
+        score: entry.score,
+        updated_at: entry.updated_at,
+      })
+    );
+    return;
+  }
+  await requestJson(
+    "POST",
+    `${SUPABASE_URL}/rest/v1/${TABLE}`,
+    supabaseHeaders({ Prefer: "return=representation" }),
+    JSON.stringify([entry])
+  );
 }
 
 module.exports = async (req, res) => {
@@ -150,12 +194,7 @@ module.exports = async (req, res) => {
     const raw = await readBody(req);
     const payload = raw ? JSON.parse(raw) : {};
     const entry = validatePayload(payload);
-    await requestJson(
-      "POST",
-      `${SUPABASE_URL}/rest/v1/${TABLE}`,
-      supabaseHeaders({ Prefer: "return=representation" }),
-      JSON.stringify([entry])
-    );
+    await saveEntry(entry);
     const entries = await fetchEntries();
     sendJson(res, 200, { ok: true, entries });
   } catch (error) {
