@@ -577,6 +577,7 @@ function renderSmallTeamLogo(name) {
 
 function getSeasonLabel(seasonRaw) {
   if (seasonRaw === "c2s3-regular") return "C2S3 Regular Season";
+  if (seasonRaw === "c2s3-playoffs") return "C2S3 Playoffs";
   if (seasonRaw === "c2s2-regular") return "C2S2 Regular Season";
   if (seasonRaw === "c2s1-regular") return "C2S1 Regular Season";
   if (seasonRaw === "c2s1-post") return "C2S1 Postseason";

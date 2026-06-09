@@ -845,7 +845,7 @@ async function ensureBoxScoreRows(season) {
     return window.__boxScoreRows;
   }
 
-  if (season === "c2s3-regular") {
+  if (season === "c2s3-regular" || season === "c2s3-playoffs") {
     const response = await fetch(BOXSCORE_CSV_URL, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`Fetch failed: ${response.status}`);
@@ -906,7 +906,7 @@ async function findTeamForPlayer(season, playerName) {
   if (!aliases.length) {
     return "";
   }
-  if (season === "c2s3-regular" || season === "c2s2-regular" || season === "career") {
+  if (season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-regular" || season === "career") {
     const rosterUrl =
       season === "c2s2-regular" ? C2S2_REGULAR_URL : "/api/sheet?name=roster";
     const response = await fetch(rosterUrl, { cache: "no-store" });
@@ -1193,7 +1193,7 @@ function normalizeSeason(value) {
   if (value === "all-time") {
     return "c2s3-regular";
   }
-  if (value === "c2s3-regular" || value === "c2s2-playoffs") {
+  if (value === "c2s3-regular" || value === "c2s3-playoffs" || value === "c2s2-playoffs") {
     return value;
   }
   if (
@@ -1231,6 +1231,8 @@ function getSeason() {
       SEASON_KEY,
       normalized === "c2s1-playoffs"
         ? "c2s1-post"
+        : normalized === "c2s3-playoffs"
+        ? "c2s3-playoffs"
         : normalized === "c2s2-playoffs"
         ? "c2s2-playoffs"
         : normalized === "c1s7-playoffs"
@@ -1314,7 +1316,7 @@ function getSeason() {
   if (season === "c1s5-regular") {
     return "c1s5-regular";
   }
-  if (season === "c2s3-regular" || season === "c2s2-playoffs") {
+  if (season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {
     return season;
   }
   if (season === "c2s2-regular" || season === "c2s2") {
@@ -1335,6 +1337,8 @@ function initSeasonSelect() {
     navSelect.value =
       current === "career" || current === "c2s3-regular"
         ? "c2s3-regular"
+        : current === "c2s3-playoffs"
+        ? "c2s3-playoffs"
         : current === "c2s2-playoffs"
         ? "c2s2-playoffs"
         : current === "c2s2-regular"
@@ -1374,7 +1378,9 @@ function initSeasonSelect() {
     localStorage.setItem(PLAYER_SEASON_KEY, value);
     localStorage.setItem(
       SEASON_KEY,
-      value === "c2s1-playoffs"
+      value === "c2s3-playoffs"
+        ? "c2s3-playoffs"
+        : value === "c2s1-playoffs"
         ? "c2s1-post"
         : value === "c2s2-playoffs"
         ? "c2s2-playoffs"
@@ -1417,7 +1423,9 @@ function initSeasonSelect() {
   if (navSelect) {
     navSelect.addEventListener("change", () => {
       const mapped =
-        navSelect.value === "c2s1-post"
+        navSelect.value === "c2s3-playoffs"
+          ? "c2s3-playoffs"
+          : navSelect.value === "c2s1-post"
           ? "c2s1-playoffs"
           : navSelect.value === "c2s2-playoffs"
           ? "c2s2-playoffs"
@@ -2759,7 +2767,7 @@ async function loadPlayer() {
     let dataRows = [];
     let supplementalRows = [];
     let contractRows = contractRowsCache;
-    if (season === "c2s3-regular" || season === "c2s2-playoffs") {
+    if (season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {
       const [playerRes, contractRes] = await Promise.all([
         fetch(PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(CONTRACTS_URL, { cache: "no-store" }),
@@ -3008,7 +3016,7 @@ async function loadPlayer() {
         renderPlayoffSupplement([]);
         renderTable(filtered);
       }
-      if ((season === "c2s3-regular" || season === "c2s2-playoffs") && !filtered.length) {
+      if ((season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") && !filtered.length) {
         els.body.innerHTML = `<tr><td colspan="5">No games played.</td></tr>`;
       } else if (season === "c1s6-regular" || season === "c1s6-playoffs") {
         els.body.innerHTML =
@@ -3078,6 +3086,7 @@ async function loadPlayer() {
         }
       } else if (
         season === "c2s3-regular" ||
+        season === "c2s3-playoffs" ||
         season === "c2s2-playoffs" ||
         season === "c2s2-regular"
       ) {

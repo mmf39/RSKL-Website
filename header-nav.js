@@ -12,6 +12,7 @@
     "c2s1-regular",
     "c2s2-regular",
     "c2s3-regular",
+    "c2s3-playoffs",
   ];
   const rookieCache = new Map();
   const allStarCache = new Map();
@@ -513,7 +514,7 @@
   }
 
   const normalizeSeason = (value) => {
-    if (value === "c2s2" || value === "c2s2-playoffs") return "c2s3-regular";
+    if (value === "c2s2") return "c2s3-regular";
     return value || "c2s3-regular";
   };
 
@@ -526,6 +527,7 @@
     localStorage.setItem("season", normalizeSeason(seasonSelect.value));
     const playerSeasonMap = {
       "c2s3-regular": "c2s3-regular",
+      "c2s3-playoffs": "c2s3-playoffs",
       "c2s2-regular": "c2s2-regular",
       "c2s1-regular": "c2s1-regular",
       "c2s1-post": "c2s1-playoffs",

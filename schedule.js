@@ -180,7 +180,7 @@ function getSeasonRaw() {
 
 function getSeason() {
   const raw = getSeasonRaw();
-  if (raw === "c2s3-regular" || raw === "c2s2-playoffs" || raw === "c2s2-regular") return "c2s2";
+  if (raw === "c2s3-regular" || raw === "c2s3-playoffs" || raw === "c2s2-playoffs" || raw === "c2s2-regular") return "c2s2";
   return raw;
 }
 
@@ -189,7 +189,7 @@ function initSeasonSelect() {
   if (!select) return;
   select.value = getSeasonRaw();
   if (!select.value) {
-    select.value = "c2s3-regular";
+    select.value = seasonRaw;
   }
   localStorage.setItem(SEASON_KEY, select.value);
   select.addEventListener("change", () => {
@@ -1683,7 +1683,7 @@ async function loadSchedule() {
     }
     hydrateCachedEnhancements(seasonRaw);
 
-    if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s2-playoffs") {
+    if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s3-playoffs" || seasonRaw === "c2s2-playoffs") {
       const scheduleRes = await fetch(SCHEDULE_CSV_URL, { cache: "no-store" });
       if (!scheduleRes.ok) throw new Error(`Fetch failed: ${scheduleRes.status}`);
       rows = getC2S2ScheduleRows(parseCSV(await scheduleRes.text()));

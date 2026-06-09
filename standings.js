@@ -135,7 +135,7 @@ function getSeasonRaw() {
 function getSeason() {
   const raw = getSeasonRaw();
   if (raw === ALL_TIME_SEASON) return ALL_TIME_SEASON;
-  if (raw === "c2s3-regular" || raw === "c2s2-playoffs" || raw === "c2s2-regular") return "c2s2";
+  if (raw === "c2s3-regular" || raw === "c2s3-playoffs" || raw === "c2s2-playoffs" || raw === "c2s2-regular") return "c2s2";
   if (raw === "c2s1-playoffs") return "c2s1-post";
   return raw;
 }
@@ -148,7 +148,7 @@ function initSeasonSelect() {
   const raw = getSeasonRaw();
   select.value = raw;
   if (!select.value) {
-    select.value = "c2s3-regular";
+    select.value = seasonRaw;
   }
   localStorage.setItem(SEASON_KEY, select.value);
   select.addEventListener("change", () => {
@@ -1944,7 +1944,7 @@ async function loadStandings() {
         requestedMetric = "wins";
       }
       renderStandings();
-    } else if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s2-playoffs") {
+    } else if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s3-playoffs" || seasonRaw === "c2s2-playoffs") {
       const [standingsRes, scheduleRes, playerStatsRes, transactionsRes] = await Promise.all([
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
         fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
@@ -1970,7 +1970,7 @@ async function loadStandings() {
         : new Map();
       leagueStandingsMetrics = buildLeagueRowsFromC2S2(standingsData, scheduleRows, playerRows);
       applyTransactionCountsToLeagueRows(leagueStandingsMetrics, transactionsByTeam);
-      if (seasonRaw === "c2s3-regular") {
+      if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s3-playoffs") {
         leagueStandingsMetrics = buildPlayoffStatuses(leagueStandingsMetrics);
       }
       renderStandings();

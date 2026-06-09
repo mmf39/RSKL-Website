@@ -172,6 +172,8 @@ const ALL_TIME_SEASON = "all-time";
 const SEASON_ALIASES = {
   "all-time": ALL_TIME_SEASON,
   c2s2: "c2s3-regular",
+  "c2s3-regular": "c2s3-regular",
+  "c2s3-playoffs": "c2s3-playoffs",
   "c2s1-playoffs": "c2s1-post",
   "c2s2-playoffs": "c2s2-playoffs",
   "c2s2-regular": "c2s2-regular",
@@ -2830,7 +2832,7 @@ async function loadRoster() {
     const isAllTimeSeason = season === ALL_TIME_SEASON;
     if (isAllTimeSeason) {
       await loadAllTimeTeamSnapshot(teamName);
-    } else if (season === "c2s3-regular" || season === "c2s2-playoffs") {
+    } else if (season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {
       const [rosterRes, standingsRes, scheduleRes, boxscoreRes, playerStatsRes, liveRes] = await Promise.all([
         fetch(ROSTER_CSV_URL, { cache: "no-store" }),
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
