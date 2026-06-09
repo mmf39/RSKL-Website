@@ -2,6 +2,7 @@ const https = require("https");
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const BRACKET_CHALLENGE_OPEN = process.env.BRACKET_CHALLENGE_OPEN === "true";
 const TABLE = "bracket_challenge_entries";
 
 function sendJson(res, status, body) {
@@ -181,12 +182,22 @@ module.exports = async (req, res) => {
   try {
     if (req.method === "GET") {
       const entries = await fetchEntries();
-      sendJson(res, 200, { ok: true, entries });
+      sendJson(res, 200, { ok: true, open: BRACKET_CHALLENGE_OPEN, entries });
       return;
     }
 
     if (req.method !== "POST") {
       sendJson(res, 405, { ok: false, message: "Method not allowed." });
+      return;
+    }
+
+    if (!BRACKET_CHALLENGE_OPEN) {
+      sendJson(res, 403, {
+        ok: false,
+        open: BRACKET_CHALLENGE_OPEN,
+        message: "Bracket challenge submissions are not open yet.",
+        entries: [],
+      });
       return;
     }
 
@@ -196,10 +207,11 @@ module.exports = async (req, res) => {
     const entry = validatePayload(payload);
     await saveEntry(entry);
     const entries = await fetchEntries();
-    sendJson(res, 200, { ok: true, entries });
+    sendJson(res, 200, { ok: true, open: BRACKET_CHALLENGE_OPEN, entries });
   } catch (error) {
     sendJson(res, error.status || 500, {
       ok: false,
+      open: BRACKET_CHALLENGE_OPEN,
       message: error.message || "Bracket challenge unavailable.",
       entries: [],
     });

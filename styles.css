@@ -1341,7 +1341,7 @@ body.menu-open {
 
 .bracket-handle-lock {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 10px;
   align-items: center;
 }
@@ -1395,12 +1395,13 @@ body.menu-open {
 
 .bracket-pick-option--disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 1;
 }
 
 .bracket-save {
-  width: 100%;
+  width: auto;
   justify-content: center;
+  min-height: 52px;
 }
 
 .bracket-submitted-card {

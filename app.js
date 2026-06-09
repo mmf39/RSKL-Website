@@ -12,6 +12,7 @@ const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const TRANSACTIONS_CSV_URL = "/api/sheet?name=transactions";
 const NEWS_ARTICLES_API = "/api/articles";
 const BRACKET_CHALLENGE_API = "/api/bracket-challenge";
+let BRACKET_CHALLENGE_OPEN = false;
 const BRACKET_CHALLENGE_LOCAL_KEY = "rskl_c2s3_bracket_entries";
 const BRACKET_CHALLENGE_HANDLE_KEY = "rskl_c2s3_bracket_handle";
 const BRACKET_CHALLENGE_CONFIRMED_KEY = "rskl_c2s3_bracket_handle_confirmed";
@@ -1153,6 +1154,11 @@ async function loadBracketChallengeEntries() {
     const response = await fetch(`${BRACKET_CHALLENGE_API}?season=c2s3-playoffs`, { cache: "no-store" });
     if (!response.ok) throw new Error("Bracket API unavailable.");
     const payload = await response.json().catch(() => ({}));
+    if (typeof payload?.open === "boolean" && payload.open !== BRACKET_CHALLENGE_OPEN) {
+      BRACKET_CHALLENGE_OPEN = payload.open;
+      renderBracketChallenge(currentBracketChallengeSeeds);
+      return;
+    }
     bracketChallengeEntries = Array.isArray(payload?.entries)
       ? dedupeBracketEntries(payload.entries.map(normalizeBracketEntry))
       : dedupeBracketEntries(getLocalBracketEntries().map(normalizeBracketEntry));
@@ -1175,6 +1181,13 @@ async function saveBracketChallengeEntry() {
     .filter(([, value]) => !value)
     .map(([key]) => key);
 
+  if (!BRACKET_CHALLENGE_OPEN) {
+    if (statusEl) {
+      statusEl.textContent = "Bracket challenge submissions are not open yet.";
+      statusEl.className = "bracket-status error";
+    }
+    return;
+  }
   if (!handle) {
     if (statusEl) {
       statusEl.textContent = "Confirm your @ before filling out a bracket.";
@@ -1220,7 +1233,10 @@ async function saveBracketChallengeEntry() {
       }),
     });
     if (!response.ok) {
-      throw new Error("Saved locally. Add the Supabase bracket table for public entries.");
+      const payload = await response.json().catch(() => ({}));
+      const error = new Error(payload?.message || "Saved locally. Add the Supabase bracket table for public entries.");
+      error.skipLocalSave = response.status === 403;
+      throw error;
     }
     const payload = await response.json().catch(() => ({}));
     bracketChallengeEntries = Array.isArray(payload?.entries)
@@ -1231,14 +1247,16 @@ async function saveBracketChallengeEntry() {
       statusEl.className = "bracket-status success";
     }
   } catch (error) {
-    bracketChallengeEntries = upsertLocalBracketEntry(entry);
+    if (!error.skipLocalSave) {
+      bracketChallengeEntries = upsertLocalBracketEntry(entry);
+    }
     if (statusEl) {
       statusEl.textContent = error.message || "Bracket saved locally.";
       statusEl.className = "bracket-status";
     }
   } finally {
     if (saveButton) {
-      saveButton.disabled = false;
+      saveButton.disabled = !BRACKET_CHALLENGE_OPEN || !getConfirmedBracketHandle();
       saveButton.textContent = "Save Bracket";
     }
     const entriesEl = document.getElementById("bracket-entry-list");
@@ -1264,8 +1282,10 @@ function confirmBracketChallengeHandle() {
   renderBracketChallenge(currentBracketChallengeSeeds);
   const nextStatus = document.getElementById("bracket-status");
   if (nextStatus) {
-    nextStatus.textContent = `${handle} confirmed. Fill out your bracket.`;
-    nextStatus.className = "bracket-status success";
+    nextStatus.textContent = BRACKET_CHALLENGE_OPEN
+      ? `${handle} confirmed. Fill out your bracket.`
+      : `${handle} confirmed. Bracket submissions are not open yet.`;
+    nextStatus.className = BRACKET_CHALLENGE_OPEN ? "bracket-status success" : "bracket-status";
   }
 }
 
@@ -1292,15 +1312,33 @@ function applyExistingBracketEntry() {
   setBracketPickValue("championship", entry.picks.championship);
   const statusEl = document.getElementById("bracket-status");
   if (statusEl) {
-    statusEl.textContent = "Your saved bracket is loaded. You can edit it for now.";
-    statusEl.className = "bracket-status success";
+    statusEl.textContent = BRACKET_CHALLENGE_OPEN
+      ? "Your saved bracket is loaded. You can edit it for now."
+      : "Your saved bracket is loaded. Submissions are not open yet.";
+    statusEl.className = BRACKET_CHALLENGE_OPEN ? "bracket-status success" : "bracket-status";
   }
+}
+
+function renderBracketDependentGame(groupKey, teams, placeholderLabel, disabled, selectedValue) {
+  const filledTeams = (Array.isArray(teams) ? teams : []).filter((team) => getBracketTeamValue(team));
+  const pickRows = filledTeams.map((team) => renderBracketPickButton(groupKey, team, disabled, selectedValue)).join("");
+  return `${pickRows}${filledTeams.length < 2 ? renderBracketPlaceholder(placeholderLabel) : ""}`;
+}
+
+function renderBracketChampionshipGame(finalTeams, disabled, selectedValue) {
+  const northTeam = finalTeams.find((team) => team?.seedLabel === "North") || null;
+  const lockedTeam = finalTeams.find((team) => team?.seedLabel === "Locked") || null;
+  return `
+    ${northTeam ? renderBracketPickButton("championship", northTeam, disabled, selectedValue) : renderBracketPlaceholder("North Champion")}
+    ${lockedTeam ? renderBracketPickButton("championship", lockedTeam, disabled, selectedValue) : renderBracketPlaceholder("Locked PSP Champion")}
+  `;
 }
 
 function syncBracketChallengeDependentRounds() {
   if (!currentBracketChallengeSeeds) return;
   const matchups = getBracketMatchupsFromSeeds(currentBracketChallengeSeeds);
   const isConfirmed = Boolean(getConfirmedBracketHandle());
+  const canPick = BRACKET_CHALLENGE_OPEN && isConfirmed;
   const picks = getBracketChallengePicks();
   const northFinalTeams = [matchups.northFinal.bye, { team: picks.northWildCard, seedLabel: "WC" }].filter((team) => getBracketTeamValue(team));
   const lockedFinalTeams = [matchups.lockedFinal.bye, { team: picks.lockedWildCard, seedLabel: "WC" }].filter((team) => getBracketTeamValue(team));
@@ -1308,14 +1346,22 @@ function syncBracketChallengeDependentRounds() {
   const lockedFinalEl = document.getElementById("bracket-locked-final-picks");
   const championshipEl = document.getElementById("bracket-championship-picks");
   if (northFinalEl) {
-    northFinalEl.innerHTML = northFinalTeams.length
-      ? northFinalTeams.map((team) => renderBracketPickButton("northFinal", team, !isConfirmed || !picks.northWildCard, picks.northFinal)).join("")
-      : renderBracketPlaceholder("Pick North WC");
+    northFinalEl.innerHTML = renderBracketDependentGame(
+      "northFinal",
+      northFinalTeams,
+      "North WC Winner",
+      !canPick || !picks.northWildCard,
+      picks.northFinal
+    );
   }
   if (lockedFinalEl) {
-    lockedFinalEl.innerHTML = lockedFinalTeams.length
-      ? lockedFinalTeams.map((team) => renderBracketPickButton("lockedFinal", team, !isConfirmed || !picks.lockedWildCard, picks.lockedFinal)).join("")
-      : renderBracketPlaceholder("Pick Locked WC");
+    lockedFinalEl.innerHTML = renderBracketDependentGame(
+      "lockedFinal",
+      lockedFinalTeams,
+      "Locked PSP WC Winner",
+      !canPick || !picks.lockedWildCard,
+      picks.lockedFinal
+    );
   }
   const updatedPicks = getBracketChallengePicks();
   const finalTeams = [
@@ -1323,9 +1369,11 @@ function syncBracketChallengeDependentRounds() {
     updatedPicks.lockedFinal ? { team: updatedPicks.lockedFinal, seedLabel: "Locked" } : null,
   ].filter(Boolean);
   if (championshipEl) {
-    championshipEl.innerHTML = finalTeams.length
-      ? finalTeams.map((team) => renderBracketPickButton("championship", team, !isConfirmed || finalTeams.length < 2, updatedPicks.championship)).join("")
-      : renderBracketPlaceholder("Pick Finalists");
+    championshipEl.innerHTML = renderBracketChampionshipGame(
+      finalTeams,
+      !canPick || finalTeams.length < 2,
+      updatedPicks.championship
+    );
   }
 }
 
@@ -1336,42 +1384,23 @@ function renderBracketChallenge(seeds) {
   const savedHandle = localStorage.getItem(BRACKET_CHALLENGE_HANDLE_KEY) || "";
   const confirmedHandle = getConfirmedBracketHandle();
   const isConfirmed = Boolean(confirmedHandle);
+  const canPick = BRACKET_CHALLENGE_OPEN && isConfirmed;
   const currentEntry = getBracketEntryForHandle(confirmedHandle);
   els.bracketChallenge.innerHTML = `
-    <div class="bracket-challenge-head">
-      <div>
-        <span class="dashboard-kicker">Bracket Challenge</span>
-        <h3>Fill Out Your Bracket</h3>
-      </div>
-      <div class="bracket-points">Scoring: WC 1 • Semis 2 • Finals 4</div>
-    </div>
-    <div class="bracket-challenge-control">
-      <div class="bracket-entry-card">
-        <label class="bracket-handle-label" for="bracket-handle">Your Real @</label>
-        <div class="bracket-handle-lock">
-          <input id="bracket-handle" class="bracket-handle-input" type="text" placeholder="@yourname" value="${escapeHtml(confirmedHandle || savedHandle)}" ${isConfirmed ? "disabled" : ""} />
-          <button id="bracket-confirm-user" class="btn ghost bracket-confirm-user" type="button" ${isConfirmed ? "disabled" : ""}>${isConfirmed ? "Confirmed" : "Confirm User"}</button>
-        </div>
-        <div class="bracket-confirm-note">
-          ${isConfirmed ? `${escapeHtml(confirmedHandle)} is locked to your bracket. Picks can still be edited for now.` : "Confirm your user before making picks."}
-        </div>
-        <div id="bracket-status" class="bracket-status" role="status">${currentEntry ? "Your saved bracket is loaded. You can edit it for now." : ""}</div>
-      </div>
-    </div>
     <div class="dashboard-bracket-rounds bracket-challenge-rounds">
       <section class="dashboard-bracket-round">
         <div class="dashboard-bracket-round-head">
           <h3>Wild Card</h3>
-          <span>Pick each division wild card winner.</span>
+          <span>Division #2 hosts division #3.</span>
         </div>
         <div class="dashboard-bracket-games">
           <article class="dashboard-bracket-game">
             <div class="dashboard-bracket-game-label">${escapeHtml(matchups.northWildCard.label)}</div>
-            ${matchups.northWildCard.teams.map((team) => renderBracketPickButton("northWildCard", team, !isConfirmed, currentEntry?.picks?.northWildCard)).join("")}
+            ${matchups.northWildCard.teams.map((team) => renderBracketPickButton("northWildCard", team, !canPick, currentEntry?.picks?.northWildCard)).join("")}
           </article>
           <article class="dashboard-bracket-game">
             <div class="dashboard-bracket-game-label">${escapeHtml(matchups.lockedWildCard.label)}</div>
-            ${matchups.lockedWildCard.teams.map((team) => renderBracketPickButton("lockedWildCard", team, !isConfirmed, currentEntry?.picks?.lockedWildCard)).join("")}
+            ${matchups.lockedWildCard.teams.map((team) => renderBracketPickButton("lockedWildCard", team, !canPick, currentEntry?.picks?.lockedWildCard)).join("")}
           </article>
         </div>
       </section>
@@ -1404,7 +1433,34 @@ function renderBracketChallenge(seeds) {
         </div>
       </section>
     </div>
-    <button id="bracket-save" class="btn ghost bracket-save" type="button" ${isConfirmed ? "" : "disabled"}>Save Bracket</button>
+    <div class="bracket-challenge-control">
+      <div class="bracket-entry-card">
+        <label class="bracket-handle-label" for="bracket-handle">Your Real @</label>
+        <div class="bracket-handle-lock">
+          <input id="bracket-handle" class="bracket-handle-input" type="text" placeholder="@yourname" value="${escapeHtml(confirmedHandle || savedHandle)}" ${isConfirmed ? "disabled" : ""} />
+          <button id="bracket-confirm-user" class="btn ghost bracket-confirm-user" type="button" ${isConfirmed ? "disabled" : ""}>${isConfirmed ? "Confirmed" : "Confirm User"}</button>
+          <button id="bracket-save" class="btn ghost bracket-save" type="button" ${canPick ? "" : "disabled"}>Save Bracket</button>
+        </div>
+        <div class="bracket-confirm-note">
+          ${
+            BRACKET_CHALLENGE_OPEN
+              ? isConfirmed
+                ? `${escapeHtml(confirmedHandle)} is locked to your bracket. Picks can still be edited for now.`
+                : "Confirm your user before making picks."
+              : "Bracket challenge submissions are not open yet."
+          }
+        </div>
+        <div id="bracket-status" class="bracket-status" role="status">${
+          currentEntry
+            ? BRACKET_CHALLENGE_OPEN
+              ? "Your saved bracket is loaded. You can edit it for now."
+              : "Your saved bracket is loaded. Submissions are not open yet."
+            : BRACKET_CHALLENGE_OPEN
+              ? ""
+              : "Waiting for brackets to open."
+        }</div>
+      </div>
+    </div>
     <section class="bracket-entry-card bracket-submitted-card">
       <div class="bracket-entry-card-head">
         <h4>Submitted Brackets</h4>
