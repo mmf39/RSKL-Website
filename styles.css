@@ -1332,6 +1332,38 @@ body.menu-open {
   font-weight: 900;
 }
 
+.bracket-handle-input:disabled {
+  color: rgba(255, 247, 237, 0.82);
+  opacity: 1;
+}
+
+.bracket-handle-lock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.bracket-confirm-user {
+  min-height: 52px;
+  white-space: nowrap;
+}
+
+.bracket-confirm-note {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 160, 67, 0.18);
+  background: rgba(255, 140, 26, 0.1);
+  color: rgba(255, 228, 196, 0.8);
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.bracket-pick-shell {
+  display: grid;
+  gap: 16px;
+}
+
 .bracket-pick-round,
 .bracket-pick-match,
 .bracket-dependent-picks {
@@ -7726,6 +7758,10 @@ input[type="text"] {
   .bracket-entry-card-head {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .bracket-handle-lock {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .bracket-points {

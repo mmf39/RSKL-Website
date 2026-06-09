@@ -14,6 +14,7 @@ const NEWS_ARTICLES_API = "/api/articles";
 const BRACKET_CHALLENGE_API = "/api/bracket-challenge";
 const BRACKET_CHALLENGE_LOCAL_KEY = "rskl_c2s3_bracket_entries";
 const BRACKET_CHALLENGE_HANDLE_KEY = "rskl_c2s3_bracket_handle";
+const BRACKET_CHALLENGE_CONFIRMED_KEY = "rskl_c2s3_bracket_handle_confirmed";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const C1S2_REGULAR_SCHEDULE_URL = "/assets/data/c1s2-regular-schedule.csv";
@@ -1024,6 +1025,18 @@ function normalizeBracketEntry(row) {
   };
 }
 
+function formatBracketHandle(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  return raw.startsWith("@") ? raw : `@${raw}`;
+}
+
+function getConfirmedBracketHandle() {
+  const handle = String(localStorage.getItem(BRACKET_CHALLENGE_HANDLE_KEY) || "").trim();
+  const confirmed = localStorage.getItem(BRACKET_CHALLENGE_CONFIRMED_KEY) === "1";
+  return confirmed && handle ? handle : "";
+}
+
 function getBracketPickValue(key) {
   const input = document.querySelector(`[name="bracket-${key}"]:checked`);
   return String(input?.value || "").trim();
@@ -1098,9 +1111,7 @@ async function loadBracketChallengeEntries() {
 async function saveBracketChallengeEntry() {
   const statusEl = document.getElementById("bracket-status");
   const saveButton = document.getElementById("bracket-save");
-  const handleInput = document.getElementById("bracket-handle");
-  const handleRaw = String(handleInput?.value || "").trim();
-  const handle = handleRaw ? (handleRaw.startsWith("@") ? handleRaw : `@${handleRaw}`) : "";
+  const handle = getConfirmedBracketHandle();
   const picks = getBracketChallengePicks();
   const missing = Object.entries(picks)
     .filter(([, value]) => !value)
@@ -1108,7 +1119,7 @@ async function saveBracketChallengeEntry() {
 
   if (!handle) {
     if (statusEl) {
-      statusEl.textContent = "Type your @ before submitting.";
+      statusEl.textContent = "Confirm your @ before filling out a bracket.";
       statusEl.className = "bracket-status error";
     }
     return;
@@ -1128,6 +1139,7 @@ async function saveBracketChallengeEntry() {
     created_at: new Date().toISOString(),
   });
   localStorage.setItem(BRACKET_CHALLENGE_HANDLE_KEY, handle);
+  localStorage.setItem(BRACKET_CHALLENGE_CONFIRMED_KEY, "1");
   if (saveButton) {
     saveButton.disabled = true;
     saveButton.textContent = "Submitting...";
@@ -1178,6 +1190,27 @@ async function saveBracketChallengeEntry() {
   }
 }
 
+function confirmBracketChallengeHandle() {
+  const input = document.getElementById("bracket-handle");
+  const statusEl = document.getElementById("bracket-status");
+  const handle = formatBracketHandle(input?.value || "");
+  if (!handle) {
+    if (statusEl) {
+      statusEl.textContent = "Type your real @ first.";
+      statusEl.className = "bracket-status error";
+    }
+    return;
+  }
+  localStorage.setItem(BRACKET_CHALLENGE_HANDLE_KEY, handle);
+  localStorage.setItem(BRACKET_CHALLENGE_CONFIRMED_KEY, "1");
+  renderBracketChallenge(currentBracketChallengeSeeds);
+  const nextStatus = document.getElementById("bracket-status");
+  if (nextStatus) {
+    nextStatus.textContent = `${handle} confirmed. Fill out your bracket.`;
+    nextStatus.className = "bracket-status success";
+  }
+}
+
 function syncBracketChallengeDependentRounds() {
   if (!currentBracketChallengeSeeds) return;
   const matchups = getBracketMatchupsFromSeeds(currentBracketChallengeSeeds);
@@ -1210,6 +1243,8 @@ function renderBracketChallenge(seeds) {
   currentBracketChallengeSeeds = seeds;
   const matchups = getBracketMatchupsFromSeeds(seeds);
   const savedHandle = localStorage.getItem(BRACKET_CHALLENGE_HANDLE_KEY) || "";
+  const confirmedHandle = getConfirmedBracketHandle();
+  const isConfirmed = Boolean(confirmedHandle);
   els.bracketChallenge.innerHTML = `
     <div class="bracket-challenge-head">
       <div>
@@ -1221,37 +1256,45 @@ function renderBracketChallenge(seeds) {
     <div class="bracket-challenge-grid">
       <section class="bracket-entry-card">
         <label class="bracket-handle-label" for="bracket-handle">Your Real @</label>
-        <input id="bracket-handle" class="bracket-handle-input" type="text" placeholder="@yourname" value="${escapeHtml(savedHandle)}" />
-        <div class="bracket-pick-round">
-          <h4>Wild Card</h4>
-          <div class="bracket-pick-match">
-            <span>${escapeHtml(matchups.northWildCard.label)}</span>
-            ${matchups.northWildCard.teams.map((team) => renderBracketPickButton("northWildCard", team)).join("")}
-          </div>
-          <div class="bracket-pick-match">
-            <span>${escapeHtml(matchups.lockedWildCard.label)}</span>
-            ${matchups.lockedWildCard.teams.map((team) => renderBracketPickButton("lockedWildCard", team)).join("")}
-          </div>
+        <div class="bracket-handle-lock">
+          <input id="bracket-handle" class="bracket-handle-input" type="text" placeholder="@yourname" value="${escapeHtml(confirmedHandle || savedHandle)}" ${isConfirmed ? "disabled" : ""} />
+          <button id="bracket-confirm-user" class="btn ghost bracket-confirm-user" type="button" ${isConfirmed ? "disabled" : ""}>${isConfirmed ? "Confirmed" : "Confirm User"}</button>
         </div>
-        <div class="bracket-pick-round">
-          <h4>Semifinals</h4>
-          <div class="bracket-pick-match">
-            <span>${escapeHtml(matchups.northFinal.label)}</span>
-            <div id="bracket-north-final-picks" class="bracket-dependent-picks"></div>
-          </div>
-          <div class="bracket-pick-match">
-            <span>${escapeHtml(matchups.lockedFinal.label)}</span>
-            <div id="bracket-locked-final-picks" class="bracket-dependent-picks"></div>
-          </div>
+        <div class="bracket-confirm-note">
+          ${isConfirmed ? `${escapeHtml(confirmedHandle)} is locked for this bracket.` : "Confirm your user before making picks. You cannot edit it after confirming."}
         </div>
-        <div class="bracket-pick-round">
-          <h4>Championship</h4>
-          <div class="bracket-pick-match">
-            <span>${escapeHtml(matchups.championship.label)}</span>
-            <div id="bracket-championship-picks" class="bracket-dependent-picks"></div>
+        <div class="bracket-pick-shell" ${isConfirmed ? "" : "hidden"}>
+          <div class="bracket-pick-round">
+            <h4>Wild Card</h4>
+            <div class="bracket-pick-match">
+              <span>${escapeHtml(matchups.northWildCard.label)}</span>
+              ${matchups.northWildCard.teams.map((team) => renderBracketPickButton("northWildCard", team)).join("")}
+            </div>
+            <div class="bracket-pick-match">
+              <span>${escapeHtml(matchups.lockedWildCard.label)}</span>
+              ${matchups.lockedWildCard.teams.map((team) => renderBracketPickButton("lockedWildCard", team)).join("")}
+            </div>
           </div>
+          <div class="bracket-pick-round">
+            <h4>Semifinals</h4>
+            <div class="bracket-pick-match">
+              <span>${escapeHtml(matchups.northFinal.label)}</span>
+              <div id="bracket-north-final-picks" class="bracket-dependent-picks"></div>
+            </div>
+            <div class="bracket-pick-match">
+              <span>${escapeHtml(matchups.lockedFinal.label)}</span>
+              <div id="bracket-locked-final-picks" class="bracket-dependent-picks"></div>
+            </div>
+          </div>
+          <div class="bracket-pick-round">
+            <h4>Championship</h4>
+            <div class="bracket-pick-match">
+              <span>${escapeHtml(matchups.championship.label)}</span>
+              <div id="bracket-championship-picks" class="bracket-dependent-picks"></div>
+            </div>
+          </div>
+          <button id="bracket-save" class="btn ghost bracket-save" type="button">Submit Bracket</button>
         </div>
-        <button id="bracket-save" class="btn ghost bracket-save" type="button">Submit Bracket</button>
         <div id="bracket-status" class="bracket-status" role="status"></div>
       </section>
       <section class="bracket-entry-card">
@@ -2539,6 +2582,12 @@ if (els.liveRow) {
 }
 
 document.addEventListener("click", (event) => {
+  const bracketConfirm = event.target.closest("#bracket-confirm-user");
+  if (bracketConfirm) {
+    event.preventDefault();
+    confirmBracketChallengeHandle();
+    return;
+  }
   const bracketSave = event.target.closest("#bracket-save");
   if (bracketSave) {
     event.preventDefault();
