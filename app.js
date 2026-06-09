@@ -11,6 +11,9 @@ const PLAYER_PROFILE_SCRIPT_URL =
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const TRANSACTIONS_CSV_URL = "/api/sheet?name=transactions";
 const NEWS_ARTICLES_API = "/api/articles";
+const BRACKET_CHALLENGE_API = "/api/bracket-challenge";
+const BRACKET_CHALLENGE_LOCAL_KEY = "rskl_c2s3_bracket_entries";
+const BRACKET_CHALLENGE_HANDLE_KEY = "rskl_c2s3_bracket_handle";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const C1S2_REGULAR_SCHEDULE_URL = "/assets/data/c1s2-regular-schedule.csv";
@@ -120,6 +123,7 @@ const els = {
   recentTransactions: document.getElementById("recent-transactions"),
   dashboardNews: document.getElementById("dashboard-news"),
   playoffBracket: document.getElementById("dashboard-playoff-bracket"),
+  bracketChallenge: document.getElementById("bracket-challenge"),
   liveModal: document.getElementById("live-modal"),
   liveDetails: document.getElementById("live-details"),
 };
@@ -133,6 +137,8 @@ els.transactionsPanel = els.recentTransactions ? els.recentTransactions.closest(
 let currentLiveGames = [];
 let sheetCache = new Map();
 let lastLeagueSnapshotRows = [];
+let currentBracketChallengeSeeds = null;
+let bracketChallengeEntries = [];
 const dashboardPlayerAvatarCache = new Map();
 let supabaseUrl = "";
 let supabaseAnon = "";
@@ -956,6 +962,313 @@ function renderBracketPlaceholder(label) {
   `;
 }
 
+function getBracketTeamValue(seed) {
+  return seed?.team ? String(seed.team).trim() : "";
+}
+
+function getBracketMatchupsFromSeeds(seeds) {
+  const north = seeds?.north || [];
+  const locked = seeds?.locked || [];
+  return {
+    northWildCard: {
+      key: "northWildCard",
+      label: "North Wild Card",
+      teams: [north[1], north[2]].filter(Boolean),
+    },
+    lockedWildCard: {
+      key: "lockedWildCard",
+      label: "Locked PSP Wild Card",
+      teams: [locked[1], locked[2]].filter(Boolean),
+    },
+    northFinal: {
+      key: "northFinal",
+      label: "North Final",
+      bye: north[0] || null,
+      from: "northWildCard",
+    },
+    lockedFinal: {
+      key: "lockedFinal",
+      label: "Locked PSP Final",
+      bye: locked[0] || null,
+      from: "lockedWildCard",
+    },
+    championship: {
+      key: "championship",
+      label: "RSKL Finals",
+      from: ["northFinal", "lockedFinal"],
+    },
+  };
+}
+
+function getLocalBracketEntries() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(BRACKET_CHALLENGE_LOCAL_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function setLocalBracketEntries(entries) {
+  localStorage.setItem(BRACKET_CHALLENGE_LOCAL_KEY, JSON.stringify(entries.slice(0, 50)));
+}
+
+function normalizeBracketEntry(row) {
+  const picks = row?.picks && typeof row.picks === "object" ? row.picks : {};
+  return {
+    id: String(row?.id || row?.created_at || Date.now()).trim(),
+    handle: String(row?.handle || row?.user_handle || "").trim(),
+    champion: String(row?.champion || picks.championship || "").trim(),
+    picks,
+    created_at: row?.created_at || row?.updated_at || new Date().toISOString(),
+  };
+}
+
+function getBracketPickValue(key) {
+  const input = document.querySelector(`[name="bracket-${key}"]:checked`);
+  return String(input?.value || "").trim();
+}
+
+function getBracketChallengePicks() {
+  const picks = {
+    northWildCard: getBracketPickValue("northWildCard"),
+    lockedWildCard: getBracketPickValue("lockedWildCard"),
+    northFinal: getBracketPickValue("northFinal"),
+    lockedFinal: getBracketPickValue("lockedFinal"),
+    championship: getBracketPickValue("championship"),
+  };
+  return picks;
+}
+
+function renderBracketPickButton(groupKey, seed, disabled = false, selectedValue = "") {
+  const team = getBracketTeamValue(seed);
+  if (!team) return "";
+  return `
+    <label class="bracket-pick-option">
+      <input type="radio" name="bracket-${escapeHtml(groupKey)}" value="${escapeHtml(team)}" ${disabled ? "disabled" : ""} ${team === selectedValue ? "checked" : ""} />
+      <span>
+        ${renderSmallTeamLogo(team)}
+        <strong>${escapeHtml(team)}</strong>
+        ${seed?.seedLabel ? `<em>${escapeHtml(seed.seedLabel)}</em>` : ""}
+      </span>
+    </label>
+  `;
+}
+
+function renderBracketChallengeEntries(entries) {
+  const list = (Array.isArray(entries) ? entries : []).slice(0, 8);
+  if (!list.length) {
+    return `<div class="bracket-entry-empty">No brackets submitted yet.</div>`;
+  }
+  return list
+    .map((entry) => {
+      const handle = entry.handle || "Unknown";
+      const champion = entry.champion || entry.picks?.championship || "No champion";
+      return `
+        <div class="bracket-entry-row">
+          <div>
+            <strong>${escapeHtml(handle)}</strong>
+            <span>${escapeHtml(formatArticleDate(entry.created_at))}</span>
+          </div>
+          <b>${escapeHtml(champion)}</b>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+async function loadBracketChallengeEntries() {
+  if (!els.bracketChallenge) return;
+  try {
+    const response = await fetch(`${BRACKET_CHALLENGE_API}?season=c2s3-playoffs`, { cache: "no-store" });
+    if (!response.ok) throw new Error("Bracket API unavailable.");
+    const payload = await response.json().catch(() => ({}));
+    bracketChallengeEntries = Array.isArray(payload?.entries)
+      ? payload.entries.map(normalizeBracketEntry)
+      : getLocalBracketEntries().map(normalizeBracketEntry);
+  } catch (_error) {
+    bracketChallengeEntries = getLocalBracketEntries().map(normalizeBracketEntry);
+  }
+  const entriesEl = document.getElementById("bracket-entry-list");
+  if (entriesEl) {
+    entriesEl.innerHTML = renderBracketChallengeEntries(bracketChallengeEntries);
+  }
+}
+
+async function saveBracketChallengeEntry() {
+  const statusEl = document.getElementById("bracket-status");
+  const saveButton = document.getElementById("bracket-save");
+  const handleInput = document.getElementById("bracket-handle");
+  const handleRaw = String(handleInput?.value || "").trim();
+  const handle = handleRaw ? (handleRaw.startsWith("@") ? handleRaw : `@${handleRaw}`) : "";
+  const picks = getBracketChallengePicks();
+  const missing = Object.entries(picks)
+    .filter(([, value]) => !value)
+    .map(([key]) => key);
+
+  if (!handle) {
+    if (statusEl) {
+      statusEl.textContent = "Type your @ before submitting.";
+      statusEl.className = "bracket-status error";
+    }
+    return;
+  }
+  if (missing.length) {
+    if (statusEl) {
+      statusEl.textContent = "Finish every pick before submitting.";
+      statusEl.className = "bracket-status error";
+    }
+    return;
+  }
+
+  const entry = normalizeBracketEntry({
+    handle,
+    champion: picks.championship,
+    picks,
+    created_at: new Date().toISOString(),
+  });
+  localStorage.setItem(BRACKET_CHALLENGE_HANDLE_KEY, handle);
+  if (saveButton) {
+    saveButton.disabled = true;
+    saveButton.textContent = "Submitting...";
+  }
+  if (statusEl) {
+    statusEl.textContent = "Submitting bracket...";
+    statusEl.className = "bracket-status";
+  }
+
+  try {
+    const response = await fetch(BRACKET_CHALLENGE_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        season: "c2s3-playoffs",
+        handle,
+        picks,
+        champion: picks.championship,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error("Saved locally. Add the Supabase bracket table for public entries.");
+    }
+    const payload = await response.json().catch(() => ({}));
+    bracketChallengeEntries = Array.isArray(payload?.entries)
+      ? payload.entries.map(normalizeBracketEntry)
+      : [entry, ...bracketChallengeEntries];
+    if (statusEl) {
+      statusEl.textContent = "Bracket submitted.";
+      statusEl.className = "bracket-status success";
+    }
+  } catch (error) {
+    bracketChallengeEntries = [entry, ...getLocalBracketEntries().map(normalizeBracketEntry)];
+    setLocalBracketEntries(bracketChallengeEntries);
+    if (statusEl) {
+      statusEl.textContent = error.message || "Bracket saved locally.";
+      statusEl.className = "bracket-status";
+    }
+  } finally {
+    if (saveButton) {
+      saveButton.disabled = false;
+      saveButton.textContent = "Submit Bracket";
+    }
+    const entriesEl = document.getElementById("bracket-entry-list");
+    if (entriesEl) {
+      entriesEl.innerHTML = renderBracketChallengeEntries(bracketChallengeEntries);
+    }
+  }
+}
+
+function syncBracketChallengeDependentRounds() {
+  if (!currentBracketChallengeSeeds) return;
+  const matchups = getBracketMatchupsFromSeeds(currentBracketChallengeSeeds);
+  const picks = getBracketChallengePicks();
+  const northFinalTeams = [matchups.northFinal.bye, { team: picks.northWildCard, seedLabel: "WC" }].filter((team) => getBracketTeamValue(team));
+  const lockedFinalTeams = [matchups.lockedFinal.bye, { team: picks.lockedWildCard, seedLabel: "WC" }].filter((team) => getBracketTeamValue(team));
+  const northFinalEl = document.getElementById("bracket-north-final-picks");
+  const lockedFinalEl = document.getElementById("bracket-locked-final-picks");
+  const championshipEl = document.getElementById("bracket-championship-picks");
+  if (northFinalEl) {
+    northFinalEl.innerHTML = northFinalTeams.map((team) => renderBracketPickButton("northFinal", team, !picks.northWildCard, picks.northFinal)).join("");
+  }
+  if (lockedFinalEl) {
+    lockedFinalEl.innerHTML = lockedFinalTeams.map((team) => renderBracketPickButton("lockedFinal", team, !picks.lockedWildCard, picks.lockedFinal)).join("");
+  }
+  const updatedPicks = getBracketChallengePicks();
+  const finalTeams = [
+    updatedPicks.northFinal ? { team: updatedPicks.northFinal, seedLabel: "North" } : null,
+    updatedPicks.lockedFinal ? { team: updatedPicks.lockedFinal, seedLabel: "Locked" } : null,
+  ].filter(Boolean);
+  if (championshipEl) {
+    championshipEl.innerHTML = finalTeams.length
+      ? finalTeams.map((team) => renderBracketPickButton("championship", team, finalTeams.length < 2, updatedPicks.championship)).join("")
+      : `<div class="bracket-entry-empty">Pick both division winners first.</div>`;
+  }
+}
+
+function renderBracketChallenge(seeds) {
+  if (!els.bracketChallenge) return;
+  currentBracketChallengeSeeds = seeds;
+  const matchups = getBracketMatchupsFromSeeds(seeds);
+  const savedHandle = localStorage.getItem(BRACKET_CHALLENGE_HANDLE_KEY) || "";
+  els.bracketChallenge.innerHTML = `
+    <div class="bracket-challenge-head">
+      <div>
+        <span class="dashboard-kicker">Bracket Challenge</span>
+        <h3>Fill Out Your Bracket</h3>
+      </div>
+      <div class="bracket-points">Scoring: WC 1 • Semis 2 • Finals 4</div>
+    </div>
+    <div class="bracket-challenge-grid">
+      <section class="bracket-entry-card">
+        <label class="bracket-handle-label" for="bracket-handle">Your Real @</label>
+        <input id="bracket-handle" class="bracket-handle-input" type="text" placeholder="@yourname" value="${escapeHtml(savedHandle)}" />
+        <div class="bracket-pick-round">
+          <h4>Wild Card</h4>
+          <div class="bracket-pick-match">
+            <span>${escapeHtml(matchups.northWildCard.label)}</span>
+            ${matchups.northWildCard.teams.map((team) => renderBracketPickButton("northWildCard", team)).join("")}
+          </div>
+          <div class="bracket-pick-match">
+            <span>${escapeHtml(matchups.lockedWildCard.label)}</span>
+            ${matchups.lockedWildCard.teams.map((team) => renderBracketPickButton("lockedWildCard", team)).join("")}
+          </div>
+        </div>
+        <div class="bracket-pick-round">
+          <h4>Semifinals</h4>
+          <div class="bracket-pick-match">
+            <span>${escapeHtml(matchups.northFinal.label)}</span>
+            <div id="bracket-north-final-picks" class="bracket-dependent-picks"></div>
+          </div>
+          <div class="bracket-pick-match">
+            <span>${escapeHtml(matchups.lockedFinal.label)}</span>
+            <div id="bracket-locked-final-picks" class="bracket-dependent-picks"></div>
+          </div>
+        </div>
+        <div class="bracket-pick-round">
+          <h4>Championship</h4>
+          <div class="bracket-pick-match">
+            <span>${escapeHtml(matchups.championship.label)}</span>
+            <div id="bracket-championship-picks" class="bracket-dependent-picks"></div>
+          </div>
+        </div>
+        <button id="bracket-save" class="btn ghost bracket-save" type="button">Submit Bracket</button>
+        <div id="bracket-status" class="bracket-status" role="status"></div>
+      </section>
+      <section class="bracket-entry-card">
+        <div class="bracket-entry-card-head">
+          <h4>Submitted Brackets</h4>
+          <span>Champion picks</span>
+        </div>
+        <div id="bracket-entry-list" class="bracket-entry-list">
+          ${renderBracketChallengeEntries(bracketChallengeEntries)}
+        </div>
+      </section>
+    </div>
+  `;
+  syncBracketChallengeDependentRounds();
+  loadBracketChallengeEntries();
+}
+
 function renderDashboardPlayoffBracket(standingsRows) {
   if (!els.playoffBracket) return;
   const groups = buildDashboardPlayoffSeeds(standingsRows);
@@ -972,8 +1285,12 @@ function renderDashboardPlayoffBracket(standingsRows) {
 
   if (north.length < 3 || locked.length < 3) {
     els.playoffBracket.innerHTML = buildStateCard("Bracket Unavailable", "Need at least three teams from each division.");
+    if (els.bracketChallenge) {
+      els.bracketChallenge.innerHTML = buildStateCard("Bracket Challenge Unavailable", "Need at least three teams from each division.");
+    }
     return;
   }
+  const seeds = { north, locked };
 
   const rounds = [
     {
@@ -1033,6 +1350,7 @@ function renderDashboardPlayoffBracket(standingsRows) {
         .join("")}
     </div>
   `;
+  renderBracketChallenge(seeds);
 }
 
 function parseTeamHeader(value) {
@@ -2221,6 +2539,12 @@ if (els.liveRow) {
 }
 
 document.addEventListener("click", (event) => {
+  const bracketSave = event.target.closest("#bracket-save");
+  if (bracketSave) {
+    event.preventDefault();
+    saveBracketChallengeEntry();
+    return;
+  }
   const viewButton = event.target.closest("[data-box-view]");
   if (viewButton && els.liveDetails && els.liveDetails.contains(viewButton)) {
     event.preventDefault();
@@ -2232,6 +2556,12 @@ document.addEventListener("click", (event) => {
   }
   if (event.target.matches("[data-close=\"true\"]") && els.liveModal) {
     els.liveModal.hidden = true;
+  }
+});
+
+document.addEventListener("change", (event) => {
+  if (event.target && event.target.matches('input[type="radio"][name^="bracket-"]')) {
+    syncBracketChallengeDependentRounds();
   }
 });
 
