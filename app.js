@@ -126,6 +126,9 @@ const els = {
 
 els.livePanel = els.liveRow ? els.liveRow.closest(".panel") : null;
 els.featuredPanel = els.featuredMatchups ? els.featuredMatchups.closest(".panel") : null;
+els.playoffPanel = els.playoffBracket ? els.playoffBracket.closest(".panel") : null;
+els.teamsPanel = els.teamsGrid ? els.teamsGrid.closest(".panel") : null;
+els.transactionsPanel = els.recentTransactions ? els.recentTransactions.closest(".panel") : null;
 
 let currentLiveGames = [];
 let sheetCache = new Map();
@@ -303,11 +306,21 @@ async function hydrateDashboardPlayerAvatars(items, season) {
 
 function syncDashboardPanels(seasonRaw) {
   const hideArchiveOnly = isArchiveSeason(seasonRaw);
+  const hideRegularSeasonOnly = seasonRaw === "c2s3-playoffs" || seasonRaw.endsWith("-post");
   if (els.livePanel) {
     els.livePanel.hidden = hideArchiveOnly;
   }
   if (els.featuredPanel) {
     els.featuredPanel.hidden = hideArchiveOnly;
+  }
+  if (els.playoffPanel) {
+    els.playoffPanel.hidden = seasonRaw !== "c2s3-playoffs";
+  }
+  if (els.teamsPanel) {
+    els.teamsPanel.hidden = hideRegularSeasonOnly;
+  }
+  if (els.transactionsPanel) {
+    els.transactionsPanel.hidden = hideRegularSeasonOnly;
   }
   if (hideArchiveOnly && els.liveModal) {
     els.liveModal.hidden = true;
@@ -990,7 +1003,7 @@ function renderDashboardPlayoffBracket(standingsRows) {
 
   els.playoffBracket.innerHTML = `
     <div class="dashboard-bracket-note">
-      Top 3 teams from North and Locked PSP qualify. #1 seeds get byes; #2 plays #3 in each division.
+      The regular season is not over yet, so this bracket is unofficial and will update as the standings change. Top 3 teams from North and Locked PSP qualify. #1 seeds get byes; #2 plays #3 in each division.
     </div>
     <div class="dashboard-bracket-rounds">
       ${rounds
