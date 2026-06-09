@@ -1123,6 +1123,11 @@ body.menu-open {
   gap: 16px;
 }
 
+.dashboard-playoff-bracket[hidden],
+.bracket-challenge[hidden] {
+  display: none !important;
+}
+
 .dashboard-bracket-note {
   padding: 12px 14px;
   border-radius: 14px;
