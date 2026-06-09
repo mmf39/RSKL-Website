@@ -1181,6 +1181,13 @@ function parseLiveGames(rows) {
 function renderLiveScoring(games, seasonRaw) {
   if (!els.liveRow) return;
   currentLiveGames = games || [];
+  if (seasonRaw === "c2s3-playoffs") {
+    els.liveRow.innerHTML = buildStateCard(
+      "Live Scoring",
+      "Live scoring will work when playoffs start."
+    );
+    return;
+  }
   if (seasonRaw !== "c2s3-regular") {
     els.liveRow.innerHTML = buildStateCard(
       "Live Scoring Off",
