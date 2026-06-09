@@ -45,6 +45,11 @@ const TEAM_ORDER = [
   "The Phantoms",
 ];
 
+const CURRENT_PLAYOFF_DIVISIONS = {
+  North: new Set(["Turkeys", "The Lions", "The Phantoms", "Gus N Em", "Illegals"]),
+  "Locked PSP": new Set(["Bad Bois", "The Snipers", "Storm", "Scorpions", "Dream Team"]),
+};
+
 const ARCHIVE_RANGES = {
   standings: "A1:F7",
   schedule_regular: "G31:I79",
@@ -114,6 +119,7 @@ const els = {
   leagueLeaders: document.getElementById("league-leaders"),
   recentTransactions: document.getElementById("recent-transactions"),
   dashboardNews: document.getElementById("dashboard-news"),
+  playoffBracket: document.getElementById("dashboard-playoff-bracket"),
   liveModal: document.getElementById("live-modal"),
   liveDetails: document.getElementById("live-details"),
 };
@@ -132,7 +138,7 @@ let supabasePlayerPhotoMap = new Map();
 let supabasePlayerPhotoMapPromise = null;
 
 function isArchiveSeason(seasonRaw) {
-  return seasonRaw !== "c2s3-regular";
+  return seasonRaw !== "c2s3-regular" && seasonRaw !== "c2s3-playoffs";
 }
 
 function renderPlayerName(player, season, options = {}) {
@@ -688,6 +694,9 @@ function setDashboardLoading() {
   if (els.dashboardNews) {
     els.dashboardNews.innerHTML = `<div class="dashboard-news-list">${buildSkeletonCard(3)}${buildSkeletonCard(3)}</div>`;
   }
+  if (els.playoffBracket) {
+    els.playoffBracket.innerHTML = `<div class="dashboard-bracket-rounds">${buildSkeletonCard(3)}${buildSkeletonCard(3)}${buildSkeletonCard(3)}</div>`;
+  }
   if (els.teamsGrid) {
     els.teamsGrid.innerHTML = `<div class="dashboard-feature-grid">${buildSkeletonCard(3)}${buildSkeletonCard(3)}${buildSkeletonCard(3)}</div>`;
   }
@@ -827,6 +836,190 @@ function renderLeagueSnapshot(items) {
       `;
     })
     .join("");
+}
+
+function getDashboardPlayoffDivision(team) {
+  const shown = normalizeCurrentTeamName(team);
+  return CURRENT_PLAYOFF_DIVISIONS.North.has(shown) ? "North" : "Locked PSP";
+}
+
+function parseDashboardPlayoffStandingsRows(rows) {
+  const itemsByTeam = new Map();
+  let indexes = null;
+
+  rows.forEach((row) => {
+    const normalized = row.map((cell) => String(cell || "").trim().toLowerCase());
+    const teamIdx = normalized.findIndex((cell) => cell === "team");
+    const winsIdx = normalized.findIndex((cell) => cell === "wins" || cell === "win");
+    const lossesIdx = normalized.findIndex((cell) => cell === "loss" || cell === "losses" || cell === "l");
+    const gbIdx = normalized.findIndex((cell) => cell === "gb");
+    const pctIdx = normalized.findIndex((cell) => cell === "win %" || cell === "win%" || cell === "pct");
+    const totalScoreIdx = normalized.findIndex((cell) => cell.includes("total score") || cell === "score");
+    const sosIdx = normalized.findIndex((cell) => cell === "sos" || cell.includes("strength"));
+
+    if (teamIdx >= 0 && winsIdx >= 0 && lossesIdx >= 0) {
+      indexes = { teamIdx, winsIdx, lossesIdx, gbIdx, pctIdx, totalScoreIdx, sosIdx };
+      return;
+    }
+
+    if (!indexes) return;
+
+    const team = normalizeCurrentTeamName(String(row[indexes.teamIdx] || "").trim());
+    if (!team || !TEAM_ORDER.includes(team)) return;
+
+    itemsByTeam.set(team, {
+      team,
+      wins: parseNumber(row[indexes.winsIdx]),
+      losses: parseNumber(row[indexes.lossesIdx]),
+      gb: parseNumber(row[indexes.gbIdx]),
+      winPct: parsePct(row[indexes.pctIdx]),
+      totalScore: parseNumber(row[indexes.totalScoreIdx]),
+      sos: parseNumber(row[indexes.sosIdx]),
+    });
+  });
+
+  return TEAM_ORDER.map((team) => itemsByTeam.get(team)).filter(Boolean);
+}
+
+function buildDashboardPlayoffSeeds(standingsRows) {
+  const rows = parseDashboardPlayoffStandingsRows(standingsRows);
+  const groups = new Map([
+    ["North", []],
+    ["Locked PSP", []],
+  ]);
+  rows.forEach((row) => {
+    const division = getDashboardPlayoffDivision(row.team);
+    groups.get(division).push(row);
+  });
+  groups.forEach((divisionRows) => {
+    divisionRows.sort((a, b) => {
+      const aw = a.wins ?? 0;
+      const bw = b.wins ?? 0;
+      if (bw !== aw) return bw - aw;
+      const al = a.losses ?? 0;
+      const bl = b.losses ?? 0;
+      if (al !== bl) return al - bl;
+      const ap = a.winPct ?? -1;
+      const bp = b.winPct ?? -1;
+      if (bp !== ap) return bp - ap;
+      const ats = a.totalScore ?? -Infinity;
+      const bts = b.totalScore ?? -Infinity;
+      if (bts !== ats) return bts - ats;
+      const as = a.sos ?? -Infinity;
+      const bs = b.sos ?? -Infinity;
+      if (bs !== as) return bs - as;
+      return a.team.localeCompare(b.team);
+    });
+  });
+  return groups;
+}
+
+function renderBracketTeam(seed, className = "") {
+  if (!seed) {
+    return `
+      <div class="dashboard-bracket-team dashboard-bracket-team--empty ${className}">
+        <span class="dashboard-bracket-seed">—</span>
+        <span class="dashboard-bracket-name">TBD</span>
+      </div>
+    `;
+  }
+  const record = seed.wins !== null && seed.losses !== null ? `${seed.wins}-${seed.losses}` : "—";
+  return `
+    <a class="dashboard-bracket-team ${className}" href="/team.html?team=${encodeURIComponent(seed.team)}">
+      <span class="dashboard-bracket-seed">${escapeHtml(seed.seedLabel)}</span>
+      ${renderSmallTeamLogo(seed.team)}
+      <span class="dashboard-bracket-name">${escapeHtml(seed.team)}</span>
+      <span class="dashboard-bracket-record">${escapeHtml(record)}</span>
+    </a>
+  `;
+}
+
+function renderBracketPlaceholder(label) {
+  return `
+    <div class="dashboard-bracket-team dashboard-bracket-team--empty">
+      <span class="dashboard-bracket-seed">—</span>
+      <span class="dashboard-bracket-name">${escapeHtml(label || "TBD")}</span>
+    </div>
+  `;
+}
+
+function renderDashboardPlayoffBracket(standingsRows) {
+  if (!els.playoffBracket) return;
+  const groups = buildDashboardPlayoffSeeds(standingsRows);
+  const north = (groups.get("North") || []).slice(0, 3).map((row, index) => ({
+    ...row,
+    division: "North",
+    seedLabel: `N${index + 1}`,
+  }));
+  const locked = (groups.get("Locked PSP") || []).slice(0, 3).map((row, index) => ({
+    ...row,
+    division: "Locked PSP",
+    seedLabel: `L${index + 1}`,
+  }));
+
+  if (north.length < 3 || locked.length < 3) {
+    els.playoffBracket.innerHTML = buildStateCard("Bracket Unavailable", "Need at least three teams from each division.");
+    return;
+  }
+
+  const rounds = [
+    {
+      title: "Wild Card",
+      note: "Division #2 hosts division #3.",
+      games: [
+        { label: "North Wild Card", top: north[1], bottom: north[2] },
+        { label: "Locked PSP Wild Card", top: locked[1], bottom: locked[2] },
+      ],
+    },
+    {
+      title: "Semifinals",
+      note: "Division winners receive byes.",
+      games: [
+        { label: "North Final", top: north[0], bottomLabel: "North WC Winner" },
+        { label: "Locked PSP Final", top: locked[0], bottomLabel: "Locked PSP WC Winner" },
+      ],
+    },
+    {
+      title: "Championship",
+      note: "Division champions meet for the title.",
+      games: [
+        { label: "RSKL Finals", topLabel: "North Champion", bottomLabel: "Locked PSP Champion" },
+      ],
+    },
+  ];
+
+  els.playoffBracket.innerHTML = `
+    <div class="dashboard-bracket-note">
+      Top 3 teams from North and Locked PSP qualify. #1 seeds get byes; #2 plays #3 in each division.
+    </div>
+    <div class="dashboard-bracket-rounds">
+      ${rounds
+        .map(
+          (round) => `
+            <section class="dashboard-bracket-round">
+              <div class="dashboard-bracket-round-head">
+                <h3>${escapeHtml(round.title)}</h3>
+                <span>${escapeHtml(round.note)}</span>
+              </div>
+              <div class="dashboard-bracket-games">
+                ${round.games
+                  .map(
+                    (game) => `
+                      <article class="dashboard-bracket-game">
+                        <div class="dashboard-bracket-game-label">${escapeHtml(game.label)}</div>
+                        ${game.top ? renderBracketTeam(game.top) : renderBracketPlaceholder(game.topLabel)}
+                        ${game.bottom ? renderBracketTeam(game.bottom) : renderBracketPlaceholder(game.bottomLabel)}
+                      </article>
+                    `
+                  )
+                  .join("")}
+              </div>
+            </section>
+          `
+        )
+        .join("")}
+    </div>
+  `;
 }
 
 function parseTeamHeader(value) {
@@ -1808,7 +2001,7 @@ async function loadData() {
   }
 
   try {
-    if (seasonRaw === "c2s3-regular") {
+    if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s3-playoffs") {
       const results = await Promise.allSettled([
         fetchSheet(STANDINGS_CSV_URL),
         fetchSheet(LIVE_SCORING_URL),
@@ -1824,6 +2017,7 @@ async function loadData() {
       const transactionRows = results[4].status === "fulfilled" ? results[4].value : [];
 
       renderLeagueSnapshot(buildCurrentLeagueSnapshotRows(standingsRows));
+      renderDashboardPlayoffBracket(standingsRows);
 
       const liveGames = liveRows.length ? parseLiveGames(liveRows) : [];
       renderLiveScoring(liveGames, seasonRaw);
@@ -1988,6 +2182,9 @@ async function loadData() {
     }
     if (els.recentTransactions) {
       els.recentTransactions.innerHTML = buildStateCard("Transactions Unavailable", "Recent transaction data is currently unavailable.");
+    }
+    if (els.playoffBracket) {
+      els.playoffBracket.innerHTML = buildStateCard("Bracket Unavailable", "The playoff bracket could not be built from the current standings.");
     }
   }
 }
