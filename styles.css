@@ -1251,12 +1251,18 @@ body.menu-open {
   color: rgba(226, 232, 240, 0.72);
 }
 
+.bracket-view-tabs {
+  justify-content: flex-end;
+}
+
+.bracket-view-tabs .standings-scope-tab {
+  font-size: clamp(0.82rem, 1vw, 1rem);
+  padding: 9px 14px;
+}
+
 .bracket-challenge {
   display: grid;
   gap: 16px;
-  margin-top: 18px;
-  padding-top: 18px;
-  border-top: 1px solid rgba(255, 170, 86, 0.14);
 }
 
 .bracket-challenge-head {
@@ -7758,6 +7764,16 @@ input[type="text"] {
   .bracket-entry-card-head {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .bracket-view-tabs {
+    justify-content: stretch;
+    width: 100%;
+  }
+
+  .bracket-view-tabs .standings-scope-tab {
+    flex: 1 1 0;
+    text-align: center;
   }
 
   .bracket-handle-lock {

@@ -125,6 +125,7 @@ const els = {
   dashboardNews: document.getElementById("dashboard-news"),
   playoffBracket: document.getElementById("dashboard-playoff-bracket"),
   bracketChallenge: document.getElementById("bracket-challenge"),
+  bracketViewTabs: Array.from(document.querySelectorAll("[data-bracket-view]")),
   liveModal: document.getElementById("live-modal"),
   liveDetails: document.getElementById("live-details"),
 };
@@ -140,6 +141,7 @@ let sheetCache = new Map();
 let lastLeagueSnapshotRows = [];
 let currentBracketChallengeSeeds = null;
 let bracketChallengeEntries = [];
+let activeBracketView = "official";
 const dashboardPlayerAvatarCache = new Map();
 let supabaseUrl = "";
 let supabaseAnon = "";
@@ -963,6 +965,21 @@ function renderBracketPlaceholder(label) {
   `;
 }
 
+function setBracketView(view = "official") {
+  activeBracketView = view === "challenge" ? "challenge" : "official";
+  if (els.playoffBracket) {
+    els.playoffBracket.hidden = activeBracketView !== "official";
+  }
+  if (els.bracketChallenge) {
+    els.bracketChallenge.hidden = activeBracketView !== "challenge";
+  }
+  els.bracketViewTabs.forEach((button) => {
+    const isActive = button.dataset.bracketView === activeBracketView;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", isActive ? "true" : "false");
+  });
+}
+
 function getBracketTeamValue(seed) {
   return seed?.team ? String(seed.team).trim() : "";
 }
@@ -1394,6 +1411,7 @@ function renderDashboardPlayoffBracket(standingsRows) {
     </div>
   `;
   renderBracketChallenge(seeds);
+  setBracketView(activeBracketView);
 }
 
 function parseTeamHeader(value) {
@@ -2582,6 +2600,12 @@ if (els.liveRow) {
 }
 
 document.addEventListener("click", (event) => {
+  const bracketViewButton = event.target.closest("[data-bracket-view]");
+  if (bracketViewButton) {
+    event.preventDefault();
+    setBracketView(bracketViewButton.dataset.bracketView || "official");
+    return;
+  }
   const bracketConfirm = event.target.closest("#bracket-confirm-user");
   if (bracketConfirm) {
     event.preventDefault();
