@@ -444,6 +444,9 @@ function linkifyTeamsAndPlayers(text) {
 }
 
 function renderCell(value, header, index) {
+  if (value && typeof value === "object" && value.__html) {
+    return value.__html;
+  }
   const text = String(value ?? "").trim();
   if (!text) {
     return "";
@@ -651,7 +654,20 @@ function parseTradeRows(rows) {
 
 function formatTradeNote(trade) {
   if (!trade) return "";
-  return `${trade.date} trade: ${trade.teamA} received ${trade.receiveA}; ${trade.teamB} received ${trade.receiveB}`;
+  const query = [
+    trade.date,
+    trade.teamA,
+    trade.receiveA,
+    trade.teamB,
+    trade.receiveB,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return {
+    __html: `<a class="draft-link" href="/transactions.html?q=${encodeURIComponent(
+      query
+    )}">Trade</a>`,
+  };
 }
 
 function findPickTradeNote(pickInfo, roundNumber, trades, season = "c2s4") {
@@ -681,7 +697,11 @@ function findPickTradeNote(pickInfo, roundNumber, trades, season = "c2s4") {
 function buildPickNotes(pickInfo, owner, originalTeam, roundNumber, trades) {
   const baseNote = summarizeDraftPickInfo(pickInfo, owner, originalTeam);
   const tradeNote = findPickTradeNote(pickInfo, roundNumber, trades);
-  if (baseNote && tradeNote) return `${baseNote}. ${tradeNote}`;
+  if (baseNote && tradeNote && tradeNote.__html) {
+    return {
+      __html: `${escapeHtml(baseNote)}. ${tradeNote.__html}`,
+    };
+  }
   return tradeNote || baseNote;
 }
 
