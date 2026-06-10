@@ -2,6 +2,7 @@ const DRAFT_CSV_URL = "/api/sheet?name=draft";
 const ARCHIVE_CSV_URL = "/api/sheet?name=archive";
 const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
 const DRAFT_CAPITAL_CSV_URL = "/api/sheet?name=draft-capital";
+const TRANSACTIONS_CSV_URL = "/api/sheet?name=transactions";
 const C1S2_DRAFT_URL = "/assets/data/c1s2-draft.csv";
 const C1S3_DRAFT_URL = "/assets/data/c1s3-draft.csv";
 const C1S4_DRAFT_URL = "/assets/data/c1s4-draft.csv";
@@ -606,7 +607,85 @@ function summarizeDraftPickInfo(pickInfo, owner, originalTeam) {
   return owner === originalTeam ? "" : pickInfo.text;
 }
 
-function buildProjectedDraftRows(order, draftCapitalByRound, roundNumber, standingsByTeam) {
+function textHasRound(value, roundNumber) {
+  const text = String(value || "").toLowerCase();
+  const patterns = {
+    1: /\b1(?:st)?\b|\bfirst\b/,
+    2: /\b2(?:nd)?\b|\bsecond\b/,
+    3: /\b3(?:rd)?\b|\bthird\b/,
+    4: /\b4(?:th)?\b|\bfourth\b/,
+  };
+  return patterns[roundNumber] ? patterns[roundNumber].test(text) : false;
+}
+
+function normalizeTradeText(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tradeSideMatchesPick(receiveText, season, roundNumber, isComp) {
+  const text = String(receiveText || "").toLowerCase();
+  const hasSeason = text.includes(season.toLowerCase());
+  const hasSwap = /\bswap\b/.test(text);
+  const hasRound = textHasRound(text, roundNumber);
+  const hasComp = /\bcomp\b/.test(text);
+  if (isComp && !hasComp) return false;
+  return hasRound && (hasSeason || hasSwap);
+}
+
+function parseTradeRows(rows) {
+  return rows
+    .slice(2)
+    .map((row) => {
+      const date = normalizeTradeText(row[0]);
+      const teamA = canonicalTeamName(row[1]);
+      const receiveA = normalizeTradeText(row[2]);
+      const teamB = canonicalTeamName(row[3]);
+      const receiveB = normalizeTradeText(row[4]);
+      if (!date || !teamA || !teamB || (!receiveA && !receiveB)) return null;
+      return { date, teamA, receiveA, teamB, receiveB };
+    })
+    .filter(Boolean);
+}
+
+function formatTradeNote(trade) {
+  if (!trade) return "";
+  return `${trade.date} trade: ${trade.teamA} received ${trade.receiveA}; ${trade.teamB} received ${trade.receiveB}`;
+}
+
+function findPickTradeNote(pickInfo, roundNumber, trades, season = "c2s4") {
+  if (!pickInfo || !Array.isArray(trades)) return "";
+  const owner = canonicalTeamName(pickInfo.owner);
+  const original = canonicalTeamName(pickInfo.original);
+  const isSwap = /potential\s+.*swap|swap/i.test(pickInfo.text);
+  const trade = trades.find((row) => {
+    const aToB =
+      canonicalTeamName(row.teamB) === owner &&
+      (canonicalTeamName(row.teamA) === original || isSwap) &&
+      tradeSideMatchesPick(row.receiveB, season, roundNumber, pickInfo.isComp);
+    const bToA =
+      canonicalTeamName(row.teamA) === owner &&
+      (canonicalTeamName(row.teamB) === original || isSwap) &&
+      tradeSideMatchesPick(row.receiveA, season, roundNumber, pickInfo.isComp);
+    const swapMatch =
+      isSwap &&
+      (canonicalTeamName(row.teamA) === owner || canonicalTeamName(row.teamB) === owner) &&
+      (/\bswap\b/i.test(row.receiveA) || /\bswap\b/i.test(row.receiveB)) &&
+      (textHasRound(row.receiveA, roundNumber) || textHasRound(row.receiveB, roundNumber));
+    return aToB || bToA || swapMatch;
+  });
+  return formatTradeNote(trade);
+}
+
+function buildPickNotes(pickInfo, owner, originalTeam, roundNumber, trades) {
+  const baseNote = summarizeDraftPickInfo(pickInfo, owner, originalTeam);
+  const tradeNote = findPickTradeNote(pickInfo, roundNumber, trades);
+  if (baseNote && tradeNote) return `${baseNote}. ${tradeNote}`;
+  return tradeNote || baseNote;
+}
+
+function buildProjectedDraftRows(order, draftCapitalByRound, roundNumber, standingsByTeam, trades = []) {
   const roundMap = draftCapitalByRound.get(roundNumber) || new Map();
   const rows = order.map((originalTeam, idx) => {
     const pickInfo = roundMap.get(originalTeam);
@@ -617,7 +696,7 @@ function buildProjectedDraftRows(order, draftCapitalByRound, roundNumber, standi
       originalTeam,
       selection,
       formatDraftRecord(standingsByTeam.get(originalTeam)),
-      summarizeDraftPickInfo(pickInfo, owner, originalTeam),
+      buildPickNotes(pickInfo, owner, originalTeam, roundNumber, trades),
     ];
   });
   const extras = draftCapitalByRound.extrasByRound?.get(roundNumber) || [];
@@ -629,7 +708,7 @@ function buildProjectedDraftRows(order, draftCapitalByRound, roundNumber, standi
       original,
       owner === original ? owner : `${owner} (via ${original})`,
       "",
-      summarizeDraftPickInfo(pickInfo, owner, original),
+      buildPickNotes(pickInfo, owner, original, roundNumber, trades),
     ]);
   });
   return rows;
@@ -951,15 +1030,17 @@ async function loadDraft() {
     }
 
     if (selectedYear === "c2s4" && selectedView === "teams") {
-      const [standingsRows, draftCapitalRows] = await Promise.all([
+      const [standingsRows, draftCapitalRows, tradeRows] = await Promise.all([
         fetchRows(STANDINGS_CSV_URL),
         fetchRows(DRAFT_CAPITAL_CSV_URL),
+        fetchRows(TRANSACTIONS_CSV_URL),
       ]);
       draftRowsCache = standingsRows;
       const standings = parseStandingsRows(standingsRows);
       const order = getReverseStandingsOrder(standings);
       const standingsByTeam = new Map(standings.map((row) => [row.team, row]));
       const draftCapitalByRound = parseDraftCapitalRows(draftCapitalRows, "c2s4");
+      const trades = parseTradeRows(tradeRows);
       if (!order.length) {
         els.sections.innerHTML = `
           <section class="panel">
@@ -972,11 +1053,11 @@ async function loadDraft() {
           renderC2S4ProjectionNote(order),
           renderRound("round-1", "Round 1", [
             ["Pick", "Original Pick", "Selection Team", "Current Record", "Notes"],
-            ...buildProjectedDraftRows(order, draftCapitalByRound, 1, standingsByTeam),
+            ...buildProjectedDraftRows(order, draftCapitalByRound, 1, standingsByTeam, trades),
           ]),
           renderRound("round-2", "Round 2", [
             ["Pick", "Original Pick", "Selection Team", "Current Record", "Notes"],
-            ...buildProjectedDraftRows(order, draftCapitalByRound, 2, standingsByTeam),
+            ...buildProjectedDraftRows(order, draftCapitalByRound, 2, standingsByTeam, trades),
           ]),
         ].join("");
         applyRoundFilter();
