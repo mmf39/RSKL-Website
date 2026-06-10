@@ -645,11 +645,6 @@ function renderC2S4ProjectionNote(order) {
     <section class="panel draft-round" data-round="projection-note">
       <div class="panel-head"><h2>C2S4 Draft Projection</h2></div>
       <p>Projected as if the draft happened today, ${escapeHtml(today)}, using current reverse overall standings.</p>
-      <div class="leader-meta">
-        ${order
-          .map((team, index) => `<span class="leader-chip">${getTeamLogo(team)} <span>${index + 1}. ${escapeHtml(team)}</span></span>`)
-          .join("")}
-      </div>
     </section>
   `;
 }
