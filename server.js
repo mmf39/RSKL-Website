@@ -48,6 +48,8 @@ const SHEETS = {
   boxscore:
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=321367914&single=true&output=csv",
   draft: DRAFT_URL,
+  "draft-capital":
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=1378560378&single=true&output=csv",
   "live-scoring":
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=1486072019&single=true&output=csv",
   "player-stats":
@@ -229,14 +231,25 @@ function serveFile(res, filePath) {
   });
 }
 
-function proxyCsv(res, url) {
+function proxyCsv(res, url, depth = 0) {
+  if (depth > 3) {
+    send(res, 508, "Too many redirects");
+    return;
+  }
   https
     .get(url, (proxyRes) => {
+      const status = proxyRes.statusCode || 200;
+      const location = proxyRes.headers.location;
+      if (status >= 300 && status < 400 && location) {
+        proxyRes.resume();
+        proxyCsv(res, location, depth + 1);
+        return;
+      }
       let data = "";
       proxyRes.on("data", (chunk) => (data += chunk));
       proxyRes.on("end", () => {
-        if (proxyRes.statusCode && proxyRes.statusCode >= 400) {
-          send(res, proxyRes.statusCode, `Upstream error ${proxyRes.statusCode}`);
+        if (status >= 400) {
+          send(res, status, `Upstream error ${status}`);
           return;
         }
         send(res, 200, data, "text/csv; charset=utf-8");

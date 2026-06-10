@@ -1,6 +1,6 @@
 const DRAFT_CSV_URL = "/api/sheet?name=draft";
 const ARCHIVE_CSV_URL = "/api/sheet?name=archive";
-const STANDINGS_CSV_URL = "/api/sheet?name=standings";
+const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
 const DRAFT_CAPITAL_CSV_URL = "/api/sheet?name=draft-capital";
 const C1S2_DRAFT_URL = "/assets/data/c1s2-draft.csv";
 const C1S3_DRAFT_URL = "/assets/data/c1s3-draft.csv";
@@ -9,6 +9,7 @@ const C1S5_DRAFT_URL = "/assets/data/c1s5-draft.csv";
 const C1S6_DRAFT_URL = "/assets/data/c1s6-draft.csv";
 const DRAFT_YEAR_KEY = "draftYear";
 const DRAFT_YEAR_VALUES = new Set([
+  "c2s4",
   "c1s2",
   "c1s3",
   "c1s4",
@@ -33,6 +34,10 @@ const els = {
 };
 
 const ROUND_RANGES_BY_YEAR = {
+  c2s4: [
+    { id: "round-1", title: "Round 1", range: "" },
+    { id: "round-2", title: "Round 2", range: "" },
+  ],
   c1s6: [
     { id: "round-1", title: "Round 1", range: "" },
     { id: "round-2", title: "Round 2", range: "" },
@@ -493,6 +498,7 @@ function parseStandingsRows(rows) {
   const headers = rows[headerRowIndex].map((h) => String(h || "").trim().toLowerCase());
   const teamIdx = headers.indexOf("team");
   const winsIdx = headers.findIndex((h) => h === "wins" || h === "win");
+  const lossesIdx = headers.findIndex((h) => h === "loss" || h === "losses" || h === "l");
   const winPctIdx = headers.findIndex((h) => h === "win %" || h === "win%" || h === "pct");
   const gpIdx = headers.findIndex((h) => h === "gp");
   if (teamIdx === -1) return [];
@@ -502,8 +508,14 @@ function parseStandingsRows(rows) {
     const row = rows[i] || [];
     const rawTeam = String(row[teamIdx] || "").trim();
     if (!rawTeam) continue;
+    const lowerTeam = rawTeam.toLowerCase();
+    if (lowerTeam === "team" || lowerTeam.includes("join")) continue;
+    const rawWins = String(row[winsIdx] || "").trim();
+    const rawGp = String(row[gpIdx] || "").trim();
+    if (!rawWins || !rawGp || Number.isNaN(Number(rawWins.replace(/[^0-9.-]/g, "")))) continue;
     const team = canonicalTeamName(rawTeam);
     const wins = Number(String(row[winsIdx] || "0").replace(/[^0-9.-]/g, "")) || 0;
+    const losses = Number(String(row[lossesIdx] || "0").replace(/[^0-9.-]/g, "")) || 0;
     const gp = Number(String(row[gpIdx] || "0").replace(/[^0-9.-]/g, "")) || 0;
     let winPct = Number(String(row[winPctIdx] || "").replace(/[^0-9.-]/g, ""));
     if (!Number.isFinite(winPct)) {
@@ -511,7 +523,7 @@ function parseStandingsRows(rows) {
     } else if (winPct > 1.5) {
       winPct = winPct / 100;
     }
-    parsed.push({ team, wins, gp, winPct });
+    parsed.push({ team, wins, losses, gp, winPct });
   }
   return parsed;
 }
@@ -521,13 +533,14 @@ function getReverseStandingsOrder(standingsRows) {
     .sort((a, b) => {
       if (a.winPct !== b.winPct) return a.winPct - b.winPct;
       if (a.wins !== b.wins) return a.wins - b.wins;
+      if (a.losses !== b.losses) return b.losses - a.losses;
       return a.team.localeCompare(b.team);
     })
     .map((r) => r.team);
 }
 
-function parseDraftCapitalRows(rows) {
-  const ownersByCol = [
+function parseDraftCapitalRows(rows, season = "c2s3") {
+  const fallbackOwnersByCol = [
     "Turkeys",
     "Gus N Em",
     "Storm",
@@ -539,23 +552,35 @@ function parseDraftCapitalRows(rows) {
     "The Snipers",
     "Illegals",
   ];
+  const ownersByCol = (rows[0] || []).some((cell) => String(cell || "").trim())
+    ? (rows[0] || []).map((owner) => canonicalTeamName(owner))
+    : fallbackOwnersByCol;
   const byRound = new Map();
+  const extrasByRound = new Map();
+  const seasonPattern = escapeRegExp(season);
 
-  rows.forEach((row) => {
+  rows.slice(1).forEach((row) => {
     ownersByCol.forEach((ownerName, colIndex) => {
       const value = String((row && row[colIndex]) || "").trim();
-      if (!/c2s3/i.test(value)) return;
-      const roundMatch = value.match(/c2s3\s*(\d+)(?:st|nd|rd|th)/i);
+      if (!new RegExp(seasonPattern, "i").test(value)) return;
+      const roundMatch = value.match(new RegExp(`${seasonPattern}\\s*(\\d+)(?:st|nd|rd|th)`, "i"));
       if (!roundMatch) return;
       const round = Number(roundMatch[1]);
       if (!Number.isFinite(round)) return;
       const viaMatch = value.match(/via\s+(.+)$/i);
       const original = canonicalTeamName(viaMatch ? viaMatch[1] : ownerName);
       const owner = canonicalTeamName(ownerName);
+      const pickInfo = { owner, original, text: value, isComp: /\bcomp\b/i.test(value) };
       if (!byRound.has(round)) byRound.set(round, new Map());
-      byRound.get(round).set(original, { owner, text: value });
+      if (pickInfo.isComp) {
+        if (!extrasByRound.has(round)) extrasByRound.set(round, []);
+        extrasByRound.get(round).push(pickInfo);
+      } else {
+        byRound.get(round).set(original, pickInfo);
+      }
     });
   });
+  byRound.extrasByRound = extrasByRound;
   return byRound;
 }
 
@@ -567,6 +592,66 @@ function buildC2S3DraftRows(order, draftCapitalByRound, roundNumber) {
     const selection = owner === originalTeam ? owner : `${owner} (via ${originalTeam})`;
     return [String(idx + 1), originalTeam, selection];
   });
+}
+
+function formatDraftRecord(row) {
+  if (!row) return "";
+  return `${row.wins}-${row.losses} (${row.winPct.toFixed(2)})`;
+}
+
+function summarizeDraftPickInfo(pickInfo, owner, originalTeam) {
+  if (!pickInfo) return "";
+  if (/potential\s+swap/i.test(pickInfo.text)) return "Potential swap";
+  if (pickInfo.isComp) return "Comp pick";
+  return owner === originalTeam ? "" : pickInfo.text;
+}
+
+function buildProjectedDraftRows(order, draftCapitalByRound, roundNumber, standingsByTeam) {
+  const roundMap = draftCapitalByRound.get(roundNumber) || new Map();
+  const rows = order.map((originalTeam, idx) => {
+    const pickInfo = roundMap.get(originalTeam);
+    const owner = pickInfo ? pickInfo.owner : originalTeam;
+    const selection = owner === originalTeam ? owner : `${owner} (via ${originalTeam})`;
+    return [
+      String(idx + 1),
+      originalTeam,
+      selection,
+      formatDraftRecord(standingsByTeam.get(originalTeam)),
+      summarizeDraftPickInfo(pickInfo, owner, originalTeam),
+    ];
+  });
+  const extras = draftCapitalByRound.extrasByRound?.get(roundNumber) || [];
+  extras.forEach((pickInfo, idx) => {
+    const owner = pickInfo.owner;
+    const original = pickInfo.original;
+    rows.push([
+      `${order.length + idx + 1} (Comp)`,
+      original,
+      owner === original ? owner : `${owner} (via ${original})`,
+      "",
+      summarizeDraftPickInfo(pickInfo, owner, original),
+    ]);
+  });
+  return rows;
+}
+
+function renderC2S4ProjectionNote(order) {
+  const today = new Date().toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  return `
+    <section class="panel draft-round" data-round="projection-note">
+      <div class="panel-head"><h2>C2S4 Draft Projection</h2></div>
+      <p>Projected as if the draft happened today, ${escapeHtml(today)}, using current reverse overall standings.</p>
+      <div class="leader-meta">
+        ${order
+          .map((team, index) => `<span class="leader-chip">${getTeamLogo(team)} <span>${index + 1}. ${escapeHtml(team)}</span></span>`)
+          .join("")}
+      </div>
+    </section>
+  `;
 }
 
 function renderC2S3LotteryPanel(order) {
@@ -866,6 +951,41 @@ async function loadDraft() {
         "C2S3 Draft Board",
         boardRows
       );
+      updateLastUpdated();
+      return;
+    }
+
+    if (selectedYear === "c2s4" && selectedView === "teams") {
+      const [standingsRows, draftCapitalRows] = await Promise.all([
+        fetchRows(STANDINGS_CSV_URL),
+        fetchRows(DRAFT_CAPITAL_CSV_URL),
+      ]);
+      draftRowsCache = standingsRows;
+      const standings = parseStandingsRows(standingsRows);
+      const order = getReverseStandingsOrder(standings);
+      const standingsByTeam = new Map(standings.map((row) => [row.team, row]));
+      const draftCapitalByRound = parseDraftCapitalRows(draftCapitalRows, "c2s4");
+      if (!order.length) {
+        els.sections.innerHTML = `
+          <section class="panel">
+            <div class="panel-head"><h2>C2S4 Draft Projection</h2></div>
+            <p>No current standings data available.</p>
+          </section>
+        `;
+      } else {
+        els.sections.innerHTML = [
+          renderC2S4ProjectionNote(order),
+          renderRound("round-1", "Round 1", [
+            ["Pick", "Original Pick", "Selection Team", "Current Record", "Notes"],
+            ...buildProjectedDraftRows(order, draftCapitalByRound, 1, standingsByTeam),
+          ]),
+          renderRound("round-2", "Round 2", [
+            ["Pick", "Original Pick", "Selection Team", "Current Record", "Notes"],
+            ...buildProjectedDraftRows(order, draftCapitalByRound, 2, standingsByTeam),
+          ]),
+        ].join("");
+        applyRoundFilter();
+      }
       updateLastUpdated();
       return;
     }
