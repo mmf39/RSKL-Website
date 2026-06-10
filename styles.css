@@ -32,6 +32,120 @@ iframe {
   display: block;
 }
 
+.playoff-bracket-note {
+  margin-bottom: 14px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.playoff-bracket-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.playoff-bracket-round {
+  border: 1px solid rgba(255, 140, 26, 0.45);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(10, 18, 38, 0.72);
+}
+
+.playoff-bracket-round-head h3 {
+  margin: 0 0 14px;
+  color: var(--accent-2);
+  font-family: var(--font-head);
+  font-size: 1.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.playoff-bracket-games {
+  display: grid;
+  gap: 14px;
+}
+
+.playoff-bracket-game {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(3, 10, 28, 0.86);
+}
+
+.playoff-bracket-game-label {
+  margin-bottom: 8px;
+  color: #ffd28d;
+  font-weight: 800;
+}
+
+.playoff-bracket-team {
+  display: grid;
+  grid-template-columns: 42px 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(255, 140, 26, 0.22);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.playoff-bracket-team.is-winner {
+  color: #38e08d;
+  font-weight: 900;
+}
+
+.playoff-bracket-team .standings-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--accent);
+}
+
+.playoff-bracket-seed {
+  color: var(--accent-2);
+  font-weight: 900;
+}
+
+.playoff-bracket-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.playoff-champion-card {
+  margin-top: 16px;
+  border: 1px solid rgba(56, 224, 141, 0.35);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(56, 224, 141, 0.08);
+}
+
+.playoff-champion-card div {
+  color: #9edfbf;
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.playoff-champion-card strong {
+  display: block;
+  margin-top: 6px;
+  color: #38e08d;
+  font-size: 1.45rem;
+}
+
+.playoff-champion-card span {
+  display: block;
+  margin-top: 4px;
+  color: #d9e7ff;
+}
+
 .madness-board-list {
   display: block;
 }
