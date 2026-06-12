@@ -1,4 +1,5 @@
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
+const PLAYER_STATS_PLAYOFF_URL = "/api/sheet?name=player-stats-playoffs";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const PLAYER_PROFILE_URL = "/api/player-profile";
@@ -1205,7 +1206,7 @@ async function loadPlayerStats() {
     await Promise.all([loadRookieSeasonCache(), loadAllStarSeasonCache()]);
     const season = getPlayerSeason();
     if (season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {
-      const response = await fetch(PLAYER_STATS_URL, { cache: "no-store" });
+      const response = await fetch(season === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" });
       if (!response.ok) {
         throw new Error(`Fetch failed: ${response.status}`);
       }

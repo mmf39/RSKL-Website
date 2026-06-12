@@ -1,6 +1,7 @@
 const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
 const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
+const PLAYER_STATS_PLAYOFF_URL = "/api/sheet?name=player-stats-playoffs";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
@@ -1990,7 +1991,7 @@ async function loadStandings() {
       const [standingsRes, scheduleRes, playerStatsRes, transactionsRes] = await Promise.all([
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
         fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
-        fetch(PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(seasonRaw === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(TRANSACTIONS_URL, { cache: "no-store" }),
       ]);
       if (!standingsRes.ok || !scheduleRes.ok || !playerStatsRes.ok) {

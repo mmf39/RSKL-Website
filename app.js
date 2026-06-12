@@ -9,6 +9,7 @@ const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const PLAYER_PROFILE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
+const PLAYER_STATS_PLAYOFF_URL = "/api/sheet?name=player-stats-playoffs";
 const TRANSACTIONS_CSV_URL = "/api/sheet?name=transactions";
 const NEWS_ARTICLES_API = "/api/articles";
 const BRACKET_CHALLENGE_API = "/api/bracket-challenge";
@@ -2561,7 +2562,7 @@ async function loadData() {
         fetchSheet(STANDINGS_CSV_URL),
         fetchSheet(LIVE_SCORING_URL),
         fetchSheet(SCHEDULE_URL),
-        fetchSheet(PLAYER_STATS_URL),
+        fetchSheet(seasonRaw === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL),
         fetchSheet(TRANSACTIONS_CSV_URL),
       ]);
 

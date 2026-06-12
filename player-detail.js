@@ -1,5 +1,7 @@
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
+const PLAYER_STATS_PLAYOFF_URL = "/api/sheet?name=player-stats-playoffs";
+const BOXSCORE_PLAYOFF_URL = "/api/sheet?name=boxscore-playoffs";
 const GAME_FLOW_API = "/api/game-flow";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
@@ -846,7 +848,7 @@ async function ensureBoxScoreRows(season) {
   }
 
   if (season === "c2s3-regular" || season === "c2s3-playoffs") {
-    const response = await fetch(BOXSCORE_CSV_URL, { cache: "no-store" });
+    const response = await fetch(season === "c2s3-playoffs" ? BOXSCORE_PLAYOFF_URL : BOXSCORE_CSV_URL, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`Fetch failed: ${response.status}`);
     }
@@ -2769,7 +2771,7 @@ async function loadPlayer() {
     let contractRows = contractRowsCache;
     if (season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {
       const [playerRes, contractRes] = await Promise.all([
-        fetch(PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(season === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(CONTRACTS_URL, { cache: "no-store" }),
       ]);
       if (!playerRes.ok) {

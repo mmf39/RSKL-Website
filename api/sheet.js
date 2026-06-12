@@ -1,7 +1,11 @@
 const proxy = require("./_proxy");
 
-const C2S3_PLAYER_STATS_URL =
+const C2S3_STATS_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1201938197&single=true&output=csv";
+const C2S3_PLAYOFF_PLAYER_STATS_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=2091759853&single=true&output=csv";
+const C2S3_PLAYOFF_BOXSCORE_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=321367914&single=true&output=csv";
 
 const SOURCES = {
   archive:
@@ -12,8 +16,8 @@ const SOURCES = {
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1527593475&single=true&output=csv",
   contracts:
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vTr6cIsrgXTBa6ndhiGle_qOOUWgzH3KDUgPTANYDG2O_9u3_zdhOUGdzgz9yzMnqs1dgv54qg0TudU/pub?gid=959105096&single=true&output=csv",
-  boxscore:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=321367914&single=true&output=csv",
+  boxscore: C2S3_STATS_URL,
+  "boxscore-playoffs": C2S3_PLAYOFF_BOXSCORE_URL,
   draft:
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=894447035&single=true&output=csv",
   "fa-stats":
@@ -30,7 +34,8 @@ const SOURCES = {
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTCAyH_FaIk97bDq5_U4-foybMKDrXMrYVWE-cDeCgHmTFtjSAQrURZBgEA8g4Bhj-TL4U-OcITkC6/pub?gid=1463615611&single=true&output=csv",
   "madness-completed":
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTCAyH_FaIk97bDq5_U4-foybMKDrXMrYVWE-cDeCgHmTFtjSAQrURZBgEA8g4Bhj-TL4U-OcITkC6/pub?gid=443160286&single=true&output=csv",
-  "player-stats": C2S3_PLAYER_STATS_URL,
+  "player-stats": C2S3_STATS_URL,
+  "player-stats-playoffs": C2S3_PLAYOFF_PLAYER_STATS_URL,
   roster:
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=847666124&single=true&output=csv",
   schedule:
@@ -114,6 +119,18 @@ function sliceC2S3PlayerStats(text) {
   return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
 }
 
+function sliceC2S3BoxScores(text) {
+  const rows = parseCSV(text)
+    .slice(0, 1000)
+    .map((row) => row.slice(14, 40));
+  return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
+}
+
+const TRANSFORMS = {
+  boxscore: sliceC2S3BoxScores,
+  "player-stats": sliceC2S3PlayerStats,
+};
+
 module.exports = (req, res) => {
   const source = req.query && req.query.name ? String(req.query.name) : "";
   const url = SOURCES[source];
@@ -123,5 +140,5 @@ module.exports = (req, res) => {
     res.end(JSON.stringify({ ok: false, message: "Invalid sheet name" }));
     return;
   }
-  proxy(req, res, url, source === "player-stats" ? { transform: sliceC2S3PlayerStats } : undefined);
+  proxy(req, res, url, TRANSFORMS[source] ? { transform: TRANSFORMS[source] } : undefined);
 };

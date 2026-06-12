@@ -2,10 +2,12 @@ const ROSTER_CSV_URL = "/api/sheet?name=roster";
 const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
 const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
+const BOXSCORE_PLAYOFF_URL = "/api/sheet?name=boxscore-playoffs";
 const GAME_FLOW_API = "/api/game-flow";
 const NEWS_ARTICLES_API = "/api/articles";
 const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
+const PLAYER_STATS_PLAYOFF_URL = "/api/sheet?name=player-stats-playoffs";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const C2S1_ROSTERS_URL = "/assets/data/c2s1-rosters.csv";
@@ -2837,8 +2839,8 @@ async function loadRoster() {
         fetch(ROSTER_CSV_URL, { cache: "no-store" }),
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
         fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
-        fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
-        fetch(PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(season === "c2s3-playoffs" ? BOXSCORE_PLAYOFF_URL : BOXSCORE_CSV_URL, { cache: "no-store" }),
+        fetch(season === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(LIVE_CSV_URL, { cache: "no-store" }),
       ]);
 

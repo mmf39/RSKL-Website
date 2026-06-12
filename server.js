@@ -23,8 +23,12 @@ const TRANSACTIONS_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=1782609175&single=true&output=csv";
 const C2S2_REGULAR_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=346158705&single=true&output=csv";
-const C2S3_PLAYER_STATS_URL =
+const C2S3_STATS_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1201938197&single=true&output=csv";
+const C2S3_PLAYOFF_PLAYER_STATS_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=2091759853&single=true&output=csv";
+const C2S3_PLAYOFF_BOXSCORE_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=321367914&single=true&output=csv";
 const LIVE_ROSTER_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=0&single=true&output=csv";
 const PLAYER_PROFILE_SCRIPT_URL =
@@ -47,14 +51,15 @@ const SHEETS = {
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1527593475&single=true&output=csv",
   contracts:
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vTr6cIsrgXTBa6ndhiGle_qOOUWgzH3KDUgPTANYDG2O_9u3_zdhOUGdzgz9yzMnqs1dgv54qg0TudU/pub?gid=959105096&single=true&output=csv",
-  boxscore:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=321367914&single=true&output=csv",
+  boxscore: C2S3_STATS_URL,
+  "boxscore-playoffs": C2S3_PLAYOFF_BOXSCORE_URL,
   draft: DRAFT_URL,
   "draft-capital":
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=1378560378&single=true&output=csv",
   "live-scoring":
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=1486072019&single=true&output=csv",
-  "player-stats": C2S3_PLAYER_STATS_URL,
+  "player-stats": C2S3_STATS_URL,
+  "player-stats-playoffs": C2S3_PLAYOFF_PLAYER_STATS_URL,
   roster: TEAMS_URL,
   schedule:
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=507537612&single=true&output=csv",
@@ -289,6 +294,18 @@ function sliceC2S3PlayerStats(text) {
     .map((row) => row.slice(7, 13));
   return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
 }
+
+function sliceC2S3BoxScores(text) {
+  const rows = parseCSV(text)
+    .slice(0, 1000)
+    .map((row) => row.slice(14, 40));
+  return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
+}
+
+const SHEET_TRANSFORMS = {
+  boxscore: sliceC2S3BoxScores,
+  "player-stats": sliceC2S3PlayerStats,
+};
 
 function normalizeName(value) {
   return String(value || "")
@@ -988,7 +1005,7 @@ const server = http.createServer((req, res) => {
       send(res, 400, "Invalid sheet name");
       return;
     }
-    proxyCsv(res, target, 0, name === "player-stats" ? { transform: sliceC2S3PlayerStats } : undefined);
+    proxyCsv(res, target, 0, SHEET_TRANSFORMS[name] ? { transform: SHEET_TRANSFORMS[name] } : undefined);
     return;
   }
 
