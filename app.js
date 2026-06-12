@@ -517,9 +517,9 @@ function normalizeTeamName(name) {
 }
 
 function getSeasonRaw() {
-  const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
-  if (raw === "all-time") return "c2s3-regular";
-  if (raw === "c2s2") return "c2s3-regular";
+  const raw = localStorage.getItem(SEASON_KEY) || "c2s3-playoffs";
+  if (raw === "all-time") return "c2s3-playoffs";
+  if (raw === "c2s2") return "c2s3-playoffs";
   return raw;
 }
 
@@ -528,7 +528,7 @@ function initSeasonSelect() {
   if (!select) return;
   select.value = getSeasonRaw();
   if (!select.value) {
-    select.value = "c2s3-regular";
+    select.value = "c2s3-playoffs";
   }
   localStorage.setItem(SEASON_KEY, select.value);
   select.addEventListener("change", () => {

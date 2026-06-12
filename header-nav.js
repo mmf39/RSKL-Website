@@ -396,7 +396,7 @@
       input ||
       localStorage.getItem("playerSeason") ||
       localStorage.getItem("season") ||
-      "c2s3-regular"
+      "c2s3-playoffs"
     );
   }
 
@@ -514,8 +514,8 @@
   }
 
   const normalizeSeason = (value) => {
-    if (value === "c2s2") return "c2s3-regular";
-    return value || "c2s3-regular";
+    if (value === "c2s2") return "c2s3-playoffs";
+    return value || "c2s3-playoffs";
   };
 
   const saved = normalizeSeason(localStorage.getItem("season"));
