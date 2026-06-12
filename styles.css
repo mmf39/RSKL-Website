@@ -4693,6 +4693,13 @@ input[type="text"] {
   opacity: 0.82;
 }
 
+.career-breakdown-note {
+  margin: 0 4px 12px;
+  color: #c8c0b6;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
 .career-breakdown-table {
   width: 100%;
   border-collapse: collapse;

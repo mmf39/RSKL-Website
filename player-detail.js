@@ -16,10 +16,14 @@ const BADGE_OVERRIDES_URL = "/api/badge-overrides";
 const PLAYER_PROFILE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
 const C1S2_ROSTERS_URL = "/assets/data/c1s2-rosters.csv";
+const C1S2_PLAYER_STATS_URL = "/assets/data/c1s2-player-stats.csv";
 const C1S3_ROSTERS_URL = "/assets/data/c1s3-rosters.csv";
+const C1S3_PLAYER_STATS_URL = "/assets/data/c1s3-player-stats.csv";
 const C1S4_PLAYER_STATS_URL = "/assets/data/c1s4-player-stats.csv";
 const C1S5_ROSTERS_URL = "/assets/data/c1s5-rosters.csv";
+const C1S5_PLAYER_STATS_URL = "/assets/data/c1s5-player-stats.csv";
 const C1S6_ROSTERS_URL = "/assets/data/c1s6-rosters.csv";
+const C1S6_PLAYER_STATS_URL = "/assets/data/c1s6-player-stats.csv";
 const RISING_STARS_HANDLES = new Set();
 const ROOKIE_SEASON_ORDER = [
   "c1s2-regular",
@@ -2122,10 +2126,18 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
     .join("");
 
   const careerCombined = summarizeRows(rows, baselines);
+  const hasC1S2Rows = rows.some(
+    (row) => String(row.__seasonLabel || "") === "C1S2 Regular Season"
+  );
+  const missingStatsNotice =
+    season === "career" && !hasC1S2Rows
+      ? '<div class="career-breakdown-note">C1S2 stats were not recorded for this player.</div>'
+      : "";
 
   els.careerTeamBreakdown.hidden = false;
   els.careerTeamBreakdown.innerHTML = `
     <div class="career-breakdown-title">Career Snapshot</div>
+    ${missingStatsNotice}
     <div class="table-wrap">
       <table class="career-breakdown-table">
         <thead>
