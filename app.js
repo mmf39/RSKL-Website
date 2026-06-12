@@ -1723,17 +1723,10 @@ function parseLiveGames(rows) {
 function renderLiveScoring(games, seasonRaw) {
   if (!els.liveRow) return;
   currentLiveGames = games || [];
-  if (seasonRaw === "c2s3-playoffs") {
-    els.liveRow.innerHTML = buildStateCard(
-      "Live Scoring",
-      "Live scoring will work when playoffs start."
-    );
-    return;
-  }
-  if (seasonRaw !== "c2s3-regular") {
+  if (seasonRaw !== "c2s3-regular" && seasonRaw !== "c2s3-playoffs") {
     els.liveRow.innerHTML = buildStateCard(
       "Live Scoring Off",
-      "Live box scores are only available during the current regular season feed."
+      "Live box scores are only available during the current C2S3 feed."
     );
     return;
   }
