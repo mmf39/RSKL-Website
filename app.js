@@ -128,6 +128,7 @@ const els = {
   teamsLink: document.getElementById("teams-link"),
   teamsGrid: document.getElementById("teams-grid"),
   liveRow: document.getElementById("live-scoring"),
+  viewPlayoffPage: document.getElementById("view-playoff-page"),
   featuredMatchups: document.getElementById("featured-matchups"),
   leagueLeaders: document.getElementById("league-leaders"),
   recentTransactions: document.getElementById("recent-transactions"),
@@ -327,6 +328,9 @@ function syncDashboardPanels(seasonRaw) {
   const hideRegularSeasonOnly = seasonRaw === "c2s3-playoffs" || seasonRaw.endsWith("-post");
   if (els.livePanel) {
     els.livePanel.hidden = hideArchiveOnly;
+  }
+  if (els.viewPlayoffPage) {
+    els.viewPlayoffPage.hidden = seasonRaw !== "c2s3-regular";
   }
   if (els.featuredPanel) {
     els.featuredPanel.hidden = hideArchiveOnly;
@@ -2755,6 +2759,18 @@ if (els.liveRow) {
     const game = currentLiveGames[index];
     if (!game) return;
     renderLiveModal(game);
+  });
+}
+
+if (els.viewPlayoffPage) {
+  els.viewPlayoffPage.addEventListener("click", () => {
+    const nextSeason = "c2s3-playoffs";
+    const select = document.getElementById("season-select");
+    localStorage.setItem(SEASON_KEY, nextSeason);
+    if (select) {
+      select.value = nextSeason;
+    }
+    window.location.href = "/";
   });
 }
 
