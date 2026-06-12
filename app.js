@@ -12,7 +12,7 @@ const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const TRANSACTIONS_CSV_URL = "/api/sheet?name=transactions";
 const NEWS_ARTICLES_API = "/api/articles";
 const BRACKET_CHALLENGE_API = "/api/bracket-challenge";
-let BRACKET_CHALLENGE_OPEN = false;
+let BRACKET_CHALLENGE_OPEN = true;
 const BRACKET_CHALLENGE_LOCAL_KEY = "rskl_c2s3_bracket_entries";
 const BRACKET_CHALLENGE_HANDLE_KEY = "rskl_c2s3_bracket_handle";
 const BRACKET_CHALLENGE_CONFIRMED_KEY = "rskl_c2s3_bracket_handle_confirmed";

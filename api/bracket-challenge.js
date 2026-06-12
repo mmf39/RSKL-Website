@@ -2,7 +2,7 @@ const https = require("https");
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const BRACKET_CHALLENGE_OPEN = process.env.BRACKET_CHALLENGE_OPEN === "true";
+const BRACKET_CHALLENGE_OPEN = process.env.BRACKET_CHALLENGE_OPEN !== "false";
 const TABLE = "bracket_challenge_entries";
 
 function sendJson(res, status, body) {
