@@ -1,7 +1,7 @@
 const https = require("https");
 const zlib = require("zlib");
 
-function fetchUrl(res, url, depth = 0) {
+function fetchUrl(res, url, depth = 0, options = {}) {
   if (depth > 3) {
     res.statusCode = 508;
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -23,7 +23,7 @@ function fetchUrl(res, url, depth = 0) {
         const status = proxyRes.statusCode || 200;
         const location = proxyRes.headers.location;
         if (status >= 300 && status < 400 && location) {
-          fetchUrl(res, location, depth + 1);
+          fetchUrl(res, location, depth + 1, options);
           return;
         }
 
@@ -41,12 +41,13 @@ function fetchUrl(res, url, depth = 0) {
           const encoding = String(proxyRes.headers["content-encoding"] || "").toLowerCase();
 
           const respond = (buf) => {
+            const body = options.transform ? options.transform(buf.toString("utf8")) : buf;
             res.setHeader("Content-Type", "text/csv; charset=utf-8");
             res.setHeader(
               "Cache-Control",
               "s-maxage=90, stale-while-revalidate=300"
             );
-            res.end(buf);
+            res.end(body);
           };
 
           if (encoding.includes("gzip")) {
@@ -93,6 +94,6 @@ function fetchUrl(res, url, depth = 0) {
     });
 }
 
-module.exports = function proxy(req, res, url) {
-  fetchUrl(res, url);
+module.exports = function proxy(req, res, url, options) {
+  fetchUrl(res, url, 0, options);
 };

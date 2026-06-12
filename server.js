@@ -23,6 +23,8 @@ const TRANSACTIONS_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=1782609175&single=true&output=csv";
 const C2S2_REGULAR_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=346158705&single=true&output=csv";
+const C2S3_PLAYER_STATS_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1201938197&single=true&output=csv";
 const LIVE_ROSTER_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=0&single=true&output=csv";
 const PLAYER_PROFILE_SCRIPT_URL =
@@ -52,8 +54,7 @@ const SHEETS = {
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=1378560378&single=true&output=csv",
   "live-scoring":
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=1486072019&single=true&output=csv",
-  "player-stats":
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=2091759853&single=true&output=csv",
+  "player-stats": C2S3_PLAYER_STATS_URL,
   roster: TEAMS_URL,
   schedule:
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=507537612&single=true&output=csv",
@@ -231,7 +232,7 @@ function serveFile(res, filePath) {
   });
 }
 
-function proxyCsv(res, url, depth = 0) {
+function proxyCsv(res, url, depth = 0, options = {}) {
   if (depth > 3) {
     send(res, 508, "Too many redirects");
     return;
@@ -242,7 +243,7 @@ function proxyCsv(res, url, depth = 0) {
       const location = proxyRes.headers.location;
       if (status >= 300 && status < 400 && location) {
         proxyRes.resume();
-        proxyCsv(res, location, depth + 1);
+        proxyCsv(res, location, depth + 1, options);
         return;
       }
       let data = "";
@@ -252,12 +253,41 @@ function proxyCsv(res, url, depth = 0) {
           send(res, status, `Upstream error ${status}`);
           return;
         }
-        send(res, 200, data, "text/csv; charset=utf-8");
+        const body = options.transform ? options.transform(data) : data;
+        send(res, 200, body, "text/csv; charset=utf-8");
       });
     })
     .on("error", (err) => {
       send(res, 500, `Proxy error: ${err.message}`);
     });
+}
+
+function formatCSV(rows) {
+  return rows
+    .map((row) =>
+      row
+        .map((cell) => {
+          const value = String(cell ?? "");
+          return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, "\"\"")}"` : value;
+        })
+        .join(",")
+    )
+    .join("\n");
+}
+
+function trimTrailingBlankRows(rows) {
+  let last = rows.length - 1;
+  while (last > 0 && rows[last].every((cell) => !String(cell || "").trim())) {
+    last -= 1;
+  }
+  return rows.slice(0, last + 1);
+}
+
+function sliceC2S3PlayerStats(text) {
+  const rows = parseCSV(text)
+    .slice(0, 951)
+    .map((row) => row.slice(7, 13));
+  return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
 }
 
 function normalizeName(value) {
@@ -958,7 +988,7 @@ const server = http.createServer((req, res) => {
       send(res, 400, "Invalid sheet name");
       return;
     }
-    proxyCsv(res, target);
+    proxyCsv(res, target, 0, name === "player-stats" ? { transform: sliceC2S3PlayerStats } : undefined);
     return;
   }
 
