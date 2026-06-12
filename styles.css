@@ -1083,7 +1083,7 @@ body.menu-open {
   color: #fff7ed;
   cursor: pointer;
   text-align: left;
-  box-shadow: inset 4px 0 0 rgba(255, 140, 26, 0.78);
+  box-shadow: none;
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
@@ -1113,7 +1113,6 @@ body.menu-open {
   outline: none;
   transform: translateY(-1px);
   box-shadow:
-    inset 4px 0 0 rgba(255, 140, 26, 0.95),
     0 10px 24px rgba(0, 0, 0, 0.18);
 }
 
