@@ -121,6 +121,11 @@ const CURRENT_TEAMS = [
   "The Phantoms",
 ];
 
+const CURRENT_PLAYOFF_STATUS_OVERRIDES = new Map([
+  ["bad bois", { key: "clinched", label: "Clinched" }],
+  ["scorpions", { key: "eliminated", label: "Eliminated" }],
+]);
+
 const CURRENT_FRANCHISE_NAMES = new Map(
   CURRENT_TEAMS.map((team) => [getFranchiseKey(team), team])
 );
@@ -779,7 +784,7 @@ function buildPlayoffStatuses(rows) {
         status = { key: "contention", label: "In contention" };
       }
 
-      statusByTeam.set(row.team, status);
+      statusByTeam.set(row.team, getCurrentPlayoffStatusOverride(row.team) || status);
     });
   });
 
@@ -826,6 +831,7 @@ function buildMagicNumberRows(rows) {
         !isEliminated &&
         Boolean(target) &&
         (index >= CURRENT_PLAYOFF_SPOTS_PER_DIVISION || (magic !== null && magic > remaining));
+      const playoffStatusOverride = getCurrentPlayoffStatusOverride(row.team);
       output.push({
         ...row,
         division,
@@ -839,10 +845,15 @@ function buildMagicNumberRows(rows) {
         targetRemaining,
         targetMaxWins,
         maxWins,
-        magic,
-        isEliminated,
-        doesNotControlFuture,
-        isInPlayoffPosition: index < CURRENT_PLAYOFF_SPOTS_PER_DIVISION,
+        magic: playoffStatusOverride?.key === "clinched" ? 0 : magic,
+        isEliminated: playoffStatusOverride?.key === "eliminated" ? true : isEliminated,
+        doesNotControlFuture: playoffStatusOverride ? false : doesNotControlFuture,
+        isInPlayoffPosition:
+          playoffStatusOverride?.key === "clinched"
+            ? true
+            : playoffStatusOverride?.key === "eliminated"
+            ? false
+            : index < CURRENT_PLAYOFF_SPOTS_PER_DIVISION,
       });
     });
   });
@@ -1460,6 +1471,13 @@ function normalizeTeamLabel(value) {
     .toLowerCase()
     .replace(/\s+/g, " ");
   return normalized === "bullets" ? "storm" : normalized;
+}
+
+function getCurrentPlayoffStatusOverride(team) {
+  if (getSeasonRaw() !== "c2s3-regular" && getSeasonRaw() !== "c2s3-playoffs") {
+    return null;
+  }
+  return CURRENT_PLAYOFF_STATUS_OVERRIDES.get(normalizeTeamLabel(team)) || null;
 }
 
 function teamMatches(value, teamName) {
