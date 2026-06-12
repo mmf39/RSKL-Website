@@ -662,7 +662,7 @@ function buildSkeletonCard(lines = 3) {
 
 function prepareDashboardScheduleRows(rows, seasonRaw) {
   if (!rows.length) return [];
-  if (seasonRaw !== "c2s3-regular") return rows;
+  if (seasonRaw !== "c2s3-regular" && seasonRaw !== "c2s3-playoffs") return rows;
   const headerRowIndex = rows.findIndex((row) => {
     const header = row.map((value) => String(value || "").trim().toLowerCase());
     return (
@@ -2138,6 +2138,48 @@ function buildScheduleGames(rows, seasonRaw) {
     });
 }
 
+function extractLooseScheduleGames(rows) {
+  const seen = new Set();
+  return (rows || [])
+    .map((row) => {
+      const cells = (row || []).map((cell) => String(cell || "").trim()).filter(Boolean);
+      const dateCell = cells.find((cell) => normalizeDateToken(cell));
+      const teams = cells
+        .map((cell) => displayTeamName(cell))
+        .filter((team) => KNOWN_LIVE_TEAMS.has(normalizeTeamName(team)));
+      const uniqueTeams = [];
+      teams.forEach((team) => {
+        if (!uniqueTeams.some((existing) => normalizeTeamName(existing) === normalizeTeamName(team))) {
+          uniqueTeams.push(team);
+        }
+      });
+      if (!dateCell || uniqueTeams.length < 2) return null;
+      const dateToken = normalizeDateToken(dateCell);
+      const gameType = cells.find((cell) => /playoff|wild|semi|final|champ/i.test(cell)) || "";
+      return {
+        rawDate: dateCell,
+        dateToken,
+        dateObj: parseDateFromToken(dateToken),
+        team1: uniqueTeams[0],
+        team2: uniqueTeams[1],
+        gameType,
+      };
+    })
+    .filter(Boolean)
+    .filter((game) => {
+      const key = buildGameKey(game.dateToken, game.team1, game.team2);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => {
+      if (a.dateObj && b.dateObj) return a.dateObj - b.dateObj;
+      if (a.dateObj) return -1;
+      if (b.dateObj) return 1;
+      return a.dateToken.localeCompare(b.dateToken, undefined, { numeric: true });
+    });
+}
+
 function getFeaturedGames(scheduleGames, liveGames) {
   if (!scheduleGames.length) return [];
   const liveByKey = new Map((liveGames || []).map((game) => [buildGameKey(game.dateToken, game.team1, game.team2), game]));
@@ -2801,6 +2843,9 @@ async function loadData() {
       currentDashboardScheduleGames = scheduleRows.length
         ? buildScheduleGames(prepareDashboardScheduleRows(scheduleRows, seasonRaw), seasonRaw)
         : [];
+      if (!currentDashboardScheduleGames.length && scheduleRows.length) {
+        currentDashboardScheduleGames = extractLooseScheduleGames(scheduleRows);
+      }
       const featuredGames = currentDashboardScheduleGames.length ? getFeaturedGames(currentDashboardScheduleGames, liveGames) : [];
       renderFeaturedMatchups(featuredGames, seasonRaw);
 
