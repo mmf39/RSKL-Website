@@ -104,6 +104,14 @@ const PLAYOFF_SEASONS = {
   },
 };
 
+const CURRENT_LOCKED_PSP_TIEBREAK_ORDER = new Map([
+  ["The Snipers", 1],
+  ["Dream Team", 2],
+  ["Bad Bois", 3],
+  ["Scorpions", 4],
+  ["Storm", 5],
+]);
+
 function team(seed, name, score = "") {
   return { seed, team: name, score };
 }
@@ -472,7 +480,10 @@ function parseCurrentStandings(rows) {
       wins: Number(String(row[winsIdx] || "0").replace(/[^0-9.-]/g, "")) || 0,
       losses: Number(String(row[lossIdx] || "0").replace(/[^0-9.-]/g, "")) || 0,
     }))
-    .filter((row) => row.team && !/team|join|north|locked psp/i.test(row.team));
+    .filter((row) => {
+      const key = normalizeTeamName(row.team);
+      return row.team && !["team", "join", "north", "locked psp", "locked psp join"].includes(key);
+    });
 }
 
 function currentDivision(teamName) {
@@ -489,6 +500,11 @@ async function buildCurrentBracket() {
   rows.forEach((row) => grouped.get(currentDivision(row.team)).push(row));
   grouped.forEach((items) => {
     items.sort((a, b) => {
+      if (currentDivision(a.team) === "Locked PSP") {
+        const ar = CURRENT_LOCKED_PSP_TIEBREAK_ORDER.get(a.team) ?? 99;
+        const br = CURRENT_LOCKED_PSP_TIEBREAK_ORDER.get(b.team) ?? 99;
+        if (ar !== br) return ar - br;
+      }
       if (b.wins !== a.wins) return b.wins - a.wins;
       if (a.losses !== b.losses) return a.losses - b.losses;
       return a.team.localeCompare(b.team);

@@ -55,6 +55,14 @@ const CURRENT_PLAYOFF_DIVISIONS = {
   "Locked PSP": new Set(["Bad Bois", "The Snipers", "Storm", "Scorpions", "Dream Team"]),
 };
 
+const CURRENT_LOCKED_PSP_TIEBREAK_ORDER = new Map([
+  ["The Snipers", 1],
+  ["Dream Team", 2],
+  ["Bad Bois", 3],
+  ["Scorpions", 4],
+  ["Storm", 5],
+]);
+
 const ARCHIVE_RANGES = {
   standings: "A1:F7",
   schedule_regular: "G31:I79",
@@ -916,6 +924,11 @@ function buildDashboardPlayoffSeeds(standingsRows) {
   });
   groups.forEach((divisionRows) => {
     divisionRows.sort((a, b) => {
+      if (getDashboardPlayoffDivision(a.team) === "Locked PSP") {
+        const ar = CURRENT_LOCKED_PSP_TIEBREAK_ORDER.get(a.team) ?? 99;
+        const br = CURRENT_LOCKED_PSP_TIEBREAK_ORDER.get(b.team) ?? 99;
+        if (ar !== br) return ar - br;
+      }
       const aw = a.wins ?? 0;
       const bw = b.wins ?? 0;
       if (bw !== aw) return bw - aw;
