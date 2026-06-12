@@ -151,6 +151,9 @@ els.transactionsPanel = els.recentTransactions ? els.recentTransactions.closest(
 
 let currentLiveGames = [];
 let currentDashboardBracketGames = [];
+let currentDashboardScheduleGames = [];
+let currentDashboardPlayerRows = [];
+let currentDashboardPlayerColumns = null;
 let sheetCache = new Map();
 let lastLeagueSnapshotRows = [];
 let currentBracketChallengeSeeds = null;
@@ -1081,6 +1084,8 @@ function renderBracketMatchupDetails(game) {
       : game.top
       ? `${game.top.team} has the bye and waits for this matchup winner.`
       : "Teams will appear here once the previous round is decided.";
+  const seriesSchedule = game.top && game.bottom ? renderBracketSeriesSchedule(game.top.team, game.bottom.team) : "";
+  const previewGrid = game.top && game.bottom ? renderBracketMatchupPreview(game.top.team, game.bottom.team) : "";
 
   return `
     <div class="bracket-matchup-detail">
@@ -1089,6 +1094,7 @@ function renderBracketMatchupDetails(game) {
         <h3>${escapeHtml(game.label)}</h3>
         <p>${escapeHtml(status)}</p>
       </div>
+      ${seriesSchedule}
       <div class="bracket-matchup-detail-teams">
         ${teams
           .map(
@@ -1109,6 +1115,85 @@ function renderBracketMatchupDetails(game) {
           )
           .join("")}
       </div>
+      ${previewGrid}
+    </div>
+  `;
+}
+
+function getBracketSeriesGames(teamA, teamB) {
+  const left = normalizeTeamName(teamA);
+  const right = normalizeTeamName(teamB);
+  return (currentDashboardScheduleGames || []).filter((game) => {
+    const gameLeft = normalizeTeamName(game.team1);
+    const gameRight = normalizeTeamName(game.team2);
+    return (
+      (gameLeft === left && gameRight === right) ||
+      (gameLeft === right && gameRight === left)
+    );
+  });
+}
+
+function getLiveGameForSchedule(game) {
+  return (currentLiveGames || []).find(
+    (live) => buildGameKey(live.dateToken, live.team1, live.team2) === buildGameKey(game.dateToken, game.team1, game.team2)
+  );
+}
+
+function renderBracketSeriesSchedule(teamA, teamB) {
+  const games = getBracketSeriesGames(teamA, teamB);
+  if (!games.length) {
+    return `
+      <section class="bracket-series-card">
+        <h4>Series Schedule</h4>
+        <div class="bracket-series-empty">No scheduled games found for this matchup yet.</div>
+      </section>
+    `;
+  }
+  return `
+    <section class="bracket-series-card">
+      <h4>Series Schedule</h4>
+      <div class="bracket-series-list">
+        ${games
+          .map((game) => {
+            const live = getLiveGameForSchedule(game);
+            const score = live ? `${live.team1Score || "—"} - ${live.team2Score || "—"}` : "";
+            return `
+              <div class="bracket-series-row">
+                <span>${escapeHtml(formatDateLabel(game.dateToken || game.rawDate || ""))}</span>
+                <strong>${escapeHtml(game.team1)} vs ${escapeHtml(game.team2)}</strong>
+                <em>${escapeHtml(score || game.gameType || "Scheduled")}</em>
+              </div>
+            `;
+          })
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+function renderBracketMatchupPreview(teamA, teamB) {
+  const renderTeam = (teamName, opponentName) => {
+    const leaders = buildDashboardTeamLeaders(teamName);
+    const row = (label, item, formatter) => `
+      <div class="preview-metric">
+        <span>${escapeHtml(label)}</span>
+        <strong>${item ? `${escapeHtml(item.player)} (${escapeHtml(formatter(item))})` : "—"}</strong>
+      </div>
+    `;
+    return `
+      <div class="preview-team-card">
+        <h4>${escapeHtml(teamName)} <span>vs ${escapeHtml(opponentName)}</span></h4>
+        <div class="preview-sub">Player Stats</div>
+        ${row("Top AVG", leaders.topAvg, (item) => item.avg.toFixed(1))}
+        ${row("Top REL", leaders.topRel, (item) => item.rel.toFixed(3))}
+        ${row("Top WAR", leaders.topWar, (item) => item.war.toFixed(2))}
+      </div>
+    `;
+  };
+  return `
+    <div class="preview-grid bracket-preview-grid">
+      ${renderTeam(teamA, teamB)}
+      ${renderTeam(teamB, teamA)}
     </div>
   `;
 }
@@ -2242,6 +2327,59 @@ function buildLeaderboard(rows, playerColumns) {
   }));
 }
 
+function buildDashboardTeamLeaders(teamName) {
+  const columns = currentDashboardPlayerColumns;
+  const rows = currentDashboardPlayerRows || [];
+  if (!columns || columns.team < 0 || columns.player < 0 || columns.score < 0) {
+    return {};
+  }
+  const baselines = buildDailyBaselines(rows, columns);
+  const totals = new Map();
+  rows.forEach((row) => {
+    const team = displayTeamName(String(row[columns.team] || "").trim());
+    if (team !== teamName) return;
+    const rawName = String(row[columns.player] || "").trim();
+    const player = stripCaptainMarker(rawName);
+    const baseScore = parseNumber(row[columns.score]);
+    if (!player || baseScore === null) return;
+    const score = isCaptainMarked(rawName) ? baseScore - 0.5 : baseScore;
+    const key = normalizePlayerKey(player);
+    const entry = totals.get(key) || {
+      player,
+      gp: 0,
+      total: 0,
+      rel: 0,
+      relGames: 0,
+      war: 0,
+    };
+    entry.gp += 1;
+    entry.total += score;
+    const dateKey = String(row[columns.date] || "").trim();
+    const baseline = baselines.get(dateKey);
+    if (baseline && baseline.median && baseline.median > 0) {
+      entry.rel += score / baseline.median;
+      entry.relGames += 1;
+      const replacementScore = 0.9 * baseline.median;
+      const avgMargin = 0.92 * baseline.median;
+      if (avgMargin > 0) {
+        entry.war += (score - replacementScore) / avgMargin;
+      }
+    }
+    totals.set(key, entry);
+  });
+
+  const players = Array.from(totals.values()).map((entry) => ({
+    ...entry,
+    avg: entry.gp ? entry.total / entry.gp : 0,
+    rel: entry.relGames ? entry.rel / entry.relGames : 0,
+  }));
+  return {
+    topAvg: [...players].sort((a, b) => b.avg - a.avg)[0] || null,
+    topRel: [...players].sort((a, b) => b.rel - a.rel)[0] || null,
+    topWar: [...players].sort((a, b) => b.war - a.war)[0] || null,
+  };
+}
+
 function renderLeagueLeaders(rows, seasonRaw) {
   if (!els.leagueLeaders) return;
   if (!rows.length) {
@@ -2587,6 +2725,9 @@ async function loadData() {
   loadDashboardArticles();
   const seasonRaw = getSeasonRaw();
   syncDashboardPanels(seasonRaw);
+  currentDashboardScheduleGames = [];
+  currentDashboardPlayerRows = [];
+  currentDashboardPlayerColumns = null;
 
   if (els.standingsLink) {
     els.standingsLink.href =
@@ -2657,14 +2798,21 @@ async function loadData() {
       const liveGames = liveRows.length ? parseLiveGames(liveRows) : [];
       renderLiveScoring(liveGames, seasonRaw);
 
-      const featuredGames = scheduleRows.length ? getFeaturedGames(buildScheduleGames(prepareDashboardScheduleRows(scheduleRows, seasonRaw), seasonRaw), liveGames) : [];
+      currentDashboardScheduleGames = scheduleRows.length
+        ? buildScheduleGames(prepareDashboardScheduleRows(scheduleRows, seasonRaw), seasonRaw)
+        : [];
+      const featuredGames = currentDashboardScheduleGames.length ? getFeaturedGames(currentDashboardScheduleGames, liveGames) : [];
       renderFeaturedMatchups(featuredGames, seasonRaw);
 
       if (playerRows.length) {
         const preparedPlayerRows = prepareDashboardPlayerRows(playerRows);
         const columns = detectPlayerColumns(preparedPlayerRows[0] || []);
+        currentDashboardPlayerRows = preparedPlayerRows.slice(1);
+        currentDashboardPlayerColumns = columns;
         renderLeagueLeaders(buildLeaderboard(preparedPlayerRows.slice(1), columns), seasonRaw);
       } else {
+        currentDashboardPlayerRows = [];
+        currentDashboardPlayerColumns = null;
         renderLeagueLeaders([], seasonRaw);
       }
 
