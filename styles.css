@@ -1091,6 +1091,10 @@ body.menu-open {
     transform 0.18s ease;
 }
 
+.playoff-page-cta[hidden] {
+  display: none !important;
+}
+
 .playoff-page-cta span {
   color: rgba(255, 207, 155, 0.86);
   font-size: 0.78rem;
