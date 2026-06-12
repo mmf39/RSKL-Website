@@ -1126,9 +1126,11 @@ function getBracketSeriesGames(teamA, teamB) {
   return (currentDashboardScheduleGames || []).filter((game) => {
     const gameLeft = normalizeTeamName(game.team1);
     const gameRight = normalizeTeamName(game.team2);
+    const type = String(game.gameType || "").toLowerCase().replace(/[\s_-]+/g, "");
     return (
-      (gameLeft === left && gameRight === right) ||
-      (gameLeft === right && gameRight === left)
+      type.includes("postseason") &&
+      ((gameLeft === left && gameRight === right) ||
+        (gameLeft === right && gameRight === left))
     );
   });
 }
