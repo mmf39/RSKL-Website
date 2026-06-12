@@ -126,6 +126,14 @@ const CURRENT_PLAYOFF_STATUS_OVERRIDES = new Map([
   ["scorpions", { key: "eliminated", label: "Eliminated" }],
 ]);
 
+const CURRENT_LOCKED_PSP_TIEBREAK_ORDER = new Map([
+  ["the snipers", 1],
+  ["dream team", 2],
+  ["bad bois", 3],
+  ["scorpions", 4],
+  ["storm", 5],
+]);
+
 const CURRENT_FRANCHISE_NAMES = new Map(
   CURRENT_TEAMS.map((team) => [getFranchiseKey(team), team])
 );
@@ -603,6 +611,9 @@ function getHeadToHeadWins(teamA, teamB) {
 }
 
 function compareStandingsTiebreakers(a, b) {
+  const officialOrder = compareCurrentLockedPspOrder(a.team, b.team);
+  if (officialOrder) return officialOrder;
+
   const h2h = getHeadToHeadWins(a.team, b.team);
   if (h2h && h2h.winsA !== h2h.winsB) {
     return h2h.winsB - h2h.winsA;
@@ -615,6 +626,17 @@ function compareStandingsTiebreakers(a, b) {
   if (sosCompare) return sosCompare;
 
   return 0;
+}
+
+function compareCurrentLockedPspOrder(teamA, teamB) {
+  const season = getSeasonRaw();
+  if (season !== "c2s3-regular" && season !== "c2s3-playoffs") return 0;
+  if (getDivisionName(teamA) !== "Locked PSP" || getDivisionName(teamB) !== "Locked PSP") {
+    return 0;
+  }
+  const aRank = CURRENT_LOCKED_PSP_TIEBREAK_ORDER.get(normalizeTeamLabel(teamA)) ?? 99;
+  const bRank = CURRENT_LOCKED_PSP_TIEBREAK_ORDER.get(normalizeTeamLabel(teamB)) ?? 99;
+  return aRank - bRank;
 }
 
 function getDivisionName(teamName) {
@@ -720,6 +742,8 @@ function renderStandingsSection(title, rows) {
 
 function buildPlayoffStatuses(rows) {
   const ordered = [...rows].sort((a, b) => {
+    const officialOrder = compareCurrentLockedPspOrder(a.team, b.team);
+    if (officialOrder) return officialOrder;
     const aw = parseNumber(a.wins) ?? 0;
     const bw = parseNumber(b.wins) ?? 0;
     if (bw !== aw) return bw - aw;
