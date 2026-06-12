@@ -139,6 +139,8 @@ const els = {
   bracketViewTabs: Array.from(document.querySelectorAll("[data-bracket-view]")),
   liveModal: document.getElementById("live-modal"),
   liveDetails: document.getElementById("live-details"),
+  bracketModal: document.getElementById("bracket-matchup-modal"),
+  bracketDetails: document.getElementById("bracket-matchup-details"),
 };
 
 els.livePanel = els.liveRow ? els.liveRow.closest(".panel") : null;
@@ -148,6 +150,7 @@ els.teamsPanel = els.teamsGrid ? els.teamsGrid.closest(".panel") : null;
 els.transactionsPanel = els.recentTransactions ? els.recentTransactions.closest(".panel") : null;
 
 let currentLiveGames = [];
+let currentDashboardBracketGames = [];
 let sheetCache = new Map();
 let lastLeagueSnapshotRows = [];
 let currentBracketChallengeSeeds = null;
@@ -966,12 +969,12 @@ function renderBracketTeam(seed, className = "") {
   }
   const record = seed.wins !== null && seed.losses !== null ? `${seed.wins}-${seed.losses}` : "—";
   return `
-    <a class="dashboard-bracket-team ${className}" href="/team.html?team=${encodeURIComponent(seed.team)}">
+    <div class="dashboard-bracket-team ${className}">
       <span class="dashboard-bracket-seed">${escapeHtml(seed.seedLabel)}</span>
       ${renderSmallTeamLogo(seed.team)}
       <span class="dashboard-bracket-name">${escapeHtml(seed.team)}</span>
       <span class="dashboard-bracket-record">${escapeHtml(record)}</span>
-    </a>
+    </div>
   `;
 }
 
@@ -1035,6 +1038,86 @@ function getBracketMatchupsFromSeeds(seeds) {
       from: ["northFinal", "lockedFinal"],
     },
   };
+}
+
+function getBracketSeedRecord(seed) {
+  return seed && seed.wins !== null && seed.losses !== null ? `${seed.wins}-${seed.losses}` : "—";
+}
+
+function renderBracketMatchup(game, index) {
+  return `
+    <button class="dashboard-bracket-matchup" type="button" data-bracket-matchup="${index}" aria-label="${escapeHtml(game.label)} details">
+      <div class="dashboard-bracket-game-label">${escapeHtml(game.label)}</div>
+      ${game.top ? renderBracketTeam(game.top) : renderBracketPlaceholder(game.topLabel)}
+      ${game.bottom ? renderBracketTeam(game.bottom) : renderBracketPlaceholder(game.bottomLabel)}
+    </button>
+  `;
+}
+
+function renderBracketMatchupDetails(game) {
+  const teams = [
+    game.top
+      ? {
+          team: game.top.team,
+          seed: game.top.seedLabel,
+          record: getBracketSeedRecord(game.top),
+          division: game.top.division,
+          placeholder: false,
+        }
+      : { team: game.topLabel || "TBD", seed: "—", record: "—", division: "", placeholder: true },
+    game.bottom
+      ? {
+          team: game.bottom.team,
+          seed: game.bottom.seedLabel,
+          record: getBracketSeedRecord(game.bottom),
+          division: game.bottom.division,
+          placeholder: false,
+        }
+      : { team: game.bottomLabel || "TBD", seed: "—", record: "—", division: "", placeholder: true },
+  ];
+  const status =
+    game.top && game.bottom
+      ? "Winner advances to the next round."
+      : game.top
+      ? `${game.top.team} has the bye and waits for this matchup winner.`
+      : "Teams will appear here once the previous round is decided.";
+
+  return `
+    <div class="bracket-matchup-detail">
+      <div class="bracket-matchup-detail-head">
+        <span>${escapeHtml(game.roundTitle || "Playoff Matchup")}</span>
+        <h3>${escapeHtml(game.label)}</h3>
+        <p>${escapeHtml(status)}</p>
+      </div>
+      <div class="bracket-matchup-detail-teams">
+        ${teams
+          .map(
+            (team) => `
+              <div class="bracket-matchup-detail-team ${team.placeholder ? "is-placeholder" : ""}">
+                <span class="dashboard-bracket-seed">${escapeHtml(team.seed)}</span>
+                ${team.placeholder ? "" : renderSmallTeamLogo(team.team)}
+                <div>
+                  ${
+                    team.placeholder
+                      ? `<strong>${escapeHtml(team.team)}</strong>`
+                      : `<a href="/team.html?team=${encodeURIComponent(team.team)}">${escapeHtml(team.team)}</a>`
+                  }
+                  <span>${escapeHtml([team.division, team.record].filter(Boolean).join(" • "))}</span>
+                </div>
+              </div>
+            `
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
+function openBracketMatchup(index) {
+  const game = currentDashboardBracketGames[Number(index)];
+  if (!game || !els.bracketModal || !els.bracketDetails) return;
+  els.bracketDetails.innerHTML = renderBracketMatchupDetails(game);
+  els.bracketModal.hidden = false;
 }
 
 function getLocalBracketEntries() {
@@ -1541,6 +1624,10 @@ function renderDashboardPlayoffBracket(standingsRows) {
       ],
     },
   ];
+  currentDashboardBracketGames = rounds.flatMap((round) =>
+    round.games.map((game) => ({ ...game, roundTitle: round.title }))
+  );
+  let bracketGameIndex = 0;
 
   els.playoffBracket.innerHTML = `
     <div class="dashboard-bracket-note">
@@ -1557,15 +1644,7 @@ function renderDashboardPlayoffBracket(standingsRows) {
               </div>
               <div class="dashboard-bracket-games">
                 ${round.games
-                  .map(
-                    (game) => `
-                      <article class="dashboard-bracket-game">
-                        <div class="dashboard-bracket-game-label">${escapeHtml(game.label)}</div>
-                        ${game.top ? renderBracketTeam(game.top) : renderBracketPlaceholder(game.topLabel)}
-                        ${game.bottom ? renderBracketTeam(game.bottom) : renderBracketPlaceholder(game.bottomLabel)}
-                      </article>
-                    `
-                  )
+                  .map((game) => renderBracketMatchup(game, bracketGameIndex++))
                   .join("")}
               </div>
             </section>
@@ -2769,6 +2848,12 @@ if (els.viewPlayoffPage) {
 }
 
 document.addEventListener("click", (event) => {
+  const bracketMatchup = event.target.closest("[data-bracket-matchup]");
+  if (bracketMatchup) {
+    event.preventDefault();
+    openBracketMatchup(bracketMatchup.dataset.bracketMatchup);
+    return;
+  }
   const bracketViewButton = event.target.closest("[data-bracket-view]");
   if (bracketViewButton) {
     event.preventDefault();
@@ -2796,8 +2881,9 @@ document.addEventListener("click", (event) => {
     );
     return;
   }
-  if (event.target.matches("[data-close=\"true\"]") && els.liveModal) {
-    els.liveModal.hidden = true;
+  if (event.target.matches("[data-close=\"true\"]")) {
+    if (els.liveModal) els.liveModal.hidden = true;
+    if (els.bracketModal) els.bracketModal.hidden = true;
   }
 });
 

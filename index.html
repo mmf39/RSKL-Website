@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css?v=20260612playoffctahide1" />
+    <link rel="stylesheet" href="styles.css?v=20260612bracketmatchups1" />
   </head>
   <body>
     <div class="bg"></div>
@@ -172,7 +172,18 @@
       </div>
     </div>
 
-    <script src="app.js?v=20260612playofffeeds1"></script>
+    <div id="bracket-matchup-modal" class="modal" hidden>
+      <div class="modal-backdrop" data-close="true"></div>
+      <div class="modal-card" role="dialog" aria-modal="true">
+        <div class="modal-head">
+          <h2>Matchup Details</h2>
+          <button class="modal-close" data-close="true">Close</button>
+        </div>
+        <div id="bracket-matchup-details" class="boxscore-details"></div>
+      </div>
+    </div>
+
+    <script src="app.js?v=20260612bracketmatchups1"></script>
       <script src="header-nav.js?v=20260612defaultplayoffs1"></script>
   </body>
 </html>

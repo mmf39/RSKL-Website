@@ -1354,6 +1354,32 @@ body.menu-open {
   min-width: 0;
 }
 
+.dashboard-bracket-matchup {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 160, 67, 0.28);
+  border-radius: 16px;
+  background: rgba(5, 11, 24, 0.48);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.18s ease;
+}
+
+.dashboard-bracket-matchup:hover,
+.dashboard-bracket-matchup:focus-visible {
+  border-color: rgba(255, 183, 77, 0.6);
+  background: rgba(9, 18, 38, 0.72);
+  transform: translateY(-1px);
+  outline: none;
+}
+
 .dashboard-bracket-game-label {
   color: rgba(255, 228, 196, 0.72);
   font-family: var(--font-display);
@@ -1419,6 +1445,83 @@ body.menu-open {
   grid-template-columns: auto minmax(0, 1fr);
   border-style: dashed;
   color: rgba(226, 232, 240, 0.72);
+}
+
+.bracket-matchup-detail {
+  display: grid;
+  gap: 16px;
+}
+
+.bracket-matchup-detail-head {
+  display: grid;
+  gap: 6px;
+}
+
+.bracket-matchup-detail-head span {
+  color: rgba(255, 207, 155, 0.78);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.bracket-matchup-detail-head h3 {
+  margin: 0;
+  color: #fff7ed;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+}
+
+.bracket-matchup-detail-head p {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.72);
+  font-weight: 800;
+}
+
+.bracket-matchup-detail-teams {
+  display: grid;
+  gap: 10px;
+}
+
+.bracket-matchup-detail-team {
+  display: grid;
+  grid-template-columns: auto 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 160, 67, 0.22);
+  border-radius: 14px;
+  background: rgba(6, 12, 27, 0.84);
+}
+
+.bracket-matchup-detail-team.is-placeholder {
+  grid-template-columns: auto minmax(0, 1fr);
+  border-style: dashed;
+}
+
+.bracket-matchup-detail-team .standings-logo {
+  width: 42px;
+  height: 42px;
+}
+
+.bracket-matchup-detail-team a,
+.bracket-matchup-detail-team strong {
+  display: block;
+  color: #fff7ed;
+  font-size: 1.05rem;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.bracket-matchup-detail-team a:hover {
+  color: #ffb13b;
+}
+
+.bracket-matchup-detail-team span:last-child {
+  display: block;
+  margin-top: 2px;
+  color: rgba(226, 232, 240, 0.68);
+  font-weight: 800;
 }
 
 .bracket-view-tabs {
