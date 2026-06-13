@@ -154,6 +154,8 @@ let currentDashboardBracketGames = [];
 let currentDashboardScheduleGames = [];
 let currentDashboardPlayerRows = [];
 let currentDashboardPlayerColumns = null;
+let currentBracketPreviewPlayerRows = [];
+let currentBracketPreviewPlayerColumns = null;
 let sheetCache = new Map();
 let lastLeagueSnapshotRows = [];
 let currentBracketChallengeSeeds = null;
@@ -2376,8 +2378,8 @@ function buildLeaderboard(rows, playerColumns) {
 }
 
 function buildDashboardTeamLeaders(teamName) {
-  const columns = currentDashboardPlayerColumns;
-  const rows = currentDashboardPlayerRows || [];
+  const columns = currentBracketPreviewPlayerColumns;
+  const rows = currentBracketPreviewPlayerRows || [];
   if (!columns || columns.team < 0 || columns.player < 0 || columns.score < 0) {
     return {};
   }
@@ -2776,6 +2778,8 @@ async function loadData() {
   currentDashboardScheduleGames = [];
   currentDashboardPlayerRows = [];
   currentDashboardPlayerColumns = null;
+  currentBracketPreviewPlayerRows = [];
+  currentBracketPreviewPlayerColumns = null;
 
   if (els.standingsLink) {
     els.standingsLink.href =
@@ -2832,6 +2836,7 @@ async function loadData() {
         fetchSheet(SCHEDULE_URL),
         fetchSheet(seasonRaw === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL),
         fetchSheet(TRANSACTIONS_CSV_URL),
+        fetchSheet(PLAYER_STATS_URL),
       ]);
 
       const standingsRows = results[0].status === "fulfilled" ? results[0].value : [];
@@ -2839,6 +2844,7 @@ async function loadData() {
       const scheduleRows = results[2].status === "fulfilled" ? results[2].value : [];
       const playerRows = results[3].status === "fulfilled" ? results[3].value : [];
       const transactionRows = results[4].status === "fulfilled" ? results[4].value : [];
+      const regularPlayerRows = results[5].status === "fulfilled" ? results[5].value : [];
 
       renderLeagueSnapshot(buildCurrentLeagueSnapshotRows(standingsRows));
       renderDashboardPlayoffBracket(standingsRows);
@@ -2865,6 +2871,12 @@ async function loadData() {
         currentDashboardPlayerRows = [];
         currentDashboardPlayerColumns = null;
         renderLeagueLeaders([], seasonRaw);
+      }
+
+      if (regularPlayerRows.length) {
+        const preparedRegularRows = prepareDashboardPlayerRows(regularPlayerRows);
+        currentBracketPreviewPlayerColumns = detectPlayerColumns(preparedRegularRows[0] || []);
+        currentBracketPreviewPlayerRows = preparedRegularRows.slice(1);
       }
 
       if (transactionRows.length) {
