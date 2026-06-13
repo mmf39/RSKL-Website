@@ -1315,9 +1315,16 @@ function getCurrentBracketEntry() {
 }
 
 function renderBracketChallengeEntries(entries) {
-  const list = (Array.isArray(entries) ? entries : []).slice(0, 8);
+  const confirmedHandle = getConfirmedBracketHandle();
+  if (!confirmedHandle) {
+    return `<div class="bracket-entry-empty">Confirm your @ to see your submitted bracket.</div>`;
+  }
+  const normalizedHandle = confirmedHandle.trim().toLowerCase();
+  const list = (Array.isArray(entries) ? entries : [])
+    .filter((entry) => String(entry.handle || "").trim().toLowerCase() === normalizedHandle)
+    .slice(0, 1);
   if (!list.length) {
-    return `<div class="bracket-entry-empty">No brackets submitted yet.</div>`;
+    return `<div class="bracket-entry-empty">No bracket submitted for ${escapeHtml(formatBracketHandle(confirmedHandle))} yet.</div>`;
   }
   return list
     .map((entry) => {
@@ -1651,8 +1658,8 @@ function renderBracketChallenge(seeds) {
     </div>
     <section class="bracket-entry-card bracket-submitted-card">
       <div class="bracket-entry-card-head">
-        <h4>Submitted Brackets</h4>
-        <span>Champion picks</span>
+        <h4>Your Submitted Bracket</h4>
+        <span>Champion pick</span>
       </div>
       <div id="bracket-entry-list" class="bracket-entry-list">
         ${renderBracketChallengeEntries(bracketChallengeEntries)}
