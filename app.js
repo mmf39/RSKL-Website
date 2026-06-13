@@ -1717,9 +1717,6 @@ function renderDashboardPlayoffBracket(standingsRows) {
   let bracketGameIndex = 0;
 
   els.playoffBracket.innerHTML = `
-    <div class="dashboard-bracket-note">
-      The regular season is not over yet, so this bracket is unofficial and will update as the standings change. Top 3 teams from North and Locked PSP qualify. #1 seeds get byes; #2 plays #3 in each division.
-    </div>
     <div class="dashboard-bracket-rounds">
       ${rounds
         .map(
