@@ -1096,7 +1096,6 @@ function renderBracketMatchupDetails(game) {
         <h3>${escapeHtml(game.label)}</h3>
         <p>${escapeHtml(status)}</p>
       </div>
-      ${seriesSchedule}
       <div class="bracket-matchup-detail-teams">
         ${teams
           .map(
@@ -1118,6 +1117,7 @@ function renderBracketMatchupDetails(game) {
           .join("")}
       </div>
       ${previewGrid}
+      ${seriesSchedule}
     </div>
   `;
 }
