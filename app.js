@@ -1116,8 +1116,8 @@ function renderBracketMatchupDetails(game) {
           )
           .join("")}
       </div>
-      ${previewGrid}
       ${seriesSchedule}
+      ${previewGrid}
     </div>
   `;
 }
