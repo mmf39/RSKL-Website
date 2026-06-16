@@ -1050,11 +1050,13 @@ function getBracketSeedRecord(seed) {
 }
 
 function renderBracketMatchup(game, index) {
+  const seriesRecord = game.top && game.bottom ? getBracketSeriesRecord(game.top.team, game.bottom.team) : "";
   return `
     <button class="dashboard-bracket-matchup" type="button" data-bracket-matchup="${index}" aria-label="${escapeHtml(game.label)} details">
       <div class="dashboard-bracket-game-label">${escapeHtml(game.label)}</div>
       ${game.top ? renderBracketTeam(game.top) : renderBracketPlaceholder(game.topLabel)}
       ${game.bottom ? renderBracketTeam(game.bottom) : renderBracketPlaceholder(game.bottomLabel)}
+      ${seriesRecord ? `<div class="dashboard-bracket-series-record">${escapeHtml(seriesRecord)}</div>` : ""}
     </button>
   `;
 }
@@ -1135,6 +1137,34 @@ function getBracketSeriesGames(teamA, teamB) {
         (gameLeft === right && gameRight === left))
     );
   });
+}
+
+function getScheduleWinner(game) {
+  const winner = displayTeamName(String(game?.winner || "").trim());
+  if (winner) return winner;
+  const live = getLiveGameForSchedule(game);
+  const score1 = parseNumber(live?.team1Score);
+  const score2 = parseNumber(live?.team2Score);
+  if (score1 === null || score2 === null || score1 === score2) return "";
+  return score1 > score2 ? live.team1 : live.team2;
+}
+
+function getBracketSeriesRecord(teamA, teamB) {
+  const games = getBracketSeriesGames(teamA, teamB);
+  const left = displayTeamName(teamA);
+  const right = displayTeamName(teamB);
+  let leftWins = 0;
+  let rightWins = 0;
+  games.forEach((game) => {
+    const winner = getScheduleWinner(game);
+    if (!winner) return;
+    if (normalizeTeamName(winner) === normalizeTeamName(left)) {
+      leftWins += 1;
+    } else if (normalizeTeamName(winner) === normalizeTeamName(right)) {
+      rightWins += 1;
+    }
+  });
+  return `Series: ${left} ${leftWins}-${rightWins} ${right}`;
 }
 
 function getLiveGameForSchedule(game) {
@@ -2096,6 +2126,7 @@ function detectScheduleIndexes(rows, seasonRaw) {
   let team1 = findIdx(["team 1", "team1", "away"]);
   let team2 = findIdx(["team 2", "team2", "home"]);
   let gameType = findIdx(["game type", "type"]);
+  let winner = findIdx(["winner"]);
 
   if (seasonRaw === "c2s2-regular") {
     if (date === -1) date = 0;
@@ -2112,7 +2143,7 @@ function detectScheduleIndexes(rows, seasonRaw) {
     if (team2 === -1) team2 = (rows[0] || []).length >= 4 ? 3 : 2;
   }
 
-  return { date, team1, team2, gameType };
+  return { date, team1, team2, gameType, winner };
 }
 
 function buildScheduleGames(rows, seasonRaw) {
@@ -2127,6 +2158,7 @@ function buildScheduleGames(rows, seasonRaw) {
       const team1 = displayTeamName(String(row[indexes.team1] || "").trim());
       const team2 = displayTeamName(String(row[indexes.team2] || "").trim());
       const gameType = indexes.gameType >= 0 ? String(row[indexes.gameType] || "").trim() : "";
+      const winner = indexes.winner >= 0 ? displayTeamName(String(row[indexes.winner] || "").trim()) : "";
       if (!dateToken || !team1 || !team2) return null;
       return {
         rawDate,
@@ -2135,6 +2167,7 @@ function buildScheduleGames(rows, seasonRaw) {
         team1,
         team2,
         gameType,
+        winner,
       };
     })
     .filter(Boolean)
@@ -2164,6 +2197,9 @@ function extractLooseScheduleGames(rows) {
       if (!dateCell || uniqueTeams.length < 2) return null;
       const dateToken = normalizeDateToken(dateCell);
       const gameType = cells.find((cell) => /playoff|wild|semi|final|champ/i.test(cell)) || "";
+      const winner = uniqueTeams.find((team) =>
+        cells.some((cell) => normalizeTeamName(cell) === normalizeTeamName(team) && cell !== uniqueTeams[0] && cell !== uniqueTeams[1])
+      ) || "";
       return {
         rawDate: dateCell,
         dateToken,
@@ -2171,6 +2207,7 @@ function extractLooseScheduleGames(rows) {
         team1: uniqueTeams[0],
         team2: uniqueTeams[1],
         gameType,
+        winner,
       };
     })
     .filter(Boolean)
@@ -2847,7 +2884,6 @@ async function loadData() {
       const regularPlayerRows = results[5].status === "fulfilled" ? results[5].value : [];
 
       renderLeagueSnapshot(buildCurrentLeagueSnapshotRows(standingsRows));
-      renderDashboardPlayoffBracket(standingsRows);
 
       const liveGames = liveRows.length ? parseLiveGames(liveRows) : [];
       renderLiveScoring(liveGames, seasonRaw);
@@ -2858,6 +2894,7 @@ async function loadData() {
       if (!currentDashboardScheduleGames.length && scheduleRows.length) {
         currentDashboardScheduleGames = extractLooseScheduleGames(scheduleRows);
       }
+      renderDashboardPlayoffBracket(standingsRows);
       const featuredGames = currentDashboardScheduleGames.length ? getFeaturedGames(currentDashboardScheduleGames, liveGames) : [];
       renderFeaturedMatchups(featuredGames, seasonRaw);
 

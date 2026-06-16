@@ -1447,6 +1447,16 @@ body.menu-open {
   color: rgba(226, 232, 240, 0.72);
 }
 
+.dashboard-bracket-series-record {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 140, 26, 0.12);
+  color: rgba(255, 228, 196, 0.86);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-align: center;
+}
+
 .bracket-matchup-detail {
   display: grid;
   gap: 16px;
