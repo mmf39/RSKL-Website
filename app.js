@@ -2123,8 +2123,12 @@ function detectScheduleIndexes(rows, seasonRaw) {
   const header = (rows[0] || []).map((cell) => String(cell || "").trim().toLowerCase());
   const findIdx = (checks) => header.findIndex((value) => checks.some((check) => value.includes(check)));
   let date = findIdx(["date"]);
-  let team1 = findIdx(["team 1", "team1", "away"]);
-  let team2 = findIdx(["team 2", "team2", "home"]);
+  const explicitTeam1 = findIdx(["team 1", "team1"]);
+  const explicitTeam2 = findIdx(["team 2", "team2"]);
+  const home = findIdx(["home"]);
+  const away = findIdx(["away"]);
+  let team1 = explicitTeam1 !== -1 ? explicitTeam1 : home !== -1 ? home : away;
+  let team2 = explicitTeam2 !== -1 ? explicitTeam2 : away !== -1 ? away : home;
   let gameType = findIdx(["game type", "type"]);
   let winner = findIdx(["winner"]);
 
