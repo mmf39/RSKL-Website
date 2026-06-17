@@ -1406,6 +1406,11 @@ body.menu-open {
   border-color: rgba(255, 183, 77, 0.54);
 }
 
+.dashboard-bracket-team.is-winner {
+  border-color: rgba(52, 211, 153, 0.62);
+  background: rgba(6, 78, 59, 0.26);
+}
+
 .dashboard-bracket-team .standings-logo {
   width: 34px;
   height: 34px;

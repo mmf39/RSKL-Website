@@ -64,6 +64,11 @@ const CURRENT_LOCKED_PSP_TIEBREAK_ORDER = new Map([
   ["Storm", 5],
 ]);
 
+const C2S3_PLAYOFF_ADVANCEMENTS = {
+  northWildCard: "Gus N Em",
+  lockedWildCard: "Bad Bois",
+};
+
 const ARCHIVE_RANGES = {
   standings: "A1:F7",
   schedule_regular: "G31:I79",
@@ -1051,11 +1056,13 @@ function getBracketSeedRecord(seed) {
 
 function renderBracketMatchup(game, index) {
   const seriesRecord = game.top && game.bottom ? getBracketSeriesRecord(game.top.team, game.bottom.team) : "";
+  const topWon = game.winner && game.top && normalizeTeamName(game.winner) === normalizeTeamName(game.top.team);
+  const bottomWon = game.winner && game.bottom && normalizeTeamName(game.winner) === normalizeTeamName(game.bottom.team);
   return `
     <button class="dashboard-bracket-matchup" type="button" data-bracket-matchup="${index}" aria-label="${escapeHtml(game.label)} details">
       <div class="dashboard-bracket-game-label">${escapeHtml(game.label)}</div>
-      ${game.top ? renderBracketTeam(game.top) : renderBracketPlaceholder(game.topLabel)}
-      ${game.bottom ? renderBracketTeam(game.bottom) : renderBracketPlaceholder(game.bottomLabel)}
+      ${game.top ? renderBracketTeam(game.top, topWon ? "is-winner" : "") : renderBracketPlaceholder(game.topLabel)}
+      ${game.bottom ? renderBracketTeam(game.bottom, bottomWon ? "is-winner" : "") : renderBracketPlaceholder(game.bottomLabel)}
       ${seriesRecord ? `<div class="dashboard-bracket-series-record">${escapeHtml(seriesRecord)}</div>` : ""}
     </button>
   `;
@@ -1724,22 +1731,26 @@ function renderDashboardPlayoffBracket(standingsRows) {
     return;
   }
   const seeds = { north, locked };
+  const northWildCardWinner =
+    north.find((seed) => normalizeTeamName(seed.team) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.northWildCard)) || null;
+  const lockedWildCardWinner =
+    locked.find((seed) => normalizeTeamName(seed.team) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.lockedWildCard)) || null;
 
   const rounds = [
     {
       title: "Wild Card",
       note: "Division #2 hosts division #3.",
       games: [
-        { label: "North Wild Card", top: north[1], bottom: north[2] },
-        { label: "Locked PSP Wild Card", top: locked[1], bottom: locked[2] },
+        { label: "North Wild Card", top: north[1], bottom: north[2], winner: C2S3_PLAYOFF_ADVANCEMENTS.northWildCard },
+        { label: "Locked PSP Wild Card", top: locked[1], bottom: locked[2], winner: C2S3_PLAYOFF_ADVANCEMENTS.lockedWildCard },
       ],
     },
     {
       title: "Semifinals",
       note: "Division winners receive byes.",
       games: [
-        { label: "North Final", top: north[0], bottomLabel: "North WC Winner" },
-        { label: "Locked PSP Final", top: locked[0], bottomLabel: "Locked PSP WC Winner" },
+        { label: "North Final", top: north[0], bottom: northWildCardWinner, bottomLabel: "North WC Winner" },
+        { label: "Locked PSP Final", top: locked[0], bottom: lockedWildCardWinner, bottomLabel: "Locked PSP WC Winner" },
       ],
     },
     {
