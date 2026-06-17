@@ -4,6 +4,10 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const BRACKET_CHALLENGE_OPEN = process.env.BRACKET_CHALLENGE_OPEN === "true";
 const TABLE = "bracket_challenge_entries";
+const C2S3_PLAYOFF_ADVANCEMENTS = {
+  northWildCard: "Gus N Em",
+  lockedWildCard: "Bad Bois",
+};
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -85,15 +89,36 @@ function normalizeHandle(value) {
   return raw.startsWith("@") ? raw.slice(0, 40) : `@${raw.slice(0, 39)}`;
 }
 
+function normalizeTeamName(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^the\s+future$/, "dream team")
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function calculateScore(picks = {}) {
+  let correct = 0;
+  if (normalizeTeamName(picks.northWildCard) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.northWildCard)) {
+    correct += 1;
+  }
+  if (normalizeTeamName(picks.lockedWildCard) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.lockedWildCard)) {
+    correct += 1;
+  }
+  return correct * 3;
+}
+
 function sanitizeEntry(row) {
   const picks = row?.picks && typeof row.picks === "object" ? row.picks : {};
+  const calculatedScore = calculateScore(picks);
   return {
     id: row?.id || "",
     season: String(row?.season || "c2s3-playoffs").trim(),
     handle: normalizeHandle(row?.handle || row?.user_handle),
     picks,
     champion: String(row?.champion || picks.championship || "").trim(),
-    score: Number(row?.score || 0),
+    score: Number.isFinite(Number(row?.score)) ? Number(row.score) : calculatedScore,
+    calculatedScore,
     created_at: row?.created_at || "",
     updated_at: row?.updated_at || "",
   };
@@ -130,7 +155,7 @@ function validatePayload(payload) {
     handle,
     picks,
     champion: String(payload?.champion || picks.championship || "").trim(),
-    score: 0,
+    score: calculateScore(picks),
     updated_at: new Date().toISOString(),
   };
 }
@@ -143,6 +168,24 @@ async function fetchEntries() {
     supabaseHeaders({ Accept: "application/json" })
   );
   return Array.isArray(rows) ? dedupeEntries(rows.map(sanitizeEntry)) : [];
+}
+
+async function syncEntryScores(entries) {
+  await Promise.all(
+    entries
+      .filter((entry) => entry.id && entry.score !== entry.calculatedScore)
+      .map((entry) =>
+        requestJson(
+          "PATCH",
+          `${SUPABASE_URL}/rest/v1/${TABLE}?id=eq.${encodeURIComponent(entry.id)}`,
+          supabaseHeaders({ Prefer: "return=representation" }),
+          JSON.stringify({
+            score: entry.calculatedScore,
+            updated_at: new Date().toISOString(),
+          })
+        ).catch(() => null)
+      )
+  );
 }
 
 async function fetchExistingEntry(entry) {
@@ -182,6 +225,10 @@ module.exports = async (req, res) => {
   try {
     if (req.method === "GET") {
       const entries = await fetchEntries();
+      await syncEntryScores(entries);
+      entries.forEach((entry) => {
+        entry.score = entry.calculatedScore;
+      });
       sendJson(res, 200, { ok: true, open: BRACKET_CHALLENGE_OPEN, entries });
       return;
     }
