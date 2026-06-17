@@ -1353,6 +1353,21 @@ function getCurrentBracketEntry() {
   return getBracketEntryForHandle(getConfirmedBracketHandle());
 }
 
+function getBracketChallengeScore(entry) {
+  const picks = entry?.picks || {};
+  let correct = 0;
+  if (normalizeTeamName(picks.northWildCard) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.northWildCard)) {
+    correct += 1;
+  }
+  if (normalizeTeamName(picks.lockedWildCard) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.lockedWildCard)) {
+    correct += 1;
+  }
+  return {
+    correct,
+    points: correct * 3,
+  };
+}
+
 function renderBracketChallengeEntries(entries) {
   const confirmedHandle = getConfirmedBracketHandle();
   if (!confirmedHandle) {
@@ -1369,13 +1384,18 @@ function renderBracketChallengeEntries(entries) {
     .map((entry) => {
       const handle = entry.handle || "Unknown";
       const champion = entry.champion || entry.picks?.championship || "No champion";
+      const score = getBracketChallengeScore(entry);
       return `
         <div class="bracket-entry-row">
           <div>
             <strong>${escapeHtml(handle)}</strong>
             <span>${escapeHtml(formatArticleDate(entry.created_at))}</span>
           </div>
-          <b>${escapeHtml(champion)}</b>
+          <div class="bracket-entry-score">
+            <b>${escapeHtml(String(score.points))} pts</b>
+            <span>${escapeHtml(`${score.correct}/2 Wild Card picks`)}</span>
+            <em>Champion: ${escapeHtml(champion)}</em>
+          </div>
         </div>
       `;
     })
