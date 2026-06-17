@@ -97,27 +97,51 @@ function normalizeTeamName(value) {
     .replace(/[^a-z0-9]+/g, "");
 }
 
+function normalizePicks(value) {
+  if (value && typeof value === "object" && !Array.isArray(value)) return value;
+  if (typeof value !== "string") return {};
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch (_error) {
+    return {};
+  }
+}
+
+function pickValue(picks, keys) {
+  for (const key of keys) {
+    const value = picks[key];
+    if (String(value || "").trim()) return value;
+  }
+  return "";
+}
+
 function calculateScore(picks = {}) {
+  const safePicks = normalizePicks(picks);
+  const northPick = pickValue(safePicks, ["northWildCard", "north_wild_card", "northWC", "north_wc"]);
+  const lockedPick = pickValue(safePicks, ["lockedWildCard", "locked_wild_card", "lockedWC", "locked_wc"]);
   let correct = 0;
-  if (normalizeTeamName(picks.northWildCard) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.northWildCard)) {
+  if (normalizeTeamName(northPick) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.northWildCard)) {
     correct += 1;
   }
-  if (normalizeTeamName(picks.lockedWildCard) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.lockedWildCard)) {
+  if (normalizeTeamName(lockedPick) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.lockedWildCard)) {
     correct += 1;
   }
   return correct * 3;
 }
 
 function sanitizeEntry(row) {
-  const picks = row?.picks && typeof row.picks === "object" ? row.picks : {};
+  const picks = normalizePicks(row?.picks);
   const calculatedScore = calculateScore(picks);
+  const storedScore = Number.isFinite(Number(row?.score)) ? Number(row.score) : 0;
   return {
     id: row?.id || "",
     season: String(row?.season || "c2s3-playoffs").trim(),
     handle: normalizeHandle(row?.handle || row?.user_handle),
     picks,
     champion: String(row?.champion || picks.championship || "").trim(),
-    score: Number.isFinite(Number(row?.score)) ? Number(row.score) : calculatedScore,
+    score: calculatedScore,
+    storedScore,
     calculatedScore,
     created_at: row?.created_at || "",
     updated_at: row?.updated_at || "",
@@ -136,7 +160,7 @@ function dedupeEntries(entries) {
 
 function validatePayload(payload) {
   const handle = normalizeHandle(payload?.handle || payload?.user_handle);
-  const picks = payload?.picks && typeof payload.picks === "object" ? payload.picks : {};
+  const picks = normalizePicks(payload?.picks);
   const required = ["northWildCard", "lockedWildCard", "northFinal", "lockedFinal", "championship"];
   if (!handle) {
     const error = new Error("Handle is required.");
@@ -171,21 +195,28 @@ async function fetchEntries() {
 }
 
 async function syncEntryScores(entries) {
+  const result = { checked: entries.length, updated: 0, errors: [] };
   await Promise.all(
     entries
-      .filter((entry) => entry.id && entry.score !== entry.calculatedScore)
-      .map((entry) =>
-        requestJson(
-          "PATCH",
-          `${SUPABASE_URL}/rest/v1/${TABLE}?id=eq.${encodeURIComponent(entry.id)}`,
-          supabaseHeaders({ Prefer: "return=representation" }),
-          JSON.stringify({
-            score: entry.calculatedScore,
-            updated_at: new Date().toISOString(),
-          })
-        ).catch(() => null)
-      )
+      .filter((entry) => entry.id && entry.storedScore !== entry.calculatedScore)
+      .map(async (entry) => {
+        try {
+          await requestJson(
+            "PATCH",
+            `${SUPABASE_URL}/rest/v1/${TABLE}?id=eq.${encodeURIComponent(entry.id)}`,
+            supabaseHeaders({ Prefer: "return=representation" }),
+            JSON.stringify({
+              score: entry.calculatedScore,
+              updated_at: new Date().toISOString(),
+            })
+          );
+          result.updated += 1;
+        } catch (error) {
+          result.errors.push(`${entry.handle || entry.id}: ${error.message}`);
+        }
+      })
   );
+  return result;
 }
 
 async function fetchExistingEntry(entry) {
@@ -224,12 +255,12 @@ async function saveEntry(entry) {
 module.exports = async (req, res) => {
   try {
     if (req.method === "GET") {
-      const entries = await fetchEntries();
-      await syncEntryScores(entries);
-      entries.forEach((entry) => {
-        entry.score = entry.calculatedScore;
-      });
-      sendJson(res, 200, { ok: true, open: BRACKET_CHALLENGE_OPEN, entries });
+      let entries = await fetchEntries();
+      const scoreBackfill = await syncEntryScores(entries);
+      if (scoreBackfill.updated) {
+        entries = await fetchEntries();
+      }
+      sendJson(res, 200, { ok: true, open: BRACKET_CHALLENGE_OPEN, scoreBackfill, entries });
       return;
     }
 
