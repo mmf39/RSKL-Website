@@ -579,10 +579,6 @@ function getSeason() {
   return localStorage.getItem(SEASON_KEY) || "c2s1";
 }
 
-function isSectionTitleRow(value, label) {
-  return new RegExp(`^${label}\\s+c\\d+s\\d+`, "i").test(String(value || "").trim());
-}
-
 function renderAwards(rows) {
   if (!rows.length) {
     els.table.innerHTML = "<p>No awards data available.</p>";
@@ -591,10 +587,7 @@ function renderAwards(rows) {
 
   const hasSecondColumn = rows.some((row) => String(row[1] || "").trim());
 
-  const cleaned = rows.filter((row) => {
-    const title = String(row[0] || "").trim();
-    return title && !isSectionTitleRow(title, "awards");
-  });
+  const cleaned = rows.filter((row) => String(row[0] || "").trim());
 
   if (cleaned.length) {
     cleaned.forEach((row) => {
@@ -619,18 +612,12 @@ function renderAwards(rows) {
       if (!hasSecondColumn || !hasWinner) {
         return `
           <a class="awards-card awards-card-link" href="${link}">
-            <div class="awards-card-top">
-              <span class="awards-card-kicker">Honor</span>
-            </div>
             <div class="awards-title">${escapeHtml(row[0])}</div>
           </a>
         `;
       }
       return `
         <a class="awards-card awards-card-link" href="${link}">
-          <div class="awards-card-top">
-            <span class="awards-card-kicker">Award</span>
-          </div>
           <div class="awards-title awards-title-center">${escapeHtml(row[0] || "")}</div>
           <div class="awards-winner awards-winner-center">${escapeHtml(cleanWinner)}</div>
         </a>
@@ -650,10 +637,7 @@ function renderChampions(rows, seasonKey) {
     return;
   }
   const body = rows
-    .filter((row) => {
-      const title = String(row[0] || "").trim();
-      return title && !isSectionTitleRow(title, "champions");
-    })
+    .filter((row) => String(row[0] || "").trim())
     .map((row) => {
       const label = String(row[0] || "").trim();
       const winner = String(row[1] || "").trim();
