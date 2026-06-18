@@ -1,6 +1,7 @@
 const ROSTER_URL = "/api/sheet?name=roster";
 const GM_LINEUP_CSV_URL = ROSTER_URL;
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
+const STANDINGS_DASHBOARD_URL = "/api/sheet?name=standings-dashboard";
 const POWER_RANKINGS_URL = "/api/sheet?name=power-rankings";
 const SCHEDULE_URL = "/api/sheet?name=schedule";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
@@ -76,8 +77,6 @@ const els = {
   draftCurrentPick: document.getElementById("gm-draft-current-pick"),
   draftCurrentTeam: document.getElementById("gm-draft-current-team"),
   draftSheetPick: document.getElementById("gm-draft-sheet-pick"),
-  draftTradeFrom: document.getElementById("gm-draft-trade-from"),
-  draftTradeTo: document.getElementById("gm-draft-trade-to"),
   draftTeam: document.getElementById("gm-draft-team"),
   draftPlayer: document.getElementById("gm-draft-player"),
   draftNote: document.getElementById("gm-draft-note"),
@@ -87,7 +86,6 @@ const els = {
   draftStatus: document.getElementById("gm-draft-status"),
   draftBoard: document.getElementById("gm-draft-board"),
   draftUsedFields: Array.from(document.querySelectorAll("[data-draft-used-field]")),
-  draftTradedFields: Array.from(document.querySelectorAll("[data-draft-traded-field]")),
   draftTeamFields: Array.from(document.querySelectorAll("[data-draft-team-field]")),
   draftPlayerFields: Array.from(document.querySelectorAll("[data-draft-player-field]")),
   articleCard: document.getElementById("gm-article-card"),
@@ -169,6 +167,7 @@ const els = {
 let rosterByTeam = new Map();
 let picksByTeam = new Map();
 let draftCapitalRowsCache = [];
+let draftOrderPicksCache = [];
 let tradeBlocksCache = {};
 let powerVotesCache = {};
 let supabaseUrl = "";
@@ -734,15 +733,16 @@ function getDraftPickKey(pick) {
   return `${pick.season}:${pick.round}:${pick.pick}`;
 }
 
-function parseDraftCapitalPickOptions(season = getDraftRunnerSeason(), round = 1) {
+function parseDraftCapitalOwnership(season = getDraftRunnerSeason(), round = 1) {
   const rows = draftCapitalRowsCache || [];
-  if (!rows.length) return [];
+  const map = new Map();
+  const extras = [];
+  if (!rows.length) return { map, extras };
   const fallbackOwnersByCol = Object.keys(DRAFT_CAPITAL_COLUMNS);
   const ownersByCol = (rows[0] || []).some((cell) => String(cell || "").trim())
     ? (rows[0] || []).map((owner, idx) => canonicalTeamKey(owner) || fallbackOwnersByCol[idx] || "")
     : fallbackOwnersByCol;
   const seasonPattern = String(season || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const options = [];
 
   rows.slice(1).forEach((row) => {
     ownersByCol.forEach((ownerName, colIndex) => {
@@ -753,22 +753,88 @@ function parseDraftCapitalPickOptions(season = getDraftRunnerSeason(), round = 1
       const viaMatch = text.match(/via\s+(.+)$/i);
       const owner = displayTeamName(ownerName);
       const original = displayTeamName(viaMatch ? canonicalTeamKey(viaMatch[1]) || viaMatch[1] : ownerName);
-      const label = owner === original ? `${owner} - ${text}` : `${owner} via ${original} - ${text}`;
-      options.push({
-        id: `${season}:${round}:${colIndex}:${options.length}`,
-        owner,
-        original,
-        text,
-        label,
-      });
+      const pickInfo = { owner, original, text, isComp: /\bcomp\b/i.test(text), colIndex };
+      if (pickInfo.isComp) {
+        extras.push(pickInfo);
+      } else {
+        map.set(normalizeName(original), pickInfo);
+      }
     });
   });
-  return options;
+  return { map, extras };
+}
+
+function parseDraftStandingsRows(rows) {
+  if (!Array.isArray(rows) || rows.length < 2) return [];
+  const knownTeams = new Set(TEAM_ORDER.map((team) => normalizeName(displayTeamName(team))));
+  return rows
+    .map((row) => {
+      const teamIdx = row.findIndex((cell) =>
+        knownTeams.has(normalizeName(displayTeamName(canonicalTeamKey(cell))))
+      );
+      if (teamIdx < 0) return null;
+      const team = displayTeamName(canonicalTeamKey(row[teamIdx] || ""));
+      const wins = Number(String(row[teamIdx + 2] || "0").replace(/[^0-9.-]/g, "")) || 0;
+      const losses = Number(String(row[teamIdx + 3] || "0").replace(/[^0-9.-]/g, "")) || 0;
+      let pct = Number(String(row[teamIdx + 5] || "").replace(/[^0-9.-]/g, ""));
+      if (!Number.isFinite(pct)) {
+        pct = wins + losses > 0 ? wins / (wins + losses) : 0;
+      } else if (pct > 1.5) {
+        pct /= 100;
+      }
+      return { team, wins, losses, pct };
+    })
+    .filter(Boolean);
+}
+
+function getDraftOrderTeams() {
+  return [...draftOrderPicksCache]
+    .sort((a, b) => {
+      if (a.pct !== b.pct) return a.pct - b.pct;
+      if (a.wins !== b.wins) return a.wins - b.wins;
+      if (a.losses !== b.losses) return b.losses - a.losses;
+      return a.team.localeCompare(b.team);
+    })
+    .map((row) => row.team);
+}
+
+function getDraftOrderPickOptions(season = getDraftRunnerSeason(), round = 1) {
+  const order = getDraftOrderTeams();
+  const ownership = parseDraftCapitalOwnership(season, round);
+  const picks = order.map((originalTeam, idx) => {
+    const pickInfo = ownership.map.get(normalizeName(originalTeam));
+    const owner = pickInfo?.owner || originalTeam;
+    const label = owner === originalTeam
+      ? `Pick ${idx + 1}: ${owner}`
+      : `Pick ${idx + 1}: ${owner} via ${originalTeam}`;
+    return {
+      id: `${season}:${round}:${idx + 1}`,
+      round,
+      pick: idx + 1,
+      owner,
+      original: originalTeam,
+      text: pickInfo?.text || "",
+      label,
+    };
+  });
+  ownership.extras.forEach((pickInfo, idx) => {
+    const pickNumber = order.length + idx + 1;
+    picks.push({
+      id: `${season}:${round}:comp:${idx}`,
+      round,
+      pick: pickNumber,
+      owner: pickInfo.owner,
+      original: pickInfo.original,
+      text: pickInfo.text,
+      label: `Pick ${pickNumber} (Comp): ${pickInfo.owner}${pickInfo.owner === pickInfo.original ? "" : ` via ${pickInfo.original}`}`,
+    });
+  });
+  return picks;
 }
 
 function getSelectedSheetPick() {
   const selectedId = String(els.draftSheetPick?.value || "");
-  return parseDraftCapitalPickOptions(getDraftRunnerSeason(), Math.max(1, Number(els.draftRound?.value) || 1)).find(
+  return getDraftOrderPickOptions(getDraftRunnerSeason(), Math.max(1, Number(els.draftRound?.value) || 1)).find(
     (pick) => pick.id === selectedId
   ) || null;
 }
@@ -776,9 +842,9 @@ function getSelectedSheetPick() {
 function renderDraftSheetPickOptions() {
   if (!els.draftSheetPick) return;
   const current = String(els.draftSheetPick.value || "");
-  const options = parseDraftCapitalPickOptions(getDraftRunnerSeason(), Math.max(1, Number(els.draftRound?.value) || 1));
+  const options = getDraftOrderPickOptions(getDraftRunnerSeason(), Math.max(1, Number(els.draftRound?.value) || 1));
   els.draftSheetPick.innerHTML = [
-    '<option value="">Select a sheet pick</option>',
+    '<option value="">Select a draft pick</option>',
     ...options.map((pick) => `<option value="${escapeHtml(pick.id)}">${escapeHtml(pick.label)}</option>`),
   ].join("");
   if (options.some((pick) => pick.id === current)) {
@@ -789,16 +855,12 @@ function renderDraftSheetPickOptions() {
 function syncDraftModeFields() {
   const option = getDraftOption();
   const isUsed = option === "used";
-  const isTraded = option === "traded";
   const isForfeit = option === "forfeit";
   els.draftUsedFields.forEach((node) => {
     node.hidden = !isUsed;
   });
-  els.draftTradedFields.forEach((node) => {
-    node.hidden = !isTraded;
-  });
   els.draftTeamFields.forEach((node) => {
-    node.hidden = isTraded;
+    node.hidden = isUsed;
   });
   els.draftPlayerFields.forEach((node) => {
     node.hidden = isForfeit;
@@ -806,11 +868,20 @@ function syncDraftModeFields() {
   if (isForfeit && els.draftPlayer) {
     els.draftPlayer.value = "";
   }
+  if (isUsed) {
+    applySheetPickToDraftForm();
+  }
 }
 
 function applySheetPickToDraftForm() {
   const pick = getSelectedSheetPick();
   if (!pick) return;
+  if (els.draftRound) {
+    els.draftRound.value = String(pick.round || 1);
+  }
+  if (els.draftPick) {
+    els.draftPick.value = String(pick.pick || 1);
+  }
   if (els.draftTeam) {
     els.draftTeam.value = pick.owner || "";
   }
@@ -830,8 +901,6 @@ function loadTestDraftPicks() {
           round: Math.max(1, Number(pick?.round) || 1),
           pick: Math.max(1, Number(pick?.pick) || 1),
           team: String(pick?.team || "").trim(),
-          tradeFrom: String(pick?.tradeFrom || "").trim(),
-          tradeTo: String(pick?.tradeTo || "").trim(),
           sheetPickText: String(pick?.sheetPickText || "").trim(),
           player: String(pick?.player || "").trim(),
           note: String(pick?.note || "").trim(),
@@ -866,16 +935,12 @@ function renderDraftRunner() {
   if (els.draftCurrentTeam) {
     const option = getDraftOption();
     const team =
-      option === "traded"
-        ? String(els.draftTradeTo?.value || "").trim()
-        : String(els.draftTeam?.value || "").trim();
+      String(els.draftTeam?.value || "").trim();
     els.draftCurrentTeam.textContent =
       option === "forfeit"
         ? "Pick forfeited"
         : team
         ? displayTeamName(team)
-        : option === "traded"
-        ? "Select trade winner"
         : "Select a team";
   }
   if (!els.draftBoard) return;
@@ -892,12 +957,9 @@ function renderDraftRunner() {
     .map(
       (pick) => {
         const mode = pick.option || "used";
-        const team =
-          mode === "traded"
-            ? `${displayTeamName(pick.tradeFrom)} -> ${displayTeamName(pick.tradeTo)}`
-            : displayTeamName(pick.team) || "No team";
+        const team = displayTeamName(pick.team) || "No team";
         const player = mode === "forfeit" ? "FORFEITED" : pick.player || "No player";
-        const note = pick.note || pick.sheetPickText || (mode === "traded" ? "Traded pick" : "Click to edit");
+        const note = pick.note || pick.sheetPickText || "Click to edit";
         return `
           <button class="gm-draft-pick-card" type="button" data-draft-pick-key="${escapeHtml(getDraftPickKey(pick))}">
             <span class="gm-draft-pick-meta">R${escapeHtml(pick.round)} Pick ${escapeHtml(pick.pick)}</span>
@@ -917,8 +979,6 @@ function fillDraftRunnerForm(pick) {
   if (els.draftRound) els.draftRound.value = String(pick.round || 1);
   if (els.draftPick) els.draftPick.value = String(pick.pick || 1);
   if (els.draftTeam) els.draftTeam.value = pick.team || "";
-  if (els.draftTradeFrom) els.draftTradeFrom.value = pick.tradeFrom || "";
-  if (els.draftTradeTo) els.draftTradeTo.value = pick.tradeTo || "";
   if (els.draftPlayer) els.draftPlayer.value = pick.player || "";
   if (els.draftNote) els.draftNote.value = pick.note || "";
   syncDraftModeFields();
@@ -951,8 +1011,6 @@ function saveDraftRunnerPick() {
     round: Math.max(1, Number(els.draftRound?.value) || 1),
     pick: Math.max(1, Number(els.draftPick?.value) || 1),
     team: String(els.draftTeam?.value || "").trim(),
-    tradeFrom: String(els.draftTradeFrom?.value || "").trim(),
-    tradeTo: String(els.draftTradeTo?.value || "").trim(),
     sheetPickText: getSelectedSheetPick()?.text || "",
     player: String(els.draftPlayer?.value || "").trim(),
     note: String(els.draftNote?.value || "").trim(),
@@ -960,22 +1018,16 @@ function saveDraftRunnerPick() {
   };
   if (pick.option === "used") {
     const sheetPick = getSelectedSheetPick();
+    if (!sheetPick) {
+      setDraftStatus("Select a pick from the draft order.", true);
+      return;
+    }
     if (sheetPick) {
       pick.team = sheetPick.owner;
       pick.sheetPickText = sheetPick.text;
       if (!pick.note && sheetPick.owner !== sheetPick.original) {
         pick.note = `via ${sheetPick.original}`;
       }
-    }
-  }
-  if (pick.option === "traded") {
-    pick.team = pick.tradeTo;
-    if (!pick.tradeFrom || !pick.tradeTo) {
-      setDraftStatus("Select both teams involved in the trade.", true);
-      return;
-    }
-    if (!pick.note) {
-      pick.note = `Trade: ${displayTeamName(pick.tradeFrom)} to ${displayTeamName(pick.tradeTo)}`;
     }
   }
   if (pick.option === "forfeit") {
@@ -2776,6 +2828,14 @@ async function loadDraftCapital() {
   picksByTeam = map;
 }
 
+async function loadDraftOrderData() {
+  const response = await fetch(STANDINGS_DASHBOARD_URL, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Fetch failed: ${response.status}`);
+  }
+  draftOrderPicksCache = parseDraftStandingsRows(parseCSV(await response.text()));
+}
+
 function bindEvents() {
   if (els.tabButtons && els.tabButtons.length) {
     els.tabButtons.forEach((button) => {
@@ -2843,9 +2903,6 @@ function bindEvents() {
   if (els.draftRound) {
     els.draftRound.addEventListener("change", renderDraftSheetPickOptions);
   }
-  [els.draftTradeFrom, els.draftTradeTo].filter(Boolean).forEach((node) => {
-    node.addEventListener("change", renderDraftRunner);
-  });
   if (els.draftSave) {
     els.draftSave.addEventListener("click", saveDraftRunnerPick);
   }
@@ -3316,6 +3373,13 @@ async function init() {
     loadLocalGameLocks();
     loadFreeAgencySelection();
     loadTestDraftPicks();
+    try {
+      await Promise.all([loadRoster(), loadDraftCapital(), loadDraftOrderData()]);
+      syncDraftModeFields();
+      renderDraftSheetPickOptions();
+    } catch (draftError) {
+      setDraftStatus(draftError.message || "Unable to load draft order.", true);
+    }
     await loadSupabaseConfig();
     const savedToken = localStorage.getItem(GM_ACCESS_TOKEN_KEY) || "";
     const savedRefresh = localStorage.getItem(GM_REFRESH_TOKEN_KEY) || "";
@@ -3404,9 +3468,6 @@ async function init() {
       }
     }
 
-    await Promise.all([loadRoster(), loadDraftCapital()]);
-    syncDraftModeFields();
-    renderDraftSheetPickOptions();
     try {
       commishUpcomingGames = await loadUpcomingScheduleGames();
     } catch (_) {
