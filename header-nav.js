@@ -167,6 +167,7 @@
       !link ||
         link.dataset.playerAvatarEnhanced === "true" ||
         link.querySelector(".player-avatar-inline, .rskl-player-link__avatar") ||
+        link.closest(".awards-card") ||
         link.closest(".leader-name--player") ||
         link.closest(".player-detail-hero-copy")
     );

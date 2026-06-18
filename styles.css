@@ -5490,6 +5490,24 @@ input[type="text"] {
   gap: 8px;
 }
 
+.awards-card.rskl-player-link--with-avatar {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+.awards-card .rskl-player-link__avatar {
+  display: none !important;
+}
+
+.awards-card .rskl-player-link__label {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 8px;
+  width: 100%;
+}
+
 .awards-card-link {
   text-decoration: none;
   color: inherit;

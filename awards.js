@@ -579,6 +579,10 @@ function getSeason() {
   return localStorage.getItem(SEASON_KEY) || "c2s1";
 }
 
+function isAwardsHeaderRow(value) {
+  return /^awards\s+c\d+s\d+/i.test(String(value || "").trim());
+}
+
 function renderAwards(rows) {
   if (!rows.length) {
     els.table.innerHTML = "<p>No awards data available.</p>";
@@ -587,7 +591,10 @@ function renderAwards(rows) {
 
   const hasSecondColumn = rows.some((row) => String(row[1] || "").trim());
 
-  const cleaned = rows.filter((row) => String(row[0] || "").trim());
+  const cleaned = rows.filter((row) => {
+    const title = String(row[0] || "").trim();
+    return title && !isAwardsHeaderRow(title);
+  });
 
   if (cleaned.length) {
     cleaned.forEach((row) => {
