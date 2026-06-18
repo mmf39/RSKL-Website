@@ -1000,7 +1000,32 @@ function findNextOpenDraftPick() {
   return pick;
 }
 
-function saveDraftRunnerPick() {
+async function saveDraftPickToSheet(pick) {
+  const commissioner =
+    gmSession?.user?.email ||
+    gmSession?.user?.user_metadata?.email ||
+    gmSession?.user?.id ||
+    "";
+  return requestJson(TRADE_BLOCKS_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "submitDraftPick",
+      season: pick.season,
+      round: pick.round,
+      pick: pick.pick,
+      pickOption: pick.option,
+      team: pick.team,
+      player: pick.player,
+      note: pick.note,
+      sheetPickText: pick.sheetPickText,
+      commissioner,
+      updatedAt: pick.updatedAt,
+    }),
+  });
+}
+
+async function saveDraftRunnerPick() {
   if (!isSignedInGm() || !isCommish()) {
     setDraftStatus("Commissioner access required.", true);
     return;
@@ -1044,6 +1069,22 @@ function saveDraftRunnerPick() {
     setDraftStatus("Enter the player picked.", true);
     return;
   }
+  setDraftStatus("Saving pick to draft sheet...");
+  if (els.draftSave) {
+    els.draftSave.disabled = true;
+  }
+  try {
+    await saveDraftPickToSheet(pick);
+  } catch (error) {
+    setDraftStatus(error?.message || "Draft pick could not be saved to the sheet.", true);
+    if (els.draftSave) {
+      els.draftSave.disabled = false;
+    }
+    return;
+  }
+  if (els.draftSave) {
+    els.draftSave.disabled = false;
+  }
   const key = getDraftPickKey(pick);
   const existingIndex = testDraftPicks.findIndex((entry) => getDraftPickKey(entry) === key);
   if (existingIndex >= 0) {
@@ -1053,7 +1094,7 @@ function saveDraftRunnerPick() {
   }
   saveTestDraftPicks();
   renderDraftRunner();
-  setDraftStatus(`Saved Round ${pick.round}, Pick ${pick.pick}.`);
+  setDraftStatus(`Saved Round ${pick.round}, Pick ${pick.pick} to the draft sheet.`);
 }
 
 function ensureCanEditTeam(team, setStatusFn) {
