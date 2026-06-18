@@ -6183,12 +6183,65 @@ input[type="text"] {
   margin-top: 6px;
 }
 
-.gm-commish-draft-frame {
+.gm-draft-runner {
+  display: grid;
+  gap: 16px;
+}
+
+.gm-draft-runner-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.gm-draft-runner-grid .label {
+  align-self: end;
+}
+
+.gm-draft-runner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.gm-draft-board {
+  display: grid;
+  gap: 10px;
+}
+
+.gm-draft-pick-card {
   width: 100%;
-  min-height: 720px;
   border: 1px solid rgba(255, 140, 26, 0.28);
   border-radius: var(--radius-sm);
-  background: rgba(6, 15, 40, 0.78);
+  background: rgba(6, 15, 40, 0.74);
+  color: var(--ink);
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 120px minmax(140px, 0.75fr) minmax(180px, 1fr) minmax(120px, 0.8fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.gm-draft-pick-card:hover {
+  border-color: rgba(255, 140, 26, 0.72);
+}
+
+.gm-draft-pick-card strong {
+  color: var(--accent);
+}
+
+.gm-draft-pick-meta {
+  color: #f0cda5;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gm-draft-pick-card small {
+  color: var(--muted);
+  font-weight: 600;
 }
 
 @media (max-width: 760px) {
@@ -6197,8 +6250,9 @@ input[type="text"] {
     flex-direction: column;
   }
 
-  .gm-commish-draft-frame {
-    min-height: 640px;
+  .gm-draft-runner-grid,
+  .gm-draft-pick-card {
+    grid-template-columns: 1fr;
   }
 }
 

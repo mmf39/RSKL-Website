@@ -15,6 +15,7 @@ const GM_LOCAL_LOCKS_KEY = "rskl_local_game_locks";
 const GM_FREE_AGENCY_KEY = "rskl_gm_free_agency_selection";
 const GM_FREE_AGENCY_VOTER_KEY = "rskl_gm_free_agency_voter_handle";
 const GM_POWER_REPORTER_HANDLE_KEY = "rskl_power_reporter_handle";
+const GM_DRAFT_RUNNER_KEY = "rskl_commish_test_draft_picks";
 const POWER_REPORTER_VALUE = "__REPORTER__";
 const GM_GAME_LOCKS_TABLE = "gm_game_locks";
 const GM_ALL_STAR_VOTES_TABLE = "gm_all_star_votes_public";
@@ -67,7 +68,17 @@ const els = {
   authedShell: document.getElementById("gm-authed-shell"),
   commishCard: document.getElementById("gm-commish-card"),
   commishDraftCard: document.getElementById("gm-commish-draft-card"),
-  commishDraftFrame: document.getElementById("gm-commish-draft-frame"),
+  draftSeason: document.getElementById("gm-draft-season"),
+  draftRound: document.getElementById("gm-draft-round"),
+  draftPick: document.getElementById("gm-draft-pick"),
+  draftTeam: document.getElementById("gm-draft-team"),
+  draftPlayer: document.getElementById("gm-draft-player"),
+  draftNote: document.getElementById("gm-draft-note"),
+  draftSave: document.getElementById("gm-draft-save"),
+  draftNext: document.getElementById("gm-draft-next"),
+  draftClear: document.getElementById("gm-draft-clear"),
+  draftStatus: document.getElementById("gm-draft-status"),
+  draftBoard: document.getElementById("gm-draft-board"),
   articleCard: document.getElementById("gm-article-card"),
   articlesTab: document.getElementById("gm-articles-tab"),
   commishTab: document.getElementById("gm-commish-tab"),
@@ -159,6 +170,7 @@ let lineupSubmittedByTeam = new Map();
 let localGameLocksByDate = {};
 let freeAgencySelection = [];
 let freeAgencyResults = [];
+let testDraftPicks = [];
 
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
@@ -698,6 +710,129 @@ function getPowerVoteStorageKey(team, handle = "") {
   return `Reporter ${cleanHandle || "@unknown"} ${stamp}`;
 }
 
+function getDraftRunnerSeason() {
+  return String(els.draftSeason?.value || "c2s4").trim() || "c2s4";
+}
+
+function getDraftPickKey(pick) {
+  return `${pick.season}:${pick.round}:${pick.pick}`;
+}
+
+function loadTestDraftPicks() {
+  const raw = safeJsonParse(localStorage.getItem(GM_DRAFT_RUNNER_KEY), []);
+  testDraftPicks = Array.isArray(raw)
+    ? raw
+        .map((pick) => ({
+          season: String(pick?.season || "c2s4").trim(),
+          round: Math.max(1, Number(pick?.round) || 1),
+          pick: Math.max(1, Number(pick?.pick) || 1),
+          team: String(pick?.team || "").trim(),
+          player: String(pick?.player || "").trim(),
+          note: String(pick?.note || "").trim(),
+          updatedAt: String(pick?.updatedAt || "").trim(),
+        }))
+        .filter((pick) => pick.season && pick.round && pick.pick)
+    : [];
+}
+
+function saveTestDraftPicks() {
+  localStorage.setItem(GM_DRAFT_RUNNER_KEY, JSON.stringify(testDraftPicks));
+}
+
+function setDraftStatus(message, isError = false) {
+  setStatus(els.draftStatus, message, isError);
+}
+
+function getVisibleTestDraftPicks() {
+  const season = getDraftRunnerSeason();
+  return testDraftPicks
+    .filter((pick) => pick.season === season)
+    .sort((a, b) => a.round - b.round || a.pick - b.pick);
+}
+
+function renderDraftRunner() {
+  if (!els.draftBoard) return;
+  if (!isSignedInGm() || !isCommish()) {
+    els.draftBoard.innerHTML = "";
+    return;
+  }
+  const picks = getVisibleTestDraftPicks();
+  if (!picks.length) {
+    els.draftBoard.innerHTML = '<div class="gm-empty">No test picks saved yet.</div>';
+    return;
+  }
+  els.draftBoard.innerHTML = picks
+    .map(
+      (pick) => `
+        <button class="gm-draft-pick-card" type="button" data-draft-pick-key="${escapeHtml(getDraftPickKey(pick))}">
+          <span class="gm-draft-pick-meta">R${escapeHtml(pick.round)} Pick ${escapeHtml(pick.pick)}</span>
+          <strong>${escapeHtml(displayTeamName(pick.team) || "No team")}</strong>
+          <span>${escapeHtml(pick.player || "No player")}</span>
+          ${pick.note ? `<small>${escapeHtml(pick.note)}</small>` : ""}
+        </button>
+      `
+    )
+    .join("");
+}
+
+function fillDraftRunnerForm(pick) {
+  if (els.draftSeason) els.draftSeason.value = pick.season || getDraftRunnerSeason();
+  if (els.draftRound) els.draftRound.value = String(pick.round || 1);
+  if (els.draftPick) els.draftPick.value = String(pick.pick || 1);
+  if (els.draftTeam) els.draftTeam.value = pick.team || "";
+  if (els.draftPlayer) els.draftPlayer.value = pick.player || "";
+  if (els.draftNote) els.draftNote.value = pick.note || "";
+}
+
+function findNextOpenDraftPick() {
+  const season = getDraftRunnerSeason();
+  const round = Math.max(1, Number(els.draftRound?.value) || 1);
+  let pick = Math.max(1, Number(els.draftPick?.value) || 1);
+  const taken = new Set(
+    testDraftPicks
+      .filter((entry) => entry.season === season && entry.round === round)
+      .map((entry) => Number(entry.pick))
+  );
+  do {
+    pick += 1;
+  } while (taken.has(pick) && pick <= 80);
+  return pick;
+}
+
+function saveDraftRunnerPick() {
+  if (!isSignedInGm() || !isCommish()) {
+    setDraftStatus("Commissioner access required.", true);
+    return;
+  }
+  const pick = {
+    season: getDraftRunnerSeason(),
+    round: Math.max(1, Number(els.draftRound?.value) || 1),
+    pick: Math.max(1, Number(els.draftPick?.value) || 1),
+    team: String(els.draftTeam?.value || "").trim(),
+    player: String(els.draftPlayer?.value || "").trim(),
+    note: String(els.draftNote?.value || "").trim(),
+    updatedAt: new Date().toISOString(),
+  };
+  if (!pick.team) {
+    setDraftStatus("Select the team making this pick.", true);
+    return;
+  }
+  if (!pick.player) {
+    setDraftStatus("Enter the player picked.", true);
+    return;
+  }
+  const key = getDraftPickKey(pick);
+  const existingIndex = testDraftPicks.findIndex((entry) => getDraftPickKey(entry) === key);
+  if (existingIndex >= 0) {
+    testDraftPicks.splice(existingIndex, 1, pick);
+  } else {
+    testDraftPicks.push(pick);
+  }
+  saveTestDraftPicks();
+  renderDraftRunner();
+  setDraftStatus(`Saved Round ${pick.round}, Pick ${pick.pick}.`);
+}
+
 function ensureCanEditTeam(team, setStatusFn) {
   if (!isSignedInGm()) {
     setStatusFn("Sign in with a GM account first.", true);
@@ -775,14 +910,7 @@ function applyAuthUi() {
   if (els.commishDraftCard) {
     els.commishDraftCard.hidden = !commishAccess;
   }
-  if (els.commishDraftFrame) {
-    if (commishAccess && !els.commishDraftFrame.src) {
-      els.commishDraftFrame.src = els.commishDraftFrame.dataset.src || "/draft.html";
-    }
-    if (!commishAccess) {
-      els.commishDraftFrame.removeAttribute("src");
-    }
-  }
+  renderDraftRunner();
   if (els.articleCard) {
     els.articleCard.hidden = !(signedIn && canWriteArticles());
   }
@@ -2520,6 +2648,57 @@ function bindEvents() {
       setPowerStatus("Ballot randomized.");
     });
   }
+  if (els.draftSeason) {
+    els.draftSeason.addEventListener("change", () => {
+      setDraftStatus("");
+      renderDraftRunner();
+    });
+  }
+  if (els.draftSave) {
+    els.draftSave.addEventListener("click", saveDraftRunnerPick);
+  }
+  if (els.draftNext) {
+    els.draftNext.addEventListener("click", () => {
+      if (!isSignedInGm() || !isCommish()) {
+        setDraftStatus("Commissioner access required.", true);
+        return;
+      }
+      if (els.draftPick) {
+        els.draftPick.value = String(findNextOpenDraftPick());
+      }
+      if (els.draftPlayer) {
+        els.draftPlayer.value = "";
+        els.draftPlayer.focus();
+      }
+      if (els.draftNote) {
+        els.draftNote.value = "";
+      }
+      setDraftStatus("Advanced to the next open pick.");
+    });
+  }
+  if (els.draftClear) {
+    els.draftClear.addEventListener("click", () => {
+      if (!isSignedInGm() || !isCommish()) {
+        setDraftStatus("Commissioner access required.", true);
+        return;
+      }
+      const season = getDraftRunnerSeason();
+      testDraftPicks = testDraftPicks.filter((pick) => pick.season !== season);
+      saveTestDraftPicks();
+      renderDraftRunner();
+      setDraftStatus(`${season.toUpperCase()} test draft cleared.`);
+    });
+  }
+  if (els.draftBoard) {
+    els.draftBoard.addEventListener("click", (event) => {
+      const card = event.target.closest("[data-draft-pick-key]");
+      if (!card || !isSignedInGm() || !isCommish()) return;
+      const pick = testDraftPicks.find((entry) => getDraftPickKey(entry) === card.dataset.draftPickKey);
+      if (!pick) return;
+      fillDraftRunnerForm(pick);
+      setDraftStatus(`Loaded Round ${pick.round}, Pick ${pick.pick} for editing.`);
+    });
+  }
   if (els.lockSave) {
     els.lockSave.addEventListener("click", async () => {
       if (!isSignedInGm() || !isCommish()) {
@@ -2944,6 +3123,7 @@ async function init() {
   try {
     loadLocalGameLocks();
     loadFreeAgencySelection();
+    loadTestDraftPicks();
     await loadSupabaseConfig();
     const savedToken = localStorage.getItem(GM_ACCESS_TOKEN_KEY) || "";
     const savedRefresh = localStorage.getItem(GM_REFRESH_TOKEN_KEY) || "";

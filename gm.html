@@ -294,16 +294,63 @@
           <div class="gm-card" id="gm-commish-draft-card" hidden>
             <div class="gm-commish-draft-head">
               <div>
-                <div class="label">Commissioner Draft Page</div>
-                <div class="gm-commish-draft-copy">Draft tools are only visible to signed-in commissioners.</div>
+                <div class="label">Commissioner Draft Runner</div>
+                <div class="gm-commish-draft-copy">Test draft picks here before draft day. This test board is saved on this browser only.</div>
               </div>
             </div>
-            <iframe
-              id="gm-commish-draft-frame"
-              class="gm-commish-draft-frame"
-              title="Commissioner Draft Page"
-              data-src="/draft.html"
-            ></iframe>
+            <div class="gm-draft-runner">
+              <div class="gm-draft-runner-grid">
+                <label class="label" for="gm-draft-season">Draft</label>
+                <select id="gm-draft-season" class="text-input">
+                  <option value="c2s4">C2S4</option>
+                  <option value="c2s3">C2S3</option>
+                  <option value="c2s2">C2S2</option>
+                </select>
+
+                <label class="label" for="gm-draft-round">Round</label>
+                <select id="gm-draft-round" class="text-input">
+                  <option value="1">Round 1</option>
+                  <option value="2">Round 2</option>
+                  <option value="3">Round 3</option>
+                  <option value="4">Round 4</option>
+                </select>
+
+                <label class="label" for="gm-draft-pick">Pick</label>
+                <input id="gm-draft-pick" class="text-input" type="number" min="1" max="80" value="1" />
+
+                <label class="label" for="gm-draft-team">Team</label>
+                <select id="gm-draft-team" class="text-input">
+                  <option value="">Select team</option>
+                  <option value="Gus N Em">Gus N Em</option>
+                  <option value="Storm">Storm</option>
+                  <option value="Turkeys">Turkeys</option>
+                  <option value="Bad Bois">Bad Bois</option>
+                  <option value="Scorpions">Scorpions</option>
+                  <option value="Illegals">Illegals</option>
+                  <option value="The Lions">The Lions</option>
+                  <option value="Dream Team">Dream Team</option>
+                  <option value="The Snipers">The Snipers</option>
+                  <option value="The Phantoms">The Phantoms</option>
+                </select>
+
+                <label class="label" for="gm-draft-player">Player Picked</label>
+                <input id="gm-draft-player" class="text-input" type="text" placeholder="@player or player name" />
+
+                <label class="label" for="gm-draft-note">Note</label>
+                <input id="gm-draft-note" class="text-input" type="text" placeholder="Trade, auto pick, etc." />
+              </div>
+
+              <div class="gm-draft-runner-actions">
+                <button id="gm-draft-save" class="btn" type="button">Save Pick</button>
+                <button id="gm-draft-next" class="btn ghost" type="button">Next Pick</button>
+                <button id="gm-draft-clear" class="btn ghost" type="button">Clear Test Draft</button>
+              </div>
+              <div id="gm-draft-status" class="gm-status"></div>
+              <div class="gm-readonly-group">
+                <div class="label">Test Draft Board</div>
+                <div id="gm-draft-board" class="gm-draft-board"></div>
+              </div>
+            </div>
           </div>
         </div>
         </div>
