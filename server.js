@@ -959,6 +959,12 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (url.pathname === "/api/sheet-update") {
+    const handler = require("./api/sheet-update");
+    handler(req, res);
+    return;
+  }
+
   if (url.pathname === "/api/supabase-config") {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
       send(
