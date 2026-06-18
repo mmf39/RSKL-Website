@@ -932,6 +932,12 @@ function setDraftStatus(message, isError = false) {
   setStatus(els.draftStatus, message, isError);
 }
 
+function setDraftSaveButtonState(isSaving, label = "Save Pick") {
+  if (!els.draftSave) return;
+  els.draftSave.disabled = isSaving;
+  els.draftSave.textContent = label;
+}
+
 function getVisibleTestDraftPicks() {
   const season = getDraftRunnerSeason();
   return testDraftPicks
@@ -1053,8 +1059,22 @@ async function saveDraftPickToSheet(pick) {
 
 async function saveDraftRunnerPick() {
   setDraftStatus("Save clicked. Checking pick...");
+  setSubmitOverlayVisible(
+    true,
+    "Checking draft pick",
+    "Making sure the pick is ready to save."
+  );
   if (!isSignedInGm() || !isCommish()) {
     setDraftStatus("Commissioner access required.", true);
+    setSubmitOverlayVisible(
+      true,
+      "Commissioner required",
+      "Only the commissioner can save draft picks.",
+      "Sign in with the commissioner account and try again."
+    );
+    window.setTimeout(() => {
+      setSubmitOverlayVisible(false);
+    }, 2200);
     return;
   }
   if (draftSaveInFlight) {
@@ -1076,6 +1096,15 @@ async function saveDraftRunnerPick() {
     const sheetPick = getSelectedSheetPick();
     if (!sheetPick) {
       setDraftStatus("Select a pick from the draft order.", true);
+      setSubmitOverlayVisible(
+        true,
+        "Missing draft pick",
+        "Select a pick from the draft order before saving.",
+        "Then hit Save Pick again."
+      );
+      window.setTimeout(() => {
+        setSubmitOverlayVisible(false);
+      }, 2200);
       return;
     }
     if (sheetPick) {
@@ -1094,22 +1123,38 @@ async function saveDraftRunnerPick() {
   }
   if (pick.option !== "forfeit" && !pick.team) {
     setDraftStatus("Select the team making this pick.", true);
+    setSubmitOverlayVisible(
+      true,
+      "Missing team",
+      "Select the team making this pick before saving.",
+      "Then hit Save Pick again."
+    );
+    window.setTimeout(() => {
+      setSubmitOverlayVisible(false);
+    }, 2200);
     return;
   }
   if (pick.option !== "forfeit" && !pick.player) {
     setDraftStatus("Enter the player picked.", true);
+    setSubmitOverlayVisible(
+      true,
+      "Missing player",
+      "Enter the player picked before saving.",
+      "Then hit Save Pick again."
+    );
+    window.setTimeout(() => {
+      setSubmitOverlayVisible(false);
+    }, 2200);
     return;
   }
   setDraftStatus("Saving pick to draft sheet...");
+  setDraftSaveButtonState(true, "Saving...");
   setSubmitOverlayVisible(
     true,
     "Saving draft pick",
     `Round ${pick.round}, Pick ${pick.pick} is being sent to the draft sheet.`
   );
   draftSaveInFlight = true;
-  if (els.draftSave) {
-    els.draftSave.disabled = true;
-  }
   try {
     await saveDraftPickToSheet(pick);
   } catch (error) {
@@ -1126,9 +1171,7 @@ async function saveDraftRunnerPick() {
     return;
   } finally {
     draftSaveInFlight = false;
-    if (els.draftSave) {
-      els.draftSave.disabled = false;
-    }
+    setDraftSaveButtonState(false);
   }
   const key = getDraftPickKey(pick);
   const existingIndex = testDraftPicks.findIndex((entry) => getDraftPickKey(entry) === key);
@@ -1152,17 +1195,21 @@ async function saveDraftRunnerPick() {
 }
 
 function handleDraftSaveClick(event) {
-  const button = event.target?.closest?.("#gm-draft-save");
+  const button = event?.target?.closest?.("#gm-draft-save");
   if (!button) return;
+  if (event?.__draftSaveHandled) return;
+  if (event) {
+    event.__draftSaveHandled = true;
+  }
   event.preventDefault();
   saveDraftRunnerPick().catch((error) => {
     draftSaveInFlight = false;
-    if (els.draftSave) {
-      els.draftSave.disabled = false;
-    }
+    setDraftSaveButtonState(false);
     setDraftStatus(error?.message || "Draft pick could not be saved.", true);
   });
 }
+
+window.handleDraftSaveClick = handleDraftSaveClick;
 
 function ensureCanEditTeam(team, setStatusFn) {
   if (!isSignedInGm()) {
@@ -3010,6 +3057,9 @@ function bindEvents() {
   });
   if (els.draftRound) {
     els.draftRound.addEventListener("change", renderDraftSheetPickOptions);
+  }
+  if (els.draftSave) {
+    els.draftSave.addEventListener("click", handleDraftSaveClick);
   }
   document.addEventListener("click", handleDraftSaveClick);
   if (els.draftNext) {
