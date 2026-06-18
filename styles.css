@@ -6153,6 +6153,7 @@ input[type="text"] {
 
 #gm-auth-card,
 #gm-commish-card,
+#gm-commish-draft-card,
 #gm-tab-trade > .gm-card,
 #gm-tab-rename > .gm-card,
 #gm-tab-lineup > .gm-card,
@@ -6165,8 +6166,45 @@ input[type="text"] {
   display: none !important;
 }
 
+#gm-commish-draft-card[hidden] {
+  display: none !important;
+}
+
+.gm-commish-draft-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.gm-commish-draft-copy {
+  color: var(--muted);
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.gm-commish-draft-frame {
+  width: 100%;
+  min-height: 720px;
+  border: 1px solid rgba(255, 140, 26, 0.28);
+  border-radius: var(--radius-sm);
+  background: rgba(6, 15, 40, 0.78);
+}
+
+@media (max-width: 760px) {
+  .gm-commish-draft-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .gm-commish-draft-frame {
+    min-height: 640px;
+  }
+}
+
 #gm-auth-card::before,
 #gm-commish-card::before,
+#gm-commish-draft-card::before,
 #gm-tab-trade > .gm-card::before,
 #gm-tab-rename > .gm-card::before,
 #gm-tab-lineup > .gm-card::before,
@@ -6785,6 +6823,30 @@ input[type="text"] {
 
 .champion-row.single {
   grid-template-columns: 1fr;
+}
+
+.champion-row.single.rskl-player-link--with-avatar {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center;
+  gap: 8px;
+}
+
+.champion-row.single .rskl-player-link__avatar {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  margin: 0 auto;
+  order: 0;
+}
+
+.champion-row.single .rskl-player-link__label {
+  display: block !important;
+  width: 100%;
+  order: 1;
+  text-align: center;
+  white-space: normal;
 }
 
 .champion-single {

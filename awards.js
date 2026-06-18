@@ -579,13 +579,13 @@ function getSeason() {
   return localStorage.getItem(SEASON_KEY) || "c2s1";
 }
 
-function enhanceAwardPlayerLinks(attempt = 0) {
-  if (window.rsklEnhancePlayerLinks && els.table) {
-    window.rsklEnhancePlayerLinks(els.table);
+function enhanceAwardPlayerLinks(root, attempt = 0) {
+  if (window.rsklEnhancePlayerLinks && root) {
+    window.rsklEnhancePlayerLinks(root);
     return;
   }
   if (attempt < 8) {
-    window.setTimeout(() => enhanceAwardPlayerLinks(attempt + 1), 150);
+    window.setTimeout(() => enhanceAwardPlayerLinks(root, attempt + 1), 150);
   }
 }
 
@@ -643,7 +643,7 @@ function renderAwards(rows) {
     .join("");
 
   els.table.innerHTML = `<div class="awards-grid">${cardMarkup}</div>`;
-  enhanceAwardPlayerLinks();
+  enhanceAwardPlayerLinks(els.table);
 }
 
 function renderChampions(rows, seasonKey) {
@@ -688,6 +688,7 @@ function renderChampions(rows, seasonKey) {
       <div class="champion-list">${body}</div>
     </div>
   `;
+  enhanceAwardPlayerLinks(els.champions);
 }
 
 async function loadAwards() {

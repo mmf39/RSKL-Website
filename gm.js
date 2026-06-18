@@ -66,6 +66,8 @@ const els = {
   authCard: document.getElementById("gm-auth-card"),
   authedShell: document.getElementById("gm-authed-shell"),
   commishCard: document.getElementById("gm-commish-card"),
+  commishDraftCard: document.getElementById("gm-commish-draft-card"),
+  commishDraftFrame: document.getElementById("gm-commish-draft-frame"),
   articleCard: document.getElementById("gm-article-card"),
   articlesTab: document.getElementById("gm-articles-tab"),
   commishTab: document.getElementById("gm-commish-tab"),
@@ -747,6 +749,7 @@ function syncTeamSelectorsToAuth() {
 function applyAuthUi() {
   const signedIn = isSignedInGm();
   const reporterOnly = signedIn && isReporter() && !isCommish();
+  const commishAccess = signedIn && isCommish();
 
   els.codeLabels.forEach((node) => {
     node.hidden = true;
@@ -767,7 +770,18 @@ function applyAuthUi() {
     els.authCard.style.display = signedIn ? "none" : "";
   }
   if (els.commishCard) {
-    els.commishCard.hidden = !(signedIn && isCommish());
+    els.commishCard.hidden = !commishAccess;
+  }
+  if (els.commishDraftCard) {
+    els.commishDraftCard.hidden = !commishAccess;
+  }
+  if (els.commishDraftFrame) {
+    if (commishAccess && !els.commishDraftFrame.src) {
+      els.commishDraftFrame.src = els.commishDraftFrame.dataset.src || "/draft.html";
+    }
+    if (!commishAccess) {
+      els.commishDraftFrame.removeAttribute("src");
+    }
   }
   if (els.articleCard) {
     els.articleCard.hidden = !(signedIn && canWriteArticles());
@@ -776,7 +790,7 @@ function applyAuthUi() {
     els.articlesTab.hidden = !(signedIn && canWriteArticles());
   }
   if (els.commishTab) {
-    els.commishTab.hidden = !(signedIn && isCommish());
+    els.commishTab.hidden = !commishAccess;
   }
   ["trade", "rename", "lineup"].forEach((tabName) => {
     const button = els.tabButtons.find((tabButton) => tabButton.dataset.gmTab === tabName);
