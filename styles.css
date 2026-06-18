@@ -6262,6 +6262,10 @@ input[type="text"] {
   grid-column: span 3;
 }
 
+.gm-draft-field[hidden] {
+  display: none !important;
+}
+
 .gm-draft-runner-actions {
   display: flex;
   flex-wrap: wrap;

@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css?v=20260618commishdraft2" />
+    <link rel="stylesheet" href="styles.css?v=20260618commishdraft3" />
   </head>
   <body>
     <div class="bg"></div>
@@ -311,6 +311,15 @@
 
                 <div class="gm-draft-runner-grid">
                   <div class="gm-draft-field">
+                    <label class="label" for="gm-draft-pick-option">Pick Option</label>
+                    <select id="gm-draft-pick-option" class="text-input">
+                      <option value="used">Used</option>
+                      <option value="traded">Traded</option>
+                      <option value="forfeit">Forfeit</option>
+                    </select>
+                  </div>
+
+                  <div class="gm-draft-field">
                     <label class="label" for="gm-draft-season">Draft</label>
                     <select id="gm-draft-season" class="text-input">
                       <option value="c2s4">C2S4</option>
@@ -334,7 +343,48 @@
                     <input id="gm-draft-pick" class="text-input" type="number" min="1" max="80" value="1" />
                   </div>
 
-                  <div class="gm-draft-field gm-draft-field-wide">
+                  <div class="gm-draft-field gm-draft-field-wide" data-draft-used-field>
+                    <label class="label" for="gm-draft-sheet-pick">Pick From Sheet</label>
+                    <select id="gm-draft-sheet-pick" class="text-input">
+                      <option value="">Select a sheet pick</option>
+                    </select>
+                  </div>
+
+                  <div class="gm-draft-field gm-draft-field-wide" data-draft-traded-field hidden>
+                    <label class="label" for="gm-draft-trade-from">Pick Traded From</label>
+                    <select id="gm-draft-trade-from" class="text-input">
+                      <option value="">Select original/current holder</option>
+                      <option value="Gus N Em">Gus N Em</option>
+                      <option value="Storm">Storm</option>
+                      <option value="Turkeys">Turkeys</option>
+                      <option value="Bad Bois">Bad Bois</option>
+                      <option value="Scorpions">Scorpions</option>
+                      <option value="Illegals">Illegals</option>
+                      <option value="The Lions">The Lions</option>
+                      <option value="Dream Team">Dream Team</option>
+                      <option value="The Snipers">The Snipers</option>
+                      <option value="The Phantoms">The Phantoms</option>
+                    </select>
+                  </div>
+
+                  <div class="gm-draft-field gm-draft-field-wide" data-draft-traded-field hidden>
+                    <label class="label" for="gm-draft-trade-to">Pick Traded To</label>
+                    <select id="gm-draft-trade-to" class="text-input">
+                      <option value="">Select new holder</option>
+                      <option value="Gus N Em">Gus N Em</option>
+                      <option value="Storm">Storm</option>
+                      <option value="Turkeys">Turkeys</option>
+                      <option value="Bad Bois">Bad Bois</option>
+                      <option value="Scorpions">Scorpions</option>
+                      <option value="Illegals">Illegals</option>
+                      <option value="The Lions">The Lions</option>
+                      <option value="Dream Team">Dream Team</option>
+                      <option value="The Snipers">The Snipers</option>
+                      <option value="The Phantoms">The Phantoms</option>
+                    </select>
+                  </div>
+
+                  <div class="gm-draft-field gm-draft-field-wide" data-draft-team-field>
                     <label class="label" for="gm-draft-team">Team</label>
                     <select id="gm-draft-team" class="text-input">
                       <option value="">Select team</option>
@@ -351,7 +401,7 @@
                     </select>
                   </div>
 
-                  <div class="gm-draft-field gm-draft-field-wide">
+                  <div class="gm-draft-field gm-draft-field-wide" data-draft-player-field>
                     <label class="label" for="gm-draft-player">Player Picked</label>
                     <input id="gm-draft-player" class="text-input" type="text" placeholder="@player or player name" />
                   </div>
@@ -384,7 +434,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="gm.js?v=20260618commishdraft2"></script>
+    <script src="gm.js?v=20260618commishdraft3"></script>
       <script src="header-nav.js?v=20260609c2s3playoffs1"></script>
   </body>
 </html>
