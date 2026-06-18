@@ -356,6 +356,12 @@ function updateLastUpdated() {
   els.lastUpdated.textContent = `Last updated: ${formatted}`;
 }
 
+function setStatus(node, message, isError = false) {
+  if (!node) return;
+  node.textContent = message;
+  node.className = `gm-status ${isError ? "error" : ""}`;
+}
+
 function setTradeStatus(message, isError = false) {
   els.tradeStatus.textContent = message;
   els.tradeStatus.className = `gm-status ${isError ? "error" : ""}`;
