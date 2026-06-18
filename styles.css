@@ -5479,26 +5479,6 @@ input[type="text"] {
   gap: 14px;
 }
 
-.wagers-empty {
-  border: 1px dashed rgba(255, 140, 26, 0.35);
-  border-radius: var(--radius-sm);
-  background: rgba(15, 23, 42, 0.72);
-  padding: 24px;
-  text-align: center;
-}
-
-.wagers-empty-title {
-  color: var(--accent);
-  font-size: 1.2rem;
-  font-weight: 800;
-}
-
-.wagers-empty-copy {
-  color: var(--muted);
-  font-weight: 600;
-  margin-top: 8px;
-}
-
 .awards-card {
   background: rgba(15, 23, 42, 0.82);
   border: 1px solid rgba(255, 140, 0, 0.35);
