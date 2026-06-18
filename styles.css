@@ -5494,10 +5494,17 @@ input[type="text"] {
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
+  justify-content: center;
+  gap: 8px;
 }
 
 .awards-card .rskl-player-link__avatar {
-  display: none !important;
+  display: inline-flex !important;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  margin: 0 auto;
+  order: 0;
 }
 
 .awards-card .rskl-player-link__label {
@@ -5506,6 +5513,8 @@ input[type="text"] {
   align-items: center !important;
   gap: 8px;
   width: 100%;
+  order: 1;
+  white-space: normal;
 }
 
 .awards-card-link {

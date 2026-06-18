@@ -579,6 +579,16 @@ function getSeason() {
   return localStorage.getItem(SEASON_KEY) || "c2s1";
 }
 
+function enhanceAwardPlayerLinks(attempt = 0) {
+  if (window.rsklEnhancePlayerLinks && els.table) {
+    window.rsklEnhancePlayerLinks(els.table);
+    return;
+  }
+  if (attempt < 8) {
+    window.setTimeout(() => enhanceAwardPlayerLinks(attempt + 1), 150);
+  }
+}
+
 function isAwardsHeaderRow(value) {
   return /^awards\s+c\d+s\d+/i.test(String(value || "").trim());
 }
@@ -633,6 +643,7 @@ function renderAwards(rows) {
     .join("");
 
   els.table.innerHTML = `<div class="awards-grid">${cardMarkup}</div>`;
+  enhanceAwardPlayerLinks();
 }
 
 function renderChampions(rows, seasonKey) {
