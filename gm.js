@@ -373,18 +373,31 @@ function setLineupStatus(message, isError = false) {
   els.lineupStatus.className = `gm-status ${isError ? "error" : ""}`;
 }
 
-function setLineupOverlayVisible(visible, title = "Submitting lineup", copy = "") {
+function setSubmitOverlayVisible(
+  visible,
+  title = "Submitting lineup",
+  copy = "",
+  subcopy = "Please keep this tab open while we work."
+) {
   if (!els.lineupOverlay) return;
   els.lineupOverlay.hidden = !visible;
   if (!visible) return;
   const titleEl = els.lineupOverlay.querySelector(".gm-submit-overlay__title");
   const copyEl = els.lineupOverlay.querySelector(".gm-submit-overlay__copy");
+  const subcopyEl = els.lineupOverlay.querySelector(".gm-submit-overlay__subcopy");
   if (titleEl) {
     titleEl.textContent = title;
   }
   if (copyEl) {
     copyEl.textContent = copy || "Your lineup is being processed and submitted.";
   }
+  if (subcopyEl) {
+    subcopyEl.textContent = subcopy;
+  }
+}
+
+function setLineupOverlayVisible(visible, title = "Submitting lineup", copy = "") {
+  setSubmitOverlayVisible(visible, title, copy || "Your lineup is being processed and submitted.");
 }
 
 function setFreeAgencyStatus(message, isError = false) {
@@ -1088,6 +1101,11 @@ async function saveDraftRunnerPick() {
     return;
   }
   setDraftStatus("Saving pick to draft sheet...");
+  setSubmitOverlayVisible(
+    true,
+    "Saving draft pick",
+    `Round ${pick.round}, Pick ${pick.pick} is being sent to the draft sheet.`
+  );
   draftSaveInFlight = true;
   if (els.draftSave) {
     els.draftSave.disabled = true;
@@ -1096,6 +1114,15 @@ async function saveDraftRunnerPick() {
     await saveDraftPickToSheet(pick);
   } catch (error) {
     setDraftStatus(error?.message || "Draft pick could not be saved to the sheet.", true);
+    setSubmitOverlayVisible(
+      true,
+      "Draft pick failed",
+      error?.message || "Draft pick could not be saved to the sheet.",
+      "Check the pick info and try again."
+    );
+    window.setTimeout(() => {
+      setSubmitOverlayVisible(false);
+    }, 2400);
     return;
   } finally {
     draftSaveInFlight = false;
@@ -1113,6 +1140,15 @@ async function saveDraftRunnerPick() {
   saveTestDraftPicks();
   renderDraftRunner();
   setDraftStatus(`Saved Round ${pick.round}, Pick ${pick.pick} to the draft sheet.`);
+  setSubmitOverlayVisible(
+    true,
+    "Draft pick saved",
+    `Round ${pick.round}, Pick ${pick.pick} was saved to the draft sheet.`,
+    "You can move to the next pick now."
+  );
+  window.setTimeout(() => {
+    setSubmitOverlayVisible(false);
+  }, 1600);
 }
 
 function handleDraftSaveClick(event) {
