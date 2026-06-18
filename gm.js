@@ -71,6 +71,9 @@ const els = {
   draftSeason: document.getElementById("gm-draft-season"),
   draftRound: document.getElementById("gm-draft-round"),
   draftPick: document.getElementById("gm-draft-pick"),
+  draftCurrentRound: document.getElementById("gm-draft-current-round"),
+  draftCurrentPick: document.getElementById("gm-draft-current-pick"),
+  draftCurrentTeam: document.getElementById("gm-draft-current-team"),
   draftTeam: document.getElementById("gm-draft-team"),
   draftPlayer: document.getElementById("gm-draft-player"),
   draftNote: document.getElementById("gm-draft-note"),
@@ -751,6 +754,16 @@ function getVisibleTestDraftPicks() {
 }
 
 function renderDraftRunner() {
+  if (els.draftCurrentRound) {
+    els.draftCurrentRound.textContent = String(Math.max(1, Number(els.draftRound?.value) || 1));
+  }
+  if (els.draftCurrentPick) {
+    els.draftCurrentPick.textContent = String(Math.max(1, Number(els.draftPick?.value) || 1));
+  }
+  if (els.draftCurrentTeam) {
+    const team = String(els.draftTeam?.value || "").trim();
+    els.draftCurrentTeam.textContent = team ? displayTeamName(team) : "Select a team";
+  }
   if (!els.draftBoard) return;
   if (!isSignedInGm() || !isCommish()) {
     els.draftBoard.innerHTML = "";
@@ -766,9 +779,9 @@ function renderDraftRunner() {
       (pick) => `
         <button class="gm-draft-pick-card" type="button" data-draft-pick-key="${escapeHtml(getDraftPickKey(pick))}">
           <span class="gm-draft-pick-meta">R${escapeHtml(pick.round)} Pick ${escapeHtml(pick.pick)}</span>
-          <strong>${escapeHtml(displayTeamName(pick.team) || "No team")}</strong>
-          <span>${escapeHtml(pick.player || "No player")}</span>
-          ${pick.note ? `<small>${escapeHtml(pick.note)}</small>` : ""}
+          <span class="gm-draft-pick-team">${escapeHtml(displayTeamName(pick.team) || "No team")}</span>
+          <strong>${escapeHtml(pick.player || "No player")}</strong>
+          <small>${escapeHtml(pick.note || "Click to edit")}</small>
         </button>
       `
     )
@@ -2654,6 +2667,10 @@ function bindEvents() {
       renderDraftRunner();
     });
   }
+  [els.draftRound, els.draftPick, els.draftTeam].filter(Boolean).forEach((node) => {
+    node.addEventListener("input", renderDraftRunner);
+    node.addEventListener("change", renderDraftRunner);
+  });
   if (els.draftSave) {
     els.draftSave.addEventListener("click", saveDraftRunnerPick);
   }

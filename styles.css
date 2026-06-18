@@ -6185,17 +6185,81 @@ input[type="text"] {
 
 .gm-draft-runner {
   display: grid;
+  gap: 18px;
+}
+
+.gm-draft-console {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.6fr);
   gap: 16px;
+  align-items: stretch;
+}
+
+.gm-draft-current {
+  border: 1px solid rgba(255, 140, 26, 0.34);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(180deg, rgba(19, 34, 69, 0.95), rgba(6, 15, 40, 0.95));
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  min-height: 210px;
+  padding: 18px;
+  text-align: center;
+}
+
+.gm-draft-current-kicker {
+  color: #f0cda5;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.gm-draft-current-pick {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.gm-draft-current-pick strong {
+  color: var(--ink);
+  font-size: clamp(2.4rem, 5vw, 4.2rem);
+  line-height: 0.9;
+}
+
+.gm-draft-current-team {
+  color: var(--accent);
+  font-size: 1.2rem;
+  font-weight: 900;
 }
 
 .gm-draft-runner-grid {
+  border: 1px solid rgba(255, 140, 26, 0.2);
+  border-radius: var(--radius-sm);
+  background: rgba(6, 15, 40, 0.44);
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px 12px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
 }
 
 .gm-draft-runner-grid .label {
-  align-self: end;
+  margin: 0;
+}
+
+.gm-draft-field {
+  display: grid;
+  gap: 6px;
+  grid-column: span 2;
+}
+
+.gm-draft-field-wide {
+  grid-column: span 3;
 }
 
 .gm-draft-runner-actions {
@@ -6204,32 +6268,45 @@ input[type="text"] {
   gap: 10px;
 }
 
+.gm-draft-runner-actions .btn {
+  min-width: 140px;
+}
+
 .gm-draft-board {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .gm-draft-pick-card {
   width: 100%;
-  border: 1px solid rgba(255, 140, 26, 0.28);
+  border: 1px solid rgba(255, 140, 26, 0.24);
   border-radius: var(--radius-sm);
-  background: rgba(6, 15, 40, 0.74);
+  background:
+    linear-gradient(180deg, rgba(13, 26, 56, 0.86), rgba(6, 15, 40, 0.82));
   color: var(--ink);
   cursor: pointer;
   display: grid;
-  grid-template-columns: 120px minmax(140px, 0.75fr) minmax(180px, 1fr) minmax(120px, 0.8fr);
+  grid-template-columns: 112px minmax(140px, 0.75fr) minmax(180px, 1fr) minmax(120px, 0.8fr);
   gap: 12px;
   align-items: center;
-  padding: 12px 14px;
+  padding: 14px 16px;
   text-align: left;
 }
 
 .gm-draft-pick-card:hover {
   border-color: rgba(255, 140, 26, 0.72);
+  background:
+    linear-gradient(180deg, rgba(18, 36, 76, 0.94), rgba(8, 18, 45, 0.9));
 }
 
 .gm-draft-pick-card strong {
+  color: var(--ink);
+  font-size: 1.05rem;
+}
+
+.gm-draft-pick-team {
   color: var(--accent);
+  font-weight: 900;
 }
 
 .gm-draft-pick-meta {
@@ -6250,9 +6327,18 @@ input[type="text"] {
     flex-direction: column;
   }
 
+  .gm-draft-console {
+    grid-template-columns: 1fr;
+  }
+
   .gm-draft-runner-grid,
   .gm-draft-pick-card {
     grid-template-columns: 1fr;
+  }
+
+  .gm-draft-field,
+  .gm-draft-field-wide {
+    grid-column: auto;
   }
 }
 

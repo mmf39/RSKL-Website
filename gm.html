@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css?v=20260618commishdraft1" />
+    <link rel="stylesheet" href="styles.css?v=20260618commishdraft2" />
   </head>
   <body>
     <div class="bg"></div>
@@ -299,45 +299,68 @@
               </div>
             </div>
             <div class="gm-draft-runner">
-              <div class="gm-draft-runner-grid">
-                <label class="label" for="gm-draft-season">Draft</label>
-                <select id="gm-draft-season" class="text-input">
-                  <option value="c2s4">C2S4</option>
-                  <option value="c2s3">C2S3</option>
-                  <option value="c2s2">C2S2</option>
-                </select>
+              <div class="gm-draft-console">
+                <div class="gm-draft-current">
+                  <div class="gm-draft-current-kicker">On The Clock</div>
+                  <div class="gm-draft-current-pick">
+                    <span>R</span><strong id="gm-draft-current-round">1</strong>
+                    <span>Pick</span><strong id="gm-draft-current-pick">1</strong>
+                  </div>
+                  <div id="gm-draft-current-team" class="gm-draft-current-team">Select a team</div>
+                </div>
 
-                <label class="label" for="gm-draft-round">Round</label>
-                <select id="gm-draft-round" class="text-input">
-                  <option value="1">Round 1</option>
-                  <option value="2">Round 2</option>
-                  <option value="3">Round 3</option>
-                  <option value="4">Round 4</option>
-                </select>
+                <div class="gm-draft-runner-grid">
+                  <div class="gm-draft-field">
+                    <label class="label" for="gm-draft-season">Draft</label>
+                    <select id="gm-draft-season" class="text-input">
+                      <option value="c2s4">C2S4</option>
+                      <option value="c2s3">C2S3</option>
+                      <option value="c2s2">C2S2</option>
+                    </select>
+                  </div>
 
-                <label class="label" for="gm-draft-pick">Pick</label>
-                <input id="gm-draft-pick" class="text-input" type="number" min="1" max="80" value="1" />
+                  <div class="gm-draft-field">
+                    <label class="label" for="gm-draft-round">Round</label>
+                    <select id="gm-draft-round" class="text-input">
+                      <option value="1">Round 1</option>
+                      <option value="2">Round 2</option>
+                      <option value="3">Round 3</option>
+                      <option value="4">Round 4</option>
+                    </select>
+                  </div>
 
-                <label class="label" for="gm-draft-team">Team</label>
-                <select id="gm-draft-team" class="text-input">
-                  <option value="">Select team</option>
-                  <option value="Gus N Em">Gus N Em</option>
-                  <option value="Storm">Storm</option>
-                  <option value="Turkeys">Turkeys</option>
-                  <option value="Bad Bois">Bad Bois</option>
-                  <option value="Scorpions">Scorpions</option>
-                  <option value="Illegals">Illegals</option>
-                  <option value="The Lions">The Lions</option>
-                  <option value="Dream Team">Dream Team</option>
-                  <option value="The Snipers">The Snipers</option>
-                  <option value="The Phantoms">The Phantoms</option>
-                </select>
+                  <div class="gm-draft-field">
+                    <label class="label" for="gm-draft-pick">Pick</label>
+                    <input id="gm-draft-pick" class="text-input" type="number" min="1" max="80" value="1" />
+                  </div>
 
-                <label class="label" for="gm-draft-player">Player Picked</label>
-                <input id="gm-draft-player" class="text-input" type="text" placeholder="@player or player name" />
+                  <div class="gm-draft-field gm-draft-field-wide">
+                    <label class="label" for="gm-draft-team">Team</label>
+                    <select id="gm-draft-team" class="text-input">
+                      <option value="">Select team</option>
+                      <option value="Gus N Em">Gus N Em</option>
+                      <option value="Storm">Storm</option>
+                      <option value="Turkeys">Turkeys</option>
+                      <option value="Bad Bois">Bad Bois</option>
+                      <option value="Scorpions">Scorpions</option>
+                      <option value="Illegals">Illegals</option>
+                      <option value="The Lions">The Lions</option>
+                      <option value="Dream Team">Dream Team</option>
+                      <option value="The Snipers">The Snipers</option>
+                      <option value="The Phantoms">The Phantoms</option>
+                    </select>
+                  </div>
 
-                <label class="label" for="gm-draft-note">Note</label>
-                <input id="gm-draft-note" class="text-input" type="text" placeholder="Trade, auto pick, etc." />
+                  <div class="gm-draft-field gm-draft-field-wide">
+                    <label class="label" for="gm-draft-player">Player Picked</label>
+                    <input id="gm-draft-player" class="text-input" type="text" placeholder="@player or player name" />
+                  </div>
+
+                  <div class="gm-draft-field gm-draft-field-wide">
+                    <label class="label" for="gm-draft-note">Note</label>
+                    <input id="gm-draft-note" class="text-input" type="text" placeholder="Trade, auto pick, etc." />
+                  </div>
+                </div>
               </div>
 
               <div class="gm-draft-runner-actions">
@@ -361,7 +384,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="gm.js?v=20260618commishdraft1"></script>
+    <script src="gm.js?v=20260618commishdraft2"></script>
       <script src="header-nav.js?v=20260609c2s3playoffs1"></script>
   </body>
 </html>
