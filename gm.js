@@ -182,6 +182,7 @@ let localGameLocksByDate = {};
 let freeAgencySelection = [];
 let freeAgencyResults = [];
 let testDraftPicks = [];
+let draftSaveInFlight = false;
 
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
@@ -1006,28 +1007,45 @@ async function saveDraftPickToSheet(pick) {
     gmSession?.user?.user_metadata?.email ||
     gmSession?.user?.id ||
     "";
-  return requestJson(TRADE_BLOCKS_API, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "submitDraftPick",
-      season: pick.season,
-      round: pick.round,
-      pick: pick.pick,
-      pickOption: pick.option,
-      team: pick.team,
-      player: pick.player,
-      note: pick.note,
-      sheetPickText: pick.sheetPickText,
-      commissioner,
-      updatedAt: pick.updatedAt,
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 15000);
+  try {
+    return await requestJson(TRADE_BLOCKS_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+      body: JSON.stringify({
+        action: "submitDraftPick",
+        season: pick.season,
+        round: pick.round,
+        pick: pick.pick,
+        pickOption: pick.option,
+        team: pick.team,
+        player: pick.player,
+        note: pick.note,
+        sheetPickText: pick.sheetPickText,
+        commissioner,
+        updatedAt: pick.updatedAt,
+      }),
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("Draft sheet save timed out. Try again.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 }
 
 async function saveDraftRunnerPick() {
+  setDraftStatus("Save clicked. Checking pick...");
   if (!isSignedInGm() || !isCommish()) {
     setDraftStatus("Commissioner access required.", true);
+    return;
+  }
+  if (draftSaveInFlight) {
+    setDraftStatus("Already saving this pick...");
     return;
   }
   const pick = {
@@ -1070,6 +1088,7 @@ async function saveDraftRunnerPick() {
     return;
   }
   setDraftStatus("Saving pick to draft sheet...");
+  draftSaveInFlight = true;
   if (els.draftSave) {
     els.draftSave.disabled = true;
   }
@@ -1077,13 +1096,12 @@ async function saveDraftRunnerPick() {
     await saveDraftPickToSheet(pick);
   } catch (error) {
     setDraftStatus(error?.message || "Draft pick could not be saved to the sheet.", true);
+    return;
+  } finally {
+    draftSaveInFlight = false;
     if (els.draftSave) {
       els.draftSave.disabled = false;
     }
-    return;
-  }
-  if (els.draftSave) {
-    els.draftSave.disabled = false;
   }
   const key = getDraftPickKey(pick);
   const existingIndex = testDraftPicks.findIndex((entry) => getDraftPickKey(entry) === key);
@@ -1095,6 +1113,19 @@ async function saveDraftRunnerPick() {
   saveTestDraftPicks();
   renderDraftRunner();
   setDraftStatus(`Saved Round ${pick.round}, Pick ${pick.pick} to the draft sheet.`);
+}
+
+function handleDraftSaveClick(event) {
+  const button = event.target?.closest?.("#gm-draft-save");
+  if (!button) return;
+  event.preventDefault();
+  saveDraftRunnerPick().catch((error) => {
+    draftSaveInFlight = false;
+    if (els.draftSave) {
+      els.draftSave.disabled = false;
+    }
+    setDraftStatus(error?.message || "Draft pick could not be saved.", true);
+  });
 }
 
 function ensureCanEditTeam(team, setStatusFn) {
@@ -2944,9 +2975,7 @@ function bindEvents() {
   if (els.draftRound) {
     els.draftRound.addEventListener("change", renderDraftSheetPickOptions);
   }
-  if (els.draftSave) {
-    els.draftSave.addEventListener("click", saveDraftRunnerPick);
-  }
+  document.addEventListener("click", handleDraftSaveClick);
   if (els.draftNext) {
     els.draftNext.addEventListener("click", () => {
       if (!isSignedInGm() || !isCommish()) {
