@@ -5474,71 +5474,164 @@ input[type="text"] {
   text-decoration: underline;
 }
 
+.awards-page .container {
+  display: grid;
+  gap: 22px;
+}
+
+.awards-spotlight-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.awards-spotlight {
+  min-height: 148px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 28px;
+  background:
+    linear-gradient(135deg, rgba(255, 140, 26, 0.16), transparent 42%),
+    linear-gradient(180deg, rgba(13, 22, 47, 0.98), rgba(7, 13, 31, 0.96));
+  border-radius: inherit;
+}
+
+.awards-eyebrow,
+.awards-card-kicker {
+  color: #f0cda5;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.awards-eyebrow {
+  font-size: 0.82rem;
+  margin-bottom: 8px;
+}
+
+.awards-spotlight h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 0.95;
+}
+
+.awards-spotlight-action {
+  white-space: nowrap;
+}
+
+.awards-main-panel,
+.awards-champions-panel,
+.awards-rising-panel {
+  background:
+    linear-gradient(180deg, rgba(14, 22, 42, 0.94), rgba(5, 10, 23, 0.92));
+}
+
+.awards-page .panel-head {
+  border-bottom: 1px solid rgba(255, 140, 26, 0.2);
+  padding-bottom: 14px;
+}
+
+.awards-page .panel-head h2 {
+  letter-spacing: 0.04em;
+}
+
+.awards-page .controls {
+  background: rgba(10, 18, 39, 0.72);
+  border: 1px solid rgba(255, 140, 26, 0.22);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+}
+
 .awards-grid {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 14px;
 }
 
 .awards-card {
-  background: rgba(15, 23, 42, 0.82);
-  border: 1px solid rgba(255, 140, 0, 0.35);
+  min-height: 132px;
+  background:
+    linear-gradient(180deg, rgba(16, 29, 59, 0.95), rgba(7, 14, 31, 0.96));
+  border: 1px solid rgba(255, 140, 26, 0.3);
   border-radius: var(--radius-sm);
-  padding: 14px 18px;
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
 }
 
 .awards-card-link {
   text-decoration: none;
   color: inherit;
+  transition:
+    border-color 0.18s ease,
+    transform 0.18s ease,
+    background 0.18s ease;
 }
 
 .awards-card-link:hover {
-  border-color: rgba(255, 140, 0, 0.7);
+  border-color: rgba(255, 140, 26, 0.75);
+  transform: translateY(-2px);
+  background:
+    linear-gradient(180deg, rgba(22, 39, 78, 0.98), rgba(8, 16, 36, 0.98));
+}
+
+.awards-card-top {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.awards-card-kicker {
+  font-size: 0.68rem;
 }
 
 .awards-title {
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: 0.01em;
+  color: #f0cda5;
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .awards-winner {
   color: var(--ink);
-  font-weight: 600;
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+  line-height: 1.05;
+  font-weight: 900;
 }
 
-.awards-card-link .awards-title-center,
-.awards-card-link .awards-winner-center {
-  width: 100%;
-}
-
-.awards-card-link:has(.awards-winner-center) {
-  align-items: center;
-  text-align: center;
-  gap: 6px;
-}
-
-.awards-card-link:has(.awards-winner-center) .awards-title {
-  font-size: inherit;
-  text-transform: none;
-  letter-spacing: 0.01em;
-}
-
-.awards-card-link:has(.awards-winner-center) .awards-winner {
-  font-size: inherit;
-  line-height: inherit;
-  font-weight: 600;
+.awards-title-center,
+.awards-winner-center {
+  text-align: left;
 }
 
 .rising-stars-grid {
   margin-top: 6px;
 }
 
-.awards-title-center,
-.awards-winner-center {
-  text-align: center;
+.rising-stars-grid .awards-card {
+  min-height: auto;
+}
+
+@media (max-width: 720px) {
+  .awards-spotlight {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 22px;
+  }
+
+  .awards-spotlight-action {
+    width: 100%;
+    text-align: center;
+  }
+
+  .awards-page .controls {
+    width: 100%;
+  }
 }
 
 .draft-rounds {
@@ -6714,37 +6807,39 @@ input[type="text"] {
 
 
 .champion-box {
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(255, 140, 0, 0.45);
+  background: rgba(7, 14, 31, 0.78);
+  border: 1px solid rgba(255, 140, 26, 0.28);
   border-radius: var(--radius-sm);
-  padding: 18px;
+  padding: 16px;
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
 .champion-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--accent);
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #f0cda5;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
 }
 
 .champion-list {
   display: grid;
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
 }
 
 .champion-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
-  padding: 10px 12px;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  min-height: 104px;
+  padding: 14px 16px;
   border-radius: var(--radius-sm);
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 140, 0, 0.2);
-  justify-items: center;
-  align-items: center;
+  background:
+    linear-gradient(180deg, rgba(16, 29, 59, 0.92), rgba(7, 14, 31, 0.94));
+  border: 1px solid rgba(255, 140, 26, 0.24);
+  align-content: center;
   text-decoration: none;
   color: inherit;
 }
@@ -6754,32 +6849,34 @@ input[type="text"] {
 }
 
 .champion-single {
-  font-weight: 700;
-  color: var(--accent);
-  text-align: center;
-  justify-self: center;
+  font-weight: 800;
+  color: var(--ink);
+  text-align: left;
 }
 
 .champion-award {
-  font-weight: 600;
-  color: var(--accent);
-  text-align: center;
+  color: #f0cda5;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-align: left;
+  text-transform: uppercase;
 }
 
 .champion-winner {
-  font-weight: 600;
+  font-size: 1.22rem;
+  font-weight: 900;
   color: var(--ink);
-  text-align: center;
-  justify-self: center;
+  text-align: left;
 }
 
 .champion-link {
-  color: var(--accent);
+  color: var(--ink);
   text-decoration: none;
 }
 
 .champion-link:hover {
-  text-decoration: underline;
+  color: var(--accent);
 }
 .roster-link {
   color: var(--accent-2);
