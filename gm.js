@@ -188,6 +188,7 @@ let freeAgencySelection = [];
 let freeAgencyResults = [];
 let testDraftPicks = [];
 let draftSaveInFlight = false;
+let gmDraftSaveInFlightKeys = new Set();
 
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
@@ -985,6 +986,13 @@ function getDraftSubmissionKey(pick) {
   return `${String(pick?.season || "").trim()}:${Number(pick?.round) || 0}:${Number(pick?.pick) || 0}`;
 }
 
+function isDraftPickSubmitted(pick) {
+  const key = getDraftSubmissionKey(pick);
+  if (!key) return false;
+  if (submittedDraftPicksCache.has(key)) return true;
+  return testDraftPicks.some((entry) => getDraftSubmissionKey(entry) === key && String(entry.player || "").trim());
+}
+
 function normalizeDraftPickCell(value) {
   const text = String(value == null ? "" : value).trim();
   if (!text || /^round\s+\d+/i.test(text)) return "";
@@ -1021,14 +1029,13 @@ function getAllDraftPickOptions(season = "c2s4") {
 function getDraftPicksForTeam(team, season = "c2s4") {
   const teamKey = normalizeName(displayTeamName(team));
   if (!teamKey) return [];
-  const localSubmitted = new Set(testDraftPicks.map((pick) => getDraftSubmissionKey(pick)));
   return getAllDraftPickOptions(season)
     .filter((pick) => normalizeName(displayTeamName(pick.owner)) === teamKey)
     .map((pick) => {
-      const key = getDraftSubmissionKey({ season, round: pick.round, pick: pick.pick });
+      const pickKey = { season, round: pick.round, pick: pick.pick };
       return {
         ...pick,
-        isSubmitted: localSubmitted.has(key) || submittedDraftPicksCache.has(key),
+        isSubmitted: isDraftPickSubmitted(pickKey),
       };
     });
 }
@@ -1380,8 +1387,18 @@ async function saveGmDraftPick(card, button) {
     note: "",
     updatedAt: new Date().toISOString(),
   };
+  const key = getDraftSubmissionKey(pick);
   if (!canEditTeam(pick.team)) {
     setGmDraftStatus("You can only submit your own team's picks.", true);
+    return;
+  }
+  if (isDraftPickSubmitted(pick)) {
+    setGmDraftStatus(`Round ${pick.round}, Pick ${pick.pick} has already been submitted.`, true);
+    renderGmDraftPick();
+    return;
+  }
+  if (gmDraftSaveInFlightKeys.has(key)) {
+    setGmDraftStatus("That pick is already saving.");
     return;
   }
   if (!pick.player) {
@@ -1390,6 +1407,7 @@ async function saveGmDraftPick(card, button) {
   }
   setGmDraftStatus("Saving pick...");
   setGmDraftSaveButtonState(button, true, "Saving...");
+  gmDraftSaveInFlightKeys.add(key);
   setSubmitOverlayVisible(
     true,
     "Saving draft pick",
@@ -1397,7 +1415,6 @@ async function saveGmDraftPick(card, button) {
   );
   try {
     await saveDraftPickToSheet(pick);
-    const key = getDraftSubmissionKey(pick);
     const existingIndex = testDraftPicks.findIndex((entry) => getDraftSubmissionKey(entry) === key);
     if (existingIndex >= 0) {
       testDraftPicks.splice(existingIndex, 1, pick);
@@ -1431,6 +1448,7 @@ async function saveGmDraftPick(card, button) {
       setSubmitOverlayVisible(false);
     }, 2400);
   } finally {
+    gmDraftSaveInFlightKeys.delete(key);
     setGmDraftSaveButtonState(button, false);
   }
 }
