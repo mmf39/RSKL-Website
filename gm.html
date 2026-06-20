@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css?v=20260618commishdraft3" />
+    <link rel="stylesheet" href="styles.css?v=20260619gmdraft1" />
   </head>
   <body>
     <div class="bg"></div>
@@ -73,6 +73,7 @@
             <button class="gm-tab active" type="button" data-gm-tab="trade">Trade Block</button>
             <button class="gm-tab" type="button" data-gm-tab="rename">Player Name Change</button>
             <button class="gm-tab" type="button" data-gm-tab="lineup">Lineup Submit</button>
+            <button class="gm-tab" type="button" data-gm-tab="draft">Draft Pick</button>
             <button class="gm-tab" type="button" data-gm-tab="power">Power Rankings Vote</button>
             <button class="gm-tab" type="button" data-gm-tab="articles" id="gm-articles-tab" hidden>Articles</button>
             <button class="gm-tab" type="button" data-gm-tab="commish" id="gm-commish-tab" hidden>Commish</button>
@@ -202,6 +203,19 @@
 
             <button id="lineup-save" class="btn">Submit Lineup</button>
             <div id="lineup-status" class="gm-status"></div>
+          </div>
+        </div>
+
+        <div id="gm-tab-draft" class="gm-tab-panel" hidden>
+          <div class="gm-card gm-draft-gm-card">
+            <div class="label">Your Next Draft Pick</div>
+            <div id="gm-draft-gm-pick" class="gm-draft-gm-pick"></div>
+            <div id="gm-draft-gm-form" class="gm-draft-gm-form" hidden>
+              <label class="label" for="gm-draft-gm-player">Player Picked</label>
+              <input id="gm-draft-gm-player" class="text-input" type="text" placeholder="@player or player name" />
+              <button id="gm-draft-gm-save" class="btn" type="button">Save Pick</button>
+            </div>
+            <div id="gm-draft-gm-status" class="gm-status"></div>
           </div>
         </div>
 
@@ -399,7 +413,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="gm.js?v=20260618commishdraft10"></script>
+    <script src="gm.js?v=20260619gmdraft1"></script>
       <script src="header-nav.js?v=20260609c2s3playoffs1"></script>
   </body>
 </html>

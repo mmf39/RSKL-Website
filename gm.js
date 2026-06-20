@@ -1,5 +1,6 @@
 const ROSTER_URL = "/api/sheet?name=roster";
 const GM_LINEUP_CSV_URL = ROSTER_URL;
+const DRAFT_URL = "/api/sheet?name=draft";
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
 const STANDINGS_DASHBOARD_URL = "/api/sheet?name=standings-dashboard";
 const POWER_RANKINGS_URL = "/api/sheet?name=power-rankings";
@@ -85,6 +86,11 @@ const els = {
   draftClear: document.getElementById("gm-draft-clear"),
   draftStatus: document.getElementById("gm-draft-status"),
   draftBoard: document.getElementById("gm-draft-board"),
+  gmDraftPick: document.getElementById("gm-draft-gm-pick"),
+  gmDraftForm: document.getElementById("gm-draft-gm-form"),
+  gmDraftPlayer: document.getElementById("gm-draft-gm-player"),
+  gmDraftSave: document.getElementById("gm-draft-gm-save"),
+  gmDraftStatus: document.getElementById("gm-draft-gm-status"),
   draftUsedFields: Array.from(document.querySelectorAll("[data-draft-used-field]")),
   draftTeamFields: Array.from(document.querySelectorAll("[data-draft-team-field]")),
   draftPlayerFields: Array.from(document.querySelectorAll("[data-draft-player-field]")),
@@ -107,6 +113,7 @@ const els = {
   tabTradePanel: document.getElementById("gm-tab-trade"),
   tabRenamePanel: document.getElementById("gm-tab-rename"),
   tabLineupPanel: document.getElementById("gm-tab-lineup"),
+  tabDraftPanel: document.getElementById("gm-tab-draft"),
   tabFreeAgencyPanel: document.getElementById("gm-tab-free-agency"),
   tabPowerPanel: document.getElementById("gm-tab-power"),
   tabArticlesPanel: document.getElementById("gm-tab-articles"),
@@ -168,6 +175,7 @@ let rosterByTeam = new Map();
 let picksByTeam = new Map();
 let draftCapitalRowsCache = [];
 let draftOrderPicksCache = [];
+let submittedDraftPicksCache = new Set();
 let tradeBlocksCache = {};
 let powerVotesCache = {};
 let supabaseUrl = "";
@@ -271,6 +279,8 @@ function setActiveTab(tab) {
       ? "rename"
       : tab === "lineup"
       ? "lineup"
+      : tab === "draft"
+      ? "draft"
       : tab === "free-agency"
       ? "free-agency"
       : tab === "power"
@@ -288,6 +298,9 @@ function setActiveTab(tab) {
   }
   if (els.tabLineupPanel) {
     els.tabLineupPanel.hidden = active !== "lineup";
+  }
+  if (els.tabDraftPanel) {
+    els.tabDraftPanel.hidden = active !== "draft";
   }
   if (els.tabFreeAgencyPanel) {
     els.tabFreeAgencyPanel.hidden = active !== "free-agency";
@@ -938,10 +951,99 @@ function setDraftStatus(message, isError = false) {
   setStatus(els.draftStatus, message, isError);
 }
 
+function setGmDraftStatus(message, isError = false) {
+  setStatus(els.gmDraftStatus, message, isError);
+}
+
 function setDraftSaveButtonState(isSaving, label = "Save Pick") {
   if (!els.draftSave) return;
   els.draftSave.disabled = isSaving;
   els.draftSave.textContent = label;
+}
+
+function setGmDraftSaveButtonState(isSaving, label = "Save Pick") {
+  if (!els.gmDraftSave) return;
+  els.gmDraftSave.disabled = isSaving;
+  els.gmDraftSave.textContent = label;
+}
+
+function getDraftSubmissionKey(pick) {
+  return `${String(pick?.season || "").trim()}:${Number(pick?.round) || 0}:${Number(pick?.pick) || 0}`;
+}
+
+function normalizeDraftPickCell(value) {
+  const text = String(value == null ? "" : value).trim();
+  if (!text || /^round\s+\d+/i.test(text)) return "";
+  const match = text.match(/^(?:pick\s*)?#?(\d+)$/i);
+  return match ? match[1] : "";
+}
+
+function buildSubmittedDraftPickSet(rows, season = "c2s4") {
+  const out = new Set();
+  let round = 0;
+  (rows || []).forEach((row) => {
+    const first = String(row?.[0] || "").trim();
+    const roundMatch = first.match(/^round\s+(\d+)/i);
+    if (roundMatch) {
+      round = Number(roundMatch[1]) || round;
+      return;
+    }
+    const pickNumber = normalizeDraftPickCell(first);
+    const player = String(row?.[2] || "").trim();
+    if (!round || !pickNumber || !player) return;
+    out.add(`${season}:${round}:${Number(pickNumber)}`);
+  });
+  return out;
+}
+
+function getAllDraftPickOptions(season = "c2s4") {
+  const picks = [];
+  for (let round = 1; round <= 4; round += 1) {
+    picks.push(...getDraftOrderPickOptions(season, round));
+  }
+  return picks.sort((a, b) => a.round - b.round || a.pick - b.pick);
+}
+
+function getNextDraftPickForTeam(team, season = "c2s4") {
+  const teamKey = normalizeName(displayTeamName(team));
+  if (!teamKey) return null;
+  const localSubmitted = new Set(testDraftPicks.map((pick) => getDraftSubmissionKey(pick)));
+  return getAllDraftPickOptions(season).find((pick) => {
+    if (normalizeName(displayTeamName(pick.owner)) !== teamKey) return false;
+    const key = getDraftSubmissionKey({ season, round: pick.round, pick: pick.pick });
+    return !localSubmitted.has(key) && !submittedDraftPicksCache.has(key);
+  }) || null;
+}
+
+function renderGmDraftPick() {
+  if (!els.gmDraftPick) return;
+  const team = getAuthorizedTeam();
+  if (!isSignedInGm() || isReporter() || !team) {
+    els.gmDraftPick.innerHTML = '<div class="gm-empty">Sign in with a GM team account to see your next pick.</div>';
+    if (els.gmDraftForm) els.gmDraftForm.hidden = true;
+    return;
+  }
+  const pick = getNextDraftPickForTeam(team);
+  if (!pick) {
+    els.gmDraftPick.innerHTML = '<div class="gm-empty">No open picks found for your team right now.</div>';
+    if (els.gmDraftForm) els.gmDraftForm.hidden = true;
+    return;
+  }
+  els.gmDraftPick.dataset.season = "c2s4";
+  els.gmDraftPick.dataset.round = String(pick.round);
+  els.gmDraftPick.dataset.pick = String(pick.pick);
+  els.gmDraftPick.dataset.team = pick.owner || team;
+  els.gmDraftPick.dataset.sheetPickText = pick.text || "";
+  const originalText = pick.owner === pick.original ? "Original pick" : `via ${pick.original}`;
+  els.gmDraftPick.innerHTML = `
+    <div class="gm-draft-gm-next">
+      <span class="gm-draft-pick-meta">C2S4 Draft</span>
+      <strong>Round ${escapeHtml(pick.round)} Pick ${escapeHtml(pick.pick)}</strong>
+      <span class="gm-draft-pick-team">${escapeHtml(displayTeamName(pick.owner))}</span>
+      <small>${escapeHtml(originalText)}</small>
+    </div>
+  `;
+  if (els.gmDraftForm) els.gmDraftForm.hidden = false;
 }
 
 function getVisibleTestDraftPicks() {
@@ -1217,6 +1319,72 @@ function handleDraftSaveClick(event) {
 
 window.handleDraftSaveClick = handleDraftSaveClick;
 
+async function saveGmDraftPick() {
+  if (!isSignedInGm() || isReporter()) {
+    setGmDraftStatus("Sign in with a GM team account first.", true);
+    return;
+  }
+  const team = getAuthorizedTeam();
+  const pick = {
+    season: String(els.gmDraftPick?.dataset.season || "c2s4"),
+    option: "used",
+    round: Math.max(1, Number(els.gmDraftPick?.dataset.round) || 1),
+    pick: Math.max(1, Number(els.gmDraftPick?.dataset.pick) || 1),
+    team: String(els.gmDraftPick?.dataset.team || team).trim(),
+    sheetPickText: String(els.gmDraftPick?.dataset.sheetPickText || "").trim(),
+    player: String(els.gmDraftPlayer?.value || "").trim(),
+    note: "",
+    updatedAt: new Date().toISOString(),
+  };
+  if (!canEditTeam(pick.team)) {
+    setGmDraftStatus("You can only submit your own team's next pick.", true);
+    return;
+  }
+  if (!pick.player) {
+    setGmDraftStatus("Enter the player picked.", true);
+    return;
+  }
+  setGmDraftStatus("Saving pick...");
+  setGmDraftSaveButtonState(true, "Saving...");
+  setSubmitOverlayVisible(
+    true,
+    "Saving draft pick",
+    `Round ${pick.round}, Pick ${pick.pick} is being sent to the draft sheet.`
+  );
+  try {
+    await saveDraftPickToSheet(pick);
+    testDraftPicks.push(pick);
+    saveTestDraftPicks();
+    submittedDraftPicksCache.add(getDraftSubmissionKey(pick));
+    if (els.gmDraftPlayer) els.gmDraftPlayer.value = "";
+    renderGmDraftPick();
+    renderDraftRunner();
+    setGmDraftStatus(`Saved Round ${pick.round}, Pick ${pick.pick}.`);
+    setSubmitOverlayVisible(
+      true,
+      "Draft pick saved",
+      `Round ${pick.round}, Pick ${pick.pick} was saved.`,
+      "Your next available pick is now showing."
+    );
+    window.setTimeout(() => {
+      setSubmitOverlayVisible(false);
+    }, 1600);
+  } catch (error) {
+    setGmDraftStatus(error?.message || "Draft pick could not be saved.", true);
+    setSubmitOverlayVisible(
+      true,
+      "Draft pick failed",
+      error?.message || "Draft pick could not be saved.",
+      "Check the pick and try again."
+    );
+    window.setTimeout(() => {
+      setSubmitOverlayVisible(false);
+    }, 2400);
+  } finally {
+    setGmDraftSaveButtonState(false);
+  }
+}
+
 function ensureCanEditTeam(team, setStatusFn) {
   if (!isSignedInGm()) {
     setStatusFn("Sign in with a GM account first.", true);
@@ -1304,12 +1472,13 @@ function applyAuthUi() {
   if (els.commishTab) {
     els.commishTab.hidden = !commishAccess;
   }
-  ["trade", "rename", "lineup"].forEach((tabName) => {
+  ["trade", "rename", "lineup", "draft"].forEach((tabName) => {
     const button = els.tabButtons.find((tabButton) => tabButton.dataset.gmTab === tabName);
     if (button) {
       button.hidden = reporterOnly;
     }
   });
+  renderGmDraftPick();
   if (reporterOnly) {
     setActiveTab("articles");
   } else if (els.tabCommishPanel && !isCommish() && !els.tabCommishPanel.hidden) {
@@ -2997,6 +3166,14 @@ async function loadDraftOrderData() {
   draftOrderPicksCache = parseDraftStandingsRows(parseCSV(await response.text()));
 }
 
+async function loadSubmittedDraftPicks() {
+  const response = await fetch(DRAFT_URL, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Fetch failed: ${response.status}`);
+  }
+  submittedDraftPicksCache = buildSubmittedDraftPickSet(parseCSV(await response.text()));
+}
+
 function bindEvents() {
   if (els.tabButtons && els.tabButtons.length) {
     els.tabButtons.forEach((button) => {
@@ -3109,6 +3286,9 @@ function bindEvents() {
       fillDraftRunnerForm(pick);
       setDraftStatus(`Loaded Round ${pick.round}, Pick ${pick.pick} for editing.`);
     });
+  }
+  if (els.gmDraftSave) {
+    els.gmDraftSave.addEventListener("click", saveGmDraftPick);
   }
   if (els.lockSave) {
     els.lockSave.addEventListener("click", async () => {
@@ -3536,9 +3716,10 @@ async function init() {
     loadFreeAgencySelection();
     loadTestDraftPicks();
     try {
-      await Promise.all([loadRoster(), loadDraftCapital(), loadDraftOrderData()]);
+      await Promise.all([loadRoster(), loadDraftCapital(), loadDraftOrderData(), loadSubmittedDraftPicks()]);
       syncDraftModeFields();
       renderDraftSheetPickOptions();
+      renderGmDraftPick();
     } catch (draftError) {
       setDraftStatus(draftError.message || "Unable to load draft order.", true);
     }

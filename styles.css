@@ -6154,6 +6154,7 @@ input[type="text"] {
 #gm-auth-card,
 #gm-commish-card,
 #gm-commish-draft-card,
+#gm-tab-draft > .gm-card,
 #gm-tab-trade > .gm-card,
 #gm-tab-rename > .gm-card,
 #gm-tab-lineup > .gm-card,
@@ -6325,6 +6326,50 @@ input[type="text"] {
   font-weight: 600;
 }
 
+.gm-draft-gm-card {
+  display: grid;
+  gap: 16px;
+}
+
+.gm-draft-gm-pick {
+  display: grid;
+  gap: 10px;
+}
+
+.gm-draft-gm-next {
+  border: 1px solid rgba(255, 140, 26, 0.34);
+  border-radius: var(--radius-sm);
+  background:
+    linear-gradient(180deg, rgba(13, 26, 56, 0.92), rgba(6, 15, 40, 0.88));
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+}
+
+.gm-draft-gm-next strong {
+  color: var(--ink);
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.gm-draft-gm-next small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.gm-draft-gm-form {
+  border: 1px solid rgba(255, 140, 26, 0.2);
+  border-radius: var(--radius-sm);
+  background: rgba(6, 15, 40, 0.44);
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.gm-draft-gm-form[hidden] {
+  display: none !important;
+}
+
 @media (max-width: 760px) {
   .gm-commish-draft-head {
     align-items: flex-start;
@@ -6349,6 +6394,7 @@ input[type="text"] {
 #gm-auth-card::before,
 #gm-commish-card::before,
 #gm-commish-draft-card::before,
+#gm-tab-draft > .gm-card::before,
 #gm-tab-trade > .gm-card::before,
 #gm-tab-rename > .gm-card::before,
 #gm-tab-lineup > .gm-card::before,
