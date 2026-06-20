@@ -6333,7 +6333,7 @@ input[type="text"] {
 
 .gm-draft-gm-pick {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .gm-draft-gm-next {
@@ -6342,8 +6342,18 @@ input[type="text"] {
   background:
     linear-gradient(180deg, rgba(13, 26, 56, 0.92), rgba(6, 15, 40, 0.88));
   display: grid;
-  gap: 8px;
+  gap: 14px;
   padding: 18px;
+}
+
+.gm-draft-gm-next.submitted {
+  border-color: rgba(193, 199, 214, 0.26);
+  opacity: 0.82;
+}
+
+.gm-draft-gm-summary {
+  display: grid;
+  gap: 7px;
 }
 
 .gm-draft-gm-next strong {
@@ -6366,8 +6376,22 @@ input[type="text"] {
   padding: 14px;
 }
 
+.gm-draft-gm-form .btn {
+  justify-self: start;
+}
+
 .gm-draft-gm-form[hidden] {
   display: none !important;
+}
+
+.gm-draft-gm-submitted {
+  border: 1px solid rgba(193, 199, 214, 0.22);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 12px 14px;
+  text-transform: uppercase;
 }
 
 @media (max-width: 760px) {

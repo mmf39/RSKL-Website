@@ -87,9 +87,6 @@ const els = {
   draftStatus: document.getElementById("gm-draft-status"),
   draftBoard: document.getElementById("gm-draft-board"),
   gmDraftPick: document.getElementById("gm-draft-gm-pick"),
-  gmDraftForm: document.getElementById("gm-draft-gm-form"),
-  gmDraftPlayer: document.getElementById("gm-draft-gm-player"),
-  gmDraftSave: document.getElementById("gm-draft-gm-save"),
   gmDraftStatus: document.getElementById("gm-draft-gm-status"),
   draftUsedFields: Array.from(document.querySelectorAll("[data-draft-used-field]")),
   draftTeamFields: Array.from(document.querySelectorAll("[data-draft-team-field]")),
@@ -961,10 +958,10 @@ function setDraftSaveButtonState(isSaving, label = "Save Pick") {
   els.draftSave.textContent = label;
 }
 
-function setGmDraftSaveButtonState(isSaving, label = "Save Pick") {
-  if (!els.gmDraftSave) return;
-  els.gmDraftSave.disabled = isSaving;
-  els.gmDraftSave.textContent = label;
+function setGmDraftSaveButtonState(button, isSaving, label = "Save Pick") {
+  if (!button) return;
+  button.disabled = isSaving;
+  button.textContent = label;
 }
 
 function getDraftSubmissionKey(pick) {
@@ -1004,46 +1001,58 @@ function getAllDraftPickOptions(season = "c2s4") {
   return picks.sort((a, b) => a.round - b.round || a.pick - b.pick);
 }
 
-function getNextDraftPickForTeam(team, season = "c2s4") {
+function getDraftPicksForTeam(team, season = "c2s4") {
   const teamKey = normalizeName(displayTeamName(team));
-  if (!teamKey) return null;
+  if (!teamKey) return [];
   const localSubmitted = new Set(testDraftPicks.map((pick) => getDraftSubmissionKey(pick)));
-  return getAllDraftPickOptions(season).find((pick) => {
-    if (normalizeName(displayTeamName(pick.owner)) !== teamKey) return false;
-    const key = getDraftSubmissionKey({ season, round: pick.round, pick: pick.pick });
-    return !localSubmitted.has(key) && !submittedDraftPicksCache.has(key);
-  }) || null;
+  return getAllDraftPickOptions(season)
+    .filter((pick) => normalizeName(displayTeamName(pick.owner)) === teamKey)
+    .map((pick) => {
+      const key = getDraftSubmissionKey({ season, round: pick.round, pick: pick.pick });
+      return {
+        ...pick,
+        isSubmitted: localSubmitted.has(key) || submittedDraftPicksCache.has(key),
+      };
+    });
 }
 
 function renderGmDraftPick() {
   if (!els.gmDraftPick) return;
   const team = getAuthorizedTeam();
   if (!isSignedInGm() || isReporter() || !team) {
-    els.gmDraftPick.innerHTML = '<div class="gm-empty">Sign in with a GM team account to see your next pick.</div>';
-    if (els.gmDraftForm) els.gmDraftForm.hidden = true;
+    els.gmDraftPick.innerHTML = '<div class="gm-empty">Sign in with a GM team account to see your C2S4 picks.</div>';
     return;
   }
-  const pick = getNextDraftPickForTeam(team);
-  if (!pick) {
-    els.gmDraftPick.innerHTML = '<div class="gm-empty">No open picks found for your team right now.</div>';
-    if (els.gmDraftForm) els.gmDraftForm.hidden = true;
+  const picks = getDraftPicksForTeam(team);
+  if (!picks.length) {
+    els.gmDraftPick.innerHTML = '<div class="gm-empty">No C2S4 picks found for your team right now.</div>';
     return;
   }
-  els.gmDraftPick.dataset.season = "c2s4";
-  els.gmDraftPick.dataset.round = String(pick.round);
-  els.gmDraftPick.dataset.pick = String(pick.pick);
-  els.gmDraftPick.dataset.team = pick.owner || team;
-  els.gmDraftPick.dataset.sheetPickText = pick.text || "";
-  const originalText = pick.owner === pick.original ? "Original pick" : `via ${pick.original}`;
-  els.gmDraftPick.innerHTML = `
-    <div class="gm-draft-gm-next">
-      <span class="gm-draft-pick-meta">C2S4 Draft</span>
-      <strong>Round ${escapeHtml(pick.round)} Pick ${escapeHtml(pick.pick)}</strong>
-      <span class="gm-draft-pick-team">${escapeHtml(displayTeamName(pick.owner))}</span>
-      <small>${escapeHtml(originalText)}</small>
-    </div>
-  `;
-  if (els.gmDraftForm) els.gmDraftForm.hidden = false;
+  els.gmDraftPick.innerHTML = picks
+    .map((pick) => {
+      const originalText = pick.owner === pick.original ? "Original pick" : `via ${pick.original}`;
+      const key = getDraftSubmissionKey({ season: "c2s4", round: pick.round, pick: pick.pick });
+      return `
+        <article class="gm-draft-gm-next${pick.isSubmitted ? " submitted" : ""}" data-gm-draft-pick-card="${escapeHtml(key)}" data-season="c2s4" data-round="${escapeHtml(pick.round)}" data-pick="${escapeHtml(pick.pick)}" data-team="${escapeHtml(pick.owner || team)}" data-sheet-pick-text="${escapeHtml(pick.text || "")}">
+          <div class="gm-draft-gm-summary">
+            <span class="gm-draft-pick-meta">C2S4 Draft</span>
+            <strong>Round ${escapeHtml(pick.round)} Pick ${escapeHtml(pick.pick)}</strong>
+            <span class="gm-draft-pick-team">${escapeHtml(displayTeamName(pick.owner))}</span>
+            <small>${escapeHtml(originalText)}</small>
+          </div>
+          ${
+            pick.isSubmitted
+              ? '<div class="gm-draft-gm-submitted">Pick submitted</div>'
+              : `<div class="gm-draft-gm-form">
+                  <label class="label" for="gm-draft-player-${escapeHtml(key)}">Player Picked</label>
+                  <input id="gm-draft-player-${escapeHtml(key)}" class="text-input" type="text" placeholder="@player or player name" data-gm-draft-player />
+                  <button class="btn" type="button" data-gm-draft-save>Save Pick</button>
+                </div>`
+          }
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function getVisibleTestDraftPicks() {
@@ -1319,25 +1328,30 @@ function handleDraftSaveClick(event) {
 
 window.handleDraftSaveClick = handleDraftSaveClick;
 
-async function saveGmDraftPick() {
+async function saveGmDraftPick(card, button) {
   if (!isSignedInGm() || isReporter()) {
     setGmDraftStatus("Sign in with a GM team account first.", true);
     return;
   }
+  if (!card) {
+    setGmDraftStatus("Pick card could not be found.", true);
+    return;
+  }
   const team = getAuthorizedTeam();
+  const playerInput = card.querySelector("[data-gm-draft-player]");
   const pick = {
-    season: String(els.gmDraftPick?.dataset.season || "c2s4"),
+    season: String(card.dataset.season || "c2s4"),
     option: "used",
-    round: Math.max(1, Number(els.gmDraftPick?.dataset.round) || 1),
-    pick: Math.max(1, Number(els.gmDraftPick?.dataset.pick) || 1),
-    team: String(els.gmDraftPick?.dataset.team || team).trim(),
-    sheetPickText: String(els.gmDraftPick?.dataset.sheetPickText || "").trim(),
-    player: String(els.gmDraftPlayer?.value || "").trim(),
+    round: Math.max(1, Number(card.dataset.round) || 1),
+    pick: Math.max(1, Number(card.dataset.pick) || 1),
+    team: String(card.dataset.team || team).trim(),
+    sheetPickText: String(card.dataset.sheetPickText || "").trim(),
+    player: String(playerInput?.value || "").trim(),
     note: "",
     updatedAt: new Date().toISOString(),
   };
   if (!canEditTeam(pick.team)) {
-    setGmDraftStatus("You can only submit your own team's next pick.", true);
+    setGmDraftStatus("You can only submit your own team's picks.", true);
     return;
   }
   if (!pick.player) {
@@ -1345,7 +1359,7 @@ async function saveGmDraftPick() {
     return;
   }
   setGmDraftStatus("Saving pick...");
-  setGmDraftSaveButtonState(true, "Saving...");
+  setGmDraftSaveButtonState(button, true, "Saving...");
   setSubmitOverlayVisible(
     true,
     "Saving draft pick",
@@ -1353,10 +1367,16 @@ async function saveGmDraftPick() {
   );
   try {
     await saveDraftPickToSheet(pick);
-    testDraftPicks.push(pick);
+    const key = getDraftSubmissionKey(pick);
+    const existingIndex = testDraftPicks.findIndex((entry) => getDraftSubmissionKey(entry) === key);
+    if (existingIndex >= 0) {
+      testDraftPicks.splice(existingIndex, 1, pick);
+    } else {
+      testDraftPicks.push(pick);
+    }
     saveTestDraftPicks();
-    submittedDraftPicksCache.add(getDraftSubmissionKey(pick));
-    if (els.gmDraftPlayer) els.gmDraftPlayer.value = "";
+    submittedDraftPicksCache.add(key);
+    if (playerInput) playerInput.value = "";
     renderGmDraftPick();
     renderDraftRunner();
     setGmDraftStatus(`Saved Round ${pick.round}, Pick ${pick.pick}.`);
@@ -1381,7 +1401,7 @@ async function saveGmDraftPick() {
       setSubmitOverlayVisible(false);
     }, 2400);
   } finally {
-    setGmDraftSaveButtonState(false);
+    setGmDraftSaveButtonState(button, false);
   }
 }
 
@@ -3287,8 +3307,13 @@ function bindEvents() {
       setDraftStatus(`Loaded Round ${pick.round}, Pick ${pick.pick} for editing.`);
     });
   }
-  if (els.gmDraftSave) {
-    els.gmDraftSave.addEventListener("click", saveGmDraftPick);
+  if (els.gmDraftPick) {
+    els.gmDraftPick.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-gm-draft-save]");
+      if (!button) return;
+      const card = button.closest("[data-gm-draft-pick-card]");
+      saveGmDraftPick(card, button);
+    });
   }
   if (els.lockSave) {
     els.lockSave.addEventListener("click", async () => {
