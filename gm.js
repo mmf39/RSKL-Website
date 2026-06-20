@@ -755,6 +755,10 @@ function getDraftRunnerSeason() {
   return String(els.draftSeason?.value || "c2s4").trim() || "c2s4";
 }
 
+function getDraftRoundCount(season = getDraftRunnerSeason()) {
+  return String(season || "").trim().toLowerCase() === "c2s4" ? 2 : 4;
+}
+
 function getDraftOption() {
   return String(els.draftPickOption?.value || "used").trim() || "used";
 }
@@ -829,6 +833,7 @@ function getDraftOrderTeams() {
 }
 
 function getDraftOrderPickOptions(season = getDraftRunnerSeason(), round = 1) {
+  if (Number(round) > getDraftRoundCount(season)) return [];
   const order = getDraftOrderTeams();
   const ownership = parseDraftCapitalOwnership(season, round);
   const picks = order.map((originalTeam, idx) => {
@@ -880,6 +885,18 @@ function renderDraftSheetPickOptions() {
   if (options.some((pick) => pick.id === current)) {
     els.draftSheetPick.value = current;
   }
+}
+
+function syncDraftRoundOptions() {
+  if (!els.draftRound) return;
+  const season = getDraftRunnerSeason();
+  const maxRound = getDraftRoundCount(season);
+  const current = Math.max(1, Number(els.draftRound.value) || 1);
+  els.draftRound.innerHTML = Array.from({ length: maxRound }, (_, idx) => {
+    const round = idx + 1;
+    return `<option value="${round}">Round ${round}</option>`;
+  }).join("");
+  els.draftRound.value = String(Math.min(current, maxRound));
 }
 
 function syncDraftModeFields() {
@@ -995,7 +1012,7 @@ function buildSubmittedDraftPickSet(rows, season = "c2s4") {
 
 function getAllDraftPickOptions(season = "c2s4") {
   const picks = [];
-  for (let round = 1; round <= 4; round += 1) {
+  for (let round = 1; round <= getDraftRoundCount(season); round += 1) {
     picks.push(...getDraftOrderPickOptions(season, round));
   }
   return picks.sort((a, b) => a.round - b.round || a.pick - b.pick);
@@ -1209,6 +1226,19 @@ async function saveDraftRunnerPick() {
     note: String(els.draftNote?.value || "").trim(),
     updatedAt: new Date().toISOString(),
   };
+  if (pick.round > getDraftRoundCount(pick.season)) {
+    setDraftStatus(`${pick.season.toUpperCase()} only has ${getDraftRoundCount(pick.season)} rounds.`, true);
+    setSubmitOverlayVisible(
+      true,
+      "Invalid round",
+      `${pick.season.toUpperCase()} only has ${getDraftRoundCount(pick.season)} rounds.`,
+      "Pick Round 1 or Round 2 and try again."
+    );
+    window.setTimeout(() => {
+      setSubmitOverlayVisible(false);
+    }, 2200);
+    return;
+  }
   if (pick.option === "used") {
     const sheetPick = getSelectedSheetPick();
     if (!sheetPick) {
@@ -3241,6 +3271,7 @@ function bindEvents() {
   if (els.draftSeason) {
     els.draftSeason.addEventListener("change", () => {
       setDraftStatus("");
+      syncDraftRoundOptions();
       renderDraftSheetPickOptions();
       renderDraftRunner();
     });
@@ -3740,8 +3771,10 @@ async function init() {
     loadLocalGameLocks();
     loadFreeAgencySelection();
     loadTestDraftPicks();
+    syncDraftRoundOptions();
     try {
       await Promise.all([loadRoster(), loadDraftCapital(), loadDraftOrderData(), loadSubmittedDraftPicks()]);
+      syncDraftRoundOptions();
       syncDraftModeFields();
       renderDraftSheetPickOptions();
       renderGmDraftPick();
