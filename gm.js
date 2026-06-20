@@ -189,6 +189,7 @@ let freeAgencyResults = [];
 let testDraftPicks = [];
 let draftSaveInFlight = false;
 let gmDraftSaveInFlightKeys = new Set();
+let gmDraftUnlockedPickKeys = new Set();
 
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
@@ -989,6 +990,7 @@ function getDraftSubmissionKey(pick) {
 function isDraftPickSubmitted(pick) {
   const key = getDraftSubmissionKey(pick);
   if (!key) return false;
+  if (gmDraftUnlockedPickKeys.has(key)) return false;
   if (submittedDraftPicksCache.has(key)) return true;
   return testDraftPicks.some((entry) => getDraftSubmissionKey(entry) === key && String(entry.player || "").trim());
 }
@@ -1066,7 +1068,10 @@ function renderGmDraftPick() {
           </div>
           ${
             pick.isSubmitted
-              ? '<div class="gm-draft-gm-submitted">Pick submitted</div>'
+              ? `<div class="gm-draft-gm-submitted">
+                  <span>Pick submitted</span>
+                  <button class="btn ghost" type="button" data-gm-draft-undo>Undo selection</button>
+                </div>`
               : `<div class="gm-draft-gm-form">
                   <label class="label" for="gm-draft-player-${escapeHtml(key)}">Player Picked</label>
                   <input id="gm-draft-player-${escapeHtml(key)}" class="text-input" type="text" placeholder="@player or player name" data-gm-draft-player />
@@ -1077,6 +1082,34 @@ function renderGmDraftPick() {
       `;
     })
     .join("");
+}
+
+function undoGmDraftPick(card) {
+  if (!isSignedInGm() || isReporter()) {
+    setGmDraftStatus("Sign in with a GM team account first.", true);
+    return;
+  }
+  if (!card) {
+    setGmDraftStatus("Pick card could not be found.", true);
+    return;
+  }
+  const team = getAuthorizedTeam();
+  const pick = {
+    season: String(card.dataset.season || "c2s4"),
+    round: Math.max(1, Number(card.dataset.round) || 1),
+    pick: Math.max(1, Number(card.dataset.pick) || 1),
+    team: String(card.dataset.team || team).trim(),
+  };
+  if (!canEditTeam(pick.team)) {
+    setGmDraftStatus("You can only undo your own team's picks.", true);
+    return;
+  }
+  const key = getDraftSubmissionKey(pick);
+  gmDraftUnlockedPickKeys.add(key);
+  testDraftPicks = testDraftPicks.filter((entry) => getDraftSubmissionKey(entry) !== key);
+  saveTestDraftPicks();
+  renderGmDraftPick();
+  setGmDraftStatus(`Round ${pick.round}, Pick ${pick.pick} reopened for editing.`);
 }
 
 function getVisibleTestDraftPicks() {
@@ -1422,6 +1455,7 @@ async function saveGmDraftPick(card, button) {
       testDraftPicks.push(pick);
     }
     saveTestDraftPicks();
+    gmDraftUnlockedPickKeys.delete(key);
     submittedDraftPicksCache.add(key);
     if (playerInput) playerInput.value = "";
     renderGmDraftPick();
@@ -3358,6 +3392,12 @@ function bindEvents() {
   }
   if (els.gmDraftPick) {
     els.gmDraftPick.addEventListener("click", (event) => {
+      const undoButton = event.target.closest("[data-gm-draft-undo]");
+      if (undoButton) {
+        const card = undoButton.closest("[data-gm-draft-pick-card]");
+        undoGmDraftPick(card);
+        return;
+      }
       const button = event.target.closest("[data-gm-draft-save]");
       if (!button) return;
       const card = button.closest("[data-gm-draft-pick-card]");

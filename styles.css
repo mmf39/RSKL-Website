@@ -6388,10 +6388,20 @@ input[type="text"] {
   border: 1px solid rgba(193, 199, 214, 0.22);
   border-radius: var(--radius-sm);
   color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   font-weight: 900;
   letter-spacing: 0.08em;
   padding: 12px 14px;
   text-transform: uppercase;
+}
+
+.gm-draft-gm-submitted .btn {
+  flex: 0 0 auto;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 @media (max-width: 760px) {
