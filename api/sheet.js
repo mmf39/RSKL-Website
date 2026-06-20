@@ -18,6 +18,9 @@ const SOURCES = {
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vTr6cIsrgXTBa6ndhiGle_qOOUWgzH3KDUgPTANYDG2O_9u3_zdhOUGdzgz9yzMnqs1dgv54qg0TudU/pub?gid=959105096&single=true&output=csv",
   boxscore: C2S3_STATS_URL,
   "boxscore-playoffs": C2S3_PLAYOFF_BOXSCORE_URL,
+  "c2s3-draft": C2S3_STATS_URL,
+  "c2s4-draft":
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=894447035&single=true&output=csv",
   draft:
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=894447035&single=true&output=csv",
   "fa-stats":
@@ -126,8 +129,24 @@ function sliceC2S3BoxScores(text) {
   return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
 }
 
+function sliceC2S3Draft(text) {
+  const rows = parseCSV(text)
+    .slice(0, 22)
+    .map((row) => row.slice(0, 3));
+  return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
+}
+
+function sliceC2S4Draft(text) {
+  const rows = parseCSV(text)
+    .slice(0, 24)
+    .map((row) => row.slice(0, 3));
+  return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
+}
+
 const TRANSFORMS = {
   boxscore: sliceC2S3BoxScores,
+  "c2s3-draft": sliceC2S3Draft,
+  "c2s4-draft": sliceC2S4Draft,
   "player-stats": sliceC2S3PlayerStats,
 };
 

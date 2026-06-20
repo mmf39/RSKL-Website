@@ -834,20 +834,30 @@ function getDraftOrderTeams() {
     .map((row) => row.team);
 }
 
+function getDraftRoundPickOffset(season, round, baseRoundLength) {
+  let offset = 0;
+  for (let previousRound = 1; previousRound < Number(round); previousRound += 1) {
+    offset += baseRoundLength + parseDraftCapitalOwnership(season, previousRound).extras.length;
+  }
+  return offset;
+}
+
 function getDraftOrderPickOptions(season = getDraftRunnerSeason(), round = 1) {
   if (Number(round) > getDraftRoundCount(season)) return [];
   const order = getDraftOrderTeams();
+  const roundOffset = getDraftRoundPickOffset(season, round, order.length);
   const ownership = parseDraftCapitalOwnership(season, round);
   const picks = order.map((originalTeam, idx) => {
     const pickInfo = ownership.map.get(normalizeName(originalTeam));
     const owner = pickInfo?.owner || originalTeam;
+    const pickNumber = roundOffset + idx + 1;
     const label = owner === originalTeam
-      ? `Pick ${idx + 1}: ${owner}`
-      : `Pick ${idx + 1}: ${owner} via ${originalTeam}`;
+      ? `Pick ${pickNumber}: ${owner}`
+      : `Pick ${pickNumber}: ${owner} via ${originalTeam}`;
     return {
-      id: `${season}:${round}:${idx + 1}`,
+      id: `${season}:${round}:${pickNumber}`,
       round,
-      pick: idx + 1,
+      pick: pickNumber,
       owner,
       original: originalTeam,
       text: pickInfo?.text || "",
@@ -855,7 +865,7 @@ function getDraftOrderPickOptions(season = getDraftRunnerSeason(), round = 1) {
     };
   });
   ownership.extras.forEach((pickInfo, idx) => {
-    const pickNumber = order.length + idx + 1;
+    const pickNumber = roundOffset + order.length + idx + 1;
     picks.push({
       id: `${season}:${round}:comp:${idx}`,
       round,
@@ -1212,6 +1222,7 @@ async function saveDraftPickToSheet(pick) {
         season: pick.season,
         round: pick.round,
         pick: pick.pick,
+        draftPickLabel: `Round ${pick.round} Pick ${pick.pick}`,
         pickOption: pick.option,
         team: pick.team,
         player: pick.player,

@@ -1,4 +1,6 @@
 const DRAFT_CSV_URL = "/api/sheet?name=draft";
+const C2S3_DRAFT_CSV_URL = "/api/sheet?name=c2s3-draft";
+const C2S4_DRAFT_CSV_URL = "/api/sheet?name=c2s4-draft";
 const ARCHIVE_CSV_URL = "/api/sheet?name=archive";
 const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
 const DRAFT_CAPITAL_CSV_URL = "/api/sheet?name=draft-capital";
@@ -1037,7 +1039,7 @@ async function loadDraft() {
     c2s3Context = null;
 
     if (selectedYear === "c2s3" && selectedView === "teams") {
-      const rows = await fetchRows(DRAFT_CSV_URL);
+      const rows = await fetchRows(C2S3_DRAFT_CSV_URL);
       draftRowsCache = rows;
       const boardRows = extractC2S3DraftBoardRows(rows);
       els.sections.innerHTML = renderRound(
@@ -1050,38 +1052,13 @@ async function loadDraft() {
     }
 
     if (selectedYear === "c2s4" && selectedView === "teams") {
-      const [standingsRows, draftCapitalRows, tradeRows] = await Promise.all([
-        fetchRows(STANDINGS_CSV_URL),
-        fetchRows(DRAFT_CAPITAL_CSV_URL),
-        fetchRows(TRANSACTIONS_CSV_URL),
-      ]);
-      draftRowsCache = standingsRows;
-      const standings = parseStandingsRows(standingsRows);
-      const order = getReverseStandingsOrder(standings);
-      const standingsByTeam = new Map(standings.map((row) => [row.team, row]));
-      const draftCapitalByRound = parseDraftCapitalRows(draftCapitalRows, "c2s4");
-      const trades = parseTradeRows(tradeRows);
-      if (!order.length) {
-        els.sections.innerHTML = `
-          <section class="panel">
-            <div class="panel-head"><h2>C2S4 Draft Projection</h2></div>
-            <p>No current standings data available.</p>
-          </section>
-        `;
-      } else {
-        els.sections.innerHTML = [
-          renderC2S4ProjectionNote(order),
-          renderRound("round-1", "Round 1", [
-            ["Pick", "Original Pick", "Selection Team", "Current Record", "Notes"],
-            ...buildProjectedDraftRows(order, draftCapitalByRound, 1, standingsByTeam, trades),
-          ]),
-          renderRound("round-2", "Round 2", [
-            ["Pick", "Original Pick", "Selection Team", "Current Record", "Notes"],
-            ...buildProjectedDraftRows(order, draftCapitalByRound, 2, standingsByTeam, trades),
-          ]),
-        ].join("");
-        applyRoundFilter();
-      }
+      const rows = await fetchRows(C2S4_DRAFT_CSV_URL);
+      draftRowsCache = rows;
+      els.sections.innerHTML = renderRound(
+        "c2s4-board",
+        "C2S4 Draft Board",
+        extractC2S3DraftBoardRows(rows)
+      );
       updateLastUpdated();
       return;
     }
