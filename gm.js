@@ -982,6 +982,10 @@ function setGmDraftStatus(message, isError = false) {
   setStatus(els.gmDraftStatus, message, isError);
 }
 
+function getDraftClosedMessage() {
+  return "Draft submissions are locked for now.";
+}
+
 function setDraftSaveButtonState(isSaving, label = "Save Pick") {
   if (!els.draftSave) return;
   els.draftSave.disabled = isSaving;
@@ -1082,6 +1086,10 @@ function renderGmDraftPick() {
               ? `<div class="gm-draft-gm-submitted">
                   <span>Pick submitted</span>
                   <button class="btn ghost" type="button" data-gm-draft-undo>Undo selection</button>
+                </div>`
+              : !GM_DRAFT_SUBMISSIONS_OPEN
+              ? `<div class="gm-draft-gm-submitted">
+                  <span>Draft submissions locked</span>
                 </div>`
               : `<div class="gm-draft-gm-form">
                   <label class="label" for="gm-draft-player-${escapeHtml(key)}">Player Picked</label>
@@ -1250,6 +1258,20 @@ async function saveDraftRunnerPick() {
     "Checking draft pick",
     "Making sure the pick is ready to save."
   );
+  if (!GM_DRAFT_SUBMISSIONS_OPEN) {
+    const message = getDraftClosedMessage();
+    setDraftStatus(message, true);
+    setSubmitOverlayVisible(
+      true,
+      "Draft locked",
+      message,
+      "Draft picks cannot be submitted yet."
+    );
+    window.setTimeout(() => {
+      setSubmitOverlayVisible(false);
+    }, 2200);
+    return;
+  }
   if (!isSignedInGm() || !isCommish()) {
     setDraftStatus("Commissioner access required.", true);
     setSubmitOverlayVisible(
@@ -1413,6 +1435,10 @@ window.handleDraftSaveClick = handleDraftSaveClick;
 async function saveGmDraftPick(card, button) {
   if (!isSignedInGm() || isReporter()) {
     setGmDraftStatus("Sign in with a GM team account first.", true);
+    return;
+  }
+  if (!GM_DRAFT_SUBMISSIONS_OPEN) {
+    setGmDraftStatus(getDraftClosedMessage(), true);
     return;
   }
   if (!card) {
