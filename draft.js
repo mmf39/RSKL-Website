@@ -454,7 +454,7 @@ function renderCell(value, header, index) {
     return "";
   }
   const headerLower = String(header || "").toLowerCase();
-  const likelyTeamCol = headerLower.includes("team");
+  const likelyTeamCol = headerLower.includes("team") || index === 1;
   const likelyPlayerCol =
     headerLower.includes("player") ||
     headerLower.includes("prospect") ||
