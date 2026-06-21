@@ -20,6 +20,10 @@ const GM_POWER_REPORTER_HANDLE_KEY = "rskl_power_reporter_handle";
 const GM_DRAFT_RUNNER_KEY = "rskl_commish_test_draft_picks";
 const GM_DRAFT_SUBMISSIONS_OPEN = true;
 const GM_DRAFT_PROSPECTS_RANGE = "G1:K76";
+const GM_DRAFT_SEASON = "c2s4";
+const GM_DRAFT_PICKS_TABLE = "draft_picks";
+const GM_DRAFT_PROSPECTS_TABLE = "draft_prospects";
+const GM_DRAFT_SETTINGS_TABLE = "draft_settings";
 const POWER_REPORTER_VALUE = "__REPORTER__";
 const GM_GAME_LOCKS_TABLE = "gm_game_locks";
 const GM_ALL_STAR_VOTES_TABLE = "gm_all_star_votes_public";
@@ -176,6 +180,10 @@ let draftCapitalRowsCache = [];
 let draftOrderPicksCache = [];
 let draftProspectsCache = [];
 let submittedDraftPicksCache = new Set();
+let draftSettingsCache = null;
+let draftRealtimeClient = null;
+let draftRealtimeChannel = null;
+let draftRealtimeRefreshTimer = null;
 let tradeBlocksCache = {};
 let powerVotesCache = {};
 let supabaseUrl = "";
@@ -543,6 +551,11 @@ function supabaseUrlWithApiKey(path) {
   return `${supabaseUrl}${path}${sep}apikey=${encodeURIComponent(supabaseAnon)}`;
 }
 
+function supabaseRestUrl(path) {
+  requireSupabaseConfig();
+  return `${supabaseUrl}/rest/v1${path}`;
+}
+
 async function loadSupabaseConfig() {
   const cfg = await requestJson(SUPABASE_CONFIG_URL, { cache: "no-store" });
   supabaseUrl = String(cfg.url || cfg.supabaseUrl || "").trim();
@@ -552,6 +565,51 @@ async function loadSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
     throw new Error("Missing Supabase config from /api/supabase-config.");
   }
+}
+
+function getDraftRealtimeClient() {
+  if (draftRealtimeClient) return draftRealtimeClient;
+  if (!window.supabase?.createClient || !supabaseUrl || !supabaseAnon) return null;
+  draftRealtimeClient = window.supabase.createClient(supabaseUrl, supabaseAnon, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+  return draftRealtimeClient;
+}
+
+function scheduleSupabaseDraftRefresh() {
+  window.clearTimeout(draftRealtimeRefreshTimer);
+  draftRealtimeRefreshTimer = window.setTimeout(() => {
+    refreshSupabaseDraftData().catch((error) => {
+      setGmDraftStatus(error?.message || "Could not refresh live draft data.", true);
+    });
+  }, 250);
+}
+
+function subscribeToDraftRealtime() {
+  const client = getDraftRealtimeClient();
+  if (!client || draftRealtimeChannel) return;
+  draftRealtimeChannel = client
+    .channel(`${GM_DRAFT_SEASON}-draft-room`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: GM_DRAFT_PICKS_TABLE, filter: `season=eq.${GM_DRAFT_SEASON}` },
+      scheduleSupabaseDraftRefresh
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: GM_DRAFT_PROSPECTS_TABLE, filter: `season=eq.${GM_DRAFT_SEASON}` },
+      scheduleSupabaseDraftRefresh
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: GM_DRAFT_SETTINGS_TABLE, filter: `season=eq.${GM_DRAFT_SEASON}` },
+      scheduleSupabaseDraftRefresh
+    )
+    .subscribe();
 }
 
 async function fetchAuthUser(accessToken) {
@@ -992,6 +1050,12 @@ function getDraftClosedMessage() {
   return "Draft submissions are locked for now.";
 }
 
+function areDraftSubmissionsOpen() {
+  if (!GM_DRAFT_SUBMISSIONS_OPEN) return false;
+  if (draftSettingsCache && draftSettingsCache.submissions_open !== true) return false;
+  return true;
+}
+
 function setDraftSaveButtonState(isSaving, label = "Save Pick") {
   if (!els.draftSave) return;
   els.draftSave.disabled = isSaving;
@@ -1095,6 +1159,80 @@ function buildDraftProspects(rows) {
     });
 }
 
+function buildDraftProspectsFromSupabase(rows) {
+  return (Array.isArray(rows) ? rows : [])
+    .filter((row) => row?.available !== false && String(row?.player || "").trim())
+    .map((row) => {
+      const stats = [];
+      if (row.monthly !== null && row.monthly !== undefined && String(row.monthly).trim() !== "") {
+        stats.push({ label: "Monthly", value: String(row.monthly) });
+      }
+      if (row.ranked_days !== null && row.ranked_days !== undefined && String(row.ranked_days).trim() !== "") {
+        stats.push({ label: "Ranked Days", value: String(row.ranked_days) });
+      }
+      return {
+        name: String(row.player || "").trim(),
+        stats,
+      };
+    });
+}
+
+function buildSubmittedDraftPickSetFromSupabase(rows) {
+  const out = new Set();
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    const season = String(row?.season || GM_DRAFT_SEASON).trim();
+    const round = Number(row?.round) || 0;
+    const pick = Number(row?.pick) || 0;
+    const player = String(row?.player || "").trim();
+    const status = String(row?.status || "").trim().toLowerCase();
+    if (!season || !round || !pick || (!player && status !== "forfeit")) return;
+    out.add(`${season}:${round}:${pick}`);
+  });
+  return out;
+}
+
+async function loadSupabaseDraftData() {
+  if (!supabaseUrl || !supabaseAnon) return false;
+  const headers = authHeaders(false, "");
+  const [prospects, picks, settingsRows] = await Promise.all([
+    requestJson(
+      supabaseRestUrl(
+        `/${GM_DRAFT_PROSPECTS_TABLE}?select=player,monthly,ranked_days,available&season=eq.${encodeURIComponent(GM_DRAFT_SEASON)}&order=created_at.asc`
+      ),
+      { headers }
+    ),
+    requestJson(
+      supabaseRestUrl(
+        `/${GM_DRAFT_PICKS_TABLE}?select=season,round,pick,team,player,status&season=eq.${encodeURIComponent(GM_DRAFT_SEASON)}&order=pick.asc`
+      ),
+      { headers }
+    ),
+    requestJson(
+      supabaseRestUrl(
+        `/${GM_DRAFT_SETTINGS_TABLE}?select=season,submissions_open,current_round,current_pick&season=eq.${encodeURIComponent(GM_DRAFT_SEASON)}&limit=1`
+      ),
+      { headers }
+    ),
+  ]);
+  if (!Array.isArray(prospects) || !prospects.length) {
+    return false;
+  }
+  draftProspectsCache = buildDraftProspectsFromSupabase(prospects);
+  submittedDraftPicksCache = buildSubmittedDraftPickSetFromSupabase(picks);
+  draftSettingsCache = Array.isArray(settingsRows) ? settingsRows[0] || null : null;
+  renderDraftProspectSelects();
+  renderGmDraftPick();
+  renderDraftRunner();
+  return true;
+}
+
+async function refreshSupabaseDraftData() {
+  const loaded = await loadSupabaseDraftData();
+  if (!loaded) {
+    await loadSubmittedDraftPicks();
+  }
+}
+
 function getDraftProspectByName(player) {
   const key = normalizeName(player);
   return draftProspectsCache.find((prospect) => normalizeName(prospect.name) === key) || null;
@@ -1188,6 +1326,13 @@ function getDraftPicksForTeam(team, season = "c2s4") {
 }
 
 function getCurrentOpenDraftPick(season = "c2s4") {
+  const livePick = Number(draftSettingsCache?.current_pick) || 0;
+  if (String(draftSettingsCache?.season || season) === season && livePick > 0) {
+    const liveOption = getAllDraftPickOptions(season).find((pick) => Number(pick.pick) === livePick);
+    if (liveOption && !isDraftPickSubmitted({ season, round: liveOption.round, pick: liveOption.pick })) {
+      return liveOption;
+    }
+  }
   return getAllDraftPickOptions(season).find((pick) =>
     !isDraftPickSubmitted({ season, round: pick.round, pick: pick.pick })
   ) || null;
@@ -1236,7 +1381,7 @@ function renderGmDraftPick() {
                   <span>Pick submitted</span>
                   <button class="btn ghost" type="button" data-gm-draft-undo>Undo selection</button>
                 </div>`
-              : !GM_DRAFT_SUBMISSIONS_OPEN
+              : !areDraftSubmissionsOpen()
               ? `<div class="gm-draft-gm-submitted">
                   <span>Draft submissions locked</span>
                 </div>`
@@ -1411,6 +1556,34 @@ async function saveDraftPickToSheet(pick) {
   }
 }
 
+function syncDraftPickToSheetInBackground(pick) {
+  saveDraftPickToSheet(pick).catch((error) => {
+    console.warn("Draft sheet backup sync failed:", error?.message || error);
+  });
+}
+
+async function submitDraftPickToSupabase(pick) {
+  if (!supabaseUrl || !supabaseAnon) {
+    throw new Error("Supabase draft tables are not connected.");
+  }
+  const userId = String(gmSession?.user?.id || "").trim();
+  if (!userId) {
+    throw new Error("Sign in again before submitting a draft pick.");
+  }
+  return requestJson(supabaseRestUrl("/rpc/submit_draft_pick"), {
+    method: "POST",
+    headers: await authHeadersFresh(),
+    body: JSON.stringify({
+      p_season: pick.season || GM_DRAFT_SEASON,
+      p_round: Number(pick.round) || 1,
+      p_pick: Number(pick.pick) || 1,
+      p_team: pick.team,
+      p_player: pick.player,
+      p_user: userId,
+    }),
+  });
+}
+
 async function saveDraftRunnerPick() {
   setDraftStatus("Save clicked. Checking pick...");
   setSubmitOverlayVisible(
@@ -1418,7 +1591,7 @@ async function saveDraftRunnerPick() {
     "Checking draft pick",
     "Making sure the pick is ready to save."
   );
-  if (!GM_DRAFT_SUBMISSIONS_OPEN) {
+  if (!areDraftSubmissionsOpen()) {
     const message = getDraftClosedMessage();
     setDraftStatus(message, true);
     setSubmitOverlayVisible(
@@ -1545,22 +1718,24 @@ async function saveDraftRunnerPick() {
     }, 2200);
     return;
   }
-  setDraftStatus("Saving pick to draft sheet...");
+  setDraftStatus("Saving pick to live draft...");
   setDraftSaveButtonState(true, "Saving...");
   setSubmitOverlayVisible(
     true,
     "Saving draft pick",
-    `Round ${pick.round}, Pick ${pick.pick} is being sent to the draft sheet.`
+    `Round ${pick.round}, Pick ${pick.pick} is being sent to the live draft.`
   );
   draftSaveInFlight = true;
   try {
-    await saveDraftPickToSheet(pick);
+    await submitDraftPickToSupabase(pick);
+    syncDraftPickToSheetInBackground(pick);
+    await refreshSupabaseDraftData();
   } catch (error) {
-    setDraftStatus(error?.message || "Draft pick could not be saved to the sheet.", true);
+    setDraftStatus(error?.message || "Draft pick could not be saved to Supabase.", true);
     setSubmitOverlayVisible(
       true,
       "Draft pick failed",
-      error?.message || "Draft pick could not be saved to the sheet.",
+      error?.message || "Draft pick could not be saved to Supabase.",
       "Check the pick info and try again."
     );
     window.setTimeout(() => {
@@ -1581,11 +1756,11 @@ async function saveDraftRunnerPick() {
   removeLocalDraftProspect(pick.player);
   saveTestDraftPicks();
   renderDraftRunner();
-  setDraftStatus(`Saved Round ${pick.round}, Pick ${pick.pick} to the draft sheet.`);
+  setDraftStatus(`Saved Round ${pick.round}, Pick ${pick.pick} to the live draft.`);
   setSubmitOverlayVisible(
     true,
     "Draft pick saved",
-    `Round ${pick.round}, Pick ${pick.pick} was saved to the draft sheet.`,
+    `Round ${pick.round}, Pick ${pick.pick} was saved to the live draft.`,
     "You can move to the next pick now."
   );
   window.setTimeout(() => {
@@ -1615,7 +1790,7 @@ async function saveGmDraftPick(card, button) {
     setGmDraftStatus("Sign in with a GM team account first.", true);
     return;
   }
-  if (!GM_DRAFT_SUBMISSIONS_OPEN) {
+  if (!areDraftSubmissionsOpen()) {
     setGmDraftStatus(getDraftClosedMessage(), true);
     return;
   }
@@ -1671,10 +1846,12 @@ async function saveGmDraftPick(card, button) {
   setSubmitOverlayVisible(
     true,
     "Saving draft pick",
-    `Round ${pick.round}, Pick ${pick.pick} is being sent to the draft sheet.`
+    `Round ${pick.round}, Pick ${pick.pick} is being sent to the live draft.`
   );
   try {
-    await saveDraftPickToSheet(pick);
+    await submitDraftPickToSupabase(pick);
+    syncDraftPickToSheetInBackground(pick);
+    await refreshSupabaseDraftData();
     const existingIndex = testDraftPicks.findIndex((entry) => getDraftSubmissionKey(entry) === key);
     if (existingIndex >= 0) {
       testDraftPicks.splice(existingIndex, 1, pick);
@@ -3497,6 +3674,14 @@ async function loadDraftOrderData() {
 }
 
 async function loadSubmittedDraftPicks() {
+  try {
+    if (await loadSupabaseDraftData()) {
+      subscribeToDraftRealtime();
+      return;
+    }
+  } catch (error) {
+    console.warn("Supabase draft load failed, falling back to sheet:", error?.message || error);
+  }
   const response = await fetch(DRAFT_URL, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Fetch failed: ${response.status}`);
@@ -4082,6 +4267,12 @@ async function init() {
     loadTestDraftPicks();
     syncDraftRoundOptions();
     try {
+      await loadSupabaseConfig();
+      subscribeToDraftRealtime();
+    } catch (configError) {
+      setAuthStatus(configError.message || "Supabase config could not load.", true);
+    }
+    try {
       await loadSubmittedDraftPicks();
       await Promise.all([loadRoster(), loadDraftCapital(), loadDraftOrderData()]);
       syncDraftRoundOptions();
@@ -4091,7 +4282,6 @@ async function init() {
     } catch (draftError) {
       setDraftStatus(draftError.message || "Unable to load draft order.", true);
     }
-    await loadSupabaseConfig();
     const savedToken = localStorage.getItem(GM_ACCESS_TOKEN_KEY) || "";
     const savedRefresh = localStorage.getItem(GM_REFRESH_TOKEN_KEY) || "";
     const cachedUser = safeJsonParse(
