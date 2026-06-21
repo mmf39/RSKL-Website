@@ -6389,6 +6389,61 @@ input[type="text"] {
   display: none !important;
 }
 
+.gm-draft-player-preview {
+  border: 1px solid rgba(255, 140, 26, 0.2);
+  border-radius: var(--radius-sm);
+  background: rgba(2, 8, 24, 0.42);
+  color: var(--ink);
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.gm-draft-player-preview.muted {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.gm-draft-player-preview-head {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.gm-draft-player-preview-head strong {
+  color: var(--accent);
+  font-size: 1.05rem;
+}
+
+.gm-draft-player-preview-head span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.gm-draft-player-preview-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.gm-draft-player-preview-grid span {
+  border: 1px solid rgba(193, 199, 214, 0.14);
+  border-radius: 6px;
+  color: var(--muted);
+  display: grid;
+  font-size: 0.78rem;
+  font-weight: 900;
+  gap: 3px;
+  padding: 8px;
+  text-transform: uppercase;
+}
+
+.gm-draft-player-preview-grid strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
 .gm-draft-gm-submitted {
   border: 1px solid rgba(193, 199, 214, 0.22);
   border-radius: var(--radius-sm);
