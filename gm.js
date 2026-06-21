@@ -1042,9 +1042,23 @@ function buildSubmittedDraftPickSet(rows, season = "c2s4") {
 }
 
 function buildDraftProspects(rows) {
-  const prospectsRows = sliceRange(rows, GM_DRAFT_PROSPECTS_RANGE).filter((row) =>
+  let prospectsRows = sliceRange(rows, GM_DRAFT_PROSPECTS_RANGE).filter((row) =>
     row.some((cell) => String(cell || "").trim())
   );
+  if (!prospectsRows.length || !prospectsRows.some((row) => row.some((cell) => String(cell || "").trim().toLowerCase() === "player"))) {
+    const titleRowIndex = (rows || []).findIndex((row) =>
+      row.some((cell) => String(cell || "").trim().toLowerCase() === "draft prospects")
+    );
+    const titleColIndex = titleRowIndex >= 0
+      ? rows[titleRowIndex].findIndex((cell) => String(cell || "").trim().toLowerCase() === "draft prospects")
+      : -1;
+    if (titleRowIndex >= 0 && titleColIndex >= 0) {
+      prospectsRows = rows
+        .slice(titleRowIndex, titleRowIndex + 76)
+        .map((row) => row.slice(titleColIndex, titleColIndex + 5))
+        .filter((row) => row.some((cell) => String(cell || "").trim()));
+    }
+  }
   if (!prospectsRows.length) return [];
 
   const headerIndex = prospectsRows.findIndex((row) =>
@@ -1233,7 +1247,7 @@ function renderGmDraftPick() {
               : `<div class="gm-draft-gm-form">
                   <label class="label" for="gm-draft-player-${escapeHtml(key)}">Player Picked</label>
                   <input id="gm-draft-player-${escapeHtml(key)}" type="hidden" value="" data-gm-draft-player />
-                  <div class="gm-draft-prospect-picker" data-gm-draft-prospect-picker></div>
+                  <div class="gm-draft-prospect-picker" data-gm-draft-prospect-picker>${getDraftProspectPickerHtml()}</div>
                   <button class="btn" type="button" data-gm-draft-save>Save Pick</button>
                 </div>`
           }
