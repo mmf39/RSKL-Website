@@ -322,6 +322,10 @@ function setActiveTab(tab) {
       button.classList.toggle("active", isActive);
     });
   }
+  if (active === "draft" || active === "commish") {
+    renderDraftProspectSelects();
+    renderGmDraftPick();
+  }
 }
 
 function displayTeamName(value) {
@@ -4064,7 +4068,8 @@ async function init() {
     loadTestDraftPicks();
     syncDraftRoundOptions();
     try {
-      await Promise.all([loadRoster(), loadDraftCapital(), loadDraftOrderData(), loadSubmittedDraftPicks()]);
+      await loadSubmittedDraftPicks();
+      await Promise.all([loadRoster(), loadDraftCapital(), loadDraftOrderData()]);
       syncDraftRoundOptions();
       syncDraftModeFields();
       renderDraftSheetPickOptions();
