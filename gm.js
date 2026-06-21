@@ -1258,6 +1258,8 @@ async function saveDraftPickToSheet(pick) {
         pickOption: pick.option,
         team: pick.team,
         player: pick.player,
+        removeDraftProspect: true,
+        prospectsRange: "G1:K76",
         note: pick.note,
         sheetPickText: pick.sheetPickText,
         commissioner,
