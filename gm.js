@@ -1091,6 +1091,7 @@ function renderGmDraftPick() {
       const originalText = pick.owner === pick.original ? "Original pick" : `via ${pick.original}`;
       const key = getDraftSubmissionKey({ season: "c2s4", round: pick.round, pick: pick.pick });
       const isOnClock = currentPick && Number(currentPick.round) === Number(pick.round) && Number(currentPick.pick) === Number(pick.pick);
+      const previousPickNumber = Math.max(1, Number(pick.pick) - 1);
       return `
         <article class="gm-draft-gm-next${pick.isSubmitted ? " submitted" : ""}${isOnClock ? " on-clock" : ""}" data-gm-draft-pick-card="${escapeHtml(key)}" data-season="c2s4" data-round="${escapeHtml(pick.round)}" data-pick="${escapeHtml(pick.pick)}" data-team="${escapeHtml(pick.owner || team)}" data-sheet-pick-text="${escapeHtml(pick.text || "")}">
           <div class="gm-draft-gm-summary">
@@ -1111,7 +1112,7 @@ function renderGmDraftPick() {
                 </div>`
               : !isOnClock
               ? `<div class="gm-draft-gm-submitted">
-                  <span>Locked until Pick ${escapeHtml(currentPick?.pick || 1)} is submitted</span>
+                  <span>Locked until Pick ${escapeHtml(previousPickNumber)} is submitted</span>
                 </div>`
               : `<div class="gm-draft-gm-form">
                   <label class="label" for="gm-draft-player-${escapeHtml(key)}">Player Picked</label>
