@@ -19,6 +19,7 @@ const GM_FREE_AGENCY_VOTER_KEY = "rskl_gm_free_agency_voter_handle";
 const GM_POWER_REPORTER_HANDLE_KEY = "rskl_power_reporter_handle";
 const GM_DRAFT_RUNNER_KEY = "rskl_commish_test_draft_picks";
 const GM_DRAFT_SUBMISSIONS_OPEN = true;
+const GM_DRAFT_PROSPECTS_RANGE = "G1:K76";
 const POWER_REPORTER_VALUE = "__REPORTER__";
 const GM_GAME_LOCKS_TABLE = "gm_game_locks";
 const GM_ALL_STAR_VOTES_TABLE = "gm_all_star_votes_public";
@@ -173,6 +174,7 @@ let rosterByTeam = new Map();
 let picksByTeam = new Map();
 let draftCapitalRowsCache = [];
 let draftOrderPicksCache = [];
+let draftProspectsCache = [];
 let submittedDraftPicksCache = new Set();
 let tradeBlocksCache = {};
 let powerVotesCache = {};
@@ -1035,6 +1037,60 @@ function buildSubmittedDraftPickSet(rows, season = "c2s4") {
   return out;
 }
 
+function buildDraftProspects(rows) {
+  const prospectsRows = sliceRange(rows, GM_DRAFT_PROSPECTS_RANGE).filter((row) =>
+    row.some((cell) => String(cell || "").trim())
+  );
+  if (!prospectsRows.length) return [];
+
+  const seen = new Set();
+  return prospectsRows
+    .map((row) => {
+      const cells = row.map((cell) => String(cell || "").trim());
+      return cells.find((cell) => {
+        const lower = cell.toLowerCase();
+        if (!cell) return false;
+        if (["draft prospects", "prospect", "prospects", "player", "name", "rank", "monthly", "team", "notes"].includes(lower)) return false;
+        if (!cell.startsWith("@")) return false;
+        return true;
+      }) || "";
+    })
+    .filter((name) => {
+      const key = normalizeName(name);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function getDraftProspectOptionsHtml(selectedValue = "") {
+  const selected = String(selectedValue || "").trim();
+  const options = ['<option value="">Select prospect</option>'];
+  draftProspectsCache.forEach((name) => {
+    options.push(
+      `<option value="${escapeHtml(name)}"${name === selected ? " selected" : ""}>${escapeHtml(name)}</option>`
+    );
+  });
+  if (selected && !draftProspectsCache.includes(selected)) {
+    options.push(`<option value="${escapeHtml(selected)}" selected>${escapeHtml(selected)}</option>`);
+  }
+  return options.join("");
+}
+
+function renderDraftProspectSelects() {
+  if (els.draftPlayer) {
+    const selected = els.draftPlayer.value;
+    els.draftPlayer.innerHTML = getDraftProspectOptionsHtml(selected);
+  }
+}
+
+function removeLocalDraftProspect(player) {
+  const key = normalizeName(player);
+  if (!key) return;
+  draftProspectsCache = draftProspectsCache.filter((name) => normalizeName(name) !== key);
+  renderDraftProspectSelects();
+}
+
 function getAllDraftPickOptions(season = "c2s4") {
   const picks = [];
   for (let round = 1; round <= getDraftRoundCount(season); round += 1) {
@@ -1116,7 +1172,9 @@ function renderGmDraftPick() {
                 </div>`
               : `<div class="gm-draft-gm-form">
                   <label class="label" for="gm-draft-player-${escapeHtml(key)}">Player Picked</label>
-                  <input id="gm-draft-player-${escapeHtml(key)}" class="text-input" type="text" placeholder="@player or player name" data-gm-draft-player />
+                  <select id="gm-draft-player-${escapeHtml(key)}" class="text-input" data-gm-draft-player>
+                    ${getDraftProspectOptionsHtml()}
+                  </select>
                   <button class="btn" type="button" data-gm-draft-save>Save Pick</button>
                 </div>`
           }
@@ -1215,7 +1273,10 @@ function fillDraftRunnerForm(pick) {
   if (els.draftRound) els.draftRound.value = String(pick.round || 1);
   if (els.draftPick) els.draftPick.value = String(pick.pick || 1);
   if (els.draftTeam) els.draftTeam.value = pick.team || "";
-  if (els.draftPlayer) els.draftPlayer.value = pick.player || "";
+  if (els.draftPlayer) {
+    els.draftPlayer.innerHTML = getDraftProspectOptionsHtml(pick.player || "");
+    els.draftPlayer.value = pick.player || "";
+  }
   if (els.draftNote) els.draftNote.value = pick.note || "";
   syncDraftModeFields();
   renderDraftSheetPickOptions();
@@ -1443,6 +1504,7 @@ async function saveDraftRunnerPick() {
   } else {
     testDraftPicks.push(pick);
   }
+  removeLocalDraftProspect(pick.player);
   saveTestDraftPicks();
   renderDraftRunner();
   setDraftStatus(`Saved Round ${pick.round}, Pick ${pick.pick} to the draft sheet.`);
@@ -1548,6 +1610,7 @@ async function saveGmDraftPick(card, button) {
     saveTestDraftPicks();
     gmDraftUnlockedPickKeys.delete(key);
     submittedDraftPicksCache.add(key);
+    removeLocalDraftProspect(pick.player);
     if (playerInput) playerInput.value = "";
     renderGmDraftPick();
     renderDraftRunner();
@@ -3364,7 +3427,10 @@ async function loadSubmittedDraftPicks() {
   if (!response.ok) {
     throw new Error(`Fetch failed: ${response.status}`);
   }
-  submittedDraftPicksCache = buildSubmittedDraftPickSet(parseCSV(await response.text()));
+  const rows = parseCSV(await response.text());
+  submittedDraftPicksCache = buildSubmittedDraftPickSet(rows);
+  draftProspectsCache = buildDraftProspects(rows);
+  renderDraftProspectSelects();
 }
 
 function bindEvents() {
@@ -3450,6 +3516,7 @@ function bindEvents() {
       }
       if (els.draftPlayer) {
         els.draftPlayer.value = "";
+        renderDraftProspectSelects();
         els.draftPlayer.focus();
       }
       if (els.draftNote) {
