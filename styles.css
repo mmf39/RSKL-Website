@@ -6351,6 +6351,11 @@ input[type="text"] {
   opacity: 0.82;
 }
 
+.gm-draft-gm-next.on-clock {
+  border-color: rgba(255, 170, 64, 0.78);
+  box-shadow: 0 0 0 1px rgba(255, 170, 64, 0.2);
+}
+
 .gm-draft-gm-summary {
   display: grid;
   gap: 7px;

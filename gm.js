@@ -1057,6 +1057,22 @@ function getDraftPicksForTeam(team, season = "c2s4") {
     });
 }
 
+function getCurrentOpenDraftPick(season = "c2s4") {
+  return getAllDraftPickOptions(season).find((pick) =>
+    !isDraftPickSubmitted({ season, round: pick.round, pick: pick.pick })
+  ) || null;
+}
+
+function isCurrentOpenDraftPick(pick) {
+  const season = String(pick?.season || "c2s4").trim() || "c2s4";
+  const current = getCurrentOpenDraftPick(season);
+  return Boolean(
+    current &&
+      Number(current.round) === Number(pick?.round) &&
+      Number(current.pick) === Number(pick?.pick)
+  );
+}
+
 function renderGmDraftPick() {
   if (!els.gmDraftPick) return;
   const team = getAuthorizedTeam();
@@ -1069,12 +1085,14 @@ function renderGmDraftPick() {
     els.gmDraftPick.innerHTML = '<div class="gm-empty">No C2S4 picks found for your team right now.</div>';
     return;
   }
+  const currentPick = getCurrentOpenDraftPick("c2s4");
   els.gmDraftPick.innerHTML = picks
     .map((pick) => {
       const originalText = pick.owner === pick.original ? "Original pick" : `via ${pick.original}`;
       const key = getDraftSubmissionKey({ season: "c2s4", round: pick.round, pick: pick.pick });
+      const isOnClock = currentPick && Number(currentPick.round) === Number(pick.round) && Number(currentPick.pick) === Number(pick.pick);
       return `
-        <article class="gm-draft-gm-next${pick.isSubmitted ? " submitted" : ""}" data-gm-draft-pick-card="${escapeHtml(key)}" data-season="c2s4" data-round="${escapeHtml(pick.round)}" data-pick="${escapeHtml(pick.pick)}" data-team="${escapeHtml(pick.owner || team)}" data-sheet-pick-text="${escapeHtml(pick.text || "")}">
+        <article class="gm-draft-gm-next${pick.isSubmitted ? " submitted" : ""}${isOnClock ? " on-clock" : ""}" data-gm-draft-pick-card="${escapeHtml(key)}" data-season="c2s4" data-round="${escapeHtml(pick.round)}" data-pick="${escapeHtml(pick.pick)}" data-team="${escapeHtml(pick.owner || team)}" data-sheet-pick-text="${escapeHtml(pick.text || "")}">
           <div class="gm-draft-gm-summary">
             <span class="gm-draft-pick-meta">C2S4 Draft</span>
             <strong>Round ${escapeHtml(pick.round)} Pick ${escapeHtml(pick.pick)}</strong>
@@ -1090,6 +1108,10 @@ function renderGmDraftPick() {
               : !GM_DRAFT_SUBMISSIONS_OPEN
               ? `<div class="gm-draft-gm-submitted">
                   <span>Draft submissions locked</span>
+                </div>`
+              : !isOnClock
+              ? `<div class="gm-draft-gm-submitted">
+                  <span>Locked until Pick ${escapeHtml(currentPick?.pick || 1)} is submitted</span>
                 </div>`
               : `<div class="gm-draft-gm-form">
                   <label class="label" for="gm-draft-player-${escapeHtml(key)}">Player Picked</label>
@@ -1300,6 +1322,23 @@ async function saveDraftRunnerPick() {
     note: String(els.draftNote?.value || "").trim(),
     updatedAt: new Date().toISOString(),
   };
+  if (!isCurrentOpenDraftPick(pick)) {
+    const current = getCurrentOpenDraftPick(pick.season);
+    const message = current
+      ? `Pick ${current.pick} is on the clock. You cannot submit Pick ${pick.pick} yet.`
+      : "All draft picks have already been submitted.";
+    setDraftStatus(message, true);
+    setSubmitOverlayVisible(
+      true,
+      "Pick not open",
+      message,
+      "Submit each pick in order."
+    );
+    window.setTimeout(() => {
+      setSubmitOverlayVisible(false);
+    }, 2200);
+    return;
+  }
   if (pick.round > getDraftRoundCount(pick.season)) {
     setDraftStatus(`${pick.season.toUpperCase()} only has ${getDraftRoundCount(pick.season)} rounds.`, true);
     setSubmitOverlayVisible(
@@ -1461,6 +1500,17 @@ async function saveGmDraftPick(card, button) {
   const key = getDraftSubmissionKey(pick);
   if (!canEditTeam(pick.team)) {
     setGmDraftStatus("You can only submit your own team's picks.", true);
+    return;
+  }
+  if (!isCurrentOpenDraftPick(pick)) {
+    const current = getCurrentOpenDraftPick(pick.season);
+    setGmDraftStatus(
+      current
+        ? `Pick ${current.pick} is on the clock. You cannot submit Pick ${pick.pick} yet.`
+        : "All draft picks have already been submitted.",
+      true
+    );
+    renderGmDraftPick();
     return;
   }
   if (isDraftPickSubmitted(pick)) {
