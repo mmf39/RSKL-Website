@@ -6389,59 +6389,121 @@ input[type="text"] {
   display: none !important;
 }
 
-.gm-draft-player-preview {
-  border: 1px solid rgba(255, 140, 26, 0.2);
+.gm-draft-prospect-picker {
+  border: 1px solid rgba(255, 140, 26, 0.22);
   border-radius: var(--radius-sm);
-  background: rgba(2, 8, 24, 0.42);
-  color: var(--ink);
-  display: grid;
-  gap: 10px;
-  padding: 12px;
+  background: rgba(2, 8, 24, 0.48);
+  max-height: 420px;
+  overflow: auto;
+  padding: 8px;
 }
 
-.gm-draft-player-preview.muted {
-  color: var(--muted);
-  font-weight: 800;
-}
-
-.gm-draft-player-preview-head {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.gm-draft-player-preview-head strong {
-  color: var(--accent);
-  font-size: 1.05rem;
-}
-
-.gm-draft-player-preview-head span {
-  color: var(--muted);
-  font-weight: 800;
-}
-
-.gm-draft-player-preview-grid {
+.gm-draft-prospect-list {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
-.gm-draft-player-preview-grid span {
+.gm-draft-prospect-row {
+  align-items: center;
+  background: rgba(9, 18, 38, 0.86);
   border: 1px solid rgba(193, 199, 214, 0.14);
-  border-radius: 6px;
-  color: var(--muted);
+  border-radius: 9px;
+  color: var(--ink);
+  cursor: pointer;
   display: grid;
-  font-size: 0.78rem;
+  gap: 12px;
+  grid-template-columns: minmax(140px, 1fr) auto auto;
+  min-height: 62px;
+  padding: 10px 12px;
+  text-align: left;
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+  width: 100%;
+}
+
+.gm-draft-prospect-row:hover,
+.gm-draft-prospect-row:focus-visible {
+  border-color: rgba(255, 140, 26, 0.62);
+  background: rgba(14, 28, 58, 0.94);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.gm-draft-prospect-row.selected {
+  border-color: rgba(255, 140, 26, 0.9);
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+
+.gm-draft-prospect-name {
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 950;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gm-draft-prospect-stats {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.gm-draft-prospect-stat {
+  align-items: center;
+  background: rgba(255, 140, 26, 0.1);
+  border: 1px solid rgba(255, 140, 26, 0.2);
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-flex;
+  gap: 6px;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+
+.gm-draft-prospect-stat span {
+  font-size: 0.72rem;
   font-weight: 900;
-  gap: 3px;
-  padding: 8px;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
-.gm-draft-player-preview-grid strong {
+.gm-draft-prospect-stat strong {
+  color: var(--accent);
+  font-size: 0.95rem;
+  font-weight: 950;
+}
+
+.gm-draft-prospect-action {
+  border: 1px solid rgba(193, 199, 214, 0.2);
+  border-radius: 9px;
   color: var(--ink);
-  font-size: 1rem;
+  font-weight: 950;
+  padding: 8px 12px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.gm-draft-prospect-row.selected .gm-draft-prospect-action {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #080808;
+}
+
+@media (max-width: 720px) {
+  .gm-draft-prospect-row {
+    grid-template-columns: 1fr;
+  }
+
+  .gm-draft-prospect-stats {
+    justify-content: flex-start;
+  }
+
+  .gm-draft-prospect-action {
+    justify-self: start;
+  }
 }
 
 .gm-draft-gm-submitted {

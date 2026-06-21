@@ -2,7 +2,6 @@ const ROSTER_URL = "/api/sheet?name=roster";
 const GM_LINEUP_CSV_URL = ROSTER_URL;
 const DRAFT_URL = "/api/sheet?name=draft";
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
-const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const STANDINGS_DASHBOARD_URL = "/api/sheet?name=standings-dashboard";
 const POWER_RANKINGS_URL = "/api/sheet?name=power-rankings";
 const SCHEDULE_URL = "/api/sheet?name=schedule";
@@ -176,7 +175,6 @@ let picksByTeam = new Map();
 let draftCapitalRowsCache = [];
 let draftOrderPicksCache = [];
 let draftProspectsCache = [];
-let draftPlayerStatsCache = new Map();
 let submittedDraftPicksCache = new Set();
 let tradeBlocksCache = {};
 let powerVotesCache = {};
@@ -1045,187 +1043,108 @@ function buildDraftProspects(rows) {
   );
   if (!prospectsRows.length) return [];
 
+  const headerIndex = prospectsRows.findIndex((row) =>
+    row.some((cell) => ["player", "prospect", "name"].includes(String(cell || "").trim().toLowerCase()))
+  );
+  const headers = headerIndex >= 0
+    ? prospectsRows[headerIndex].map((cell) => String(cell || "").trim())
+    : ["Player"];
+  const playerIndex = Math.max(
+    0,
+    headers.findIndex((cell) => ["player", "prospect", "name"].includes(String(cell || "").trim().toLowerCase()))
+  );
   const seen = new Set();
   return prospectsRows
+    .slice(headerIndex >= 0 ? headerIndex + 1 : 0)
     .map((row) => {
       const cells = row.map((cell) => String(cell || "").trim());
-      return cells.find((cell) => {
-        const lower = cell.toLowerCase();
-        if (!cell) return false;
-        if (["draft prospects", "prospect", "prospects", "player", "name", "rank", "monthly", "team", "notes"].includes(lower)) return false;
-        if (!cell.startsWith("@")) return false;
-        return true;
-      }) || "";
+      const name = cells[playerIndex] || cells.find((cell) => cell.startsWith("@")) || "";
+      return {
+        name,
+        stats: headers
+          .map((label, index) => ({
+            label: String(label || `Stat ${index + 1}`).trim(),
+            value: cells[index] || "",
+          }))
+          .filter((stat, index) => index !== playerIndex && stat.label && stat.value),
+      };
     })
-    .filter((name) => {
-      const key = normalizeName(name);
+    .filter((prospect) => {
+      const key = normalizeName(prospect.name);
       if (!key || seen.has(key)) return false;
       seen.add(key);
       return true;
     });
 }
 
-function getDraftProspectOptionsHtml(selectedValue = "") {
+function getDraftProspectByName(player) {
+  const key = normalizeName(player);
+  return draftProspectsCache.find((prospect) => normalizeName(prospect.name) === key) || null;
+}
+
+function getDraftProspectPickerHtml(selectedValue = "") {
   const selected = String(selectedValue || "").trim();
-  const options = ['<option value="">Select prospect</option>'];
-  draftProspectsCache.forEach((name) => {
-    options.push(
-      `<option value="${escapeHtml(name)}"${name === selected ? " selected" : ""}>${escapeHtml(name)}</option>`
-    );
-  });
-  if (selected && !draftProspectsCache.includes(selected)) {
-    options.push(`<option value="${escapeHtml(selected)}" selected>${escapeHtml(selected)}</option>`);
+  if (!draftProspectsCache.length) {
+    return '<div class="gm-empty">No draft prospects available.</div>';
   }
-  return options.join("");
+  return `
+    <div class="gm-draft-prospect-list">
+      ${draftProspectsCache
+        .map((prospect) => {
+          const isSelected = normalizeName(prospect.name) === normalizeName(selected);
+          return `
+            <button class="gm-draft-prospect-row${isSelected ? " selected" : ""}" type="button" data-draft-prospect-choice="${escapeHtml(prospect.name)}">
+              <span class="gm-draft-prospect-name">${escapeHtml(prospect.name)}</span>
+              <span class="gm-draft-prospect-stats">
+                ${prospect.stats.length
+                  ? prospect.stats
+                      .map(
+                        (stat) => `
+                          <span class="gm-draft-prospect-stat">
+                            <span>${escapeHtml(stat.label)}</span>
+                            <strong>${escapeHtml(stat.value)}</strong>
+                          </span>
+                        `
+                      )
+                      .join("")
+                  : '<span class="gm-draft-prospect-stat"><span>Stats</span><strong>--</strong></span>'}
+              </span>
+              <span class="gm-draft-prospect-action">${isSelected ? "Selected" : "Select"}</span>
+            </button>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
+function renderDraftProspectPicker(container, selectedValue = "") {
+  if (!container) return;
+  container.innerHTML = getDraftProspectPickerHtml(selectedValue);
 }
 
 function renderDraftProspectSelects() {
-  if (els.draftPlayer) {
-    const selected = els.draftPlayer.value;
-    els.draftPlayer.innerHTML = getDraftProspectOptionsHtml(selected);
-    renderDraftPlayerPreview(document.querySelector("[data-draft-player-preview]"), els.draftPlayer.value);
-  }
+  document.querySelectorAll("[data-draft-prospect-picker]").forEach((container) => {
+    renderDraftProspectPicker(container, els.draftPlayer?.value || "");
+  });
+  document.querySelectorAll("[data-gm-draft-prospect-picker]").forEach((container) => {
+    const card = container.closest("[data-gm-draft-pick-card]");
+    const input = card?.querySelector("[data-gm-draft-player]");
+    renderDraftProspectPicker(container, input?.value || "");
+  });
 }
 
 function removeLocalDraftProspect(player) {
   const key = normalizeName(player);
   if (!key) return;
-  draftProspectsCache = draftProspectsCache.filter((name) => normalizeName(name) !== key);
-  renderDraftProspectSelects();
-}
-
-function parseDraftStatNumber(value) {
-  const num = Number(String(value || "").replace(/[^0-9.\-]/g, ""));
-  return Number.isNaN(num) ? null : num;
-}
-
-function draftStatMedian(numbers) {
-  if (!numbers.length) return null;
-  const sorted = [...numbers].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
-}
-
-function detectDraftPlayerStatColumns(headerRow) {
-  const lowered = (headerRow || []).map((cell) => String(cell || "").trim().toLowerCase());
-  const find = (...names) => {
-    for (const name of names) {
-      const idx = lowered.indexOf(name);
-      if (idx !== -1) return idx;
-    }
-    return -1;
-  };
-  return {
-    date: Math.max(0, find("date")),
-    team: Math.max(1, find("team")),
-    player: Math.max(2, find("player", "user", "handle")),
-    score: Math.max(3, find("score", "points", "karma")),
-    rank: Math.max(4, find("rank")),
-  };
-}
-
-function buildDraftPlayerStats(rows) {
-  const out = new Map();
-  if (!Array.isArray(rows) || rows.length < 2) return out;
-  const columns = detectDraftPlayerStatColumns(rows[0] || []);
-  const bodyRows = rows.slice(1);
-  const byDate = new Map();
-  bodyRows.forEach((row) => {
-    const dateKey = String(row[columns.date] || "").trim();
-    const score = parseDraftStatNumber(row[columns.score]);
-    if (!dateKey || score === null) return;
-    if (!byDate.has(dateKey)) byDate.set(dateKey, []);
-    byDate.get(dateKey).push(score);
-  });
-  const baselines = new Map();
-  byDate.forEach((scores, dateKey) => {
-    baselines.set(dateKey, {
-      mean: scores.reduce((sum, score) => sum + score, 0) / scores.length,
-      median: draftStatMedian(scores),
-    });
-  });
-  bodyRows.forEach((row) => {
-    const player = String(row[columns.player] || "").trim();
-    const key = normalizeName(player);
-    const score = parseDraftStatNumber(row[columns.score]);
-    if (!key || score === null) return;
-    const rank = parseDraftStatNumber(row[columns.rank]);
-    const team = String(row[columns.team] || "").trim();
-    const dateKey = String(row[columns.date] || "").trim();
-    const baseline = baselines.get(dateKey);
-    if (!out.has(key)) {
-      out.set(key, {
-        player,
-        team,
-        games: 0,
-        total: 0,
-        rankTotal: 0,
-        rankGames: 0,
-        relTotal: 0,
-        relGames: 0,
-        war: 0,
-      });
-    }
-    const item = out.get(key);
-    item.player = item.player || player;
-    if (team) item.team = team;
-    item.games += 1;
-    item.total += score;
-    if (rank !== null) {
-      item.rankTotal += rank;
-      item.rankGames += 1;
-    }
-    if (baseline?.mean > 0) {
-      item.relTotal += score / baseline.mean;
-      item.relGames += 1;
-    }
-    if (baseline?.median > 0) {
-      const replacementScore = 0.9 * baseline.median;
-      const avgMargin = 0.92 * baseline.median;
-      if (avgMargin > 0) item.war += (score - replacementScore) / avgMargin;
-    }
-  });
-  out.forEach((item) => {
-    item.avg = item.games ? item.total / item.games : 0;
-    item.avgRank = item.rankGames ? item.rankTotal / item.rankGames : 0;
-    item.rel = item.relGames ? item.relTotal / item.relGames : 0;
-  });
-  return out;
-}
-
-function formatDraftStat(value, digits = 2) {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return "--";
-  return num.toFixed(digits);
-}
-
-function getDraftPlayerStatCard(player) {
-  const key = normalizeName(player);
-  if (!key) return '<div class="gm-draft-player-preview muted">Select a prospect to preview stats.</div>';
-  const stats = draftPlayerStatsCache.get(key);
-  if (!stats) {
-    return `<div class="gm-draft-player-preview muted">No C2S3 stats found for ${escapeHtml(player)}.</div>`;
+  draftProspectsCache = draftProspectsCache.filter((prospect) => normalizeName(prospect.name) !== key);
+  if (els.draftPlayer && normalizeName(els.draftPlayer.value) === key) {
+    els.draftPlayer.value = "";
   }
-  return `
-    <div class="gm-draft-player-preview">
-      <div class="gm-draft-player-preview-head">
-        <strong>${escapeHtml(stats.player || player)}</strong>
-        <span>${escapeHtml(displayTeamName(stats.team) || "Free Agent")}</span>
-      </div>
-      <div class="gm-draft-player-preview-grid">
-        <span>GP <strong>${escapeHtml(stats.games)}</strong></span>
-        <span>AVG <strong>${formatDraftStat(stats.avg)}</strong></span>
-        <span>Rank <strong>${formatDraftStat(stats.avgRank)}</strong></span>
-        <span>REL <strong>${formatDraftStat(stats.rel, 3)}</strong></span>
-        <span>WAR <strong>${formatDraftStat(stats.war)}</strong></span>
-      </div>
-    </div>
-  `;
-}
-
-function renderDraftPlayerPreview(container, player) {
-  if (!container) return;
-  container.innerHTML = getDraftPlayerStatCard(player);
+  document.querySelectorAll("[data-gm-draft-player]").forEach((input) => {
+    if (normalizeName(input.value) === key) input.value = "";
+  });
+  renderDraftProspectSelects();
 }
 
 function getAllDraftPickOptions(season = "c2s4") {
@@ -1309,10 +1228,8 @@ function renderGmDraftPick() {
                 </div>`
               : `<div class="gm-draft-gm-form">
                   <label class="label" for="gm-draft-player-${escapeHtml(key)}">Player Picked</label>
-                  <select id="gm-draft-player-${escapeHtml(key)}" class="text-input" data-gm-draft-player>
-                    ${getDraftProspectOptionsHtml()}
-                  </select>
-                  <div class="gm-draft-player-preview muted" data-gm-draft-player-preview>Select a prospect to preview stats.</div>
+                  <input id="gm-draft-player-${escapeHtml(key)}" type="hidden" value="" data-gm-draft-player />
+                  <div class="gm-draft-prospect-picker" data-gm-draft-prospect-picker></div>
                   <button class="btn" type="button" data-gm-draft-save>Save Pick</button>
                 </div>`
           }
@@ -1403,6 +1320,7 @@ function renderDraftRunner() {
       }
     )
     .join("");
+  renderDraftProspectSelects();
 }
 
 function fillDraftRunnerForm(pick) {
@@ -1412,8 +1330,8 @@ function fillDraftRunnerForm(pick) {
   if (els.draftPick) els.draftPick.value = String(pick.pick || 1);
   if (els.draftTeam) els.draftTeam.value = pick.team || "";
   if (els.draftPlayer) {
-    els.draftPlayer.innerHTML = getDraftProspectOptionsHtml(pick.player || "");
     els.draftPlayer.value = pick.player || "";
+    renderDraftProspectSelects();
   }
   if (els.draftNote) els.draftNote.value = pick.note || "";
   syncDraftModeFields();
@@ -3571,15 +3489,6 @@ async function loadSubmittedDraftPicks() {
   renderDraftProspectSelects();
 }
 
-async function loadDraftPlayerStats() {
-  const response = await fetch(PLAYER_STATS_URL, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Fetch failed: ${response.status}`);
-  }
-  draftPlayerStatsCache = buildDraftPlayerStats(parseCSV(await response.text()));
-  renderDraftProspectSelects();
-}
-
 function bindEvents() {
   if (els.tabButtons && els.tabButtons.length) {
     els.tabButtons.forEach((button) => {
@@ -3648,9 +3557,14 @@ function bindEvents() {
   if (els.draftRound) {
     els.draftRound.addEventListener("change", renderDraftSheetPickOptions);
   }
-  if (els.draftPlayer) {
-    els.draftPlayer.addEventListener("change", () => {
-      renderDraftPlayerPreview(document.querySelector("[data-draft-player-preview]"), els.draftPlayer.value);
+  const commishDraftProspectPicker = document.querySelector("[data-draft-prospect-picker]");
+  if (commishDraftProspectPicker && els.draftPlayer) {
+    commishDraftProspectPicker.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-draft-prospect-choice]");
+      if (!button) return;
+      els.draftPlayer.value = button.dataset.draftProspectChoice || "";
+      renderDraftProspectSelects();
+      renderDraftRunner();
     });
   }
   if (els.draftSave) {
@@ -3669,7 +3583,6 @@ function bindEvents() {
       if (els.draftPlayer) {
         els.draftPlayer.value = "";
         renderDraftProspectSelects();
-        els.draftPlayer.focus();
       }
       if (els.draftNote) {
         els.draftNote.value = "";
@@ -3701,13 +3614,17 @@ function bindEvents() {
     });
   }
   if (els.gmDraftPick) {
-    els.gmDraftPick.addEventListener("change", (event) => {
-      const playerSelect = event.target.closest("[data-gm-draft-player]");
-      if (!playerSelect) return;
-      const card = playerSelect.closest("[data-gm-draft-pick-card]");
-      renderDraftPlayerPreview(card?.querySelector("[data-gm-draft-player-preview]"), playerSelect.value);
-    });
     els.gmDraftPick.addEventListener("click", (event) => {
+      const prospectButton = event.target.closest("[data-draft-prospect-choice]");
+      if (prospectButton) {
+        const card = prospectButton.closest("[data-gm-draft-pick-card]");
+        const input = card?.querySelector("[data-gm-draft-player]");
+        if (!input) return;
+        input.value = prospectButton.dataset.draftProspectChoice || "";
+        renderDraftProspectPicker(card.querySelector("[data-gm-draft-prospect-picker]"), input.value);
+        setGmDraftStatus("");
+        return;
+      }
       const undoButton = event.target.closest("[data-gm-draft-undo]");
       if (undoButton) {
         const card = undoButton.closest("[data-gm-draft-pick-card]");
@@ -4147,7 +4064,7 @@ async function init() {
     loadTestDraftPicks();
     syncDraftRoundOptions();
     try {
-      await Promise.all([loadRoster(), loadDraftCapital(), loadDraftOrderData(), loadSubmittedDraftPicks(), loadDraftPlayerStats()]);
+      await Promise.all([loadRoster(), loadDraftCapital(), loadDraftOrderData(), loadSubmittedDraftPicks()]);
       syncDraftRoundOptions();
       syncDraftModeFields();
       renderDraftSheetPickOptions();
