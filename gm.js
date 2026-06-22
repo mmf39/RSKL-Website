@@ -178,6 +178,7 @@ let rosterByTeam = new Map();
 let picksByTeam = new Map();
 let draftCapitalRowsCache = [];
 let draftOrderPicksCache = [];
+let liveDraftPicksCache = [];
 let draftProspectsCache = [];
 let submittedDraftPicksCache = new Set();
 let draftSettingsCache = null;
@@ -917,8 +918,32 @@ function getDraftRoundPickOffset(season, round, baseRoundLength) {
   return offset;
 }
 
+function getSupabaseDraftOrderPickOptions(season = getDraftRunnerSeason(), round = 1) {
+  if (String(season || "").trim().toLowerCase() !== GM_DRAFT_SEASON) return [];
+  return liveDraftPicksCache
+    .filter((pick) => String(pick?.season || GM_DRAFT_SEASON).trim() === GM_DRAFT_SEASON)
+    .filter((pick) => Number(pick?.round) === Number(round))
+    .filter((pick) => Number(pick?.pick) > 0 && String(pick?.team || "").trim())
+    .sort((a, b) => Number(a.pick) - Number(b.pick))
+    .map((pick) => {
+      const owner = displayTeamName(pick.team);
+      const pickNumber = Number(pick.pick);
+      return {
+        id: `${season}:${Number(round)}:${pickNumber}`,
+        round: Number(round),
+        pick: pickNumber,
+        owner,
+        original: owner,
+        text: String(pick.player || "").trim() ? `Selected ${pick.player}` : "",
+        label: `Pick ${pickNumber}: ${owner}`,
+      };
+    });
+}
+
 function getDraftOrderPickOptions(season = getDraftRunnerSeason(), round = 1) {
   if (Number(round) > getDraftRoundCount(season)) return [];
+  const supabasePicks = getSupabaseDraftOrderPickOptions(season, round);
+  if (String(season || "").trim().toLowerCase() === GM_DRAFT_SEASON) return supabasePicks;
   const order = getDraftOrderTeams();
   const roundOffset = getDraftRoundPickOffset(season, round, order.length);
   const ownership = parseDraftCapitalOwnership(season, round);
@@ -1213,7 +1238,7 @@ async function loadSupabaseDraftData() {
     ),
     requestJson(
       supabaseRestUrl(
-        `/${GM_DRAFT_PICKS_TABLE}?select=season,round,pick,team,player,status&season=eq.${encodeURIComponent(GM_DRAFT_SEASON)}&order=pick.asc`
+        `/${GM_DRAFT_PICKS_TABLE}?select=season,round,pick,team,player,status&season=eq.${encodeURIComponent(GM_DRAFT_SEASON)}&order=round.asc&order=pick.asc`
       ),
       { headers }
     ),
@@ -1224,6 +1249,7 @@ async function loadSupabaseDraftData() {
       { headers }
     ),
   ]);
+  liveDraftPicksCache = Array.isArray(picks) ? picks : [];
   draftProspectsCache = buildDraftProspectsFromSupabase(prospects);
   submittedDraftPicksCache = buildSubmittedDraftPickSetFromSupabase(picks);
   draftSettingsCache = Array.isArray(settingsRows) ? settingsRows[0] || null : null;
