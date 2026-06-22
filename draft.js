@@ -1019,25 +1019,25 @@ async function renderLiveC2S4DraftBoard() {
   const pickedByNumber = new Map(
     picks.map((pick) => [Number(pick.pick), pick])
   );
-  const rows = getC2S4BaseDraftRows().map((row, index) => {
-    if (index === 0) return row;
+  const rows = getC2S4BaseDraftRows().slice(1).map((row) => {
     const pickNumber = Number(row[0]);
     const fallbackRound = pickNumber > 10 ? 2 : 1;
     const livePick = pickedByNumber.get(pickNumber);
-    if (!livePick) return [row[0], row[1], fallbackRound, row[2]];
-    return [
-      row[0],
-      livePick.team || row[1],
-      Number(livePick.round) || fallbackRound,
-      String(livePick.status || "").toLowerCase() === "forfeit"
-        ? "FORFEITED"
-        : livePick.player || row[2],
-    ];
+    return {
+      round: livePick ? Number(livePick.round) || fallbackRound : fallbackRound,
+      row: [
+        row[0],
+        livePick?.team || row[1],
+        String(livePick?.status || "").toLowerCase() === "forfeit"
+          ? "FORFEITED"
+          : livePick?.player || row[2],
+      ],
+    };
   });
   draftRowsCache = rows;
-  const headers = ["Pick", "Team", "Round", "Selection"];
-  const roundOneRows = [headers, ...rows.slice(1).filter((row) => Number(row[2]) === 1)];
-  const roundTwoRows = [headers, ...rows.slice(1).filter((row) => Number(row[2]) === 2)];
+  const headers = ["Pick", "Team", "Selection"];
+  const roundOneRows = [headers, ...rows.filter((pick) => Number(pick.round) === 1).map((pick) => pick.row)];
+  const roundTwoRows = [headers, ...rows.filter((pick) => Number(pick.round) === 2).map((pick) => pick.row)];
   els.sections.innerHTML = [
     renderRound("round-1", "Round 1", roundOneRows),
     renderRound("round-2", "Round 2", roundTwoRows),
