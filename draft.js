@@ -151,6 +151,9 @@ let c2s3Context = null;
 let supabaseUrl = "";
 let supabaseAnon = "";
 let supabaseConfigPromise = null;
+let draftRealtimeClient = null;
+let draftRealtimeChannel = null;
+let draftRealtimeRefreshTimer = null;
 
 function hasSupabaseConfig() {
   return Boolean(supabaseUrl && supabaseAnon);
@@ -206,6 +209,53 @@ async function fetchSupabaseRows(path) {
     throw new Error(payload?.message || payload?.error || `Supabase request failed: ${response.status}`);
   }
   return Array.isArray(payload) ? payload : [];
+}
+
+function getLiveDraftRealtimeClient() {
+  if (draftRealtimeClient) return draftRealtimeClient;
+  if (!window.supabase?.createClient || !hasSupabaseConfig()) return null;
+  draftRealtimeClient = window.supabase.createClient(supabaseUrl, supabaseAnon, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+  return draftRealtimeClient;
+}
+
+function shouldRealtimeRefreshDraftView() {
+  const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
+  const selectedView = els.viewSelect ? els.viewSelect.value : "teams";
+  return selectedYear === LIVE_DRAFT_SEASON && (selectedView === "teams" || selectedView === "prospects");
+}
+
+function scheduleLiveDraftRefresh() {
+  window.clearTimeout(draftRealtimeRefreshTimer);
+  draftRealtimeRefreshTimer = window.setTimeout(() => {
+    if (shouldRealtimeRefreshDraftView()) {
+      loadDraft();
+    }
+  }, 250);
+}
+
+async function subscribeToLiveDraftRealtime() {
+  await loadSupabaseConfig();
+  const client = getLiveDraftRealtimeClient();
+  if (!client || draftRealtimeChannel) return;
+  draftRealtimeChannel = client
+    .channel(`${LIVE_DRAFT_SEASON}-public-draft-board`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: LIVE_DRAFT_PICKS_TABLE, filter: `season=eq.${LIVE_DRAFT_SEASON}` },
+      scheduleLiveDraftRefresh
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: LIVE_DRAFT_PROSPECTS_TABLE, filter: `season=eq.${LIVE_DRAFT_SEASON}` },
+      scheduleLiveDraftRefresh
+    )
+    .subscribe();
 }
 
 function parseCSV(text) {
@@ -1342,4 +1392,7 @@ if (els.runLottery) {
   els.runLottery.addEventListener("click", runLotterySimulation);
 }
 
+subscribeToLiveDraftRealtime().catch(() => {
+  // The board still works with normal Supabase REST fetches if realtime cannot connect.
+});
 loadDraft();
