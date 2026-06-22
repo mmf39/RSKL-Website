@@ -203,6 +203,7 @@ let testDraftPicks = [];
 let draftSaveInFlight = false;
 let gmDraftSaveInFlightKeys = new Set();
 let gmDraftUnlockedPickKeys = new Set();
+let draftAutoPickInFlightKey = "";
 
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
@@ -1134,10 +1135,18 @@ function getDraftClockLabel() {
   return `Time left: ${formatDraftClock(remaining)}`;
 }
 
+function isDraftClockExpired() {
+  const remaining = getDraftClockRemainingMs();
+  return remaining !== null && remaining <= 0;
+}
+
 function refreshDraftClockDisplays() {
   document.querySelectorAll("[data-draft-clock]").forEach((node) => {
     node.textContent = getDraftClockLabel();
   });
+  if (isDraftClockExpired()) {
+    handleExpiredDraftClock();
+  }
 }
 
 function setDraftSaveButtonState(isSaving, label = "Save Pick") {
@@ -1445,6 +1454,7 @@ function renderGmDraftPick() {
       const originalText = pick.owner === pick.original ? "Original pick" : `via ${pick.original}`;
       const key = getDraftSubmissionKey({ season: "c2s4", round: pick.round, pick: pick.pick });
       const isOnClock = currentPick && Number(currentPick.round) === Number(pick.round) && Number(currentPick.pick) === Number(pick.pick);
+      const isExpiredOnClock = isOnClock && isDraftClockExpired();
       const previousPickNumber = Math.max(1, Number(pick.pick) - 1);
       return `
         <article class="gm-draft-gm-next${pick.isSubmitted ? " submitted" : ""}${isOnClock ? " on-clock" : ""}" data-gm-draft-pick-card="${escapeHtml(key)}" data-season="c2s4" data-round="${escapeHtml(pick.round)}" data-pick="${escapeHtml(pick.pick)}" data-team="${escapeHtml(pick.owner || team)}" data-sheet-pick-text="${escapeHtml(pick.text || "")}">
@@ -1468,6 +1478,10 @@ function renderGmDraftPick() {
               : !isOnClock
               ? `<div class="gm-draft-gm-submitted">
                   <span>Locked until Pick ${escapeHtml(previousPickNumber)} is submitted</span>
+                </div>`
+              : isExpiredOnClock
+              ? `<div class="gm-draft-gm-submitted">
+                  <span>Timer expired. Auto pick pending</span>
                 </div>`
               : `<div class="gm-draft-gm-form">
                   <label class="label" for="gm-draft-player-${escapeHtml(key)}">Player Picked</label>
@@ -1664,6 +1678,52 @@ async function submitDraftPickToSupabase(pick) {
   });
 }
 
+async function processExpiredDraftPickNow(source = "timer") {
+  const current = getCurrentOpenDraftPick(GM_DRAFT_SEASON);
+  if (!current || !isDraftClockExpired() || !gmSession?.user?.id) return;
+  const key = getDraftSubmissionKey({ season: GM_DRAFT_SEASON, round: current.round, pick: current.pick });
+  if (draftAutoPickInFlightKey === key) return;
+  draftAutoPickInFlightKey = key;
+  setGmDraftStatus("Timer expired. Running auto pick...");
+  try {
+    const result = await requestJson(supabaseRestUrl("/rpc/process_expired_draft_pick"), {
+      method: "POST",
+      headers: await authHeadersFresh(),
+      body: JSON.stringify({ p_season: GM_DRAFT_SEASON }),
+    });
+    if (result?.action === "auto_pick" && result.player) {
+      syncDraftPickToSheetInBackground({
+        season: result.season || GM_DRAFT_SEASON,
+        option: "used",
+        round: Number(result.round) || current.round,
+        pick: Number(result.pick) || current.pick,
+        team: result.team || current.owner,
+        player: result.player,
+        note: "Auto pick",
+        sheetPickText: "Auto pick",
+        updatedAt: new Date().toISOString(),
+      });
+      setGmDraftStatus(`Auto picked ${result.player} for Pick ${result.pick}.`);
+    } else if (source === "timer") {
+      setGmDraftStatus("Timer expired. Auto pick checked.");
+    }
+    await refreshSupabaseDraftData();
+  } catch (error) {
+    setGmDraftStatus(error?.message || "Auto pick could not run yet.", true);
+  } finally {
+    draftAutoPickInFlightKey = "";
+  }
+}
+
+function handleExpiredDraftClock() {
+  const current = getCurrentOpenDraftPick(GM_DRAFT_SEASON);
+  if (!current) return;
+  const key = getDraftSubmissionKey({ season: GM_DRAFT_SEASON, round: current.round, pick: current.pick });
+  if (draftAutoPickInFlightKey === key) return;
+  renderGmDraftPick();
+  processExpiredDraftPickNow("timer");
+}
+
 async function saveDraftRunnerPick() {
   setDraftStatus("Save clicked. Checking pick...");
   setSubmitOverlayVisible(
@@ -1683,6 +1743,12 @@ async function saveDraftRunnerPick() {
     window.setTimeout(() => {
       setSubmitOverlayVisible(false);
     }, 2200);
+    return;
+  }
+  if (isDraftClockExpired()) {
+    const message = "Timer expired. This pick is locked while auto pick runs.";
+    setDraftStatus(message, true);
+    processExpiredDraftPickNow("commish-save");
     return;
   }
   if (!isSignedInGm() || !isCommish()) {
@@ -1912,6 +1978,12 @@ async function saveGmDraftPick(card, button) {
   }
   if (!areDraftSubmissionsOpen()) {
     setGmDraftStatus(getDraftClosedMessage(), true);
+    return;
+  }
+  if (isDraftClockExpired()) {
+    setGmDraftStatus("Timer expired. This pick is locked while auto pick runs.", true);
+    processExpiredDraftPickNow("gm-save");
+    renderGmDraftPick();
     return;
   }
   if (!card) {
