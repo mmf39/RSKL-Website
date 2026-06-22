@@ -545,6 +545,16 @@ function authHeaders(withAuth = false, token = "") {
   return headers;
 }
 
+function supabasePublicHeaders(extra = {}) {
+  requireSupabaseConfig();
+  return {
+    "Content-Type": "application/json",
+    apikey: supabaseAnon,
+    Authorization: `Bearer ${supabaseAnon}`,
+    ...extra,
+  };
+}
+
 function supabaseUrlWithApiKey(path) {
   requireSupabaseConfig();
   const sep = path.includes("?") ? "&" : "?";
@@ -1193,7 +1203,7 @@ function buildSubmittedDraftPickSetFromSupabase(rows) {
 
 async function loadSupabaseDraftData() {
   if (!supabaseUrl || !supabaseAnon) return false;
-  const headers = authHeaders(false, "");
+  const headers = supabasePublicHeaders();
   const [prospects, picks, settingsRows] = await Promise.all([
     requestJson(
       supabaseRestUrl(
@@ -1214,9 +1224,6 @@ async function loadSupabaseDraftData() {
       { headers }
     ),
   ]);
-  if (!Array.isArray(prospects) || !prospects.length) {
-    return false;
-  }
   draftProspectsCache = buildDraftProspectsFromSupabase(prospects);
   submittedDraftPicksCache = buildSubmittedDraftPickSetFromSupabase(picks);
   draftSettingsCache = Array.isArray(settingsRows) ? settingsRows[0] || null : null;
@@ -1227,10 +1234,7 @@ async function loadSupabaseDraftData() {
 }
 
 async function refreshSupabaseDraftData() {
-  const loaded = await loadSupabaseDraftData();
-  if (!loaded) {
-    await loadSubmittedDraftPicks();
-  }
+  await loadSupabaseDraftData();
 }
 
 function getDraftProspectByName(player) {
@@ -1241,7 +1245,7 @@ function getDraftProspectByName(player) {
 function getDraftProspectPickerHtml(selectedValue = "") {
   const selected = String(selectedValue || "").trim();
   if (!draftProspectsCache.length) {
-    return '<div class="gm-empty">No draft prospects available.</div>';
+    return '<div class="gm-empty">No Supabase draft prospects available.</div>';
   }
   return `
     <div class="gm-draft-prospect-list">
@@ -3674,13 +3678,10 @@ async function loadDraftOrderData() {
 }
 
 async function loadSubmittedDraftPicks() {
-  try {
-    if (await loadSupabaseDraftData()) {
-      subscribeToDraftRealtime();
-      return;
-    }
-  } catch (error) {
-    console.warn("Supabase draft load failed, falling back to sheet:", error?.message || error);
+  if (supabaseUrl && supabaseAnon) {
+    await loadSupabaseDraftData();
+    subscribeToDraftRealtime();
+    return;
   }
   const response = await fetch(DRAFT_URL, { cache: "no-store" });
   if (!response.ok) {
