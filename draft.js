@@ -1,16 +1,19 @@
 const DRAFT_CSV_URL = "/api/sheet?name=draft";
 const C2S3_DRAFT_CSV_URL = "/api/sheet?name=c2s3-draft";
-const C2S4_DRAFT_CSV_URL = "/api/sheet?name=c2s4-draft";
 const ARCHIVE_CSV_URL = "/api/sheet?name=archive";
 const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
 const DRAFT_CAPITAL_CSV_URL = "/api/sheet?name=draft-capital";
 const TRANSACTIONS_CSV_URL = "/api/sheet?name=transactions";
+const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const C1S2_DRAFT_URL = "/assets/data/c1s2-draft.csv";
 const C1S3_DRAFT_URL = "/assets/data/c1s3-draft.csv";
 const C1S4_DRAFT_URL = "/assets/data/c1s4-draft.csv";
 const C1S5_DRAFT_URL = "/assets/data/c1s5-draft.csv";
 const C1S6_DRAFT_URL = "/assets/data/c1s6-draft.csv";
 const DRAFT_YEAR_KEY = "draftYear";
+const LIVE_DRAFT_SEASON = "c2s4";
+const LIVE_DRAFT_PICKS_TABLE = "draft_picks";
+const LIVE_DRAFT_PROSPECTS_TABLE = "draft_prospects";
 const DRAFT_YEAR_VALUES = new Set([
   "c2s4",
   "c1s2",
@@ -145,6 +148,65 @@ const TEAM_NAMES = new Set([
 
 let draftRowsCache = [];
 let c2s3Context = null;
+let supabaseUrl = "";
+let supabaseAnon = "";
+let supabaseConfigPromise = null;
+
+function hasSupabaseConfig() {
+  return Boolean(supabaseUrl && supabaseAnon);
+}
+
+function supabaseHeaders() {
+  return {
+    "Content-Type": "application/json",
+    apikey: supabaseAnon,
+    Authorization: `Bearer ${supabaseAnon}`,
+  };
+}
+
+function supabaseRestUrl(path) {
+  return `${supabaseUrl}/rest/v1${path}`;
+}
+
+async function loadSupabaseConfig() {
+  if (!supabaseConfigPromise) {
+    supabaseConfigPromise = fetch(SUPABASE_CONFIG_URL, { cache: "no-store" })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Supabase config failed: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((payload) => {
+        supabaseUrl = String(payload?.url || payload?.supabaseUrl || "").trim().replace(/\/$/, "");
+        supabaseAnon = String(payload?.anonKey || payload?.supabaseAnon || payload?.publicAnonKey || "").trim();
+        return hasSupabaseConfig();
+      });
+  }
+  return supabaseConfigPromise;
+}
+
+async function fetchSupabaseRows(path) {
+  await loadSupabaseConfig();
+  if (!hasSupabaseConfig()) {
+    throw new Error("Supabase draft config is missing.");
+  }
+  const response = await fetch(supabaseRestUrl(path), {
+    cache: "no-store",
+    headers: supabaseHeaders(),
+  });
+  const text = await response.text();
+  let payload = [];
+  try {
+    payload = text ? JSON.parse(text) : [];
+  } catch (_) {
+    throw new Error(text || `Supabase request failed: ${response.status}`);
+  }
+  if (!response.ok) {
+    throw new Error(payload?.message || payload?.error || `Supabase request failed: ${response.status}`);
+  }
+  return Array.isArray(payload) ? payload : [];
+}
 
 function parseCSV(text) {
   const rows = [];
@@ -908,6 +970,114 @@ function extractC2S3DraftBoardRows(rows) {
     .filter(hasText);
 }
 
+function getC2S4BaseDraftRows() {
+  const order = [
+    "The Lions",
+    "Storm",
+    "Illegals",
+    "Scorpions",
+    "Bad Bois",
+    "The Phantoms",
+    "Gus N Em",
+    "Dream Team",
+    "The Snipers",
+    "Turkeys",
+  ];
+  const tradedOwners = new Map([
+    [1, "Dream Team (via Lions)"],
+    [8, "The Lions (via Dream Team)"],
+    [10, "Bad Bois (via Turkeys)"],
+    [11, "Dream Team (via Lions)"],
+    [18, "The Lions (via Dream Team)"],
+    [19, "Scorpions (via The Snipers)"],
+    [20, "Turkeys"],
+    [21, "Bad Bois (via Turkeys)"],
+  ]);
+  const rows = [["Pick", "Team", "Selection"]];
+  for (let pick = 1; pick <= 20; pick += 1) {
+    const original = order[(pick - 1) % order.length];
+    rows.push([String(pick), tradedOwners.get(pick) || original, ""]);
+  }
+  rows.push(["21", tradedOwners.get(21) || "Bad Bois", ""]);
+  return rows;
+}
+
+async function fetchLiveDraftPicks() {
+  return fetchSupabaseRows(
+    `/${LIVE_DRAFT_PICKS_TABLE}?select=round,pick,team,player,status&season=eq.${encodeURIComponent(LIVE_DRAFT_SEASON)}&order=pick.asc`
+  );
+}
+
+async function fetchLiveDraftProspects() {
+  return fetchSupabaseRows(
+    `/${LIVE_DRAFT_PROSPECTS_TABLE}?select=player,monthly,ranked_days,available&season=eq.${encodeURIComponent(LIVE_DRAFT_SEASON)}&order=created_at.asc`
+  );
+}
+
+async function renderLiveC2S4DraftBoard() {
+  const picks = await fetchLiveDraftPicks();
+  const pickedByNumber = new Map(
+    picks.map((pick) => [Number(pick.pick), pick])
+  );
+  const rows = getC2S4BaseDraftRows().map((row, index) => {
+    if (index === 0) return row;
+    const pickNumber = Number(row[0]);
+    const livePick = pickedByNumber.get(pickNumber);
+    if (!livePick) return row;
+    return [
+      row[0],
+      livePick.team || row[1],
+      String(livePick.status || "").toLowerCase() === "forfeit"
+        ? "FORFEITED"
+        : livePick.player || row[2],
+    ];
+  });
+  draftRowsCache = rows;
+  els.sections.innerHTML = renderRound("c2s4-board", "C2S4 Draft Board", rows);
+  updateLastUpdated();
+}
+
+async function renderLiveC2S4Prospects() {
+  const rows = await fetchLiveDraftProspects();
+  const availableRows = rows.filter((row) => row?.available !== false);
+  const tableRows = [
+    ["Player", "Monthly", "Ranked Days"],
+    ...availableRows.map((row) => [
+      String(row.player || "").trim(),
+      row.monthly ?? "",
+      row.ranked_days ?? "",
+    ]),
+  ];
+  draftRowsCache = tableRows;
+  els.sections.innerHTML = `
+    <section class="panel prospects-panel">
+      <div class="panel-head"><h2>C2S4 Draft Prospects</h2></div>
+      <div class="table-wrap prospects-table-wrap">
+        <table class="prospects-table">
+          <thead>
+            <tr>${tableRows[0].map((h) => `<th>${escapeHtml(h)}</th>`).join("")}</tr>
+          </thead>
+          <tbody>
+            ${tableRows
+              .slice(1)
+              .map(
+                (row) => `
+                  <tr>
+                    ${tableRows[0]
+                      .map((_, i) => `<td>${renderCell(row[i], tableRows[0][i], i)}</td>`)
+                      .join("")}
+                  </tr>
+                `
+              )
+              .join("") || '<tr><td colspan="3">No Supabase draft prospects available.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+  updateLastUpdated();
+}
+
 function renderProspects(rows, selectedYear) {
   if (selectedYear === "c2s1") {
     els.sections.innerHTML = `
@@ -1052,14 +1222,12 @@ async function loadDraft() {
     }
 
     if (selectedYear === "c2s4" && selectedView === "teams") {
-      const rows = await fetchRows(C2S4_DRAFT_CSV_URL);
-      draftRowsCache = rows;
-      els.sections.innerHTML = renderRound(
-        "c2s4-board",
-        "C2S4 Draft Board",
-        extractC2S3DraftBoardRows(rows)
-      );
-      updateLastUpdated();
+      await renderLiveC2S4DraftBoard();
+      return;
+    }
+
+    if (selectedYear === "c2s4" && selectedView === "prospects") {
+      await renderLiveC2S4Prospects();
       return;
     }
 
@@ -1142,12 +1310,16 @@ if (els.yearSelect) {
 
 if (els.viewSelect) {
   els.viewSelect.addEventListener("change", async () => {
+    const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
+    if (selectedYear === "c2s4") {
+      await loadDraft();
+      return;
+    }
     if (!draftRowsCache.length) {
       await loadDraft();
       return;
     }
     if (els.viewSelect.value === "prospects") {
-      const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
       renderProspects(draftRowsCache, selectedYear);
     } else if (els.viewSelect.value === "expansion") {
       await loadDraft();
