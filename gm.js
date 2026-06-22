@@ -345,6 +345,19 @@ function displayTeamName(value) {
   return team;
 }
 
+function parseDraftPickTeamText(value) {
+  const text = String(value || "").trim();
+  const viaMatch = text.match(/^(.*?)\s*\(\s*via\s+(.+?)\s*\)\s*$/i);
+  const owner = displayTeamName((viaMatch ? viaMatch[1] : text).trim());
+  const original = displayTeamName((viaMatch ? viaMatch[2] : text).trim());
+  return {
+    owner,
+    original,
+    text,
+    viaText: viaMatch ? `via ${original}` : "",
+  };
+}
+
 function canonicalTeamKey(value) {
   const team = String(value || "").trim();
   if (team === "Storm") return "Bullets";
@@ -926,16 +939,21 @@ function getSupabaseDraftOrderPickOptions(season = getDraftRunnerSeason(), round
     .filter((pick) => Number(pick?.pick) > 0 && String(pick?.team || "").trim())
     .sort((a, b) => Number(a.pick) - Number(b.pick))
     .map((pick) => {
-      const owner = displayTeamName(pick.team);
+      const teamInfo = parseDraftPickTeamText(pick.team);
+      const owner = teamInfo.owner;
+      const original = teamInfo.original;
       const pickNumber = Number(pick.pick);
+      const selectedText = String(pick.player || "").trim();
       return {
         id: `${season}:${Number(round)}:${pickNumber}`,
         round: Number(round),
         pick: pickNumber,
         owner,
-        original: owner,
-        text: String(pick.player || "").trim() ? `Selected ${pick.player}` : "",
-        label: `Pick ${pickNumber}: ${owner}`,
+        original,
+        text: selectedText || teamInfo.viaText,
+        label: owner === original
+          ? `Pick ${pickNumber}: ${owner}`
+          : `Pick ${pickNumber}: ${owner} via ${original}`,
       };
     });
 }
