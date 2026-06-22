@@ -55,6 +55,12 @@ Deno.serve(async (req) => {
         sheetSyncMessage: error?.message ?? String(error),
       };
     });
+    if ((payload as Record<string, unknown>).sheetSyncOk !== false) {
+      payload = {
+        ...(payload as Record<string, unknown>),
+        sheetSyncOk: true,
+      };
+    }
   }
 
   return json(payload, response.ok ? 200 : response.status);
@@ -101,6 +107,17 @@ async function syncAutoPickToSheet(
   });
   if (!response.ok) {
     throw new Error(`Sheet sync failed (${response.status})`);
+  }
+  const text = await response.text();
+  if (!text) return;
+  let payload: Record<string, unknown> = {};
+  try {
+    payload = JSON.parse(text);
+  } catch {
+    return;
+  }
+  if (payload.ok === false) {
+    throw new Error(String(payload.message || payload.error || "Sheet sync failed."));
   }
 }
 

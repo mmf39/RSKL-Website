@@ -1656,6 +1656,11 @@ function syncDraftPickToSheetInBackground(pick) {
   });
 }
 
+async function syncAutoPickToSheet(pick) {
+  const result = await saveDraftPickToSheet(pick);
+  return result;
+}
+
 async function submitDraftPickToSupabase(pick) {
   if (!supabaseUrl || !supabaseAnon) {
     throw new Error("Supabase draft tables are not connected.");
@@ -1692,7 +1697,7 @@ async function processExpiredDraftPickNow(source = "timer") {
       body: JSON.stringify({ p_season: GM_DRAFT_SEASON }),
     });
     if (result?.action === "auto_pick" && result.player) {
-      syncDraftPickToSheetInBackground({
+      const autoPick = {
         season: result.season || GM_DRAFT_SEASON,
         option: "used",
         round: Number(result.round) || current.round,
@@ -1702,8 +1707,16 @@ async function processExpiredDraftPickNow(source = "timer") {
         note: "Auto pick",
         sheetPickText: "Auto pick",
         updatedAt: new Date().toISOString(),
-      });
-      setGmDraftStatus(`Auto picked ${result.player} for Pick ${result.pick}.`);
+      };
+      try {
+        await syncAutoPickToSheet(autoPick);
+        setGmDraftStatus(`Auto picked ${result.player} for Pick ${result.pick}. Sheet synced.`);
+      } catch (sheetError) {
+        setGmDraftStatus(
+          `Auto picked ${result.player}, but sheet sync failed: ${sheetError?.message || "unknown error"}`,
+          true
+        );
+      }
     } else if (source === "timer") {
       setGmDraftStatus("Timer expired. Auto pick checked.");
     }
@@ -1872,9 +1885,16 @@ async function saveDraftRunnerPick() {
     `Round ${pick.round}, Pick ${pick.pick} is being sent to the live draft.`
   );
   draftSaveInFlight = true;
+  let sheetSyncMessage = "";
   try {
     await submitDraftPickToSupabase(pick);
-    syncDraftPickToSheetInBackground(pick);
+    try {
+      await saveDraftPickToSheet(pick);
+      sheetSyncMessage = " Sheet synced.";
+    } catch (sheetError) {
+      sheetSyncMessage = ` Sheet sync failed: ${sheetError?.message || "unknown error"}`;
+      setDraftStatus(`Saved to live draft, but the Google Sheet did not sync: ${sheetError?.message || "unknown error"}`, true);
+    }
     await refreshSupabaseDraftData();
   } catch (error) {
     setDraftStatus(error?.message || "Draft pick could not be saved to Supabase.", true);
@@ -1902,12 +1922,17 @@ async function saveDraftRunnerPick() {
   removeLocalDraftProspect(pick.player);
   saveTestDraftPicks();
   renderDraftRunner();
-  setDraftStatus(`Saved Round ${pick.round}, Pick ${pick.pick} to the live draft.`);
+  setDraftStatus(
+    `Saved Round ${pick.round}, Pick ${pick.pick} to the live draft.${sheetSyncMessage}`,
+    sheetSyncMessage.includes("failed")
+  );
   setSubmitOverlayVisible(
     true,
-    "Draft pick saved",
-    `Round ${pick.round}, Pick ${pick.pick} was saved to the live draft.`,
-    "You can move to the next pick now."
+    sheetSyncMessage.includes("failed") ? "Draft pick saved, sheet failed" : "Draft pick saved",
+    `Round ${pick.round}, Pick ${pick.pick} was saved to the live draft.${sheetSyncMessage}`,
+    sheetSyncMessage.includes("failed")
+      ? "The website updated, but the Google Sheet did not."
+      : "You can move to the next pick now."
   );
   window.setTimeout(() => {
     setSubmitOverlayVisible(false);
@@ -2040,9 +2065,15 @@ async function saveGmDraftPick(card, button) {
     "Saving draft pick",
     `Round ${pick.round}, Pick ${pick.pick} is being sent to the live draft.`
   );
+  let sheetSyncMessage = "";
   try {
     await submitDraftPickToSupabase(pick);
-    syncDraftPickToSheetInBackground(pick);
+    try {
+      await saveDraftPickToSheet(pick);
+      sheetSyncMessage = " Sheet synced.";
+    } catch (sheetError) {
+      sheetSyncMessage = ` Sheet sync failed: ${sheetError?.message || "unknown error"}`;
+    }
     await refreshSupabaseDraftData();
     const existingIndex = testDraftPicks.findIndex((entry) => getDraftSubmissionKey(entry) === key);
     if (existingIndex >= 0) {
@@ -2057,12 +2088,17 @@ async function saveGmDraftPick(card, button) {
     if (playerInput) playerInput.value = "";
     renderGmDraftPick();
     renderDraftRunner();
-    setGmDraftStatus(`Saved Round ${pick.round}, Pick ${pick.pick}.`);
+    setGmDraftStatus(
+      `Saved Round ${pick.round}, Pick ${pick.pick}.${sheetSyncMessage}`,
+      sheetSyncMessage.includes("failed")
+    );
     setSubmitOverlayVisible(
       true,
-      "Draft pick saved",
-      `Round ${pick.round}, Pick ${pick.pick} was saved.`,
-      "Your next available pick is now showing."
+      sheetSyncMessage.includes("failed") ? "Draft pick saved, sheet failed" : "Draft pick saved",
+      `Round ${pick.round}, Pick ${pick.pick} was saved.${sheetSyncMessage}`,
+      sheetSyncMessage.includes("failed")
+        ? "The website updated, but the Google Sheet did not."
+        : "Your next available pick is now showing."
     );
     window.setTimeout(() => {
       setSubmitOverlayVisible(false);
