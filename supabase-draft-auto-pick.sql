@@ -129,7 +129,7 @@ begin
   from public.draft_prospects
   where season = p_season
     and available = true
-  order by monthly desc nulls last, ranked_days desc nulls last, created_at asc
+  order by monthly asc nulls last, ranked_days asc nulls last, created_at asc
   limit 1
   for update skip locked;
 
