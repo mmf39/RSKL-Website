@@ -389,6 +389,7 @@
               </div>
 
               <div class="gm-draft-runner-actions">
+                <button id="gm-draft-start-timer" class="btn ghost" type="button">Start 2:00 Timer</button>
                 <button id="gm-draft-save" class="btn" type="button" onclick="this.textContent='Clicked...'; setTimeout(() => { if (this.textContent === 'Clicked...') this.textContent = 'Save Pick'; }, 1500); if (window.handleDraftSaveClick) window.handleDraftSaveClick(event);">Save Pick</button>
                 <button id="gm-draft-next" class="btn ghost" type="button">Next Pick</button>
                 <button id="gm-draft-clear" class="btn ghost" type="button">Clear Test Draft</button>
@@ -410,7 +411,7 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="gm.js?v=20260621gmdraft26"></script>
+    <script src="gm.js?v=20260621gmdraft27"></script>
       <script src="header-nav.js?v=20260609c2s3playoffs1"></script>
   </body>
 </html>

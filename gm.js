@@ -87,6 +87,7 @@ const els = {
   draftTeam: document.getElementById("gm-draft-team"),
   draftPlayer: document.getElementById("gm-draft-player"),
   draftNote: document.getElementById("gm-draft-note"),
+  draftStartTimer: document.getElementById("gm-draft-start-timer"),
   draftSave: document.getElementById("gm-draft-save"),
   draftNext: document.getElementById("gm-draft-next"),
   draftClear: document.getElementById("gm-draft-clear"),
@@ -1109,6 +1110,36 @@ function areDraftSubmissionsOpen() {
   return true;
 }
 
+function getDraftClockRemainingMs() {
+  const startedAt = draftSettingsCache?.pick_started_at
+    ? new Date(draftSettingsCache.pick_started_at).getTime()
+    : 0;
+  const duration = Math.max(1, Number(draftSettingsCache?.pick_duration_seconds) || 120) * 1000;
+  if (!startedAt || Number.isNaN(startedAt)) return null;
+  return Math.max(0, startedAt + duration - Date.now());
+}
+
+function formatDraftClock(ms) {
+  if (ms === null) return "Timer not started";
+  const totalSeconds = Math.ceil(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+function getDraftClockLabel() {
+  const remaining = getDraftClockRemainingMs();
+  if (remaining === null) return "Timer not started";
+  if (remaining <= 0) return "Timer expired. Auto pick pending.";
+  return `Time left: ${formatDraftClock(remaining)}`;
+}
+
+function refreshDraftClockDisplays() {
+  document.querySelectorAll("[data-draft-clock]").forEach((node) => {
+    node.textContent = getDraftClockLabel();
+  });
+}
+
 function setDraftSaveButtonState(isSaving, label = "Save Pick") {
   if (!els.draftSave) return;
   els.draftSave.disabled = isSaving;
@@ -1262,7 +1293,7 @@ async function loadSupabaseDraftData() {
     ),
     requestJson(
       supabaseRestUrl(
-        `/${GM_DRAFT_SETTINGS_TABLE}?select=season,submissions_open,current_round,current_pick&season=eq.${encodeURIComponent(GM_DRAFT_SEASON)}&limit=1`
+        `/${GM_DRAFT_SETTINGS_TABLE}?select=season,submissions_open,current_round,current_pick,pick_started_at,pick_duration_seconds&season=eq.${encodeURIComponent(GM_DRAFT_SEASON)}&limit=1`
       ),
       { headers }
     ),
@@ -1422,6 +1453,7 @@ function renderGmDraftPick() {
             <strong>Round ${escapeHtml(pick.round)} Pick ${escapeHtml(pick.pick)}</strong>
             <span class="gm-draft-pick-team">${escapeHtml(displayTeamName(pick.owner))}</span>
             <small>${escapeHtml(originalText)}</small>
+            ${isOnClock ? `<small data-draft-clock>${escapeHtml(getDraftClockLabel())}</small>` : ""}
           </div>
           ${
             pick.isSubmitted
@@ -1832,6 +1864,46 @@ function handleDraftSaveClick(event) {
 }
 
 window.handleDraftSaveClick = handleDraftSaveClick;
+
+async function startDraftPickTimer() {
+  if (!isSignedInGm() || !isCommish()) {
+    setDraftStatus("Commissioner access required.", true);
+    return;
+  }
+  if (!areDraftSubmissionsOpen()) {
+    setDraftStatus(getDraftClosedMessage(), true);
+    return;
+  }
+  const current = getCurrentOpenDraftPick(GM_DRAFT_SEASON);
+  if (!current) {
+    setDraftStatus("No open draft pick is on the clock.", true);
+    return;
+  }
+  if (els.draftStartTimer) {
+    els.draftStartTimer.disabled = true;
+    els.draftStartTimer.textContent = "Starting...";
+  }
+  setDraftStatus(`Starting 2:00 timer for Pick ${current.pick}...`);
+  try {
+    await requestJson(supabaseRestUrl("/rpc/start_draft_pick_timer"), {
+      method: "POST",
+      headers: await authHeadersFresh(),
+      body: JSON.stringify({
+        p_season: GM_DRAFT_SEASON,
+        p_duration_seconds: 120,
+      }),
+    });
+    await refreshSupabaseDraftData();
+    setDraftStatus(`Timer started for Pick ${current.pick}.`);
+  } catch (error) {
+    setDraftStatus(error?.message || "Could not start the draft timer.", true);
+  } finally {
+    if (els.draftStartTimer) {
+      els.draftStartTimer.disabled = false;
+      els.draftStartTimer.textContent = "Start 2:00 Timer";
+    }
+  }
+}
 
 async function saveGmDraftPick(card, button) {
   if (!isSignedInGm() || isReporter()) {
@@ -3819,6 +3891,9 @@ function bindEvents() {
     els.draftSave.addEventListener("click", handleDraftSaveClick);
   }
   document.addEventListener("click", handleDraftSaveClick);
+  if (els.draftStartTimer) {
+    els.draftStartTimer.addEventListener("click", startDraftPickTimer);
+  }
   if (els.draftNext) {
     els.draftNext.addEventListener("click", () => {
       if (!isSignedInGm() || !isCommish()) {
@@ -4464,3 +4539,4 @@ async function init() {
 }
 
 init();
+window.setInterval(refreshDraftClockDisplays, 1000);
