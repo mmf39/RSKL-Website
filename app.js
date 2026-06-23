@@ -67,6 +67,7 @@ const CURRENT_LOCKED_PSP_TIEBREAK_ORDER = new Map([
 const C2S3_PLAYOFF_ADVANCEMENTS = {
   northWildCard: "Gus N Em",
   lockedWildCard: "Bad Bois",
+  northFinal: "Gus N Em",
 };
 
 const ARCHIVE_RANGES = {
@@ -1356,15 +1357,22 @@ function getCurrentBracketEntry() {
 function getBracketChallengeScore(entry) {
   const picks = entry?.picks || {};
   let correct = 0;
+  let points = 0;
   if (normalizeTeamName(picks.northWildCard) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.northWildCard)) {
     correct += 1;
+    points += 3;
   }
   if (normalizeTeamName(picks.lockedWildCard) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.lockedWildCard)) {
     correct += 1;
+    points += 3;
+  }
+  if (normalizeTeamName(picks.northFinal) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.northFinal)) {
+    correct += 1;
+    points += 6;
   }
   return {
     correct,
-    points: correct * 3,
+    points,
   };
 }
 
@@ -1393,7 +1401,7 @@ function renderBracketChallengeEntries(entries) {
           </div>
           <div class="bracket-entry-score">
             <b>${escapeHtml(String(score.points))} pts</b>
-            <span>${escapeHtml(`${score.correct}/2 Wild Card picks`)}</span>
+            <span>${escapeHtml(`${score.correct} correct picks`)}</span>
             <em>Champion: ${escapeHtml(champion)}</em>
           </div>
         </div>
@@ -1755,6 +1763,8 @@ function renderDashboardPlayoffBracket(standingsRows) {
     north.find((seed) => normalizeTeamName(seed.team) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.northWildCard)) || null;
   const lockedWildCardWinner =
     locked.find((seed) => normalizeTeamName(seed.team) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.lockedWildCard)) || null;
+  const northChampion =
+    north.find((seed) => normalizeTeamName(seed.team) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.northFinal)) || null;
 
   const rounds = [
     {
@@ -1769,7 +1779,7 @@ function renderDashboardPlayoffBracket(standingsRows) {
       title: "Semifinals",
       note: "Division winners receive byes.",
       games: [
-        { label: "North Final", top: north[0], bottom: northWildCardWinner, bottomLabel: "North WC Winner" },
+        { label: "North Final", top: north[0], bottom: northWildCardWinner, bottomLabel: "North WC Winner", winner: C2S3_PLAYOFF_ADVANCEMENTS.northFinal },
         { label: "Locked PSP Final", top: locked[0], bottom: lockedWildCardWinner, bottomLabel: "Locked PSP WC Winner" },
       ],
     },
@@ -1777,7 +1787,7 @@ function renderDashboardPlayoffBracket(standingsRows) {
       title: "Championship",
       note: "Division champions meet for the title.",
       games: [
-        { label: "RSKL Finals", topLabel: "North Champion", bottomLabel: "Locked PSP Champion" },
+        { label: "RSKL Finals", top: northChampion, topLabel: "North Champion", bottomLabel: "Locked PSP Champion" },
       ],
     },
   ];

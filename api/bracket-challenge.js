@@ -7,6 +7,7 @@ const TABLE = "bracket_challenge_entries";
 const C2S3_PLAYOFF_ADVANCEMENTS = {
   northWildCard: "Gus N Em",
   lockedWildCard: "Bad Bois",
+  northFinal: "Gus N Em",
 };
 
 function sendJson(res, status, body) {
@@ -120,14 +121,18 @@ function calculateScore(picks = {}) {
   const safePicks = normalizePicks(picks);
   const northPick = pickValue(safePicks, ["northWildCard", "north_wild_card", "northWC", "north_wc"]);
   const lockedPick = pickValue(safePicks, ["lockedWildCard", "locked_wild_card", "lockedWC", "locked_wc"]);
-  let correct = 0;
+  const northFinalPick = pickValue(safePicks, ["northFinal", "north_final"]);
+  let points = 0;
   if (normalizeTeamName(northPick) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.northWildCard)) {
-    correct += 1;
+    points += 3;
   }
   if (normalizeTeamName(lockedPick) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.lockedWildCard)) {
-    correct += 1;
+    points += 3;
   }
-  return correct * 3;
+  if (normalizeTeamName(northFinalPick) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.northFinal)) {
+    points += 6;
+  }
+  return points;
 }
 
 function sanitizeEntry(row) {
