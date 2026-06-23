@@ -5602,7 +5602,7 @@ input[type="text"] {
 .draft-round table {
   width: auto;
   margin: 0 auto;
-  min-width: 420px;
+  min-width: 620px;
   table-layout: fixed;
 }
 
@@ -5619,7 +5619,8 @@ input[type="text"] {
 
 .draft-round table th:nth-child(2),
 .draft-round table td:nth-child(2) {
-  width: 150px;
+  width: 300px;
+  white-space: nowrap;
 }
 
 .draft-round table th:nth-child(3),
