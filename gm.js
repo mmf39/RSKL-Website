@@ -204,6 +204,7 @@ let draftSaveInFlight = false;
 let gmDraftSaveInFlightKeys = new Set();
 let gmDraftUnlockedPickKeys = new Set();
 let draftAutoPickInFlightKey = "";
+let draftHandledTimerStartAt = "";
 
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
@@ -1120,6 +1121,10 @@ function getDraftClockRemainingMs() {
   return Math.max(0, startedAt + duration - Date.now());
 }
 
+function getDraftTimerStartKey() {
+  return String(draftSettingsCache?.pick_started_at || "").trim();
+}
+
 function formatDraftClock(ms) {
   if (ms === null) return "Timer not started";
   const totalSeconds = Math.ceil(ms / 1000);
@@ -1144,7 +1149,8 @@ function refreshDraftClockDisplays() {
   document.querySelectorAll("[data-draft-clock]").forEach((node) => {
     node.textContent = getDraftClockLabel();
   });
-  if (isDraftClockExpired()) {
+  const timerStartKey = getDraftTimerStartKey();
+  if (timerStartKey && timerStartKey !== draftHandledTimerStartAt && isDraftClockExpired()) {
     handleExpiredDraftClock();
   }
 }
@@ -1686,9 +1692,12 @@ async function submitDraftPickToSupabase(pick) {
 async function processExpiredDraftPickNow(source = "timer") {
   const current = getCurrentOpenDraftPick(GM_DRAFT_SEASON);
   if (!current || !isDraftClockExpired() || !gmSession?.user?.id) return;
+  const timerStartKey = getDraftTimerStartKey();
+  if (!timerStartKey || timerStartKey === draftHandledTimerStartAt) return;
   const key = getDraftSubmissionKey({ season: GM_DRAFT_SEASON, round: current.round, pick: current.pick });
   if (draftAutoPickInFlightKey === key) return;
   draftAutoPickInFlightKey = key;
+  draftHandledTimerStartAt = timerStartKey;
   setGmDraftStatus("Timer expired. Running auto pick...");
   try {
     const result = await requestJson(supabaseRestUrl("/rpc/process_expired_draft_pick"), {
@@ -1720,6 +1729,9 @@ async function processExpiredDraftPickNow(source = "timer") {
     } else if (source === "timer") {
       setGmDraftStatus("Timer expired. Auto pick checked.");
     }
+    if (draftSettingsCache) {
+      draftSettingsCache = { ...draftSettingsCache, pick_started_at: null };
+    }
     await refreshSupabaseDraftData();
   } catch (error) {
     setGmDraftStatus(error?.message || "Auto pick could not run yet.", true);
@@ -1731,6 +1743,8 @@ async function processExpiredDraftPickNow(source = "timer") {
 function handleExpiredDraftClock() {
   const current = getCurrentOpenDraftPick(GM_DRAFT_SEASON);
   if (!current) return;
+  const timerStartKey = getDraftTimerStartKey();
+  if (!timerStartKey || timerStartKey === draftHandledTimerStartAt) return;
   const key = getDraftSubmissionKey({ season: GM_DRAFT_SEASON, round: current.round, pick: current.pick });
   if (draftAutoPickInFlightKey === key) return;
   renderGmDraftPick();
@@ -1888,6 +1902,9 @@ async function saveDraftRunnerPick() {
   let sheetSyncMessage = "";
   try {
     await submitDraftPickToSupabase(pick);
+    if (draftSettingsCache) {
+      draftSettingsCache = { ...draftSettingsCache, pick_started_at: null };
+    }
     try {
       await saveDraftPickToSheet(pick);
       sheetSyncMessage = " Sheet synced.";
@@ -1984,6 +2001,7 @@ async function startDraftPickTimer() {
         p_duration_seconds: 120,
       }),
     });
+    draftHandledTimerStartAt = "";
     await refreshSupabaseDraftData();
     setDraftStatus(`Timer started for Pick ${current.pick}.`);
   } catch (error) {
@@ -2068,6 +2086,9 @@ async function saveGmDraftPick(card, button) {
   let sheetSyncMessage = "";
   try {
     await submitDraftPickToSupabase(pick);
+    if (draftSettingsCache) {
+      draftSettingsCache = { ...draftSettingsCache, pick_started_at: null };
+    }
     try {
       await saveDraftPickToSheet(pick);
       sheetSyncMessage = " Sheet synced.";
