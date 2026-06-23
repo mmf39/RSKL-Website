@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css?v=20260510a" />
+    <link rel="stylesheet" href="styles.css?v=20260623draftstatus1" />
   </head>
   <body>
     <div class="bg"></div>
@@ -93,6 +93,20 @@
             </select>
           </div>
         </div>
+        <div id="public-draft-status" class="public-draft-status" hidden>
+          <div class="public-draft-status-item">
+            <span>Previous Pick</span>
+            <strong id="public-draft-previous">—</strong>
+          </div>
+          <div class="public-draft-status-item">
+            <span>On The Clock</span>
+            <strong id="public-draft-clock-team">—</strong>
+          </div>
+          <div class="public-draft-status-item">
+            <span>Time Remaining</span>
+            <strong id="public-draft-time">Timer not started</strong>
+          </div>
+        </div>
         <div id="draft-sections" class="draft-rounds"></div>
       </section>
 
@@ -134,7 +148,7 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="draft.js?v=20260621supabasedraft4"></script>
+    <script src="draft.js?v=20260623supabasedraft5"></script>
       <script src="header-nav.js?v=20260609c2s3playoffs1"></script>
   </body>
 </html>

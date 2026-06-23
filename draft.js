@@ -14,6 +14,7 @@ const DRAFT_YEAR_KEY = "draftYear";
 const LIVE_DRAFT_SEASON = "c2s4";
 const LIVE_DRAFT_PICKS_TABLE = "draft_picks";
 const LIVE_DRAFT_PROSPECTS_TABLE = "draft_prospects";
+const LIVE_DRAFT_SETTINGS_TABLE = "draft_settings";
 const DRAFT_YEAR_VALUES = new Set([
   "c2s4",
   "c1s2",
@@ -29,6 +30,10 @@ const DRAFT_YEAR_VALUES = new Set([
 const els = {
   lastUpdated: document.getElementById("last-updated"),
   sections: document.getElementById("draft-sections"),
+  publicDraftStatus: document.getElementById("public-draft-status"),
+  publicDraftPrevious: document.getElementById("public-draft-previous"),
+  publicDraftClockTeam: document.getElementById("public-draft-clock-team"),
+  publicDraftTime: document.getElementById("public-draft-time"),
   roundSelect: document.getElementById("round-select"),
   yearSelect: document.getElementById("draft-year-select"),
   viewSelect: document.getElementById("draft-view-select"),
@@ -154,6 +159,8 @@ let supabaseConfigPromise = null;
 let draftRealtimeClient = null;
 let draftRealtimeChannel = null;
 let draftRealtimeRefreshTimer = null;
+let liveDraftSettingsCache = null;
+let liveDraftPicksCache = [];
 
 function hasSupabaseConfig() {
   return Boolean(supabaseUrl && supabaseAnon);
@@ -253,6 +260,11 @@ async function subscribeToLiveDraftRealtime() {
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: LIVE_DRAFT_PROSPECTS_TABLE, filter: `season=eq.${LIVE_DRAFT_SEASON}` },
+      scheduleLiveDraftRefresh
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: LIVE_DRAFT_SETTINGS_TABLE, filter: `season=eq.${LIVE_DRAFT_SEASON}` },
       scheduleLiveDraftRefresh
     )
     .subscribe();
@@ -1064,8 +1076,90 @@ async function fetchLiveDraftProspects() {
   );
 }
 
+async function fetchLiveDraftSettings() {
+  const rows = await fetchSupabaseRows(
+    `/${LIVE_DRAFT_SETTINGS_TABLE}?select=season,submissions_open,current_round,current_pick,pick_started_at,pick_duration_seconds&season=eq.${encodeURIComponent(LIVE_DRAFT_SEASON)}&limit=1`
+  );
+  return rows[0] || null;
+}
+
+function getLiveDraftTimerRemainingMs() {
+  const startedAt = liveDraftSettingsCache?.pick_started_at
+    ? new Date(liveDraftSettingsCache.pick_started_at).getTime()
+    : 0;
+  const duration = Math.max(1, Number(liveDraftSettingsCache?.pick_duration_seconds) || 120) * 1000;
+  if (!startedAt || Number.isNaN(startedAt)) return null;
+  return Math.max(0, startedAt + duration - Date.now());
+}
+
+function formatLiveDraftTime(ms) {
+  if (ms === null) return "Timer not started";
+  if (ms <= 0) return "0:00";
+  const totalSeconds = Math.ceil(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
+
+function getLiveDraftPickLabel(pick) {
+  if (!pick) return "—";
+  const player = String(pick.player || "").trim();
+  const team = String(pick.team || "").trim() || "Unknown Team";
+  const pickNumber = Number(pick.pick) || "";
+  const selection =
+    String(pick.status || "").trim().toLowerCase() === "forfeit"
+      ? "FORFEITED"
+      : player || "No selection yet";
+  return `Pick ${pickNumber}: ${team} - ${selection}`;
+}
+
+function isPublicLiveDraftBoardView() {
+  const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
+  const selectedView = els.viewSelect ? els.viewSelect.value : "teams";
+  return selectedYear === LIVE_DRAFT_SEASON && selectedView === "teams";
+}
+
+function renderPublicDraftStatus() {
+  const showStatus = isPublicLiveDraftBoardView();
+
+  if (els.publicDraftStatus) {
+    els.publicDraftStatus.hidden = !showStatus;
+  }
+  if (!showStatus) return;
+
+  const currentPickNumber = Number(liveDraftSettingsCache?.current_pick) || 0;
+  const currentPick = liveDraftPicksCache.find((pick) => Number(pick.pick) === currentPickNumber);
+  const previousPick = liveDraftPicksCache
+    .filter((pick) => {
+      const status = String(pick.status || "").trim().toLowerCase();
+      return Number(pick.pick) < currentPickNumber && (String(pick.player || "").trim() || status === "forfeit");
+    })
+    .sort((a, b) => Number(b.pick) - Number(a.pick))[0];
+  const clockTeam = currentPick
+    ? `Pick ${Number(currentPick.pick) || currentPickNumber}: ${String(currentPick.team || "").trim() || "Unknown Team"}`
+    : currentPickNumber
+      ? `Pick ${currentPickNumber}`
+      : "Draft not started";
+
+  if (els.publicDraftPrevious) {
+    els.publicDraftPrevious.textContent = getLiveDraftPickLabel(previousPick);
+  }
+  if (els.publicDraftClockTeam) {
+    els.publicDraftClockTeam.textContent = clockTeam;
+  }
+  if (els.publicDraftTime) {
+    els.publicDraftTime.textContent = formatLiveDraftTime(getLiveDraftTimerRemainingMs());
+  }
+}
+
 async function renderLiveC2S4DraftBoard() {
-  const picks = await fetchLiveDraftPicks();
+  const [picks, settings] = await Promise.all([
+    fetchLiveDraftPicks(),
+    fetchLiveDraftSettings().catch(() => null),
+  ]);
+  liveDraftPicksCache = picks;
+  liveDraftSettingsCache = settings;
+  renderPublicDraftStatus();
   const pickedByNumber = new Map(
     picks.map((pick) => [Number(pick.pick), pick])
   );
@@ -1093,6 +1187,7 @@ async function renderLiveC2S4DraftBoard() {
     renderRound("round-2", "Round 2", roundTwoRows),
   ].join("");
   applyRoundFilter();
+  renderPublicDraftStatus();
   updateLastUpdated();
 }
 
@@ -1265,6 +1360,7 @@ async function loadDraft() {
     const selectedView = els.viewSelect ? els.viewSelect.value : "teams";
     if (els.lotteryPanel) els.lotteryPanel.hidden = true;
     if (els.rulesPanel) els.rulesPanel.hidden = true;
+    renderPublicDraftStatus();
     c2s3Context = null;
 
     if (selectedYear === "c2s3" && selectedView === "teams") {
@@ -1395,4 +1491,5 @@ if (els.runLottery) {
 subscribeToLiveDraftRealtime().catch(() => {
   // The board still works with normal Supabase REST fetches if realtime cannot connect.
 });
+window.setInterval(renderPublicDraftStatus, 1000);
 loadDraft();
