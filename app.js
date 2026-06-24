@@ -68,6 +68,7 @@ const C2S3_PLAYOFF_ADVANCEMENTS = {
   northWildCard: "Gus N Em",
   lockedWildCard: "Bad Bois",
   northFinal: "Gus N Em",
+  lockedFinal: "Bad Bois",
 };
 
 const ARCHIVE_RANGES = {
@@ -1370,6 +1371,10 @@ function getBracketChallengeScore(entry) {
     correct += 1;
     points += 6;
   }
+  if (normalizeTeamName(picks.lockedFinal) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.lockedFinal)) {
+    correct += 1;
+    points += 6;
+  }
   return {
     correct,
     points,
@@ -1765,6 +1770,8 @@ function renderDashboardPlayoffBracket(standingsRows) {
     locked.find((seed) => normalizeTeamName(seed.team) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.lockedWildCard)) || null;
   const northChampion =
     north.find((seed) => normalizeTeamName(seed.team) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.northFinal)) || null;
+  const lockedChampion =
+    locked.find((seed) => normalizeTeamName(seed.team) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.lockedFinal)) || null;
 
   const rounds = [
     {
@@ -1780,14 +1787,14 @@ function renderDashboardPlayoffBracket(standingsRows) {
       note: "Division winners receive byes.",
       games: [
         { label: "North Final", top: north[0], bottom: northWildCardWinner, bottomLabel: "North WC Winner", winner: C2S3_PLAYOFF_ADVANCEMENTS.northFinal },
-        { label: "Locked PSP Final", top: locked[0], bottom: lockedWildCardWinner, bottomLabel: "Locked PSP WC Winner" },
+        { label: "Locked PSP Final", top: locked[0], bottom: lockedWildCardWinner, bottomLabel: "Locked PSP WC Winner", winner: C2S3_PLAYOFF_ADVANCEMENTS.lockedFinal },
       ],
     },
     {
       title: "Championship",
       note: "Division champions meet for the title.",
       games: [
-        { label: "RSKL Finals", top: northChampion, topLabel: "North Champion", bottomLabel: "Locked PSP Champion" },
+        { label: "RSKL Finals", top: northChampion, topLabel: "North Champion", bottom: lockedChampion, bottomLabel: "Locked PSP Champion" },
       ],
     },
   ];

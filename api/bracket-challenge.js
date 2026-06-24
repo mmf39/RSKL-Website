@@ -8,6 +8,7 @@ const C2S3_PLAYOFF_ADVANCEMENTS = {
   northWildCard: "Gus N Em",
   lockedWildCard: "Bad Bois",
   northFinal: "Gus N Em",
+  lockedFinal: "Bad Bois",
 };
 
 function sendJson(res, status, body) {
@@ -122,6 +123,7 @@ function calculateScore(picks = {}) {
   const northPick = pickValue(safePicks, ["northWildCard", "north_wild_card", "northWC", "north_wc"]);
   const lockedPick = pickValue(safePicks, ["lockedWildCard", "locked_wild_card", "lockedWC", "locked_wc"]);
   const northFinalPick = pickValue(safePicks, ["northFinal", "north_final"]);
+  const lockedFinalPick = pickValue(safePicks, ["lockedFinal", "locked_final"]);
   let points = 0;
   if (normalizeTeamName(northPick) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.northWildCard)) {
     points += 3;
@@ -130,6 +132,9 @@ function calculateScore(picks = {}) {
     points += 3;
   }
   if (normalizeTeamName(northFinalPick) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.northFinal)) {
+    points += 6;
+  }
+  if (normalizeTeamName(lockedFinalPick) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.lockedFinal)) {
     points += 6;
   }
   return points;
