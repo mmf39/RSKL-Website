@@ -9,10 +9,14 @@ const PLAYER_PROFILE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbwLH2qYcWceJucuI559OzLNjk9Bh8WjQgBKZJttcrBwS13gTY1GtnJi9T5eAb0jJeSwbA/exec";
 const C2S1_ROSTERS_URL = "/assets/data/c2s1-rosters.csv";
 const C1S2_ROSTERS_URL = "/assets/data/c1s2-rosters.csv";
+const C1S2_PLAYER_STATS_URL = "/assets/data/c1s2-player-stats.csv";
 const C1S3_ROSTERS_URL = "/assets/data/c1s3-rosters.csv";
+const C1S3_PLAYER_STATS_URL = "/assets/data/c1s3-player-stats.csv";
 const C1S4_PLAYER_STATS_URL = "/assets/data/c1s4-player-stats.csv";
 const C1S5_ROSTERS_URL = "/assets/data/c1s5-rosters.csv";
+const C1S5_PLAYER_STATS_URL = "/assets/data/c1s5-player-stats.csv";
 const C1S6_ROSTERS_URL = "/assets/data/c1s6-rosters.csv";
+const C1S6_PLAYER_STATS_URL = "/assets/data/c1s6-player-stats.csv";
 const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
 
@@ -103,9 +107,12 @@ async function loadSupabaseConfig() {
 }
 
 function getPlayerSeason() {
+  const playerSeason = localStorage.getItem(PLAYER_SEASON_KEY);
+  if (playerSeason === "career") {
+    return "career";
+  }
   const season = localStorage.getItem(SEASON_KEY);
   if (season === "all-time") {
-    const playerSeason = localStorage.getItem(PLAYER_SEASON_KEY);
     return playerSeason || "c2s2-regular";
   }
   if (season === "c2s3-regular" || season === "c2s3-playoffs") {
@@ -159,7 +166,6 @@ function getPlayerSeason() {
   if (season === "c1s7-regular") {
     return "c1s7-regular";
   }
-  const playerSeason = localStorage.getItem(PLAYER_SEASON_KEY);
   if (playerSeason) {
     return playerSeason;
   }
@@ -187,6 +193,7 @@ function applyLeaderboardParams() {
   ]);
   const allowedSeasons = new Set([
     "c2s3-regular",
+    "career",
     "c2s3-playoffs",
     "c2s2-playoffs",
     "c2s2-regular",
@@ -216,6 +223,8 @@ function applyLeaderboardParams() {
     localStorage.setItem(
       SEASON_KEY,
       season === "c2s3-regular"
+        ? "c2s3-regular"
+        : season === "career"
         ? "c2s3-regular"
         : season === "c2s3-playoffs"
         ? "c2s3-playoffs"
@@ -266,6 +275,8 @@ function initPlayerSeasonSelect() {
     navSelect.value =
       current === "c2s3-regular"
         ? "c2s3-regular"
+        : current === "career"
+        ? "c2s3-regular"
         : current === "c2s3-playoffs"
         ? "c2s3-playoffs"
         : current === "c2s2-playoffs"
@@ -305,6 +316,8 @@ function initPlayerSeasonSelect() {
       SEASON_KEY,
       current === "c2s3-regular"
         ? "c2s3-regular"
+        : current === "career"
+        ? "c2s3-regular"
         : current === "c2s3-playoffs"
         ? "c2s3-playoffs"
         : current === "c2s2-playoffs"
@@ -342,6 +355,8 @@ function initPlayerSeasonSelect() {
     localStorage.setItem(
       SEASON_KEY,
       value === "c2s3-regular"
+        ? "c2s3-regular"
+        : value === "career"
         ? "c2s3-regular"
         : value === "c2s3-playoffs"
         ? "c2s3-playoffs"
@@ -1217,6 +1232,85 @@ async function loadPlayerStats() {
       const header = rows[0] || [];
       playerColumns = detectPlayerColumns(header);
       playerRows = rows.slice(1);
+    } else if (season === "career") {
+      const [
+        c2s3RegularRes,
+        c2s3PlayoffRes,
+        c2s2Res,
+        archiveRes,
+        c1s2Res,
+        c1s3Res,
+        c1s4Res,
+        c1s5Res,
+        c1s6Res,
+      ] = await Promise.all([
+        fetch(PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(PLAYER_STATS_PLAYOFF_URL, { cache: "no-store" }),
+        fetch(C2S2_REGULAR_URL, { cache: "no-store" }),
+        fetch(ARCHIVE_URL, { cache: "no-store" }),
+        fetch(C1S2_PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(C1S3_PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(C1S4_PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(C1S5_PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(C1S6_PLAYER_STATS_URL, { cache: "no-store" }),
+      ]);
+      if (!c2s3RegularRes.ok) {
+        throw new Error(`Fetch failed: ${c2s3RegularRes.status}`);
+      }
+      if (!c2s2Res.ok) {
+        throw new Error(`Fetch failed: ${c2s2Res.status}`);
+      }
+      if (!archiveRes.ok) {
+        throw new Error(`Fetch failed: ${archiveRes.status}`);
+      }
+
+      const c2s3RegularRows = parseCSV(await c2s3RegularRes.text());
+      const c2s3PlayoffRows = c2s3PlayoffRes.ok ? parseCSV(await c2s3PlayoffRes.text()) : [];
+      const c2s2SheetRows = parseCSV(await c2s2Res.text());
+      const archiveRows = parseCSV(await archiveRes.text());
+      const c1s2Rows = c1s2Res.ok ? parseCSV(await c1s2Res.text()) : [];
+      const c1s3Rows = c1s3Res.ok ? parseCSV(await c1s3Res.text()) : [];
+      const c1s4Rows = c1s4Res.ok ? parseCSV(await c1s4Res.text()) : [];
+      const c1s5Rows = c1s5Res.ok ? parseCSV(await c1s5Res.text()) : [];
+      const c1s6Rows = c1s6Res.ok ? parseCSV(await c1s6Res.text()) : [];
+      const c2s2Rows = sliceRange(c2s2SheetRows, C2S2_REGULAR_RANGES.player_stats);
+      const c2s1PlayoffRows = sliceRange(archiveRows, ARCHIVE_RANGES.player_stats);
+
+      const headers = [
+        c2s3RegularRows[0],
+        c2s3PlayoffRows[0],
+        c2s2Rows[0],
+        c1s6Rows[0],
+        c1s5Rows[0],
+        c1s4Rows[0],
+        c1s3Rows[0],
+        c1s2Rows[0],
+        c2s1PlayoffRows[0],
+      ].filter((row) => Array.isArray(row) && row.length);
+      playerColumns = detectPlayerColumns(headers[0] || []);
+
+      const annotate = (rows, label) =>
+        rows.slice(1).map((row) => {
+          const copy = [...row];
+          const dateValue = String(copy[playerColumns.date] || "").trim();
+          if (dateValue) {
+            copy[playerColumns.date] = `${label} ${dateValue}`;
+          }
+          copy.__seasonLabel = label;
+          return copy;
+        });
+
+      playerRows = [
+        ...annotate(c2s3RegularRows, "C2S3"),
+        ...annotate(c2s3PlayoffRows, "C2S3 Playoffs"),
+        ...annotate(c2s2Rows, "C2S2"),
+        ...annotate(c1s6Rows, "C1S6"),
+        ...annotate(c1s5Rows, "C1S5"),
+        ...annotate(c1s4Rows, "C1S4"),
+        ...annotate(c1s3Rows, "C1S3"),
+        ...annotate(c1s2Rows, "C1S2"),
+        ...annotate(c2s1PlayoffRows, "C2S1 Playoffs"),
+      ];
     } else if (season === "c2s2-regular") {
       const response = await fetch(C2S2_REGULAR_URL, { cache: "no-store" });
       if (!response.ok) {
