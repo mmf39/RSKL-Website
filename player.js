@@ -203,127 +203,24 @@ function initPlayerSeasonSelect() {
     panelSelect.value = current;
   }
   if (navSelect) {
-    navSelect.value =
-      current === "c2s3-regular"
-        ? "c2s3-regular"
-        : current === "career"
-        ? "career"
-        : current === "c2s3-playoffs"
-        ? "c2s3-playoffs"
-        : current === "c2s2-playoffs"
-        ? "c2s2-playoffs"
-        : current === "c1s6-playoffs"
-        ? "c1s6-post"
-        : current === "c1s6-regular"
-        ? "c1s6-regular"
-        : current === "c1s5-playoffs"
-        ? "c1s5-post"
-        : current === "c1s5-regular"
-        ? "c1s5-regular"
-        : current === "c1s4-playoffs"
-        ? "c1s4-post"
-        : current === "c1s4-regular"
-        ? "c1s4-regular"
-        : current === "c1s3-playoffs"
-        ? "c1s3-post"
-        : current === "c1s3-regular"
-        ? "c1s3-regular"
-        : current === "c1s2-playoffs"
-        ? "c1s2-post"
-        : current === "c1s2-regular"
-        ? "c1s2-regular"
-        : current === "c2s1-playoffs"
-        ? "c2s1-post"
-        : current === "c2s1-regular"
-        ? "c2s1-regular"
-        : "c2s2-regular";
+    navSelect.value = playerSeasonToNavSeason(current);
   }
 
   if (!localStorage.getItem(PLAYER_SEASON_KEY)) {
     localStorage.setItem(PLAYER_SEASON_KEY, current);
   }
   if (!localStorage.getItem(SEASON_KEY)) {
-    localStorage.setItem(
-      SEASON_KEY,
-      current === "c2s3-regular"
-        ? "c2s3-regular"
-        : current === "career"
-        ? "career"
-        : current === "c2s3-playoffs"
-        ? "c2s3-playoffs"
-        : current === "c2s2-playoffs"
-        ? "c2s2-playoffs"
-        : current === "c1s6-playoffs"
-        ? "c1s6-post"
-        : current === "c1s6-regular"
-        ? "c1s6-regular"
-        : current === "c1s5-playoffs"
-        ? "c1s5-post"
-        : current === "c1s5-regular"
-        ? "c1s5-regular"
-        : current === "c1s4-playoffs"
-        ? "c1s4-post"
-        : current === "c1s4-regular"
-        ? "c1s4-regular"
-        : current === "c1s3-playoffs"
-        ? "c1s3-post"
-        : current === "c1s3-regular"
-        ? "c1s3-regular"
-        : current === "c1s2-playoffs"
-        ? "c1s2-post"
-        : current === "c1s2-regular"
-        ? "c1s2-regular"
-        : current === "c2s1-playoffs"
-        ? "c2s1-post"
-        : current === "c2s1-regular"
-        ? "c2s1-regular"
-        : "c2s2-regular"
-    );
+    localStorage.setItem(SEASON_KEY, playerSeasonToNavSeason(current));
   }
 
   const onChange = (value) => {
-    localStorage.setItem(PLAYER_SEASON_KEY, value);
-    localStorage.setItem(
-      SEASON_KEY,
-      value === "c2s3-regular"
-        ? "c2s3-regular"
-        : value === "career"
-        ? "career"
-        : value === "c2s3-playoffs"
-        ? "c2s3-playoffs"
-        : value === "c2s2-playoffs"
-        ? "c2s2-playoffs"
-        : value === "c1s6-playoffs"
-        ? "c1s6-post"
-        : value === "c1s6-regular"
-        ? "c1s6-regular"
-        : value === "c1s5-playoffs"
-        ? "c1s5-post"
-        : value === "c1s5-regular"
-        ? "c1s5-regular"
-        : value === "c1s4-playoffs"
-        ? "c1s4-post"
-        : value === "c1s4-regular"
-        ? "c1s4-regular"
-        : value === "c1s3-playoffs"
-        ? "c1s3-post"
-        : value === "c1s3-regular"
-        ? "c1s3-regular"
-        : value === "c1s2-playoffs"
-        ? "c1s2-post"
-        : value === "c1s2-regular"
-        ? "c1s2-regular"
-        : value === "c2s1-playoffs"
-        ? "c2s1-post"
-        : value === "c2s1-regular"
-        ? "c2s1-regular"
-        : "c2s2-regular"
-    );
-    if (panelSelect && panelSelect.value !== value) {
-      panelSelect.value = value;
+    const next = storePlayerSeason(value);
+    if (panelSelect && panelSelect.value !== next) {
+      panelSelect.value = next;
     }
-    if (navSelect && Array.from(navSelect.options).some((option) => option.value === value)) {
-      navSelect.value = value;
+    const navValue = playerSeasonToNavSeason(next);
+    if (navSelect && Array.from(navSelect.options).some((option) => option.value === navValue)) {
+      navSelect.value = navValue;
     }
     playerRows = [];
     leaderboardRows = [];
@@ -337,44 +234,7 @@ function initPlayerSeasonSelect() {
     panelSelect.addEventListener("change", () => onChange(panelSelect.value));
   }
   if (navSelect) {
-    navSelect.addEventListener("change", (event) => {
-      event.stopImmediatePropagation();
-      const mapped =
-        navSelect.value === "c2s3-regular"
-          ? "c2s3-regular"
-          : navSelect.value === "career"
-          ? "career"
-          : navSelect.value === "c2s3-playoffs"
-          ? "c2s3-playoffs"
-          : navSelect.value === "c2s2-playoffs"
-          ? "c2s2-playoffs"
-          : navSelect.value === "c1s6-post"
-          ? "c1s6-playoffs"
-          : navSelect.value === "c1s6-regular"
-          ? "c1s6-regular"
-          : navSelect.value === "c1s5-post"
-          ? "c1s5-playoffs"
-          : navSelect.value === "c1s5-regular"
-          ? "c1s5-regular"
-          : navSelect.value === "c1s4-post"
-          ? "c1s4-playoffs"
-          : navSelect.value === "c1s4-regular"
-          ? "c1s4-regular"
-          : navSelect.value === "c1s3-post"
-          ? "c1s3-playoffs"
-          : navSelect.value === "c1s3-regular"
-          ? "c1s3-regular"
-          : navSelect.value === "c1s2-post"
-          ? "c1s2-playoffs"
-          : navSelect.value === "c1s2-regular"
-          ? "c1s2-regular"
-          : navSelect.value === "c2s1-post"
-          ? "c2s1-playoffs"
-          : navSelect.value === "c2s1-regular"
-          ? "c2s1-regular"
-          : "c2s2-regular";
-      onChange(mapped);
-    });
+    navSelect.addEventListener("change", () => onChange(navSeasonToPlayerSeason(navSelect.value)));
   }
 }
 
