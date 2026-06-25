@@ -2046,6 +2046,7 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
 
   const seasonOrder = [
     "C2S3 Regular Season",
+    "C2S3 Playoffs",
     "C2S2 Regular Season",
     "C2S1 Regular Season",
     "C2S1 Playoffs",
@@ -2074,6 +2075,7 @@ function renderCareerTeamBreakdown(rows, baselines, season) {
   const shortSeasonLabel = (value) => {
     const text = String(value || "");
     if (text === "C2S3 Regular Season") return "C2S3";
+    if (text === "C2S3 Playoffs") return "C2S3 Post";
     if (text === "C2S2 Regular Season") return "C2S2";
     if (text === "C2S1 Regular Season") return "C2S1";
     if (text === "C2S1 Playoffs") return "C2S1 Post";
@@ -2815,8 +2817,9 @@ async function loadPlayer() {
       playerColumns = detectPlayerColumns(playerSlice[0] || []);
       dataRows = playerSlice.slice(1);
     } else if (season === "career") {
-      const [currentPlayerRes, c2s2Res, archiveRes, contractRes] = await Promise.all([
+      const [currentPlayerRes, currentPlayoffRes, c2s2Res, archiveRes, contractRes] = await Promise.all([
         fetch(PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(PLAYER_STATS_PLAYOFF_URL, { cache: "no-store" }),
         fetch(C2S2_REGULAR_URL, { cache: "no-store" }),
         fetch(ARCHIVE_URL, { cache: "no-store" }),
         fetch(CONTRACTS_URL, { cache: "no-store" }),
@@ -2840,6 +2843,7 @@ async function loadPlayer() {
       contractRows = contractRes.ok ? parseCSV(await contractRes.text()) : [];
       contractRowsCache = contractRows;
       const currentRows = parseCSV(await currentPlayerRes.text());
+      const currentPlayoffRows = currentPlayoffRes.ok ? parseCSV(await currentPlayoffRes.text()) : [];
       const c2s2SheetRows = parseCSV(await c2s2Res.text());
       const archive = parseCSV(await archiveRes.text());
       const c1s2Rows = c1s2Res.ok ? parseCSV(await c1s2Res.text()) : [];
@@ -2851,6 +2855,7 @@ async function loadPlayer() {
       const c2s1PlayoffRows = sliceRange(archive, ARCHIVE_RANGES.player_stats);
 
       const currentHeader = currentRows[0] || [];
+      const currentPlayoffHeader = currentPlayoffRows[0] || [];
       const c2s2Header = c2s2Rows[0] || [];
       const c2s1Header = c2s1PlayoffRows[0] || [];
       const c1s2Header = c1s2Rows[0] || [];
@@ -2861,6 +2866,8 @@ async function loadPlayer() {
       playerColumns = detectPlayerColumns(
         currentHeader.length
           ? currentHeader
+          : currentPlayoffHeader.length
+          ? currentPlayoffHeader
           : c2s2Header.length
           ? c2s2Header
           : c1s6Header.length
@@ -2885,6 +2892,7 @@ async function loadPlayer() {
 
       dataRows = [
         ...annotate(currentRows.slice(1), "C2S3 Regular Season"),
+        ...annotate(currentPlayoffRows.slice(1), "C2S3 Playoffs"),
         ...annotate(c2s2Rows.slice(1), "C2S2 Regular Season"),
         ...annotate(c1s6Rows.slice(1), "C1S6 Regular Season"),
         ...annotate(c1s5Rows.slice(1), "C1S5 Regular Season"),
@@ -3015,14 +3023,20 @@ async function loadPlayer() {
     } else {
       if (season === "career") {
         const playoffRows = filtered
-          .filter((row) => String(row.__seasonLabel || "") === "C2S1 Playoffs")
+          .filter((row) => String(row.__seasonLabel || "").includes("Playoffs"))
           .map((row) => {
             const copy = [...row];
-            copy.__boxScoreSeason = "c2s1-playoffs";
+            const seasonLabel = String(row.__seasonLabel || "");
+            copy.__boxScoreSeason =
+              seasonLabel === "C2S3 Playoffs"
+                ? "c2s3-playoffs"
+                : seasonLabel === "C2S1 Playoffs"
+                ? "c2s1-playoffs"
+                : currentLoadedSeason || "career";
             return copy;
           });
         const regularRows = filtered.filter(
-          (row) => String(row.__seasonLabel || "") !== "C2S1 Playoffs"
+          (row) => !String(row.__seasonLabel || "").includes("Playoffs")
         );
         renderPlayoffSupplement(playoffRows);
         renderTable(regularRows);
