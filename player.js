@@ -115,6 +115,9 @@ function getPlayerSeason() {
   if (season === "all-time") {
     return playerSeason || "c2s2-regular";
   }
+  if (season === "career") {
+    return "career";
+  }
   if (season === "c2s3-regular" || season === "c2s3-playoffs") {
     return season;
   }
@@ -225,7 +228,7 @@ function applyLeaderboardParams() {
       season === "c2s3-regular"
         ? "c2s3-regular"
         : season === "career"
-        ? "c2s3-regular"
+        ? "career"
         : season === "c2s3-playoffs"
         ? "c2s3-playoffs"
         : season === "c2s2-playoffs"
@@ -276,7 +279,7 @@ function initPlayerSeasonSelect() {
       current === "c2s3-regular"
         ? "c2s3-regular"
         : current === "career"
-        ? "c2s3-regular"
+        ? "career"
         : current === "c2s3-playoffs"
         ? "c2s3-playoffs"
         : current === "c2s2-playoffs"
@@ -317,7 +320,7 @@ function initPlayerSeasonSelect() {
       current === "c2s3-regular"
         ? "c2s3-regular"
         : current === "career"
-        ? "c2s3-regular"
+        ? "career"
         : current === "c2s3-playoffs"
         ? "c2s3-playoffs"
         : current === "c2s2-playoffs"
@@ -357,7 +360,7 @@ function initPlayerSeasonSelect() {
       value === "c2s3-regular"
         ? "c2s3-regular"
         : value === "career"
-        ? "c2s3-regular"
+        ? "career"
         : value === "c2s3-playoffs"
         ? "c2s3-playoffs"
         : value === "c2s2-playoffs"
@@ -399,6 +402,8 @@ function initPlayerSeasonSelect() {
       const mapped =
         navSelect.value === "c2s3-regular"
           ? "c2s3-regular"
+          : navSelect.value === "career"
+          ? "career"
           : navSelect.value === "c2s3-playoffs"
           ? "c2s3-playoffs"
           : navSelect.value === "c2s2-playoffs"
