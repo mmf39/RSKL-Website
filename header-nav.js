@@ -524,17 +524,33 @@
   }
 
   seasonSelect.addEventListener("change", () => {
-    localStorage.setItem("season", normalizeSeason(seasonSelect.value));
+    const nextSeason = normalizeSeason(seasonSelect.value);
+    localStorage.setItem("season", nextSeason);
     const playerSeasonMap = {
       "c2s3-regular": "c2s3-regular",
+      career: "career",
       "c2s3-playoffs": "c2s3-playoffs",
       "c2s2-regular": "c2s2-regular",
+      "c2s2-playoffs": "c2s2-playoffs",
+      "c1s6-regular": "c1s6-regular",
+      "c1s6-post": "c1s6-playoffs",
+      "c1s5-regular": "c1s5-regular",
+      "c1s5-post": "c1s5-playoffs",
+      "c1s4-regular": "c1s4-regular",
+      "c1s4-post": "c1s4-playoffs",
+      "c1s3-regular": "c1s3-regular",
+      "c1s3-post": "c1s3-playoffs",
+      "c1s2-regular": "c1s2-regular",
+      "c1s2-post": "c1s2-playoffs",
       "c2s1-regular": "c2s1-regular",
       "c2s1-post": "c2s1-playoffs",
     };
-    const mapped = playerSeasonMap[seasonSelect.value];
+    const mapped = playerSeasonMap[nextSeason];
     if (mapped) {
       localStorage.setItem("playerSeason", mapped);
+    }
+    if (document.body.classList.contains("player-page")) {
+      return;
     }
     location.reload();
   });

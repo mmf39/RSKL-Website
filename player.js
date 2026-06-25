@@ -108,71 +108,60 @@ async function loadSupabaseConfig() {
 
 function getPlayerSeason() {
   const playerSeason = localStorage.getItem(PLAYER_SEASON_KEY);
-  if (playerSeason === "career") {
-    return "career";
-  }
-  const season = localStorage.getItem(SEASON_KEY);
-  if (season === "all-time") {
-    return playerSeason || "c2s2-regular";
-  }
-  if (season === "career") {
-    return "career";
-  }
-  if (season === "c2s3-regular" || season === "c2s3-playoffs") {
-    return season;
-  }
-  if (season === "c2s2-playoffs") {
-    return "c2s2-playoffs";
-  }
-  if (season === "c2s2-regular" || season === "c2s2") {
-    return "c2s2-regular";
-  }
-  if (season === "c2s1-post") {
-    return "c2s1-playoffs";
-  }
-  if (season === "c2s1-regular") {
-    return "c2s1-regular";
-  }
-  if (season === "c1s2-post") {
-    return "c1s2-playoffs";
-  }
-  if (season === "c1s2-regular") {
-    return "c1s2-regular";
-  }
-  if (season === "c1s3-post") {
-    return "c1s3-playoffs";
-  }
-  if (season === "c1s3-regular") {
-    return "c1s3-regular";
-  }
-  if (season === "c1s4-post") {
-    return "c1s4-playoffs";
-  }
-  if (season === "c1s4-regular") {
-    return "c1s4-regular";
-  }
-  if (season === "c1s5-post") {
-    return "c1s5-playoffs";
-  }
-  if (season === "c1s5-regular") {
-    return "c1s5-regular";
-  }
-  if (season === "c1s6-post") {
-    return "c1s6-playoffs";
-  }
-  if (season === "c1s6-regular") {
-    return "c1s6-regular";
-  }
-  if (season === "c1s7-post") {
-    return "c1s7-playoffs";
-  }
-  if (season === "c1s7-regular") {
-    return "c1s7-regular";
-  }
-  if (playerSeason) {
+  if (isPlayerSeason(playerSeason)) {
     return playerSeason;
   }
-  return "c2s2-regular";
+  const season = localStorage.getItem(SEASON_KEY);
+  return navSeasonToPlayerSeason(season) || "c2s2-regular";
+}
+
+const PLAYER_SEASON_OPTIONS = new Set([
+  "career",
+  "c2s3-regular",
+  "c2s3-playoffs",
+  "c2s2-playoffs",
+  "c2s2-regular",
+  "c1s7-playoffs",
+  "c1s7-regular",
+  "c1s6-playoffs",
+  "c1s6-regular",
+  "c1s5-playoffs",
+  "c1s5-regular",
+  "c1s4-playoffs",
+  "c1s4-regular",
+  "c1s3-playoffs",
+  "c1s3-regular",
+  "c1s2-playoffs",
+  "c1s2-regular",
+  "c2s1-playoffs",
+  "c2s1-regular",
+]);
+
+function isPlayerSeason(value) {
+  return PLAYER_SEASON_OPTIONS.has(String(value || ""));
+}
+
+function navSeasonToPlayerSeason(value) {
+  const season = String(value || "");
+  if (isPlayerSeason(season)) return season;
+  if (season === "c2s2") return "c2s2-regular";
+  if (season.endsWith("-post")) return season.replace("-post", "-playoffs");
+  return "";
+}
+
+function playerSeasonToNavSeason(value) {
+  const season = String(value || "");
+  if (season.endsWith("-playoffs") && season !== "c2s2-playoffs" && season !== "c2s3-playoffs") {
+    return season.replace("-playoffs", "-post");
+  }
+  return season || "c2s2-regular";
+}
+
+function storePlayerSeason(value) {
+  const season = isPlayerSeason(value) ? value : "c2s2-regular";
+  localStorage.setItem(PLAYER_SEASON_KEY, season);
+  localStorage.setItem(SEASON_KEY, playerSeasonToNavSeason(season));
+  return season;
 }
 
 function getLeaderboardParams() {
@@ -194,75 +183,14 @@ function applyLeaderboardParams() {
     "war",
     "gp",
   ]);
-  const allowedSeasons = new Set([
-    "c2s3-regular",
-    "career",
-    "c2s3-playoffs",
-    "c2s2-playoffs",
-    "c2s2-regular",
-    "c1s7-playoffs",
-    "c1s7-regular",
-    "c1s6-playoffs",
-    "c1s6-regular",
-    "c1s5-playoffs",
-    "c1s5-regular",
-    "c1s4-playoffs",
-    "c1s4-regular",
-    "c1s3-playoffs",
-    "c1s3-regular",
-    "c1s2-playoffs",
-    "c1s2-regular",
-    "c2s1-playoffs",
-    "c2s1-regular",
-  ]);
   if (allowedMetrics.has(metric) && els.filter) {
     els.filter.value = metric;
   }
   if (player && els.search) {
     els.search.value = player;
   }
-  if (allowedSeasons.has(season)) {
-    localStorage.setItem(PLAYER_SEASON_KEY, season);
-    localStorage.setItem(
-      SEASON_KEY,
-      season === "c2s3-regular"
-        ? "c2s3-regular"
-        : season === "career"
-        ? "career"
-        : season === "c2s3-playoffs"
-        ? "c2s3-playoffs"
-        : season === "c2s2-playoffs"
-        ? "c2s2-playoffs"
-        : season === "c1s7-playoffs"
-        ? "c1s7-post"
-        : season === "c1s7-regular"
-        ? "c1s7-regular"
-        : season === "c1s6-playoffs"
-        ? "c1s6-post"
-        : season === "c1s6-regular"
-        ? "c1s6-regular"
-        : season === "c1s5-playoffs"
-        ? "c1s5-post"
-        : season === "c1s5-regular"
-        ? "c1s5-regular"
-        : season === "c1s4-playoffs"
-        ? "c1s4-post"
-        : season === "c1s4-regular"
-        ? "c1s4-regular"
-        : season === "c1s3-playoffs"
-        ? "c1s3-post"
-        : season === "c1s3-regular"
-        ? "c1s3-regular"
-        : season === "c1s2-playoffs"
-        ? "c1s2-post"
-        : season === "c1s2-regular"
-        ? "c1s2-regular"
-        : season === "c2s1-playoffs"
-        ? "c2s1-post"
-        : season === "c2s1-regular"
-        ? "c2s1-regular"
-        : "c2s2-regular"
-    );
+  if (isPlayerSeason(season)) {
+    storePlayerSeason(season);
   }
 }
 
@@ -391,14 +319,26 @@ function initPlayerSeasonSelect() {
         ? "c2s1-regular"
         : "c2s2-regular"
     );
-    location.reload();
+    if (panelSelect && panelSelect.value !== value) {
+      panelSelect.value = value;
+    }
+    if (navSelect && Array.from(navSelect.options).some((option) => option.value === value)) {
+      navSelect.value = value;
+    }
+    playerRows = [];
+    leaderboardRows = [];
+    if (els.results) {
+      els.results.innerHTML = "<p>Loading player stats...</p>";
+    }
+    loadPlayerStats();
   };
 
   if (panelSelect) {
     panelSelect.addEventListener("change", () => onChange(panelSelect.value));
   }
   if (navSelect) {
-    navSelect.addEventListener("change", () => {
+    navSelect.addEventListener("change", (event) => {
+      event.stopImmediatePropagation();
       const mapped =
         navSelect.value === "c2s3-regular"
           ? "c2s3-regular"
