@@ -702,6 +702,15 @@ function validateArticlePayload(payload) {
   };
 }
 
+function getArticleSeasonQueryValues(season) {
+  const clean = String(season || "").trim();
+  if (!clean) return [];
+  const baseMatch = clean.match(/^(c\d+s\d+)(?:-(regular|playoffs|post))?$/i);
+  if (!baseMatch) return [clean];
+  const base = baseMatch[1].toLowerCase();
+  return Array.from(new Set([clean, base, `${base}-regular`, `${base}-playoffs`, `${base}-post`]));
+}
+
 async function fetchNewsArticles(options = {}) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return [];
@@ -714,7 +723,11 @@ async function fetchNewsArticles(options = {}) {
   } else {
     params.set("content_type", `eq.${String(options.contentType || "article").trim()}`);
   }
-  if (options.season) params.set("season", `eq.${String(options.season).trim()}`);
+  if (options.season) {
+    const season = String(options.season).trim();
+    const seasonValues = getArticleSeasonQueryValues(season);
+    params.set("season", seasonValues.length > 1 ? `in.(${seasonValues.join(",")})` : `eq.${season}`);
+  }
   if (options.gameKey) params.set("game_key", `eq.${String(options.gameKey).trim()}`);
   params.set("order", "created_at.desc");
   params.set("limit", String(Number(options.limit || 12)));

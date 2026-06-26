@@ -119,6 +119,15 @@ function validateArticle(payload) {
   };
 }
 
+function getSeasonQueryValues(season) {
+  const clean = String(season || "").trim();
+  if (!clean) return [];
+  const baseMatch = clean.match(/^(c\d+s\d+)(?:-(regular|playoffs|post))?$/i);
+  if (!baseMatch) return [clean];
+  const base = baseMatch[1].toLowerCase();
+  return Array.from(new Set([clean, base, `${base}-regular`, `${base}-playoffs`, `${base}-post`]));
+}
+
 async function assertArticleWriter(req) {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
     const error = new Error("Missing Supabase server configuration.");
@@ -177,7 +186,10 @@ async function fetchArticles(options = {}) {
   } else {
     params.set("content_type", `eq.${contentType}`);
   }
-  if (season) params.set("season", `eq.${season}`);
+  if (season) {
+    const seasonValues = getSeasonQueryValues(season);
+    params.set("season", seasonValues.length > 1 ? `in.(${seasonValues.join(",")})` : `eq.${season}`);
+  }
   if (gameKey) params.set("game_key", `eq.${gameKey}`);
   params.set("order", "created_at.desc");
   params.set("limit", String(limit));

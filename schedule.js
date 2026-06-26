@@ -172,9 +172,18 @@ function scheduleRenderScheduleViews() {
 }
 
 function getSeasonRaw() {
-  const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
-  if (raw === "all-time") return "c2s3-regular";
-  if (raw === "c2s2") return "c2s3-regular";
+  const raw = localStorage.getItem(SEASON_KEY) || "c2s3-playoffs";
+  if (raw === "all-time") return "c2s3-playoffs";
+  if (raw === "c2s2") return "c2s3-playoffs";
+  if (raw === "c2s3" || raw === "c2s3-regular" || raw === "c2s3-playoffs") {
+    return "c2s3-playoffs";
+  }
+  return raw;
+}
+
+function getSelectedSeasonRaw() {
+  const raw = localStorage.getItem(SEASON_KEY) || "c2s3-playoffs";
+  if (raw === "all-time" || raw === "c2s2" || raw === "c2s3") return "c2s3-playoffs";
   return raw;
 }
 
@@ -187,9 +196,9 @@ function getSeason() {
 function initSeasonSelect() {
   const select = document.getElementById("season-select");
   if (!select) return;
-  select.value = getSeasonRaw();
+  select.value = getSelectedSeasonRaw();
   if (!select.value) {
-    select.value = seasonRaw;
+    select.value = getSeasonRaw();
   }
   localStorage.setItem(SEASON_KEY, select.value);
   select.addEventListener("change", () => {
@@ -410,11 +419,15 @@ function buildGameArticleLinks(game, options = {}) {
 
 async function loadGameContent() {
   try {
-    const response = await fetch(`${NEWS_ARTICLES_API}?content=game&season=${encodeURIComponent(getSeasonRaw())}`, {
-      cache: "no-store",
-    });
-    if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
-    const payload = await response.json();
+    const fetchPayload = async (url) => {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+      return response.json();
+    };
+    let payload = await fetchPayload(`${NEWS_ARTICLES_API}?content=game&season=${encodeURIComponent(getSeasonRaw())}`);
+    if (!Array.isArray(payload?.articles) || !payload.articles.length) {
+      payload = await fetchPayload(`${NEWS_ARTICLES_API}?content=game`);
+    }
     const map = new Map();
     (Array.isArray(payload?.articles) ? payload.articles : []).forEach((article) => {
       const type = String(article?.content_type || "").trim();
@@ -1594,7 +1607,7 @@ function applyInitialScheduleRows(rows, season) {
   updateLastUpdated();
 }
 
-async function hydrateCurrentSeasonSchedule(loadToken) {
+async function hydrateCurrentSeasonSchedule(loadToken, seasonRaw = getSeasonRaw()) {
   const [boxRes, liveRes, playerStatsRes] = await Promise.allSettled([
     fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
     fetch(LIVE_CSV_URL, { cache: "no-store" }),
@@ -1622,7 +1635,7 @@ async function hydrateCurrentSeasonSchedule(loadToken) {
     teamLeadersMap = computeTeamLeaders(playerRows);
   }
 
-  writeCachedScheduleEnhancements("c2s3-regular", {
+  writeCachedScheduleEnhancements(seasonRaw, {
     boxScoreRows: cachedBoxScoreRows,
     liveRows,
     playerRows,
@@ -1683,7 +1696,7 @@ async function loadSchedule() {
     }
     hydrateCachedEnhancements(seasonRaw);
 
-    if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s3-playoffs" || seasonRaw === "c2s2-playoffs") {
+    if (seasonRaw === "c2s3-playoffs" || seasonRaw === "c2s2-playoffs") {
       const scheduleRes = await fetch(SCHEDULE_CSV_URL, { cache: "no-store" });
       if (!scheduleRes.ok) throw new Error(`Fetch failed: ${scheduleRes.status}`);
       rows = getC2S2ScheduleRows(parseCSV(await scheduleRes.text()));
@@ -1760,7 +1773,7 @@ async function loadSchedule() {
 
     writeCachedScheduleRows(seasonRaw, rows);
     applyInitialScheduleRows(rows, season);
-    hydrateCurrentSeasonSchedule(loadToken);
+    hydrateCurrentSeasonSchedule(loadToken, seasonRaw);
   } catch (error) {
     renderGameSection(els.nextGames, [], error.message);
     renderGameSection(els.dayGames, [], error.message);
