@@ -2758,6 +2758,45 @@ function buildArticleExcerpt(article) {
   return body.length > 180 ? `${body.slice(0, 177)}...` : body;
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function articleMentionText(article) {
+  return [article?.title, article?.summary, article?.body].filter(Boolean).join(" ");
+}
+
+function findMentionedArticleTeams(article) {
+  const text = articleMentionText(article);
+  if (!text.trim()) return [];
+  return TEAM_ORDER.filter((team) => {
+    const aliases = [team, displayTeamName(team)];
+    if (team === "Bullets" || displayTeamName(team) === "Storm") aliases.push("Storm", "Bullets");
+    if (team === "The Future" || displayTeamName(team) === "Dream Team") aliases.push("Dream Team", "The Future");
+    if (team === "Yetis" || displayTeamName(team) === "Scorpions") aliases.push("Scorpions", "Yetis", "Scorpians");
+    return Array.from(new Set(aliases.filter(Boolean))).some((alias) =>
+      new RegExp(`(^|[^a-z0-9])${escapeRegExp(alias)}([^a-z0-9]|$)`, "i").test(text)
+    );
+  });
+}
+
+function renderArticleTeamLogos(article) {
+  const teams = findMentionedArticleTeams(article);
+  if (!teams.length) return "";
+  return `
+    <div class="dashboard-news-team-logos" aria-label="Teams mentioned">
+      ${teams
+        .map((team) => {
+          const shown = displayTeamName(team);
+          const src = getTeamLogoSrc(shown);
+          if (!src) return "";
+          return `<span class="dashboard-news-team-logo" title="${escapeHtml(shown)}">${renderSmallTeamLogo(shown)}</span>`;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
 function renderDashboardArticles(articles) {
   if (!els.dashboardNews) return;
   const latestArticles = (Array.isArray(articles) ? articles : []).slice(0, 3);
@@ -2792,6 +2831,7 @@ function renderDashboardArticles(articles) {
                 : ""
             }
           </div>
+          ${renderArticleTeamLogos(article)}
           <h3>${escapeHtml(title)}</h3>
           <p>${escapeHtml(excerpt || "No article text.")}</p>
         </a>
