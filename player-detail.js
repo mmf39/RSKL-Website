@@ -506,6 +506,7 @@ function isAllStarPlayer(seasonKey, playerKey) {
 
 function normalizeRookieSeasonKey(seasonKey) {
   if (seasonKey === "c2s4-playoffs") return "c2s4-regular";
+  if (seasonKey === "c2s3-playoffs") return "c2s3-regular";
   if (seasonKey === "c2s2-playoffs") return "c2s2-regular";
   if (seasonKey === "c2s1-playoffs") return "c2s1-regular";
   if (seasonKey === "c1s2-playoffs") return "c1s2-regular";

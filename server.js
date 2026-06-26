@@ -579,6 +579,27 @@ function rookieRowsToBadgeOverrides(rows) {
   return { rookie };
 }
 
+function seasonPlayerRowsToBadgeMap(rows, key) {
+  const output = {};
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    const rawSeason = String(row?.season || "").trim().toLowerCase();
+    const season = /^c\d+s\d+$/.test(rawSeason) ? `${rawSeason}-regular` : rawSeason;
+    const handle = String(row?.player_handle || row?.player_name || "").trim();
+    if (!season || !handle) return;
+    if (!output[season]) output[season] = [];
+    output[season].push(handle);
+  });
+  return { [key]: output };
+}
+
+function playerRowsToRisingStars(rows) {
+  return {
+    risingStars: (Array.isArray(rows) ? rows : [])
+      .map((row) => String(row?.player_handle || row?.player_name || "").trim())
+      .filter(Boolean),
+  };
+}
+
 async function readRookiePlayersFromSupabase() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return null;
@@ -588,6 +609,28 @@ async function readRookiePlayersFromSupabase() {
     "/rest/v1/rookie_players?select=season,player_handle,player_name&order=season.asc,created_at.asc"
   );
   return rookieRowsToBadgeOverrides(rows);
+}
+
+async function readAllStarPlayersFromSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return null;
+  }
+  const rows = await supabaseRequest(
+    "GET",
+    "/rest/v1/all_star_players?select=season,player_handle,player_name&order=season.asc,created_at.asc"
+  );
+  return seasonPlayerRowsToBadgeMap(rows, "allStar");
+}
+
+async function readRisingStarsPlayersFromSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return null;
+  }
+  const rows = await supabaseRequest(
+    "GET",
+    "/rest/v1/rising_stars_players?select=season,player_handle,player_name&order=season.asc,created_at.asc"
+  );
+  return playerRowsToRisingStars(rows);
 }
 
 async function writeBadgeOverrides(data) {
@@ -704,7 +747,7 @@ async function patchSupabasePlayerTag(table, oldTag, payload) {
   return Array.isArray(rows) ? rows.length : 0;
 }
 
-async function patchSupabaseRookiePlayerHandle(oldTag, payload) {
+async function patchSupabasePlayerHandle(table, oldTag, payload) {
   const cleanOld = String(oldTag || "").trim();
   if (!cleanOld) return 0;
   const variants = Array.from(new Set([cleanOld, cleanOld.replace(/^@/, "")])).filter(Boolean);
@@ -712,7 +755,7 @@ async function patchSupabaseRookiePlayerHandle(oldTag, payload) {
   for (const value of variants) {
     const rows = await supabaseRequest(
       "PATCH",
-      `/rest/v1/rookie_players?player_handle=eq.${encodeURIComponent(value)}`,
+      `/rest/v1/${table}?player_handle=eq.${encodeURIComponent(value)}`,
       payload
     );
     updated += Array.isArray(rows) ? rows.length : 0;
@@ -857,15 +900,25 @@ const server = http.createServer((req, res) => {
         const playerProfilesUpdated = await patchSupabasePlayerTag("player_profiles", oldTag, {
           player_tag: newTag,
         }).catch(() => 0);
-        const rookiePlayersUpdated = await patchSupabaseRookiePlayerHandle(oldTag, {
+        const playerHandlePayload = {
           player_handle: newTag,
           player_name: newDisplay,
           updated_at: new Date().toISOString(),
-        }).catch(() => 0);
+        };
+        const rookiePlayersUpdated = await patchSupabasePlayerHandle("rookie_players", oldTag, playerHandlePayload).catch(() => 0);
+        const allStarPlayersUpdated = await patchSupabasePlayerHandle("all_star_players", oldTag, playerHandlePayload).catch(() => 0);
+        const risingStarsPlayersUpdated = await patchSupabasePlayerHandle("rising_stars_players", oldTag, playerHandlePayload).catch(() => 0);
         send(
           res,
           200,
-          JSON.stringify({ ok: true, playersUpdated, playerProfilesUpdated, rookiePlayersUpdated }),
+          JSON.stringify({
+            ok: true,
+            playersUpdated,
+            playerProfilesUpdated,
+            rookiePlayersUpdated,
+            allStarPlayersUpdated,
+            risingStarsPlayersUpdated,
+          }),
           "application/json; charset=utf-8"
         );
       } catch (error) {
@@ -1006,7 +1059,22 @@ const server = http.createServer((req, res) => {
           } catch (_) {
             rookieTableData = null;
           }
-          const data = mergeBadgeLists(mergeBadgeLists(localData, supabaseData || {}), rookieTableData || {});
+          let allStarTableData = null;
+          try {
+            allStarTableData = await readAllStarPlayersFromSupabase();
+          } catch (_) {
+            allStarTableData = null;
+          }
+          let risingStarsTableData = null;
+          try {
+            risingStarsTableData = await readRisingStarsPlayersFromSupabase();
+          } catch (_) {
+            risingStarsTableData = null;
+          }
+          const data = [supabaseData, rookieTableData, allStarTableData, risingStarsTableData].reduce(
+            (merged, next) => mergeBadgeLists(merged, next || {}),
+            localData
+          );
           send(res, 200, JSON.stringify(sanitizeBadgeOverrides(data)), "application/json; charset=utf-8");
         } catch (error) {
           send(

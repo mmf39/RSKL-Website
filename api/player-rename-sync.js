@@ -73,13 +73,13 @@ async function patchTableByTag(table, oldTag, nextFields) {
   return Array.isArray(rows) ? rows.length : 0;
 }
 
-async function patchRookiePlayersByHandle(oldTag, nextFields) {
+async function patchPlayersByHandle(table, oldTag, nextFields) {
   const cleanOld = String(oldTag || "").trim();
   if (!cleanOld) return 0;
   const variants = Array.from(new Set([cleanOld, cleanOld.replace(/^@/, "")])).filter(Boolean);
   let updated = 0;
   for (const value of variants) {
-    const path = `/rest/v1/rookie_players?player_handle=eq.${encodeURIComponent(value)}`;
+    const path = `/rest/v1/${table}?player_handle=eq.${encodeURIComponent(value)}`;
     const rows = await requestSupabase("PATCH", path, nextFields);
     updated += Array.isArray(rows) ? rows.length : 0;
   }
@@ -131,17 +131,22 @@ module.exports = async (req, res) => {
       player_tag: newTag,
     }).catch(() => 0);
 
-    const rookiePlayersUpdated = await patchRookiePlayersByHandle(oldTag, {
+    const playerHandleFields = {
       player_handle: newTag,
       player_name: newDisplay,
       updated_at: new Date().toISOString(),
-    }).catch(() => 0);
+    };
+    const rookiePlayersUpdated = await patchPlayersByHandle("rookie_players", oldTag, playerHandleFields).catch(() => 0);
+    const allStarPlayersUpdated = await patchPlayersByHandle("all_star_players", oldTag, playerHandleFields).catch(() => 0);
+    const risingStarsPlayersUpdated = await patchPlayersByHandle("rising_stars_players", oldTag, playerHandleFields).catch(() => 0);
 
     sendJson(res, 200, {
       ok: true,
       playersUpdated,
       playerProfilesUpdated,
       rookiePlayersUpdated,
+      allStarPlayersUpdated,
+      risingStarsPlayersUpdated,
     });
   } catch (error) {
     sendJson(res, 500, {

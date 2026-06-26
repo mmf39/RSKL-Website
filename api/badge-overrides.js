@@ -176,6 +176,27 @@ function rookieRowsToBadgeOverrides(rows) {
   return { rookie };
 }
 
+function seasonPlayerRowsToBadgeMap(rows, key) {
+  const output = {};
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    const rawSeason = String(row?.season || "").trim().toLowerCase();
+    const season = /^c\d+s\d+$/.test(rawSeason) ? `${rawSeason}-regular` : rawSeason;
+    const handle = String(row?.player_handle || row?.player_name || "").trim();
+    if (!season || !handle) return;
+    if (!output[season]) output[season] = [];
+    output[season].push(handle);
+  });
+  return { [key]: output };
+}
+
+function playerRowsToRisingStars(rows) {
+  return {
+    risingStars: (Array.isArray(rows) ? rows : [])
+      .map((row) => String(row?.player_handle || row?.player_name || "").trim())
+      .filter(Boolean),
+  };
+}
+
 async function readRookiePlayersFromSupabase() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return null;
@@ -186,6 +207,30 @@ async function readRookiePlayersFromSupabase() {
     withSupabaseHeaders({ Accept: "application/json" })
   );
   return rookieRowsToBadgeOverrides(rows);
+}
+
+async function readAllStarPlayersFromSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return null;
+  }
+  const rows = await requestJson(
+    "GET",
+    `${SUPABASE_URL}/rest/v1/all_star_players?select=season,player_handle,player_name&order=season.asc,created_at.asc`,
+    withSupabaseHeaders({ Accept: "application/json" })
+  );
+  return seasonPlayerRowsToBadgeMap(rows, "allStar");
+}
+
+async function readRisingStarsPlayersFromSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return null;
+  }
+  const rows = await requestJson(
+    "GET",
+    `${SUPABASE_URL}/rest/v1/rising_stars_players?select=season,player_handle,player_name&order=season.asc,created_at.asc`,
+    withSupabaseHeaders({ Accept: "application/json" })
+  );
+  return playerRowsToRisingStars(rows);
 }
 
 async function writeBadgeOverrides(data) {
@@ -220,7 +265,22 @@ module.exports = async (req, res) => {
       } catch (_) {
         rookieTableData = null;
       }
-      const data = mergeBadgeLists(mergeBadgeLists(localData, supabaseData || {}), rookieTableData || {});
+      let allStarTableData = null;
+      try {
+        allStarTableData = await readAllStarPlayersFromSupabase();
+      } catch (_) {
+        allStarTableData = null;
+      }
+      let risingStarsTableData = null;
+      try {
+        risingStarsTableData = await readRisingStarsPlayersFromSupabase();
+      } catch (_) {
+        risingStarsTableData = null;
+      }
+      const data = [supabaseData, rookieTableData, allStarTableData, risingStarsTableData].reduce(
+        (merged, next) => mergeBadgeLists(merged, next || {}),
+        localData
+      );
       sendJson(res, 200, sanitizeBadgeOverrides(data));
     } catch (error) {
       sendJson(res, 500, { ok: false, message: error.message });
