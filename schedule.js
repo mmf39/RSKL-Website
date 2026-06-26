@@ -1,6 +1,6 @@
 const SCHEDULE_CSV_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=507537612&single=true&output=csv";
-const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
+const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore-playoffs";
 const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const GAME_FLOW_API = "/api/game-flow";
