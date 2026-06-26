@@ -566,6 +566,29 @@ async function readBadgeOverridesFromSupabase() {
   return row?.data ? sanitizeBadgeOverrides(row.data) : null;
 }
 
+function rookieRowsToBadgeOverrides(rows) {
+  const rookie = {};
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    const season = String(row?.season || "").trim();
+    const handle = String(row?.player_handle || row?.player_name || "").trim();
+    if (!season || !handle) return;
+    if (!rookie[season]) rookie[season] = [];
+    rookie[season].push(handle);
+  });
+  return { rookie };
+}
+
+async function readRookiePlayersFromSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return null;
+  }
+  const rows = await supabaseRequest(
+    "GET",
+    "/rest/v1/rookie_players?select=season,player_handle,player_name&order=season.asc,created_at.asc"
+  );
+  return rookieRowsToBadgeOverrides(rows);
+}
+
 async function writeBadgeOverrides(data) {
   const safeData = sanitizeBadgeOverrides(data);
   if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
@@ -678,6 +701,22 @@ async function patchSupabasePlayerTag(table, oldTag, payload) {
     payload
   );
   return Array.isArray(rows) ? rows.length : 0;
+}
+
+async function patchSupabaseRookiePlayerHandle(oldTag, payload) {
+  const cleanOld = String(oldTag || "").trim();
+  if (!cleanOld) return 0;
+  const variants = Array.from(new Set([cleanOld, cleanOld.replace(/^@/, "")])).filter(Boolean);
+  let updated = 0;
+  for (const value of variants) {
+    const rows = await supabaseRequest(
+      "PATCH",
+      `/rest/v1/rookie_players?player_handle=eq.${encodeURIComponent(value)}`,
+      payload
+    );
+    updated += Array.isArray(rows) ? rows.length : 0;
+  }
+  return updated;
 }
 
 const server = http.createServer((req, res) => {
@@ -817,10 +856,15 @@ const server = http.createServer((req, res) => {
         const playerProfilesUpdated = await patchSupabasePlayerTag("player_profiles", oldTag, {
           player_tag: newTag,
         }).catch(() => 0);
+        const rookiePlayersUpdated = await patchSupabaseRookiePlayerHandle(oldTag, {
+          player_handle: newTag,
+          player_name: newDisplay,
+          updated_at: new Date().toISOString(),
+        }).catch(() => 0);
         send(
           res,
           200,
-          JSON.stringify({ ok: true, playersUpdated, playerProfilesUpdated }),
+          JSON.stringify({ ok: true, playersUpdated, playerProfilesUpdated, rookiePlayersUpdated }),
           "application/json; charset=utf-8"
         );
       } catch (error) {
@@ -955,7 +999,13 @@ const server = http.createServer((req, res) => {
           } catch (_) {
             supabaseData = null;
           }
-          const data = mergeBadgeLists(localData, supabaseData || {});
+          let rookieTableData = null;
+          try {
+            rookieTableData = await readRookiePlayersFromSupabase();
+          } catch (_) {
+            rookieTableData = null;
+          }
+          const data = mergeBadgeLists(mergeBadgeLists(localData, supabaseData || {}), rookieTableData || {});
           send(res, 200, JSON.stringify(sanitizeBadgeOverrides(data)), "application/json; charset=utf-8");
         } catch (error) {
           send(

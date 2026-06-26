@@ -35,6 +35,8 @@ const ROOKIE_SEASON_ORDER = [
   "c2s1-regular",
   "c2s2-regular",
   "c2s3-regular",
+  "c2s4-regular",
+  "c2s4-playoffs",
 ];
 const PLAYER_SEASON_KEY = "playerSeason";
 const SEASON_KEY = "season";
@@ -503,6 +505,7 @@ function isAllStarPlayer(seasonKey, playerKey) {
 }
 
 function normalizeRookieSeasonKey(seasonKey) {
+  if (seasonKey === "c2s4-playoffs") return "c2s4-regular";
   if (seasonKey === "c2s2-playoffs") return "c2s2-regular";
   if (seasonKey === "c2s1-playoffs") return "c2s1-regular";
   if (seasonKey === "c1s2-playoffs") return "c1s2-regular";

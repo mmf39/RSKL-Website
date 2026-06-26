@@ -73,6 +73,19 @@ async function patchTableByTag(table, oldTag, nextFields) {
   return Array.isArray(rows) ? rows.length : 0;
 }
 
+async function patchRookiePlayersByHandle(oldTag, nextFields) {
+  const cleanOld = String(oldTag || "").trim();
+  if (!cleanOld) return 0;
+  const variants = Array.from(new Set([cleanOld, cleanOld.replace(/^@/, "")])).filter(Boolean);
+  let updated = 0;
+  for (const value of variants) {
+    const path = `/rest/v1/rookie_players?player_handle=eq.${encodeURIComponent(value)}`;
+    const rows = await requestSupabase("PATCH", path, nextFields);
+    updated += Array.isArray(rows) ? rows.length : 0;
+  }
+  return updated;
+}
+
 module.exports = async (req, res) => {
   if (req.method !== "POST") {
     sendJson(res, 405, { ok: false, message: "Method not allowed." });
@@ -118,10 +131,17 @@ module.exports = async (req, res) => {
       player_tag: newTag,
     }).catch(() => 0);
 
+    const rookiePlayersUpdated = await patchRookiePlayersByHandle(oldTag, {
+      player_handle: newTag,
+      player_name: newDisplay,
+      updated_at: new Date().toISOString(),
+    }).catch(() => 0);
+
     sendJson(res, 200, {
       ok: true,
       playersUpdated,
       playerProfilesUpdated,
+      rookiePlayersUpdated,
     });
   } catch (error) {
     sendJson(res, 500, {

@@ -163,6 +163,30 @@ async function readBadgeOverridesFromSupabase() {
   return row?.data ? sanitizeBadgeOverrides(row.data) : null;
 }
 
+function rookieRowsToBadgeOverrides(rows) {
+  const rookie = {};
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    const season = String(row?.season || "").trim();
+    const handle = String(row?.player_handle || row?.player_name || "").trim();
+    if (!season || !handle) return;
+    if (!rookie[season]) rookie[season] = [];
+    rookie[season].push(handle);
+  });
+  return { rookie };
+}
+
+async function readRookiePlayersFromSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return null;
+  }
+  const rows = await requestJson(
+    "GET",
+    `${SUPABASE_URL}/rest/v1/rookie_players?select=season,player_handle,player_name&order=season.asc,created_at.asc`,
+    withSupabaseHeaders({ Accept: "application/json" })
+  );
+  return rookieRowsToBadgeOverrides(rows);
+}
+
 async function writeBadgeOverrides(data) {
   const safeData = sanitizeBadgeOverrides(data);
   if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
@@ -189,7 +213,13 @@ module.exports = async (req, res) => {
       } catch (_) {
         supabaseData = null;
       }
-      const data = mergeBadgeLists(localData, supabaseData || {});
+      let rookieTableData = null;
+      try {
+        rookieTableData = await readRookiePlayersFromSupabase();
+      } catch (_) {
+        rookieTableData = null;
+      }
+      const data = mergeBadgeLists(mergeBadgeLists(localData, supabaseData || {}), rookieTableData || {});
       sendJson(res, 200, sanitizeBadgeOverrides(data));
     } catch (error) {
       sendJson(res, 500, { ok: false, message: error.message });
