@@ -2780,21 +2780,54 @@ function findMentionedArticleTeams(article) {
   });
 }
 
-function renderArticleTeamLogos(article) {
-  const teams = findMentionedArticleTeams(article);
-  if (!teams.length) return "";
-  return `
-    <div class="dashboard-news-team-logos" aria-label="Teams mentioned">
-      ${teams
-        .map((team) => {
-          const shown = displayTeamName(team);
-          const src = getTeamLogoSrc(shown);
-          if (!src) return "";
-          return `<span class="dashboard-news-team-logo" title="${escapeHtml(shown)}">${renderSmallTeamLogo(shown)}</span>`;
-        })
-        .join("")}
-    </div>
-  `;
+function findArticleTeamNameByAlias(value) {
+  const normalized = normalizeTeamName(value);
+  return TEAM_ORDER.map((team) => displayTeamName(team)).find((team) => {
+    const aliases = [team, displayTeamName(team)];
+    if (team === "Storm") aliases.push("Bullets");
+    if (team === "Dream Team") aliases.push("The Future");
+    if (team === "Scorpions") aliases.push("Yetis", "Scorpians");
+    return Array.from(new Set(aliases.filter(Boolean))).some((alias) => normalizeTeamName(alias) === normalized);
+  });
+}
+
+function renderArticleInlineTeam(label) {
+  const team = findArticleTeamNameByAlias(label);
+  if (!team) return escapeHtml(label);
+  const logo = renderSmallTeamLogo(team);
+  return `<span class="article-inline-team article-inline-team--dashboard">${logo}<span>${escapeHtml(label)}</span></span>`;
+}
+
+function renderArticleTeamText(value) {
+  const text = String(value || "");
+  const aliases = TEAM_ORDER.flatMap((team) => {
+    const shown = displayTeamName(team);
+    const list = [team, shown];
+    if (shown === "Storm") list.push("Bullets");
+    if (shown === "Dream Team") list.push("The Future");
+    if (shown === "Scorpions") list.push("Yetis", "Scorpians");
+    return list;
+  })
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+  const uniqueAliases = Array.from(new Set(aliases));
+  if (!uniqueAliases.length) return escapeHtml(text);
+  const teamRegex = new RegExp(`(^|[^a-z0-9])(${uniqueAliases.map(escapeRegExp).join("|")})(?=[^a-z0-9]|$)`, "gi");
+  let html = "";
+  let lastIndex = 0;
+  let match;
+
+  while ((match = teamRegex.exec(text))) {
+    const prefix = match[1] || "";
+    const teamName = match[2] || "";
+    const teamStart = match.index + prefix.length;
+    html += escapeHtml(text.slice(lastIndex, teamStart));
+    html += renderArticleInlineTeam(teamName);
+    lastIndex = teamStart + teamName.length;
+  }
+
+  html += escapeHtml(text.slice(lastIndex));
+  return html;
 }
 
 function renderDashboardArticles(articles) {
@@ -2831,9 +2864,8 @@ function renderDashboardArticles(articles) {
                 : ""
             }
           </div>
-          ${renderArticleTeamLogos(article)}
-          <h3>${escapeHtml(title)}</h3>
-          <p>${escapeHtml(excerpt || "No article text.")}</p>
+          <h3>${renderArticleTeamText(title)}</h3>
+          <p>${renderArticleTeamText(excerpt || "No article text.")}</p>
         </a>
       `;
     })

@@ -61,22 +61,37 @@ function findMentionedArticleTeams(article) {
   );
 }
 
-function renderArticleTeamLogos(article) {
-  const teams = findMentionedArticleTeams(article);
-  if (!teams.length) return "";
-  return `
-    <div class="article-team-logos" aria-label="Teams mentioned">
-      ${teams
-        .map(
-          (team) => `
-            <a class="article-team-logo-link" href="/team.html?team=${encodeURIComponent(team.name)}" title="${escapeHtml(team.name)}">
-              <img class="article-team-logo" src="${escapeHtml(team.logo)}" alt="${escapeHtml(team.name)} logo" loading="lazy" />
-            </a>
-          `
-        )
-        .join("")}
-    </div>
-  `;
+function findArticleTeamByAlias(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return ARTICLE_TEAMS.find((team) => team.aliases.some((alias) => alias.toLowerCase() === normalized));
+}
+
+function renderArticleTeamLink(label) {
+  const team = findArticleTeamByAlias(label);
+  if (!team) return escapeHtml(label);
+  return `<a class="article-inline-team" href="/team.html?team=${encodeURIComponent(team.name)}"><img class="article-inline-team-logo" src="${escapeHtml(team.logo)}" alt="" loading="lazy" /><span>${escapeHtml(label)}</span></a>`;
+}
+
+function renderArticleTeamText(value) {
+  const text = String(value || "");
+  const aliases = ARTICLE_TEAMS.flatMap((team) => team.aliases).sort((a, b) => b.length - a.length);
+  if (!aliases.length) return escapeHtml(text);
+  const teamRegex = new RegExp(`(^|[^a-z0-9])(${aliases.map(escapeRegExp).join("|")})(?=[^a-z0-9]|$)`, "gi");
+  let html = "";
+  let lastIndex = 0;
+  let match;
+
+  while ((match = teamRegex.exec(text))) {
+    const prefix = match[1] || "";
+    const teamName = match[2] || "";
+    const teamStart = match.index + prefix.length;
+    html += escapeHtml(text.slice(lastIndex, teamStart));
+    html += renderArticleTeamLink(teamName);
+    lastIndex = teamStart + teamName.length;
+  }
+
+  html += escapeHtml(text.slice(lastIndex));
+  return html;
 }
 
 function findProfileImageUrl(value, depth = 0) {
@@ -146,7 +161,7 @@ function renderArticleText(value) {
     const prefix = match[1] || "";
     const mention = match[2] || "";
     const mentionStart = match.index + prefix.length;
-    html += escapeHtml(text.slice(lastIndex, mentionStart));
+    html += renderArticleTeamText(text.slice(lastIndex, mentionStart));
     const cleanMention = mention.replace(/[.,!?;:]+$/g, "");
     const trailing = mention.slice(cleanMention.length);
     const key = normalizeMention(cleanMention);
@@ -154,7 +169,7 @@ function renderArticleText(value) {
     lastIndex = mentionStart + mention.length;
   }
 
-  html += escapeHtml(text.slice(lastIndex));
+  html += renderArticleTeamText(text.slice(lastIndex));
   return html.replace(/\n/g, "<br>");
 }
 
@@ -219,8 +234,7 @@ function renderArticle(article) {
         ${date ? `<span>${escapeHtml(date)}</span>` : ""}
         ${author ? `<span>${escapeHtml(author)}</span>` : ""}
       </div>
-      ${renderArticleTeamLogos(article)}
-      <h2>${escapeHtml(title)}</h2>
+      <h2>${renderArticleTeamText(title)}</h2>
       <div class="article-full-body">${paragraphs || "<p>No article text.</p>"}</div>
     </article>
   `;
