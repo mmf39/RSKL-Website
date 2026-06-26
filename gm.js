@@ -196,6 +196,7 @@ let gmAssignmentsCache = [];
 let commishUpcomingGames = [];
 let commishArticleGames = [];
 let lineupSubmittedByTeam = new Map();
+let selectedLineupTarget = null;
 let localGameLocksByDate = {};
 let freeAgencySelection = [];
 let freeAgencyResults = [];
@@ -2596,6 +2597,34 @@ async function submitLineupToSheet(team, lineup, captain) {
   return payload;
 }
 
+async function saveQueuedLineupToSheet(team, lineup, captain, target) {
+  const response = await fetch(TRADE_BLOCKS_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "saveQueuedLineup",
+      team,
+      lineup,
+      captain,
+      date: normalizeScheduleDateKey(target?.dateText || ""),
+      opponent: target?.opponent || "",
+      gameType: target?.gameType || "",
+      submittedAt: new Date().toISOString(),
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Queued lineup save failed: ${response.status}`);
+  }
+  const payload = await response.json();
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Invalid queued lineup response.");
+  }
+  if (payload.ok === false) {
+    throw new Error(payload.message || "Unable to queue lineup.");
+  }
+  return payload;
+}
+
 function normalizePowerVoteMap(value) {
   if (!value || typeof value !== "object") return {};
   const out = {};
@@ -2901,6 +2930,7 @@ function renderRenameTeam(team) {
 }
 
 function renderLineupTeam(team) {
+  selectedLineupTarget = null;
   renderLineupGameCards(team);
   renderLineupPlayers(team);
   updateLineupTabMeta(team);
@@ -3210,6 +3240,27 @@ function isLineupLockedForTeam(team) {
   return Date.now() >= lockAt.getTime();
 }
 
+function isLineupTargetLocked(target) {
+  const lockAt = getLockDateTimeForDay(target?.dateText || "");
+  if (!lockAt) return false;
+  return Date.now() >= lockAt.getTime();
+}
+
+function getTodayScheduleDateKey() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(new Date());
+  const month = parts.find((part) => part.type === "month")?.value || "";
+  const day = parts.find((part) => part.type === "day")?.value || "";
+  return normalizeScheduleDateKey(`${month}/${day}`);
+}
+
+function getLineupSubmissionKey(team, dateText) {
+  return `${normalizeName(team)}|${normalizeScheduleDateKey(dateText)}`;
+}
+
 function formatDeadlineText(dateText) {
   const lockAt = getLockDateTimeForDay(dateText);
   if (!lockAt) return "Deadline: —";
@@ -3279,35 +3330,47 @@ function renderLineupGameCards(team) {
       '<div class="gm-empty">No upcoming games found for this team.</div>';
     return;
   }
-  const submitted = lineupSubmittedByTeam.get(selectedTeam) === true;
+  if (!selectedLineupTarget || !sameTeam(selectedLineupTarget.team, selectedTeam)) {
+    selectedLineupTarget = { ...matchups[0], team: selectedTeam };
+  }
   els.lineupGameCards.innerHTML = matchups
     .slice(0, 4)
     .map((item, idx) => {
       const dateText = item.dateText || "—";
       const lockAt = getLockDateTimeForDay(dateText);
       const isLocked = !!lockAt && Date.now() >= lockAt.getTime();
-      const canEdit = idx === 0 && !isLocked;
-      const isSubmitted = idx === 0 && submitted;
+      const submissionKey = getLineupSubmissionKey(selectedTeam, dateText);
+      const isSelected =
+        selectedLineupTarget &&
+        sameTeam(selectedLineupTarget.team, selectedTeam) &&
+        normalizeScheduleDateKey(selectedLineupTarget.dateText) === normalizeScheduleDateKey(dateText);
+      const canEdit = !isLocked;
+      const isSubmitted = lineupSubmittedByTeam.get(submissionKey) === true;
       const statusClass = isSubmitted ? " submitted" : isLocked ? " locked" : "";
       const statusText = isSubmitted
         ? "Lineup Submitted"
         : isLocked
         ? "Locked"
         : formatDeadlineText(dateText);
-      const buttonText = canEdit ? "Edit Lineup" : isLocked ? "Locked" : "Awaiting Deadline";
+      const buttonText = isSelected ? "Selected" : canEdit ? "Use This Game" : "Locked";
       return `
-        <article class="gm-lineup-game-card${canEdit ? " active" : ""}">
+        <article class="gm-lineup-game-card${isSelected ? " active" : ""}">
           <div class="gm-lineup-game-title">vs ${escapeHtml(displayTeamName(item.opponent))} Date: ${escapeHtml(dateText)}</div>
           <div class="gm-lineup-game-status${statusClass}">${escapeHtml(statusText)}</div>
           <button
             class="gm-lineup-game-btn${canEdit ? "" : " disabled"}"
             type="button"
-            ${canEdit ? 'data-lineup-edit="true"' : "disabled"}
+            ${canEdit ? `data-lineup-edit="true" data-lineup-index="${idx}"` : "disabled"}
           >${escapeHtml(buttonText)}</button>
         </article>
       `;
     })
     .join("");
+  const targetDate = normalizeScheduleDateKey(selectedLineupTarget?.dateText || "");
+  const targetIsToday = targetDate === getTodayScheduleDateKey();
+  if (els.lineupSave) {
+    els.lineupSave.textContent = targetIsToday ? "Submit Lineup" : "Queue Lineup";
+  }
 }
 
 function parseScheduleDateValue(value) {
@@ -4359,13 +4422,29 @@ function bindEvents() {
       if (!ensureCanEditTeam(team, setLineupStatus)) {
         return;
       }
-      if (isLineupLockedForTeam(team)) {
+      const target =
+        selectedLineupTarget && sameTeam(selectedLineupTarget.team, team)
+          ? selectedLineupTarget
+          : { ...(getTeamUpcomingMatchups(team)[0] || {}), team };
+      if (!target || !target.dateText) {
+        setLineupStatus("Select a game/date for this lineup.", true);
+        return;
+      }
+      if (isLineupTargetLocked(target)) {
         setLineupStatus("Lineup is locked for this game day.", true);
         return;
       }
+      const targetDate = normalizeScheduleDateKey(target.dateText);
+      const targetIsToday = targetDate === getTodayScheduleDateKey();
       els.lineupSave.disabled = true;
-      setLineupOverlayVisible(true, "Submitting lineup");
-      setLineupStatus("Submitting lineup...");
+      setLineupOverlayVisible(
+        true,
+        targetIsToday ? "Submitting lineup" : "Queueing lineup",
+        targetIsToday
+          ? "Your lineup is being submitted for today's games."
+          : `Your lineup is being saved for ${targetDate}.`
+      );
+      setLineupStatus(targetIsToday ? "Submitting lineup..." : "Queueing lineup...");
       const checkedPlayers = Array.from(
         els.lineupPlayerList.querySelectorAll('input[data-lineup-player]:checked')
       ).map((node) => String(node.value || "").trim());
@@ -4373,11 +4452,21 @@ function bindEvents() {
       const captain = captainNode ? String(captainNode.value || "").trim() : "";
       try {
         // Server-side Apps Script is source of truth for lineup validation/lock rules.
-        await submitLineupToSheet(team, checkedPlayers, captain);
-        lineupSubmittedByTeam.set(team, true);
+        if (targetIsToday) {
+          await submitLineupToSheet(team, checkedPlayers, captain);
+        } else {
+          await saveQueuedLineupToSheet(team, checkedPlayers, captain, target);
+        }
+        lineupSubmittedByTeam.set(getLineupSubmissionKey(team, targetDate), true);
         renderLineupGameCards(team);
-        setLineupStatus("Lineup submitted.");
-        setLineupOverlayVisible(true, "Lineup submitted", "Your lineup was submitted successfully.");
+        setLineupStatus(targetIsToday ? "Lineup submitted." : `Lineup queued for ${targetDate}.`);
+        setLineupOverlayVisible(
+          true,
+          targetIsToday ? "Lineup submitted" : "Lineup queued",
+          targetIsToday
+            ? "Your lineup was submitted successfully."
+            : `Your lineup was saved for ${targetDate}.`
+        );
         updateLastUpdated();
         setTimeout(() => {
           setLineupOverlayVisible(false);
@@ -4399,6 +4488,14 @@ function bindEvents() {
     els.lineupGameCards.addEventListener("click", (event) => {
       const editButton = event.target.closest("[data-lineup-edit]");
       if (!editButton) return;
+      const team = els.lineupTeamSelect ? els.lineupTeamSelect.value : "";
+      const matchups = getTeamUpcomingMatchups(team).slice(0, 4);
+      const idx = Number(editButton.dataset.lineupIndex || 0);
+      if (matchups[idx]) {
+        selectedLineupTarget = { ...matchups[idx], team };
+        renderLineupGameCards(team);
+        setLineupStatus(`Lineup target set for ${normalizeScheduleDateKey(matchups[idx].dateText)}.`);
+      }
       if (els.lineupPlayerList) {
         els.lineupPlayerList.scrollIntoView({ behavior: "smooth", block: "start" });
       }
