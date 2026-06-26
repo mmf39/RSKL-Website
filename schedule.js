@@ -939,6 +939,7 @@ function findBoxScoreRowsForGame(game) {
 function getBoxScorePayload(game) {
   const rows = findBoxScoreRowsForGame(game);
   const scoreFallback = finalScoreMap.get(buildGameKey(game.dateToken, game.team1, game.team2));
+  const hasMatchedRows = rows.length > 0;
 
   const toTeamRows = (rowsIn, side) => {
     if (side === 1) {
@@ -1011,7 +1012,7 @@ function getBoxScorePayload(game) {
   const parsed1 = parseTeamHeader(team1Header);
   const parsed2 = parseTeamHeader(team2Header);
   const finalScore = parsed1.score && parsed2.score ? `${parsed1.score}-${parsed2.score}` : "";
-  const hasPlayerStats = team1.length || team2.length;
+  const hasPlayerStats = hasMatchedRows && (team1.length || team2.length);
   const hasTeamScores = Boolean(parsed1.score && parsed2.score);
   const teamOnlyHtml = `
     <div class="boxscore-meta">League Day: ${escapeHtml(game.dateToken)}</div>
@@ -1503,8 +1504,8 @@ function bindCalendarEvents() {
     if (link) return;
     const card = event.target.closest("[data-game-index]");
     if (!card) return;
-    const idx = Number(card.dataset.gameIndex);
-    const game = scheduleGames[idx];
+    const idx = String(card.dataset.gameIndex || "");
+    const game = scheduleGames.find((candidate) => String(candidate.idx) === idx);
     if (!game) return;
     const details = card.querySelector(".calendar-game-details");
     if (!details) return;
