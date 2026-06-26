@@ -99,6 +99,25 @@ function sanitizeBadgeOverrides(data) {
   };
 }
 
+function mergeBadgeLists(base = DEFAULT_BADGE_OVERRIDES, override = {}) {
+  const safeBase = sanitizeBadgeOverrides(base);
+  const safeOverride = sanitizeBadgeOverrides(override);
+  const mergeArray = (left, right) => Array.from(new Set([...(left || []), ...(right || [])]));
+  const mergeSeasonMap = (left, right) => {
+    const output = { ...left };
+    Object.keys(right || {}).forEach((seasonKey) => {
+      output[seasonKey] = mergeArray(output[seasonKey], right[seasonKey]);
+    });
+    return output;
+  };
+
+  return {
+    risingStars: mergeArray(safeBase.risingStars, safeOverride.risingStars),
+    rookie: mergeSeasonMap(safeBase.rookie, safeOverride.rookie),
+    allStar: mergeSeasonMap(safeBase.allStar, safeOverride.allStar),
+  };
+}
+
 function requestJsonWithHeaders(method, urlString, headers = {}, body = "") {
   return new Promise((resolve, reject) => {
     const target = new URL(urlString);
@@ -929,7 +948,14 @@ const server = http.createServer((req, res) => {
     if (req.method === "GET") {
       (async () => {
         try {
-          const data = (await readBadgeOverridesFromSupabase()) || readBadgeOverrides() || DEFAULT_BADGE_OVERRIDES;
+          const localData = readBadgeOverrides() || DEFAULT_BADGE_OVERRIDES;
+          let supabaseData = null;
+          try {
+            supabaseData = await readBadgeOverridesFromSupabase();
+          } catch (_) {
+            supabaseData = null;
+          }
+          const data = mergeBadgeLists(localData, supabaseData || {});
           send(res, 200, JSON.stringify(sanitizeBadgeOverrides(data)), "application/json; charset=utf-8");
         } catch (error) {
           send(

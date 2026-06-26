@@ -381,6 +381,9 @@
     const normalized = normalize(player);
     const normalizedSeason = normalizeRookieSeasonKey(seasonKey);
     if (!normalized || !normalizedSeason) return false;
+    if (normalizedSeason === "career") {
+      return Array.from(rookieCache.values()).some((players) => players.has(normalized));
+    }
     return Boolean(rookieCache.get(normalizedSeason)?.has(normalized));
   }
 
@@ -388,6 +391,9 @@
     const normalized = normalize(player);
     const normalizedSeason = normalizeRookieSeasonKey(seasonKey);
     if (!normalized || !normalizedSeason) return false;
+    if (normalizedSeason === "career") {
+      return Array.from(allStarCache.values()).some((players) => players.has(normalized));
+    }
     return Boolean(allStarCache.get(normalizedSeason)?.has(normalized));
   }
 

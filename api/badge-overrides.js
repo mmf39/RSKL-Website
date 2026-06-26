@@ -131,6 +131,25 @@ function sanitizeBadgeOverrides(data) {
   };
 }
 
+function mergeBadgeLists(base = DEFAULT_BADGE_OVERRIDES, override = {}) {
+  const safeBase = sanitizeBadgeOverrides(base);
+  const safeOverride = sanitizeBadgeOverrides(override);
+  const mergeArray = (left, right) => Array.from(new Set([...(left || []), ...(right || [])]));
+  const mergeSeasonMap = (left, right) => {
+    const output = { ...left };
+    Object.keys(right || {}).forEach((seasonKey) => {
+      output[seasonKey] = mergeArray(output[seasonKey], right[seasonKey]);
+    });
+    return output;
+  };
+
+  return {
+    risingStars: mergeArray(safeBase.risingStars, safeOverride.risingStars),
+    rookie: mergeSeasonMap(safeBase.rookie, safeOverride.rookie),
+    allStar: mergeSeasonMap(safeBase.allStar, safeOverride.allStar),
+  };
+}
+
 async function readBadgeOverridesFromSupabase() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return null;
@@ -163,7 +182,14 @@ async function writeBadgeOverrides(data) {
 module.exports = async (req, res) => {
   if (req.method === "GET") {
     try {
-      const data = (await readBadgeOverridesFromSupabase()) || readBadgeOverrides() || DEFAULT_BADGE_OVERRIDES;
+      const localData = readBadgeOverrides() || DEFAULT_BADGE_OVERRIDES;
+      let supabaseData = null;
+      try {
+        supabaseData = await readBadgeOverridesFromSupabase();
+      } catch (_) {
+        supabaseData = null;
+      }
+      const data = mergeBadgeLists(localData, supabaseData || {});
       sendJson(res, 200, sanitizeBadgeOverrides(data));
     } catch (error) {
       sendJson(res, 500, { ok: false, message: error.message });

@@ -468,6 +468,9 @@ function isAllStarPlayer(seasonKey, playerKey) {
   const normalizedPlayer = normalizePlayerKey(playerKey);
   if (!normalizedPlayer) return false;
   const normalizedSeason = normalizeRookieSeasonKey(seasonKey);
+  if (normalizedSeason === "career") {
+    return Array.from(allStarSeasonCache.values()).some((players) => players.has(normalizedPlayer));
+  }
   const currentSet = allStarSeasonCache.get(normalizedSeason);
   return Boolean(currentSet && currentSet.has(normalizedPlayer));
 }
@@ -488,6 +491,9 @@ function isRookieSeason(seasonKey, playerKey) {
   const normalizedPlayer = normalizePlayerKey(playerKey);
   if (!normalizedPlayer) return false;
   const normalizedSeason = normalizeRookieSeasonKey(seasonKey);
+  if (normalizedSeason === "career") {
+    return Array.from(rookieSeasonCache.values()).some((players) => players.has(normalizedPlayer));
+  }
   const currentSet = rookieSeasonCache.get(normalizedSeason);
   return Boolean(currentSet && currentSet.has(normalizedPlayer));
 }
