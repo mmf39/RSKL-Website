@@ -166,7 +166,8 @@ async function readBadgeOverridesFromSupabase() {
 function rookieRowsToBadgeOverrides(rows) {
   const rookie = {};
   (Array.isArray(rows) ? rows : []).forEach((row) => {
-    const season = String(row?.season || "").trim();
+    const rawSeason = String(row?.season || "").trim().toLowerCase();
+    const season = /^c\d+s\d+$/.test(rawSeason) ? `${rawSeason}-regular` : rawSeason;
     const handle = String(row?.player_handle || row?.player_name || "").trim();
     if (!season || !handle) return;
     if (!rookie[season]) rookie[season] = [];
