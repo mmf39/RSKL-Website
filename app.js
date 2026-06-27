@@ -1158,6 +1158,10 @@ function getScheduleWinner(game) {
   return score1 > score2 ? live.team1 : live.team2;
 }
 
+function getMarkedScheduleWinner(game) {
+  return displayTeamName(String(game?.winner || "").trim());
+}
+
 function getBracketSeriesRecord(teamA, teamB) {
   const games = getBracketSeriesGames(teamA, teamB);
   const left = displayTeamName(teamA);
@@ -1165,7 +1169,7 @@ function getBracketSeriesRecord(teamA, teamB) {
   let leftWins = 0;
   let rightWins = 0;
   games.forEach((game) => {
-    const winner = getScheduleWinner(game);
+    const winner = getMarkedScheduleWinner(game);
     if (!winner) return;
     if (normalizeTeamName(winner) === normalizeTeamName(left)) {
       leftWins += 1;

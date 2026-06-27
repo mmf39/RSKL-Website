@@ -4452,20 +4452,29 @@ function bindEvents() {
       const captain = captainNode ? String(captainNode.value || "").trim() : "";
       try {
         // Server-side Apps Script is source of truth for lineup validation/lock rules.
+        let sheetResult = null;
         if (targetIsToday) {
-          await submitLineupToSheet(team, checkedPlayers, captain);
+          sheetResult = await submitLineupToSheet(team, checkedPlayers, captain);
         } else {
-          await saveQueuedLineupToSheet(team, checkedPlayers, captain, target);
+          sheetResult = await saveQueuedLineupToSheet(team, checkedPlayers, captain, target);
         }
         lineupSubmittedByTeam.set(getLineupSubmissionKey(team, targetDate), true);
         renderLineupGameCards(team);
-        setLineupStatus(targetIsToday ? "Lineup submitted." : `Lineup queued for ${targetDate}.`);
+        const sheetMessage =
+          sheetResult && sheetResult.message ? String(sheetResult.message) : "";
+        setLineupStatus(
+          sheetMessage
+            ? `Website connected. ${sheetMessage}`
+            : targetIsToday
+            ? "Website connected. Lineup submitted to the sheet."
+            : `Website connected. Lineup queued in the sheet for ${targetDate}.`
+        );
         setLineupOverlayVisible(
           true,
           targetIsToday ? "Lineup submitted" : "Lineup queued",
           targetIsToday
-            ? "Your lineup was submitted successfully."
-            : `Your lineup was saved for ${targetDate}.`
+            ? "The sheet confirmed your lineup was submitted."
+            : `The sheet confirmed your lineup was saved for ${targetDate}.`
         );
         updateLastUpdated();
         setTimeout(() => {
