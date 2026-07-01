@@ -2827,6 +2827,20 @@ function getTeamPicks(team) {
   return picksByTeam.get(team) || [];
 }
 
+function looksLikeDraftPickAsset(value) {
+  const text = String(value || "").trim();
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  const teamNameHit = TEAM_ORDER.some((team) => {
+    const raw = String(team || "").toLowerCase();
+    const shown = displayTeamName(team).toLowerCase();
+    return lower === raw || lower === shown;
+  });
+  if (teamNameHit) return false;
+  if (["draft capital", "picks", "pick", "team", "round"].includes(lower)) return false;
+  return /\b(?:r\d+|round\s*\d+|pick\s*\d+|\d+(?:st|nd|rd|th)\b|c\d+s\d+|c\d+\s*s\d+)\b/i.test(text);
+}
+
 function renderTradePlayersList(team, selectedPlayers) {
   if (!team) {
     els.tradePlayerList.innerHTML = '<div class="gm-empty">Select a team.</div>';
@@ -4226,19 +4240,7 @@ async function loadDraftCapital() {
     const picks = rows
       .map((row) => String((row && row[idx]) || "").trim())
       .filter((value) => {
-        if (!value) {
-          return false;
-        }
-        const lower = value.toLowerCase();
-        const teamLower = team.toLowerCase();
-        const shownLower = displayTeamName(team).toLowerCase();
-        if (lower === teamLower || lower === shownLower) {
-          return false;
-        }
-        if (lower === "draft capital" || lower === "picks") {
-          return false;
-        }
-        return true;
+        return looksLikeDraftPickAsset(value);
       });
     map.set(team, picks);
   });
