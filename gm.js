@@ -898,15 +898,13 @@ function parseDraftCapitalOwnership(season = getDraftRunnerSeason(), round = 1) 
   const map = new Map();
   const extras = [];
   if (!rows.length) return { map, extras };
-  const fallbackOwnersByCol = Object.keys(DRAFT_CAPITAL_COLUMNS);
-  const ownersByCol = (rows[0] || []).some((cell) => String(cell || "").trim())
-    ? (rows[0] || []).map((owner, idx) => canonicalTeamKey(owner) || fallbackOwnersByCol[idx] || "")
-    : fallbackOwnersByCol;
   const seasonPattern = String(season || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-  rows.slice(1).forEach((row) => {
-    ownersByCol.forEach((ownerName, colIndex) => {
-      const text = String((row && row[colIndex]) || "").trim();
+  rows.forEach((row) => {
+    const ownerName = canonicalTeamKey(row?.[0]) || displayTeamName(row?.[0] || "");
+    if (!ownerName) return;
+    row.slice(1).forEach((cell, colIndex) => {
+      const text = String(cell || "").trim();
       if (!text || !new RegExp(seasonPattern, "i").test(text)) return;
       const roundMatch = text.match(new RegExp(`${seasonPattern}\\s*(\\d+)(?:st|nd|rd|th)?`, "i"));
       if (!roundMatch || Number(roundMatch[1]) !== Number(round)) return;
@@ -2824,7 +2822,13 @@ function getAllPlayersForFreeAgency() {
 }
 
 function getTeamPicks(team) {
-  return picksByTeam.get(team) || [];
+  const raw = String(team || "").trim();
+  return (
+    picksByTeam.get(raw) ||
+    picksByTeam.get(canonicalTeamKey(raw)) ||
+    picksByTeam.get(displayTeamName(raw)) ||
+    []
+  );
 }
 
 function looksLikeDraftPickAsset(value) {
@@ -4235,13 +4239,20 @@ async function loadDraftCapital() {
   draftCapitalRowsCache = rows;
   const map = new Map();
 
-  Object.entries(DRAFT_CAPITAL_COLUMNS).forEach(([team, colLetter]) => {
-    const idx = colToIndex(colLetter);
-    const picks = rows
-      .map((row) => String((row && row[idx]) || "").trim())
-      .filter((value) => {
-        return looksLikeDraftPickAsset(value);
-      });
+  TEAM_ORDER.forEach((team) => {
+    map.set(team, []);
+  });
+
+  rows.forEach((row) => {
+    const teamCell = String(row?.[0] || "").trim();
+    const team =
+      TEAM_ORDER.find((entry) => normalizeName(displayTeamName(entry)) === normalizeName(displayTeamName(teamCell))) ||
+      canonicalTeamKey(teamCell);
+    if (!team) return;
+    const picks = row
+      .slice(1)
+      .map((value) => String(value || "").trim())
+      .filter(looksLikeDraftPickAsset);
     map.set(team, picks);
   });
 
