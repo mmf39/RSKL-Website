@@ -6188,9 +6188,11 @@ input[type="text"] {
 
 #gm-auth-card,
 #gm-commish-card,
+#gm-commish-transactions-card,
 #gm-commish-draft-card,
 #gm-tab-draft > .gm-card,
 #gm-tab-trade > .gm-card,
+#gm-tab-manage > .gm-card,
 #gm-tab-rename > .gm-card,
 #gm-tab-lineup > .gm-card,
 #gm-tab-power > .gm-card {
@@ -6584,9 +6586,11 @@ input[type="text"] {
 
 #gm-auth-card::before,
 #gm-commish-card::before,
+#gm-commish-transactions-card::before,
 #gm-commish-draft-card::before,
 #gm-tab-draft > .gm-card::before,
 #gm-tab-trade > .gm-card::before,
+#gm-tab-manage > .gm-card::before,
 #gm-tab-rename > .gm-card::before,
 #gm-tab-lineup > .gm-card::before,
 #gm-tab-power > .gm-card::before {
@@ -6833,6 +6837,35 @@ input[type="text"] {
   display: grid;
   gap: 4px;
 }
+
+.gm-transaction-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.gm-transaction-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.gm-transaction-fields[hidden] {
+  display: none;
+}
+
+.gm-transaction-assets-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.gm-transaction-review-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .gm-checklist {
   display: grid;
   gap: 10px;

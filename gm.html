@@ -71,6 +71,7 @@
           <h2>GM Tools</h2>
           <div class="gm-tabs">
             <button class="gm-tab active" type="button" data-gm-tab="trade">Trade Block</button>
+            <button class="gm-tab" type="button" data-gm-tab="manage">Team Management</button>
             <button class="gm-tab" type="button" data-gm-tab="rename">Player Name Change</button>
             <button class="gm-tab" type="button" data-gm-tab="lineup">Lineup Submit</button>
             <button class="gm-tab" type="button" data-gm-tab="draft">Draft Pick</button>
@@ -139,6 +140,84 @@
           <div class="gm-card">
             <div class="label">Other Teams (Read Only)</div>
             <div id="trade-view-list" class="gm-readonly-list"></div>
+          </div>
+        </div>
+
+        <div id="gm-tab-manage" class="gm-tab-panel" hidden>
+          <div class="gm-card">
+            <div class="label">Report Team Transaction</div>
+            <div class="gm-transaction-grid">
+              <div>
+                <label class="label" for="transaction-team-select">Team</label>
+                <select id="transaction-team-select" class="text-input">
+                  <option value="">Select team</option>
+                  <option value="Gus N Em">Gus N Em</option>
+                  <option value="Storm">Storm</option>
+                  <option value="Turkeys">Turkeys</option>
+                  <option value="Bad Bois">Bad Bois</option>
+                  <option value="Scorpions">Scorpions</option>
+                  <option value="Illegals">Illegals</option>
+                  <option value="The Lions">The Lions</option>
+                  <option value="Dream Team">Dream Team</option>
+                  <option value="The Snipers">The Snipers</option>
+                  <option value="The Phantoms">The Phantoms</option>
+                </select>
+              </div>
+              <div>
+                <label class="label" for="transaction-type">Transaction Type</label>
+                <select id="transaction-type" class="text-input">
+                  <option value="signing">Player Signing</option>
+                  <option value="cut">Player Cut</option>
+                  <option value="trade">Trade</option>
+                  <option value="report">Report Only</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="transaction-signing-fields" class="gm-transaction-fields">
+              <label class="label" for="transaction-signing-player">Player Signing</label>
+              <input id="transaction-signing-player" class="text-input" type="text" placeholder="@player" />
+            </div>
+
+            <div id="transaction-cut-fields" class="gm-transaction-fields" hidden>
+              <label class="label" for="transaction-cut-player">Player Cut</label>
+              <select id="transaction-cut-player" class="text-input">
+                <option value="">Select player</option>
+              </select>
+            </div>
+
+            <div id="transaction-trade-fields" class="gm-transaction-fields" hidden>
+              <label class="label" for="transaction-partner-team">Trade Partner</label>
+              <select id="transaction-partner-team" class="text-input">
+                <option value="">Select partner team</option>
+                <option value="Gus N Em">Gus N Em</option>
+                <option value="Storm">Storm</option>
+                <option value="Turkeys">Turkeys</option>
+                <option value="Bad Bois">Bad Bois</option>
+                <option value="Scorpions">Scorpions</option>
+                <option value="Illegals">Illegals</option>
+                <option value="The Lions">The Lions</option>
+                <option value="Dream Team">Dream Team</option>
+                <option value="The Snipers">The Snipers</option>
+                <option value="The Phantoms">The Phantoms</option>
+              </select>
+              <div class="gm-transaction-assets-grid">
+                <div>
+                  <div class="label">Your Team Sends</div>
+                  <div id="transaction-outgoing-assets" class="gm-checklist"></div>
+                </div>
+                <div>
+                  <div class="label">Your Team Receives</div>
+                  <div id="transaction-incoming-assets" class="gm-checklist"></div>
+                </div>
+              </div>
+            </div>
+
+            <label class="label" for="transaction-notes">Notes</label>
+            <textarea id="transaction-notes" class="text-input gm-textarea" rows="4" placeholder="Extra details, screenshots, conditions, etc."></textarea>
+
+            <button id="transaction-submit" class="btn" type="button">Submit Transaction Request</button>
+            <div id="transaction-status" class="gm-status"></div>
           </div>
         </div>
 
@@ -300,6 +379,12 @@
             <button id="gm-lock-save" class="btn" type="button">Save Lock Times</button>
             <div id="gm-lock-status" class="gm-status"></div>
           </div>
+          <div class="gm-card" id="gm-commish-transactions-card" hidden>
+            <div class="label">Commissioner: Pending Transactions</div>
+            <button id="gm-transaction-refresh" class="btn ghost" type="button">Refresh Requests</button>
+            <div id="gm-transaction-approval-list" class="gm-readonly-list"></div>
+            <div id="gm-transaction-approval-status" class="gm-status"></div>
+          </div>
           <div class="gm-card" id="gm-commish-draft-card" hidden>
             <div class="gm-commish-draft-head">
               <div>
@@ -411,7 +496,7 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="gm.js?v=20260627queuedlineups2"></script>
+    <script src="gm.js?v=20260701transactions2"></script>
       <script src="header-nav.js?v=20260626c2s3badges1"></script>
   </body>
 </html>

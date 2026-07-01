@@ -35,6 +35,9 @@ function getScriptUrlByAction(action) {
     action === "submitLineup" ||
     action === "saveQueuedLineup" ||
     action === "getQueuedLineups" ||
+    action === "submitTransactionRequest" ||
+    action === "getPendingTransactionRequests" ||
+    action === "reviewTransactionRequest" ||
     action === "submitDraftPick" ||
     action === "setGameLocks" ||
     action === "saveGameLocks" ||

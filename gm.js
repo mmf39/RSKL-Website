@@ -104,6 +104,10 @@ const els = {
   lockGamesList: document.getElementById("gm-lock-games-list"),
   lockSave: document.getElementById("gm-lock-save"),
   lockStatus: document.getElementById("gm-lock-status"),
+  commishTransactionsCard: document.getElementById("gm-commish-transactions-card"),
+  transactionRefresh: document.getElementById("gm-transaction-refresh"),
+  transactionApprovalList: document.getElementById("gm-transaction-approval-list"),
+  transactionApprovalStatus: document.getElementById("gm-transaction-approval-status"),
   articleTitle: document.getElementById("gm-article-title"),
   articleSummary: document.getElementById("gm-article-summary"),
   articleBody: document.getElementById("gm-article-body"),
@@ -115,6 +119,7 @@ const els = {
   articleGameGroup: document.getElementById("gm-article-game-group"),
   articleGame: document.getElementById("gm-article-game"),
   tabTradePanel: document.getElementById("gm-tab-trade"),
+  tabManagePanel: document.getElementById("gm-tab-manage"),
   tabRenamePanel: document.getElementById("gm-tab-rename"),
   tabLineupPanel: document.getElementById("gm-tab-lineup"),
   tabDraftPanel: document.getElementById("gm-tab-draft"),
@@ -144,6 +149,19 @@ const els = {
   tradeSave: document.getElementById("trade-save"),
   tradeStatus: document.getElementById("trade-status"),
   tradeViewList: document.getElementById("trade-view-list"),
+  transactionTeamSelect: document.getElementById("transaction-team-select"),
+  transactionType: document.getElementById("transaction-type"),
+  transactionSigningFields: document.getElementById("transaction-signing-fields"),
+  transactionCutFields: document.getElementById("transaction-cut-fields"),
+  transactionTradeFields: document.getElementById("transaction-trade-fields"),
+  transactionSigningPlayer: document.getElementById("transaction-signing-player"),
+  transactionCutPlayer: document.getElementById("transaction-cut-player"),
+  transactionPartnerTeam: document.getElementById("transaction-partner-team"),
+  transactionOutgoingAssets: document.getElementById("transaction-outgoing-assets"),
+  transactionIncomingAssets: document.getElementById("transaction-incoming-assets"),
+  transactionNotes: document.getElementById("transaction-notes"),
+  transactionSubmit: document.getElementById("transaction-submit"),
+  transactionStatus: document.getElementById("transaction-status"),
   renameTeamSelect: document.getElementById("rename-team-select"),
   renamePlayerSelect: document.getElementById("rename-player-select"),
   renameNewName: document.getElementById("rename-new-name"),
@@ -292,6 +310,8 @@ function setActiveTab(tab) {
   const active =
     tab === "rename"
       ? "rename"
+      : tab === "manage"
+      ? "manage"
       : tab === "lineup"
       ? "lineup"
       : tab === "draft"
@@ -307,6 +327,9 @@ function setActiveTab(tab) {
       : "trade";
   if (els.tabTradePanel) {
     els.tabTradePanel.hidden = active !== "trade";
+  }
+  if (els.tabManagePanel) {
+    els.tabManagePanel.hidden = active !== "manage";
   }
   if (els.tabRenamePanel) {
     els.tabRenamePanel.hidden = active !== "rename";
@@ -410,6 +433,14 @@ function setStatus(node, message, isError = false) {
 function setTradeStatus(message, isError = false) {
   els.tradeStatus.textContent = message;
   els.tradeStatus.className = `gm-status ${isError ? "error" : ""}`;
+}
+
+function setTransactionStatus(message, isError = false) {
+  setStatus(els.transactionStatus, message, isError);
+}
+
+function setTransactionApprovalStatus(message, isError = false) {
+  setStatus(els.transactionApprovalStatus, message, isError);
 }
 
 function setRenameStatus(message, isError = false) {
@@ -2157,6 +2188,7 @@ function ensureCanEditTeam(team, setStatusFn) {
 function syncTeamSelectorsToAuth() {
   const selects = [
     els.teamSelect,
+    els.transactionTeamSelect,
     els.renameTeamSelect,
     els.lineupTeamSelect,
     els.powerTeamSelect,
@@ -2219,6 +2251,9 @@ function applyAuthUi() {
   if (els.commishDraftCard) {
     els.commishDraftCard.hidden = !commishAccess;
   }
+  if (els.commishTransactionsCard) {
+    els.commishTransactionsCard.hidden = !commishAccess;
+  }
   renderDraftRunner();
   if (els.articleCard) {
     els.articleCard.hidden = !(signedIn && canWriteArticles());
@@ -2229,7 +2264,7 @@ function applyAuthUi() {
   if (els.commishTab) {
     els.commishTab.hidden = !commishAccess;
   }
-  ["trade", "rename", "lineup", "draft"].forEach((tabName) => {
+  ["trade", "manage", "rename", "lineup", "draft"].forEach((tabName) => {
     const button = els.tabButtons.find((tabButton) => tabButton.dataset.gmTab === tabName);
     if (button) {
       button.hidden = reporterOnly;
@@ -2243,6 +2278,9 @@ function applyAuthUi() {
   }
   if (signedIn && canWriteArticles()) {
     loadArticlesForWriter();
+  }
+  if (commishAccess) {
+    loadPendingTransactionsForCommish();
   }
   if (els.sessionMeta) {
     els.sessionMeta.hidden = !signedIn;
@@ -2448,6 +2486,42 @@ async function saveTradeBlockToSheet(team, block) {
     throw new Error(payload.message || "Trade block save failed.");
   }
   return true;
+}
+
+async function submitTransactionRequestToSheet(request) {
+  return requestJson(TRADE_BLOCKS_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "submitTransactionRequest",
+      ...request,
+      submittedBy: gmSession?.user?.email || gmSession?.user?.id || "",
+      submittedAt: new Date().toISOString(),
+    }),
+  });
+}
+
+async function fetchPendingTransactionRequests() {
+  const payload = await requestJson(TRADE_BLOCKS_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "getPendingTransactionRequests" }),
+  });
+  return Array.isArray(payload.requests) ? payload.requests : [];
+}
+
+async function reviewTransactionRequest(id, decision) {
+  return requestJson(TRADE_BLOCKS_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action: "reviewTransactionRequest",
+      id,
+      decision,
+      reviewedBy: gmSession?.user?.email || gmSession?.user?.id || "",
+      reviewedAt: new Date().toISOString(),
+    }),
+  });
 }
 
 async function saveGameLocksToSheet(locks) {
@@ -2916,6 +2990,201 @@ function renderSelectedTeam(team) {
   }
   renderOtherTradeBlocks(team);
   setTradeStatus("");
+}
+
+function syncTransactionTypeFields() {
+  const type = String(els.transactionType?.value || "signing");
+  if (els.transactionSigningFields) {
+    els.transactionSigningFields.hidden = type !== "signing";
+  }
+  if (els.transactionCutFields) {
+    els.transactionCutFields.hidden = type !== "cut";
+  }
+  if (els.transactionTradeFields) {
+    els.transactionTradeFields.hidden = type !== "trade";
+  }
+}
+
+function renderTransactionCutOptions(team) {
+  if (!els.transactionCutPlayer) return;
+  const players = getTeamPlayers(team);
+  els.transactionCutPlayer.innerHTML = [
+    '<option value="">Select player</option>',
+    ...players.map((player) => `<option value="${escapeHtml(player)}">${escapeHtml(player)}</option>`),
+  ].join("");
+}
+
+function getTransactionAssetsForTeam(team) {
+  const players = getTeamPlayers(team).map((asset) => ({ type: "player", label: asset }));
+  const picks = getTeamPicks(team).map((asset) => ({ type: "pick", label: asset }));
+  return [...players, ...picks].filter((asset) => String(asset.label || "").trim());
+}
+
+function renderTransactionAssetList(node, team, emptyText) {
+  if (!node) return;
+  if (!team) {
+    node.innerHTML = `<div class="gm-empty">${escapeHtml(emptyText || "Select a team.")}</div>`;
+    return;
+  }
+  const assets = getTransactionAssetsForTeam(team);
+  if (!assets.length) {
+    node.innerHTML = '<div class="gm-empty">No assets found.</div>';
+    return;
+  }
+  node.innerHTML = assets
+    .map((asset) => {
+      const value = `${asset.type}:${asset.label}`;
+      const badge = asset.type === "pick" ? "Pick" : "Player";
+      return `
+        <label class="gm-check">
+          <input type="checkbox" value="${escapeHtml(value)}" data-transaction-asset="${escapeHtml(asset.type)}" />
+          <span>${escapeHtml(asset.label)}</span>
+          <small>${escapeHtml(badge)}</small>
+        </label>
+      `;
+    })
+    .join("");
+}
+
+function getCheckedTransactionAssets(node) {
+  if (!node) return [];
+  return Array.from(node.querySelectorAll("input[data-transaction-asset]:checked"))
+    .map((input) => {
+      const raw = String(input.value || "");
+      const idx = raw.indexOf(":");
+      const type = idx >= 0 ? raw.slice(0, idx) : "asset";
+      const label = idx >= 0 ? raw.slice(idx + 1) : raw;
+      return { type, label };
+    })
+    .filter((asset) => asset.label);
+}
+
+function formatTransactionAssets(assets) {
+  return (Array.isArray(assets) ? assets : [])
+    .map((asset) => String(asset?.label || asset || "").trim())
+    .filter(Boolean)
+    .join(", ");
+}
+
+function renderTransactionTradeAssets() {
+  const team = String(els.transactionTeamSelect?.value || "").trim();
+  const partnerTeam = String(els.transactionPartnerTeam?.value || "").trim();
+  renderTransactionAssetList(els.transactionOutgoingAssets, team, "Select your team.");
+  renderTransactionAssetList(els.transactionIncomingAssets, partnerTeam, "Select a trade partner.");
+}
+
+function renderTransactionTeam(team) {
+  renderTransactionCutOptions(team);
+  if (els.transactionPartnerTeam) {
+    Array.from(els.transactionPartnerTeam.options).forEach((option) => {
+      if (!option.value) return;
+      option.disabled = sameTeam(option.value, team);
+    });
+    if (sameTeam(els.transactionPartnerTeam.value, team)) {
+      els.transactionPartnerTeam.value = "";
+    }
+  }
+  renderTransactionTradeAssets();
+  syncTransactionTypeFields();
+  setTransactionStatus("");
+}
+
+function resetTransactionForm(keepTeam = true) {
+  const team = keepTeam ? String(els.transactionTeamSelect?.value || "") : "";
+  if (!keepTeam && els.transactionTeamSelect) els.transactionTeamSelect.value = "";
+  if (els.transactionType) els.transactionType.value = "signing";
+  if (els.transactionSigningPlayer) els.transactionSigningPlayer.value = "";
+  if (els.transactionCutPlayer) els.transactionCutPlayer.value = "";
+  if (els.transactionPartnerTeam) els.transactionPartnerTeam.value = "";
+  if (els.transactionNotes) els.transactionNotes.value = "";
+  renderTransactionTeam(team);
+}
+
+function buildTransactionRequestPayload() {
+  const team = String(els.transactionTeamSelect?.value || "").trim();
+  const type = String(els.transactionType?.value || "signing").trim();
+  const notes = String(els.transactionNotes?.value || "").trim();
+  const payload = { team, type, notes };
+
+  if (type === "signing") {
+    payload.player = String(els.transactionSigningPlayer?.value || "").trim();
+    if (payload.player && !payload.player.startsWith("@")) {
+      payload.player = `@${payload.player}`;
+    }
+  } else if (type === "cut") {
+    payload.player = String(els.transactionCutPlayer?.value || "").trim();
+  } else if (type === "trade") {
+    payload.partnerTeam = String(els.transactionPartnerTeam?.value || "").trim();
+    payload.outgoingAssets = getCheckedTransactionAssets(els.transactionOutgoingAssets);
+    payload.incomingAssets = getCheckedTransactionAssets(els.transactionIncomingAssets);
+    payload.outgoing = formatTransactionAssets(payload.outgoingAssets);
+    payload.incoming = formatTransactionAssets(payload.incomingAssets);
+  }
+
+  return payload;
+}
+
+function validateTransactionRequest(payload) {
+  if (!payload.team) return "Select a team first.";
+  if (!payload.type) return "Select a transaction type.";
+  if (payload.type === "signing" && !payload.player) return "Enter the player being signed.";
+  if (payload.type === "cut" && !payload.player) return "Select the player being cut.";
+  if (payload.type === "trade") {
+    if (!payload.partnerTeam) return "Select the trade partner.";
+    if (!payload.outgoing || !payload.incoming) return "Enter what both teams are sending.";
+  }
+  if (payload.type === "report" && !payload.notes) return "Add notes for the report.";
+  return "";
+}
+
+function renderPendingTransactionRequests(requests) {
+  if (!els.transactionApprovalList) return;
+  if (!requests.length) {
+    els.transactionApprovalList.innerHTML = '<div class="gm-empty">No pending transaction requests.</div>';
+    return;
+  }
+  els.transactionApprovalList.innerHTML = requests
+    .map((request) => {
+      const id = String(request.id || "").trim();
+      const type = String(request.type || "").trim();
+      const details = [
+        request.player ? `Player: ${request.player}` : "",
+        request.partnerTeam ? `Partner: ${request.partnerTeam}` : "",
+        request.outgoing ? `Sends: ${request.outgoing}` : "",
+        request.incoming ? `Receives: ${request.incoming}` : "",
+        request.notes ? `Notes: ${request.notes}` : "",
+      ].filter(Boolean);
+      return `
+        <div class="gm-readonly-card" data-transaction-request-id="${escapeHtml(id)}">
+          <div class="gm-readonly-title">${escapeHtml(displayTeamName(request.team || ""))} • ${escapeHtml(type || "transaction")}</div>
+          <div class="gm-readonly-group">
+            <div class="label">Details</div>
+            <div>${details.length ? details.map(escapeHtml).join("<br>") : "No details."}</div>
+          </div>
+          <div class="gm-readonly-group">
+            <div class="label">Submitted</div>
+            <div>${escapeHtml(request.submittedAt || "—")}</div>
+          </div>
+          <div class="gm-transaction-review-actions">
+            <button class="btn" type="button" data-transaction-approve="${escapeHtml(id)}">Approve</button>
+            <button class="btn ghost" type="button" data-transaction-decline="${escapeHtml(id)}">Decline</button>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+async function loadPendingTransactionsForCommish() {
+  if (!isSignedInGm() || !isCommish()) return;
+  try {
+    setTransactionApprovalStatus("Loading pending requests...");
+    const requests = await fetchPendingTransactionRequests();
+    renderPendingTransactionRequests(requests);
+    setTransactionApprovalStatus(requests.length ? `${requests.length} pending request(s).` : "No pending requests.");
+  } catch (error) {
+    setTransactionApprovalStatus(error.message || "Unable to load pending transactions.", true);
+  }
 }
 
 function renderRenameTeam(team) {
@@ -4015,6 +4284,17 @@ function bindEvents() {
       renderSelectedTeam(els.teamSelect.value);
     });
   }
+  if (els.transactionTeamSelect) {
+    els.transactionTeamSelect.addEventListener("change", () => {
+      renderTransactionTeam(els.transactionTeamSelect.value);
+    });
+  }
+  if (els.transactionType) {
+    els.transactionType.addEventListener("change", syncTransactionTypeFields);
+  }
+  if (els.transactionPartnerTeam) {
+    els.transactionPartnerTeam.addEventListener("change", renderTransactionTradeAssets);
+  }
   if (els.renameTeamSelect) {
     els.renameTeamSelect.addEventListener("change", () => {
       renderRenameTeam(els.renameTeamSelect.value);
@@ -4188,6 +4468,33 @@ function bindEvents() {
       }
     });
   }
+  if (els.transactionRefresh) {
+    els.transactionRefresh.addEventListener("click", loadPendingTransactionsForCommish);
+  }
+  if (els.transactionApprovalList) {
+    els.transactionApprovalList.addEventListener("click", async (event) => {
+      const approve = event.target.closest("[data-transaction-approve]");
+      const decline = event.target.closest("[data-transaction-decline]");
+      const id = approve?.dataset.transactionApprove || decline?.dataset.transactionDecline || "";
+      if (!id) return;
+      if (!isSignedInGm() || !isCommish()) {
+        setTransactionApprovalStatus("Commissioner access required.", true);
+        return;
+      }
+      const decision = approve ? "approved" : "declined";
+      try {
+        setTransactionApprovalStatus(`${decision === "approved" ? "Approving" : "Declining"} transaction...`);
+        const result = await reviewTransactionRequest(id, decision);
+        setTransactionApprovalStatus(result.message || `Transaction ${decision}.`);
+        await loadRoster();
+        renderSelectedTeam(els.teamSelect?.value || "");
+        renderTransactionTeam(els.transactionTeamSelect?.value || "");
+        await loadPendingTransactionsForCommish();
+      } catch (error) {
+        setTransactionApprovalStatus(error.message || "Unable to review transaction.", true);
+      }
+    });
+  }
   if (els.articlePublish) {
     els.articlePublish.addEventListener("click", publishArticle);
   }
@@ -4333,6 +4640,35 @@ function bindEvents() {
         updateLastUpdated();
       } catch (error) {
         setTradeStatus(error.message || "Unable to save trade block.", true);
+      }
+    });
+  }
+
+  if (els.transactionSubmit) {
+    els.transactionSubmit.addEventListener("click", async () => {
+      const payload = buildTransactionRequestPayload();
+      const validationMessage = validateTransactionRequest(payload);
+      if (validationMessage) {
+        setTransactionStatus(validationMessage, true);
+        return;
+      }
+      if (!ensureCanEditTeam(payload.team, setTransactionStatus)) {
+        return;
+      }
+      try {
+        els.transactionSubmit.disabled = true;
+        setTransactionStatus("Submitting transaction request...");
+        const result = await submitTransactionRequestToSheet(payload);
+        setTransactionStatus(result.message || "Transaction request submitted for commissioner approval.");
+        resetTransactionForm(true);
+        if (isCommish()) {
+          await loadPendingTransactionsForCommish();
+        }
+        updateLastUpdated();
+      } catch (error) {
+        setTransactionStatus(error.message || "Unable to submit transaction request.", true);
+      } finally {
+        els.transactionSubmit.disabled = false;
       }
     });
   }
@@ -4758,6 +5094,7 @@ async function init() {
     }
     applyAuthUi();
     renderSelectedTeam(els.teamSelect.value || "");
+    renderTransactionTeam(els.transactionTeamSelect ? els.transactionTeamSelect.value : "");
     renderRenameTeam(els.renameTeamSelect ? els.renameTeamSelect.value : "");
     renderLineupTeam(els.lineupTeamSelect ? els.lineupTeamSelect.value : "");
     renderFreeAgencySelection();
