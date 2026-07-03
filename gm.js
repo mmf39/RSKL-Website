@@ -125,6 +125,7 @@ const els = {
   tabDraftPanel: document.getElementById("gm-tab-draft"),
   tabFreeAgencyPanel: document.getElementById("gm-tab-free-agency"),
   tabPowerPanel: document.getElementById("gm-tab-power"),
+  tabStatsPanel: document.getElementById("gm-tab-stats"),
   tabArticlesPanel: document.getElementById("gm-tab-articles"),
   tabCommishPanel: document.getElementById("gm-tab-commish"),
   lineupTabMeta: document.getElementById("gm-lineup-tab-meta"),
@@ -320,6 +321,8 @@ function setActiveTab(tab) {
       ? "free-agency"
       : tab === "power"
       ? "power"
+      : tab === "stats"
+      ? "stats"
       : tab === "articles"
       ? "articles"
       : tab === "commish"
@@ -345,6 +348,9 @@ function setActiveTab(tab) {
   }
   if (els.tabPowerPanel) {
     els.tabPowerPanel.hidden = active !== "power";
+  }
+  if (els.tabStatsPanel) {
+    els.tabStatsPanel.hidden = active !== "stats";
   }
   if (els.tabArticlesPanel) {
     els.tabArticlesPanel.hidden = active !== "articles";
