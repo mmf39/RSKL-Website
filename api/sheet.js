@@ -39,16 +39,12 @@ const SOURCES = {
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vRTCAyH_FaIk97bDq5_U4-foybMKDrXMrYVWE-cDeCgHmTFtjSAQrURZBgEA8g4Bhj-TL4U-OcITkC6/pub?gid=443160286&single=true&output=csv",
   "player-stats": C2S3_STATS_URL,
   "player-stats-playoffs": C2S3_PLAYOFF_PLAYER_STATS_URL,
-  roster:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=847666124&single=true&output=csv",
-  schedule:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=507537612&single=true&output=csv",
-  standings:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vRKB1A8VvkamcBPMWAh7vVqAlOkx1UlINThkHhfMFEfSKEfpSnbbmq5d6w0KUdUju8x47pPrCAQUtFg/pub?gid=1102670617&single=true&output=csv",
-  "standings-dashboard":
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=2115060088&single=true&output=csv",
-  teams:
-    "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=847666124&single=true&output=csv",
+  roster: C2S3_STATS_URL,
+  schedule: C2S3_STATS_URL,
+  "schedule-playoffs": C2S3_STATS_URL,
+  standings: C2S3_STATS_URL,
+  "standings-dashboard": C2S3_STATS_URL,
+  teams: C2S3_STATS_URL,
   transactions:
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=1782609175&single=true&output=csv",
 };
@@ -117,16 +113,112 @@ function trimTrailingBlankRows(rows) {
 
 function sliceC2S3PlayerStats(text) {
   const rows = parseCSV(text)
-    .slice(0, 951)
+    .slice(0, 909)
     .map((row) => row.slice(7, 13));
   return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
 }
 
 function sliceC2S3BoxScores(text) {
   const rows = parseCSV(text)
-    .slice(0, 1000)
-    .map((row) => row.slice(14, 40));
+    .slice(3, 739)
+    .map((row) => row.slice(14, 22));
+  return `${formatCSV(trimTrailingBlankRows(addC2S3BoxScoreDateRows(text, rows)))}\n`;
+}
+
+function sliceC2S3RegularSchedule(text) {
+  const rows = parseCSV(text)
+    .slice(42, 121)
+    .map((row) => row.slice(0, 5));
   return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
+}
+
+function sliceC2S3PostSchedule(text) {
+  const rows = parseCSV(text)
+    .slice(23, 42)
+    .map((row) => row.slice(0, 5));
+  return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
+}
+
+function parseC2S3TeamHeader(value) {
+  const match = String(value || "").trim().match(/^(.+?)\s*\(([-\d.]+)\)/);
+  return {
+    name: match ? match[1].trim() : "",
+    score: match ? match[2].trim() : "",
+  };
+}
+
+function normalizeC2S3Team(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function getC2S3RegularScheduleGames(text) {
+  const rows = parseCSV(text)
+    .slice(42, 121)
+    .map((row) => row.slice(0, 5));
+  const headerIndex = rows.findIndex((row) =>
+    row.map((cell) => String(cell || "").trim().toLowerCase()).includes("date")
+  );
+  const dataRows = headerIndex >= 0 ? rows.slice(headerIndex + 1) : rows;
+  return dataRows
+    .map((row) => ({
+      date: String(row[0] || "").trim(),
+      home: String(row[1] || "").trim(),
+      away: String(row[2] || "").trim(),
+    }))
+    .filter((game) => game.date && game.home && game.away);
+}
+
+function addC2S3BoxScoreDateRows(text, boxRows) {
+  const games = getC2S3RegularScheduleGames(text).map((game) => ({ ...game, used: false }));
+  const output = [];
+
+  boxRows.forEach((row) => {
+    const left = parseC2S3TeamHeader(row[0]);
+    const right = parseC2S3TeamHeader(row[5]);
+    const isTeamHeader = left.name && right.name && left.score !== "" && right.score !== "";
+
+    if (isTeamHeader) {
+      const leftKey = normalizeC2S3Team(left.name);
+      const rightKey = normalizeC2S3Team(right.name);
+      const game = games.find((candidate) => {
+        if (candidate.used) return false;
+        const homeKey = normalizeC2S3Team(candidate.home);
+        const awayKey = normalizeC2S3Team(candidate.away);
+        return (
+          (homeKey === leftKey && awayKey === rightKey) ||
+          (homeKey === rightKey && awayKey === leftKey)
+        );
+      });
+      if (game) {
+        game.used = true;
+        output.push([`League Day: ${game.date}`, "", "", "", "", "", "", ""]);
+      }
+    }
+
+    output.push(row);
+  });
+
+  return output;
+}
+
+function sliceC2S3Standings(text) {
+  const rows = parseCSV(text)
+    .slice(134, 150)
+    .map((row) => row.slice(0, 6));
+  const headerIndex = rows.findIndex((row) =>
+    String(row[0] || "").trim().toLowerCase() === "team"
+  );
+  const header = headerIndex >= 0 ? rows[headerIndex] : ["Team", "GP", "Wins", "Loss", "GB", "Win %"];
+  const dataRows = rows.filter((row, index) => {
+    if (index <= headerIndex) return false;
+    const team = String(row[0] || "").trim().toLowerCase();
+    const gp = String(row[1] || "").trim();
+    return team && team !== "team" && /^\d+$/.test(gp);
+  });
+  return `${formatCSV([header, ...dataRows])}\n`;
 }
 
 function sliceC2S3Draft(text) {
@@ -143,11 +235,80 @@ function sliceC2S4Draft(text) {
   return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
 }
 
+const C2S3_ROSTER_LAYOUT = {
+  "Gus N Em": { row: 1, col: 1 },
+  Storm: { row: 1, col: 4 },
+  Turkeys: { row: 1, col: 7 },
+  "Bad Bois": { row: 16, col: 1 },
+  Scorpions: { row: 16, col: 4 },
+  Illegals: { row: 16, col: 7 },
+  "The Lions": { row: 31, col: 1 },
+  "Dream Team": { row: 31, col: 4 },
+  "The Snipers": { row: 31, col: 7 },
+  "The Phantoms": { row: 44, col: 1 },
+};
+
+function normalizeSheetTeamName(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function extractC2S3RosterMap(text) {
+  const rows = parseCSV(text)
+    .slice(2, 59)
+    .map((row) => row.slice(22, 32));
+  const wantedTeams = Object.keys(C2S3_ROSTER_LAYOUT);
+  const teamByKey = new Map(wantedTeams.map((team) => [normalizeSheetTeamName(team), team]));
+  const rosters = new Map();
+
+  for (let r = 0; r < rows.length; r += 1) {
+    for (let c = 0; c < rows[r].length; c += 1) {
+      const team = teamByKey.get(normalizeSheetTeamName(rows[r][c]));
+      if (!team || rosters.has(team)) continue;
+      const gm = String(rows[r + 1]?.[c] || "").trim();
+      const players = [];
+      for (let offset = 2; offset < 12; offset += 1) {
+        const player = String(rows[r + offset]?.[c] || "").trim();
+        if (player) players.push(player);
+      }
+      rosters.set(team, { gm, players });
+    }
+  }
+
+  return rosters;
+}
+
+function sliceC2S3Rosters(text) {
+  const rosters = extractC2S3RosterMap(text);
+  const grid = Array.from({ length: 56 }, () => Array.from({ length: 9 }, () => ""));
+
+  Object.entries(C2S3_ROSTER_LAYOUT).forEach(([team, position]) => {
+    const roster = rosters.get(team) || { gm: "", players: [] };
+    const row = position.row;
+    const col = position.col;
+    grid[row][col] = "Player";
+    grid[row + 1][col] = roster.gm || "GM";
+    roster.players.slice(0, 10).forEach((player, index) => {
+      grid[row + 2 + index][col] = player;
+    });
+  });
+
+  return `${formatCSV(trimTrailingBlankRows(grid))}\n`;
+}
+
 const TRANSFORMS = {
   boxscore: sliceC2S3BoxScores,
   "c2s3-draft": sliceC2S3Draft,
   "c2s4-draft": sliceC2S4Draft,
   "player-stats": sliceC2S3PlayerStats,
+  roster: sliceC2S3Rosters,
+  schedule: sliceC2S3RegularSchedule,
+  "schedule-playoffs": sliceC2S3PostSchedule,
+  standings: sliceC2S3Standings,
+  "standings-dashboard": sliceC2S3Standings,
+  teams: sliceC2S3Rosters,
 };
 
 module.exports = (req, res) => {

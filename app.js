@@ -2,6 +2,7 @@ const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
 const STANDINGS_RECORDS_URL = "/api/sheet?name=standings";
 const TEAMS_CSV_URL = "/api/sheet?name=teams";
 const SCHEDULE_URL = "/api/sheet?name=schedule";
+const SCHEDULE_PLAYOFF_URL = "/api/sheet?name=schedule-playoffs";
 const LIVE_SCORING_URL = "/api/sheet?name=live-scoring";
 const GAME_FLOW_API = "/api/game-flow";
 const PLAYER_PROFILE_URL = "/api/player-profile";
@@ -3003,7 +3004,7 @@ async function loadData() {
       const results = await Promise.allSettled([
         fetchSheet(STANDINGS_CSV_URL),
         fetchSheet(LIVE_SCORING_URL),
-        fetchSheet(SCHEDULE_URL),
+        fetchSheet(seasonRaw === "c2s3-playoffs" ? SCHEDULE_PLAYOFF_URL : SCHEDULE_URL),
         fetchSheet(seasonRaw === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL),
         fetchSheet(TRANSACTIONS_CSV_URL),
         fetchSheet(PLAYER_STATS_URL),

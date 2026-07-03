@@ -1,6 +1,9 @@
 const ROSTER_CSV_URL = "/api/sheet?name=roster";
 const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
 const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
+const SCHEDULE_PLAYOFF_URL = "/api/sheet?name=schedule-playoffs";
+const C2S2_PLAYOFF_SCHEDULE_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=507537612&single=true&output=csv";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const BOXSCORE_PLAYOFF_URL = "/api/sheet?name=boxscore-playoffs";
 const GAME_FLOW_API = "/api/game-flow";
@@ -66,6 +69,7 @@ const TEAM_RANGES = {
   Illegals: "H17:I28",
   "The Lions": "B32:C43",
   "The Future": "E32:F43",
+  "Dream Team": "E32:F43",
   "The Snipers": "H32:I43",
   "The Phantoms": "B45:C56",
 };
@@ -2835,10 +2839,16 @@ async function loadRoster() {
     if (isAllTimeSeason) {
       await loadAllTimeTeamSnapshot(teamName);
     } else if (season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {
+      const scheduleUrl =
+        season === "c2s3-playoffs"
+          ? SCHEDULE_PLAYOFF_URL
+          : season === "c2s2-playoffs"
+          ? C2S2_PLAYOFF_SCHEDULE_URL
+          : SCHEDULE_CSV_URL;
       const [rosterRes, standingsRes, scheduleRes, boxscoreRes, playerStatsRes, liveRes] = await Promise.all([
         fetch(ROSTER_CSV_URL, { cache: "no-store" }),
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
-        fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
+        fetch(scheduleUrl, { cache: "no-store" }),
         fetch(season === "c2s3-playoffs" ? BOXSCORE_PLAYOFF_URL : BOXSCORE_CSV_URL, { cache: "no-store" }),
         fetch(season === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(LIVE_CSV_URL, { cache: "no-store" }),

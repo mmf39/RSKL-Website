@@ -1,6 +1,9 @@
-const SCHEDULE_CSV_URL =
+const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
+const SCHEDULE_PLAYOFF_URL = "/api/sheet?name=schedule-playoffs";
+const C2S2_PLAYOFF_SCHEDULE_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=507537612&single=true&output=csv";
-const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore-playoffs";
+const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
+const BOXSCORE_PLAYOFF_URL = "/api/sheet?name=boxscore-playoffs";
 const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const GAME_FLOW_API = "/api/game-flow";
@@ -175,9 +178,8 @@ function getSeasonRaw() {
   const raw = localStorage.getItem(SEASON_KEY) || "c2s3-playoffs";
   if (raw === "all-time") return "c2s3-playoffs";
   if (raw === "c2s2") return "c2s3-playoffs";
-  if (raw === "c2s3" || raw === "c2s3-regular" || raw === "c2s3-playoffs") {
-    return "c2s3-playoffs";
-  }
+  if (raw === "c2s3") return "c2s3-playoffs";
+  if (raw === "c2s3-regular" || raw === "c2s3-playoffs") return raw;
   return raw;
 }
 
@@ -1609,8 +1611,9 @@ function applyInitialScheduleRows(rows, season) {
 }
 
 async function hydrateCurrentSeasonSchedule(loadToken, seasonRaw = getSeasonRaw()) {
+  const boxscoreUrl = seasonRaw === "c2s3-regular" ? BOXSCORE_CSV_URL : BOXSCORE_PLAYOFF_URL;
   const [boxRes, liveRes, playerStatsRes] = await Promise.allSettled([
-    fetch(BOXSCORE_CSV_URL, { cache: "no-store" }),
+    fetch(boxscoreUrl, { cache: "no-store" }),
     fetch(LIVE_CSV_URL, { cache: "no-store" }),
     fetch(PLAYER_STATS_URL, { cache: "no-store" }),
   ]);
@@ -1697,8 +1700,14 @@ async function loadSchedule() {
     }
     hydrateCachedEnhancements(seasonRaw);
 
-    if (seasonRaw === "c2s3-playoffs" || seasonRaw === "c2s2-playoffs") {
-      const scheduleRes = await fetch(SCHEDULE_CSV_URL, { cache: "no-store" });
+    if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s3-playoffs" || seasonRaw === "c2s2-playoffs") {
+      const scheduleUrl =
+        seasonRaw === "c2s3-playoffs"
+          ? SCHEDULE_PLAYOFF_URL
+          : seasonRaw === "c2s2-playoffs"
+          ? C2S2_PLAYOFF_SCHEDULE_URL
+          : SCHEDULE_CSV_URL;
+      const scheduleRes = await fetch(scheduleUrl, { cache: "no-store" });
       if (!scheduleRes.ok) throw new Error(`Fetch failed: ${scheduleRes.status}`);
       rows = getC2S2ScheduleRows(parseCSV(await scheduleRes.text()));
     } else if (seasonRaw === "c2s2-regular") {

@@ -70,12 +70,15 @@ const C2S2_REGULAR_RANGES = {
 const TEAM_RANGES = {
   "Gus N Em": "B2:C13",
   Bullets: "E2:F13",
+  Storm: "E2:F13",
   Turkeys: "H2:I13",
   "Bad Bois": "B17:C28",
   Yetis: "E17:F28",
+  Scorpions: "E17:F28",
   Illegals: "H17:I28",
   "The Lions": "B32:C43",
   "The Future": "E32:F43",
+  "Dream Team": "E32:F43",
   "The Snipers": "H32:I43",
   "The Phantoms": "B45:C56",
 };

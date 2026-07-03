@@ -1,5 +1,8 @@
 const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
 const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
+const SCHEDULE_PLAYOFF_URL = "/api/sheet?name=schedule-playoffs";
+const C2S2_PLAYOFF_SCHEDULE_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=507537612&single=true&output=csv";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const PLAYER_STATS_PLAYOFF_URL = "/api/sheet?name=player-stats-playoffs";
 const TRANSACTIONS_URL = "/api/sheet?name=transactions";
@@ -1988,9 +1991,15 @@ async function loadStandings() {
       }
       renderStandings();
     } else if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s3-playoffs" || seasonRaw === "c2s2-playoffs") {
+      const scheduleUrl =
+        seasonRaw === "c2s3-playoffs"
+          ? SCHEDULE_PLAYOFF_URL
+          : seasonRaw === "c2s2-playoffs"
+          ? C2S2_PLAYOFF_SCHEDULE_URL
+          : SCHEDULE_CSV_URL;
       const [standingsRes, scheduleRes, playerStatsRes, transactionsRes] = await Promise.all([
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
-        fetch(SCHEDULE_CSV_URL, { cache: "no-store" }),
+        fetch(scheduleUrl, { cache: "no-store" }),
         fetch(seasonRaw === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(TRANSACTIONS_URL, { cache: "no-store" }),
       ]);
