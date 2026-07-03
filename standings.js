@@ -1990,6 +1990,19 @@ async function loadStandings() {
         requestedMetric = "wins";
       }
       renderStandings();
+    } else if (seasonRaw === "c2s4-regular" || seasonRaw === "c2s4-playoffs") {
+      standingsHeaders = [];
+      standingsRows = [];
+      scheduleRowsForTiebreakers = [];
+      transactionsByTeam = new Map();
+      leagueStandingsMetrics = [];
+      if (els.leaderboard) {
+        els.leaderboard.innerHTML = `<p>${escapeHtml(
+          seasonRaw === "c2s4-playoffs"
+            ? "C2S4 playoff standings are not available yet."
+            : "C2S4 standings will appear once games are recorded."
+        )}</p>`;
+      }
     } else if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s3-playoffs" || seasonRaw === "c2s2-playoffs") {
       const scheduleUrl =
         seasonRaw === "c2s3-playoffs"

@@ -1700,7 +1700,27 @@ async function loadSchedule() {
     }
     hydrateCachedEnhancements(seasonRaw);
 
-    if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s3-playoffs" || seasonRaw === "c2s2-playoffs") {
+    if (seasonRaw === "c2s4-regular" || seasonRaw === "c2s4-playoffs") {
+      scheduleGames = [];
+      gamesByDate = new Map();
+      selectedDateKey = "";
+      if (els.upcomingGamesTitle) {
+        els.upcomingGamesTitle.textContent = seasonRaw === "c2s4-playoffs" ? "C2S4 Playoffs" : "C2S4 Schedule";
+      }
+      if (els.dayGamesTitle) {
+        els.dayGamesTitle.textContent = "No Games Scheduled";
+      }
+      renderGameSection(
+        els.nextGames,
+        [],
+        seasonRaw === "c2s4-playoffs"
+          ? "C2S4 playoff games will appear once the bracket is set."
+          : "C2S4 games will appear once the schedule sheet is ready."
+      );
+      renderGameSection(els.dayGames, [], "No C2S4 games are scheduled yet.");
+      updateLastUpdated();
+      return;
+    } else if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s3-playoffs" || seasonRaw === "c2s2-playoffs") {
       const scheduleUrl =
         seasonRaw === "c2s3-playoffs"
           ? SCHEDULE_PLAYOFF_URL

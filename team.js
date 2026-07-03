@@ -180,6 +180,8 @@ const SEASON_ALIASES = {
   c2s2: "c2s3-regular",
   "c2s3-regular": "c2s3-regular",
   "c2s3-playoffs": "c2s3-playoffs",
+  "c2s4-regular": "c2s4-regular",
+  "c2s4-playoffs": "c2s4-playoffs",
   "c2s1-playoffs": "c2s1-post",
   "c2s2-playoffs": "c2s2-playoffs",
   "c2s2-regular": "c2s2-regular",
@@ -2838,6 +2840,18 @@ async function loadRoster() {
     const isAllTimeSeason = season === ALL_TIME_SEASON;
     if (isAllTimeSeason) {
       await loadAllTimeTeamSnapshot(teamName);
+    } else if (season === "c2s4-regular" || season === "c2s4-playoffs") {
+      renderRosterMessage(
+        season === "c2s4-playoffs"
+          ? "C2S4 playoff rosters are not available yet."
+          : "C2S4 roster data will appear once teams are set."
+      );
+      clearAdvancedTeamStats();
+      liveScoreMap = new Map();
+      boxScoreRows = [];
+      finalScoreMap = new Map();
+      teamLeadersMap = new Map();
+      updateTeamSchedule(teamName, [], [], season);
     } else if (season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {
       const scheduleUrl =
         season === "c2s3-playoffs"

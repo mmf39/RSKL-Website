@@ -540,6 +540,8 @@
       "c2s3-regular": "c2s3-regular",
       career: "career",
       "c2s3-playoffs": "c2s3-playoffs",
+      "c2s4-regular": "c2s4-regular",
+      "c2s4-playoffs": "c2s4-playoffs",
       "c2s2-regular": "c2s2-regular",
       "c2s2-playoffs": "c2s2-playoffs",
       "c1s6-regular": "c1s6-regular",

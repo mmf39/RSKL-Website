@@ -178,7 +178,12 @@ let supabasePlayerPhotoMap = new Map();
 let supabasePlayerPhotoMapPromise = null;
 
 function isArchiveSeason(seasonRaw) {
-  return seasonRaw !== "c2s3-regular" && seasonRaw !== "c2s3-playoffs";
+  return (
+    seasonRaw !== "c2s3-regular" &&
+    seasonRaw !== "c2s3-playoffs" &&
+    seasonRaw !== "c2s4-regular" &&
+    seasonRaw !== "c2s4-playoffs"
+  );
 }
 
 function renderPlayerName(player, season, options = {}) {
@@ -343,7 +348,7 @@ async function hydrateDashboardPlayerAvatars(items, season) {
 
 function syncDashboardPanels(seasonRaw) {
   const hideArchiveOnly = isArchiveSeason(seasonRaw);
-  const hideRegularSeasonOnly = seasonRaw === "c2s3-playoffs" || seasonRaw.endsWith("-post");
+  const hideRegularSeasonOnly = seasonRaw === "c2s3-playoffs" || seasonRaw === "c2s4-playoffs" || seasonRaw.endsWith("-post");
   if (els.livePanel) {
     els.livePanel.hidden = hideArchiveOnly;
   }
@@ -354,7 +359,7 @@ function syncDashboardPanels(seasonRaw) {
     els.featuredPanel.hidden = hideArchiveOnly;
   }
   if (els.playoffPanel) {
-    els.playoffPanel.hidden = seasonRaw !== "c2s3-playoffs";
+    els.playoffPanel.hidden = seasonRaw !== "c2s3-playoffs" && seasonRaw !== "c2s4-playoffs";
   }
   if (els.teamsPanel) {
     els.teamsPanel.hidden = hideRegularSeasonOnly;
@@ -635,6 +640,8 @@ function renderSmallTeamLogo(name) {
 }
 
 function getSeasonLabel(seasonRaw) {
+  if (seasonRaw === "c2s4-regular") return "C2S4 Regular Season";
+  if (seasonRaw === "c2s4-playoffs") return "C2S4 Playoffs";
   if (seasonRaw === "c2s3-regular") return "C2S3 Regular Season";
   if (seasonRaw === "c2s3-playoffs") return "C2S3 Playoffs";
   if (seasonRaw === "c2s2-regular") return "C2S2 Regular Season";
@@ -2750,6 +2757,57 @@ function renderRecentTransactions(items) {
     .join("");
 }
 
+function renderC2S4DashboardPage(seasonRaw) {
+  const isPlayoffs = seasonRaw === "c2s4-playoffs";
+  if (els.teamsGrid) {
+    els.teamsGrid.innerHTML = `
+      <a class="dashboard-state-card" href="/draft.html">
+        <strong>C2S4 Draft</strong>
+        <span>Open the C2S4 draft board.</span>
+      </a>
+      <a class="dashboard-state-card" href="/gm.html">
+        <strong>GM Center</strong>
+        <span>Manage C2S4 draft picks and team setup.</span>
+      </a>
+      <a class="dashboard-state-card" href="/transactions.html">
+        <strong>Transactions</strong>
+        <span>Track roster moves before the season opens.</span>
+      </a>
+    `;
+  }
+  if (els.liveRow) {
+    els.liveRow.innerHTML = buildStateCard(
+      isPlayoffs ? "C2S4 Playoffs Not Started" : "C2S4 Not Started",
+      isPlayoffs ? "The C2S4 playoff feed will open after the regular season." : "Live scoring will open once C2S4 games begin."
+    );
+  }
+  if (els.featuredMatchups) {
+    els.featuredMatchups.innerHTML = buildStateCard(
+      "No C2S4 Schedule Yet",
+      "C2S4 matchups will show here once the schedule sheet is ready."
+    );
+  }
+  if (els.leagueLeaders) {
+    els.leagueLeaders.innerHTML = buildStateCard(
+      "No C2S4 Player Stats Yet",
+      "C2S4 leaders will appear after recorded games."
+    );
+  }
+  if (els.recentTransactions) {
+    els.recentTransactions.innerHTML = buildStateCard(
+      "C2S4 Transaction Window",
+      "Approved C2S4 moves will appear on the transactions page."
+    );
+  }
+  if (els.playoffBracket) {
+    els.playoffBracket.innerHTML = buildStateCard(
+      "C2S4 Bracket Not Set",
+      "The C2S4 playoff bracket will open after regular season standings are final."
+    );
+  }
+  updateLastUpdated();
+}
+
 function formatArticleDate(value) {
   if (!value) return "Recently";
   const date = new Date(value);
@@ -3000,6 +3058,11 @@ async function loadData() {
   }
 
   try {
+    if (seasonRaw === "c2s4-regular" || seasonRaw === "c2s4-playoffs") {
+      renderC2S4DashboardPage(seasonRaw);
+      return;
+    }
+
     if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s3-playoffs") {
       const results = await Promise.allSettled([
         fetchSheet(STANDINGS_CSV_URL),

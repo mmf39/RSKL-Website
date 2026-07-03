@@ -1212,7 +1212,13 @@ function normalizeSeason(value) {
   if (value === "all-time") {
     return "c2s3-regular";
   }
-  if (value === "c2s3-regular" || value === "c2s3-playoffs" || value === "c2s2-playoffs") {
+  if (
+    value === "c2s3-regular" ||
+    value === "c2s3-playoffs" ||
+    value === "c2s4-regular" ||
+    value === "c2s4-playoffs" ||
+    value === "c2s2-playoffs"
+  ) {
     return value;
   }
   if (
@@ -1335,7 +1341,7 @@ function getSeason() {
   if (season === "c1s5-regular") {
     return "c1s5-regular";
   }
-  if (season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {
+  if (season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s4-regular" || season === "c2s4-playoffs" || season === "c2s2-playoffs") {
     return season;
   }
   if (season === "c2s2-regular" || season === "c2s2") {
@@ -1358,6 +1364,10 @@ function initSeasonSelect() {
         ? "c2s3-regular"
         : current === "c2s3-playoffs"
         ? "c2s3-playoffs"
+        : current === "c2s4-regular"
+        ? "c2s4-regular"
+        : current === "c2s4-playoffs"
+        ? "c2s4-playoffs"
         : current === "c2s2-playoffs"
         ? "c2s2-playoffs"
         : current === "c2s2-regular"
@@ -1399,6 +1409,10 @@ function initSeasonSelect() {
       SEASON_KEY,
       value === "c2s3-playoffs"
         ? "c2s3-playoffs"
+        : value === "c2s4-regular"
+        ? "c2s4-regular"
+        : value === "c2s4-playoffs"
+        ? "c2s4-playoffs"
         : value === "c2s1-playoffs"
         ? "c2s1-post"
         : value === "c2s2-playoffs"
@@ -1444,6 +1458,10 @@ function initSeasonSelect() {
       const mapped =
         navSelect.value === "c2s3-playoffs"
           ? "c2s3-playoffs"
+          : navSelect.value === "c2s4-regular"
+          ? "c2s4-regular"
+          : navSelect.value === "c2s4-playoffs"
+          ? "c2s4-playoffs"
           : navSelect.value === "c2s1-post"
           ? "c2s1-playoffs"
           : navSelect.value === "c2s2-playoffs"
@@ -2796,7 +2814,10 @@ async function loadPlayer() {
     let dataRows = [];
     let supplementalRows = [];
     let contractRows = contractRowsCache;
-    if (season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {
+    if (season === "c2s4-regular" || season === "c2s4-playoffs") {
+      playerColumns = detectPlayerColumns(["Date", "Team", "Player", "Score", "Rank", "Opponent"]);
+      dataRows = [];
+    } else if (season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {
       const [playerRes, contractRes] = await Promise.all([
         fetch(season === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(CONTRACTS_URL, { cache: "no-store" }),

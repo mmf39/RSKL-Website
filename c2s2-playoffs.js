@@ -12,6 +12,19 @@ const C1S5_STANDINGS_URL = "/assets/data/c1s5-standings.csv";
 const C1S6_STANDINGS_URL = "/assets/data/c1s6-standings.csv";
 
 const PLAYOFF_SEASONS = {
+  "c2s4-playoffs": {
+    label: "C2S4 Playoffs",
+    type: "static",
+    sourceNote: "C2S4 playoff bracket will open after regular season standings are final.",
+    rounds: [
+      {
+        title: "Playoff Field",
+        matchups: [
+          matchup("C2S4 Bracket", team("", "TBD", ""), team("", "TBD", "")),
+        ],
+      },
+    ],
+  },
   "c2s3-playoffs": {
     label: "C2S3 Playoffs",
     type: "current",
@@ -231,6 +244,7 @@ function getTeamLogo(teamName) {
 function normalizePlayoffSeason(value) {
   const raw = String(value || "").trim();
   const aliases = {
+    "c2s4-regular": "c2s4-playoffs",
     "c2s3-regular": "c2s3-playoffs",
     "c2s2-regular": "c2s2-playoffs",
     "c2s1-regular": "c2s1-post",
