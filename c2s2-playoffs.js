@@ -14,16 +14,7 @@ const C1S6_STANDINGS_URL = "/assets/data/c1s6-standings.csv";
 const PLAYOFF_SEASONS = {
   "c2s4-playoffs": {
     label: "C2S4 Playoffs",
-    type: "static",
-    sourceNote: "C2S4 playoff bracket will open after regular season standings are final.",
-    rounds: [
-      {
-        title: "Playoff Field",
-        matchups: [
-          matchup("C2S4 Bracket", team("", "TBD", ""), team("", "TBD", "")),
-        ],
-      },
-    ],
+    type: "current",
   },
   "c2s3-playoffs": {
     label: "C2S3 Playoffs",
@@ -505,7 +496,7 @@ function currentDivision(teamName) {
   return north.has(displayTeamName(teamName)) ? "North" : "Locked PSP";
 }
 
-async function buildCurrentBracket() {
+async function buildCurrentBracket(label = "C2S3") {
   const rows = parseCurrentStandings(await fetchRows(CURRENT_STANDINGS_URL));
   const grouped = new Map([
     ["North", []],
@@ -528,7 +519,7 @@ async function buildCurrentBracket() {
   const locked = (grouped.get("Locked PSP") || []).slice(0, 3).map((row, index) => team(`L${index + 1}`, row.team, `${row.wins}-${row.losses}`));
   return {
     sourceNote:
-      "Projected from the current C2S3 standings. Final results will update when playoff games are on the schedule.",
+      `Projected from the current ${label.replace(/\s+Playoffs$/i, "")} standings. Final results will update when playoff games are on the schedule.`,
     rounds: [
       {
         title: "Wild Card",
@@ -579,7 +570,7 @@ async function loadBracket() {
 
   try {
     if (config.type === "current") {
-      renderBracket(await buildCurrentBracket());
+      renderBracket(await buildCurrentBracket(config.label));
     } else if (config.type === "schedule") {
       renderBracket(await buildScheduleBracket(config));
     } else {

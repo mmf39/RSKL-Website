@@ -36,6 +36,12 @@ let leagueStandingsMetrics = [];
 let scheduleRowsForTiebreakers = [];
 const STANDINGS_SCOPE_KEY = "standings_scope";
 
+function getC2S4BackfillSeason(seasonRaw) {
+  if (seasonRaw === "c2s4-regular") return "c2s3-regular";
+  if (seasonRaw === "c2s4-playoffs") return "c2s3-playoffs";
+  return seasonRaw;
+}
+
 const ARCHIVE_RANGES = {
   standings: "A1:F7",
   bracket: "A9:F15",
@@ -1990,30 +1996,22 @@ async function loadStandings() {
         requestedMetric = "wins";
       }
       renderStandings();
-    } else if (seasonRaw === "c2s4-regular" || seasonRaw === "c2s4-playoffs") {
-      standingsHeaders = [];
-      standingsRows = [];
-      scheduleRowsForTiebreakers = [];
-      transactionsByTeam = new Map();
-      leagueStandingsMetrics = [];
-      if (els.leaderboard) {
-        els.leaderboard.innerHTML = `<p>${escapeHtml(
-          seasonRaw === "c2s4-playoffs"
-            ? "C2S4 playoff standings are not available yet."
-            : "C2S4 standings will appear once games are recorded."
-        )}</p>`;
-      }
-    } else if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s3-playoffs" || seasonRaw === "c2s2-playoffs") {
+    } else if (
+      getC2S4BackfillSeason(seasonRaw) === "c2s3-regular" ||
+      getC2S4BackfillSeason(seasonRaw) === "c2s3-playoffs" ||
+      getC2S4BackfillSeason(seasonRaw) === "c2s2-playoffs"
+    ) {
+      const dataSeasonRaw = getC2S4BackfillSeason(seasonRaw);
       const scheduleUrl =
-        seasonRaw === "c2s3-playoffs"
+        dataSeasonRaw === "c2s3-playoffs"
           ? SCHEDULE_PLAYOFF_URL
-          : seasonRaw === "c2s2-playoffs"
+          : dataSeasonRaw === "c2s2-playoffs"
           ? C2S2_PLAYOFF_SCHEDULE_URL
           : SCHEDULE_CSV_URL;
       const [standingsRes, scheduleRes, playerStatsRes, transactionsRes] = await Promise.all([
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
         fetch(scheduleUrl, { cache: "no-store" }),
-        fetch(seasonRaw === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(dataSeasonRaw === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(TRANSACTIONS_URL, { cache: "no-store" }),
       ]);
       if (!standingsRes.ok || !scheduleRes.ok || !playerStatsRes.ok) {
@@ -2035,7 +2033,7 @@ async function loadStandings() {
         : new Map();
       leagueStandingsMetrics = buildLeagueRowsFromC2S2(standingsData, scheduleRows, playerRows);
       applyTransactionCountsToLeagueRows(leagueStandingsMetrics, transactionsByTeam);
-      if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s3-playoffs") {
+      if (dataSeasonRaw === "c2s3-regular" || dataSeasonRaw === "c2s3-playoffs") {
         leagueStandingsMetrics = buildPlayoffStatuses(leagueStandingsMetrics);
       }
       renderStandings();

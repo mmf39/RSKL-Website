@@ -864,8 +864,9 @@ async function ensureBoxScoreRows(season) {
     return window.__boxScoreRows;
   }
 
-  if (season === "c2s3-regular" || season === "c2s3-playoffs") {
-    const response = await fetch(season === "c2s3-playoffs" ? BOXSCORE_PLAYOFF_URL : BOXSCORE_CSV_URL, { cache: "no-store" });
+  const dataSeason = getC2S4BackfillSeason(season);
+  if (dataSeason === "c2s3-regular" || dataSeason === "c2s3-playoffs") {
+    const response = await fetch(dataSeason === "c2s3-playoffs" ? BOXSCORE_PLAYOFF_URL : BOXSCORE_CSV_URL, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`Fetch failed: ${response.status}`);
     }
@@ -1244,6 +1245,12 @@ function normalizeSeason(value) {
     return "c2s2-regular";
   }
   return "c2s3-regular";
+}
+
+function getC2S4BackfillSeason(season) {
+  if (season === "c2s4-regular") return "c2s3-regular";
+  if (season === "c2s4-playoffs") return "c2s3-playoffs";
+  return season;
 }
 
 function getSeason() {
@@ -2814,12 +2821,10 @@ async function loadPlayer() {
     let dataRows = [];
     let supplementalRows = [];
     let contractRows = contractRowsCache;
-    if (season === "c2s4-regular" || season === "c2s4-playoffs") {
-      playerColumns = detectPlayerColumns(["Date", "Team", "Player", "Score", "Rank", "Opponent"]);
-      dataRows = [];
-    } else if (season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {
+    const dataSeason = getC2S4BackfillSeason(season);
+    if (dataSeason === "c2s3-regular" || dataSeason === "c2s3-playoffs" || dataSeason === "c2s2-playoffs") {
       const [playerRes, contractRes] = await Promise.all([
-        fetch(season === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(dataSeason === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(CONTRACTS_URL, { cache: "no-store" }),
       ]);
       if (!playerRes.ok) {

@@ -2808,6 +2808,12 @@ function renderC2S4DashboardPage(seasonRaw) {
   updateLastUpdated();
 }
 
+function getC2S4BackfillSeason(seasonRaw) {
+  if (seasonRaw === "c2s4-regular") return "c2s3-regular";
+  if (seasonRaw === "c2s4-playoffs") return "c2s3-playoffs";
+  return seasonRaw;
+}
+
 function formatArticleDate(value) {
   if (!value) return "Recently";
   const date = new Date(value);
@@ -3058,17 +3064,14 @@ async function loadData() {
   }
 
   try {
-    if (seasonRaw === "c2s4-regular" || seasonRaw === "c2s4-playoffs") {
-      renderC2S4DashboardPage(seasonRaw);
-      return;
-    }
+    const dataSeasonRaw = getC2S4BackfillSeason(seasonRaw);
 
-    if (seasonRaw === "c2s3-regular" || seasonRaw === "c2s3-playoffs") {
+    if (dataSeasonRaw === "c2s3-regular" || dataSeasonRaw === "c2s3-playoffs") {
       const results = await Promise.allSettled([
         fetchSheet(STANDINGS_CSV_URL),
         fetchSheet(LIVE_SCORING_URL),
-        fetchSheet(seasonRaw === "c2s3-playoffs" ? SCHEDULE_PLAYOFF_URL : SCHEDULE_URL),
-        fetchSheet(seasonRaw === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL),
+        fetchSheet(dataSeasonRaw === "c2s3-playoffs" ? SCHEDULE_PLAYOFF_URL : SCHEDULE_URL),
+        fetchSheet(dataSeasonRaw === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL),
         fetchSheet(TRANSACTIONS_CSV_URL),
         fetchSheet(PLAYER_STATS_URL),
       ]);

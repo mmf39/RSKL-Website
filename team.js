@@ -74,6 +74,12 @@ const TEAM_RANGES = {
   "The Phantoms": "B45:C56",
 };
 
+function getC2S4BackfillSeason(season) {
+  if (season === "c2s4-regular") return "c2s3-regular";
+  if (season === "c2s4-playoffs") return "c2s3-playoffs";
+  return season;
+}
+
 const ARCHIVE_RANGES = {
   standings: "A1:F7",
   teams: "H1:O27",
@@ -2840,31 +2846,24 @@ async function loadRoster() {
     const isAllTimeSeason = season === ALL_TIME_SEASON;
     if (isAllTimeSeason) {
       await loadAllTimeTeamSnapshot(teamName);
-    } else if (season === "c2s4-regular" || season === "c2s4-playoffs") {
-      renderRosterMessage(
-        season === "c2s4-playoffs"
-          ? "C2S4 playoff rosters are not available yet."
-          : "C2S4 roster data will appear once teams are set."
-      );
-      clearAdvancedTeamStats();
-      liveScoreMap = new Map();
-      boxScoreRows = [];
-      finalScoreMap = new Map();
-      teamLeadersMap = new Map();
-      updateTeamSchedule(teamName, [], [], season);
-    } else if (season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {
+    } else if (
+      getC2S4BackfillSeason(season) === "c2s3-regular" ||
+      getC2S4BackfillSeason(season) === "c2s3-playoffs" ||
+      getC2S4BackfillSeason(season) === "c2s2-playoffs"
+    ) {
+      const dataSeason = getC2S4BackfillSeason(season);
       const scheduleUrl =
-        season === "c2s3-playoffs"
+        dataSeason === "c2s3-playoffs"
           ? SCHEDULE_PLAYOFF_URL
-          : season === "c2s2-playoffs"
+          : dataSeason === "c2s2-playoffs"
           ? C2S2_PLAYOFF_SCHEDULE_URL
           : SCHEDULE_CSV_URL;
       const [rosterRes, standingsRes, scheduleRes, boxscoreRes, playerStatsRes, liveRes] = await Promise.all([
         fetch(ROSTER_CSV_URL, { cache: "no-store" }),
         fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
         fetch(scheduleUrl, { cache: "no-store" }),
-        fetch(season === "c2s3-playoffs" ? BOXSCORE_PLAYOFF_URL : BOXSCORE_CSV_URL, { cache: "no-store" }),
-        fetch(season === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(dataSeason === "c2s3-playoffs" ? BOXSCORE_PLAYOFF_URL : BOXSCORE_CSV_URL, { cache: "no-store" }),
+        fetch(dataSeason === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" }),
         fetch(LIVE_CSV_URL, { cache: "no-store" }),
       ]);
 

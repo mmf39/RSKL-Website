@@ -71,6 +71,12 @@ const C2S2_REGULAR_RANGES = {
   player_stats: "A151:G1150",
 };
 
+function getC2S4BackfillSeason(season) {
+  if (season === "c2s4-regular") return "c2s3-regular";
+  if (season === "c2s4-playoffs") return "c2s3-playoffs";
+  return season;
+}
+
 function requireSupabaseConfig() {
   return Boolean(supabaseUrl && supabaseAnon);
 }
@@ -1040,11 +1046,9 @@ async function loadPlayerStats() {
     await loadPlayerOverrides();
     await Promise.all([loadRookieSeasonCache(), loadAllStarSeasonCache()]);
     const season = getPlayerSeason();
-    if (season === "c2s4-regular" || season === "c2s4-playoffs") {
-      playerColumns = detectPlayerColumns(["Date", "Team", "Player", "Score", "Rank", "Opponent"]);
-      playerRows = [];
-    } else if (season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {
-      const response = await fetch(season === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" });
+    const dataSeason = getC2S4BackfillSeason(season);
+    if (dataSeason === "c2s3-regular" || dataSeason === "c2s3-playoffs" || dataSeason === "c2s2-playoffs") {
+      const response = await fetch(dataSeason === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" });
       if (!response.ok) {
         throw new Error(`Fetch failed: ${response.status}`);
       }

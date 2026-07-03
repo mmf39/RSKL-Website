@@ -59,6 +59,8 @@ const SEASON_ALIASES = {
   c2s2: "c2s3-regular",
   "c2s3-regular": "c2s3-regular",
   "c2s3-playoffs": "c2s3-playoffs",
+  "c2s4-regular": "c2s3-regular",
+  "c2s4-playoffs": "c2s3-playoffs",
   "c2s1-playoffs": "c2s1-post",
   "c2s2-playoffs": "c2s2-playoffs",
   "c2s2-regular": "c2s2-regular",
