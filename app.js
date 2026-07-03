@@ -69,6 +69,7 @@ const C2S3_PLAYOFF_ADVANCEMENTS = {
   lockedWildCard: "Bad Bois",
   northFinal: "Gus N Em",
   lockedFinal: "Bad Bois",
+  championship: "Gus N Em",
 };
 
 const ARCHIVE_RANGES = {
@@ -1379,6 +1380,10 @@ function getBracketChallengeScore(entry) {
     correct += 1;
     points += 6;
   }
+  if (normalizeTeamName(picks.championship) === normalizeTeamName(C2S3_PLAYOFF_ADVANCEMENTS.championship)) {
+    correct += 1;
+    points += 12;
+  }
   return {
     correct,
     points,
@@ -1798,7 +1803,7 @@ function renderDashboardPlayoffBracket(standingsRows) {
       title: "Championship",
       note: "Division champions meet for the title.",
       games: [
-        { label: "RSKL Finals", top: northChampion, topLabel: "North Champion", bottom: lockedChampion, bottomLabel: "Locked PSP Champion" },
+        { label: "RSKL Finals", top: northChampion, topLabel: "North Champion", bottom: lockedChampion, bottomLabel: "Locked PSP Champion", winner: C2S3_PLAYOFF_ADVANCEMENTS.championship },
       ],
     },
   ];
