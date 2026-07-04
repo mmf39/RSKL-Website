@@ -564,6 +564,8 @@ function displayTeamName(value) {
   if (name === "Bullets") return "Storm";
   if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
+  if (name === "The Lions" || name === "Lions") return "Pandas";
+  if (name === "The Snipers" || name === "Snipers" || name === "Sniper") return "Super Kings";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
   if (name === "Bolts") return "The Bolts";
@@ -899,11 +901,11 @@ function renderLeaderboard(list, query, metric, minGp = 0, teamFilter = "") {
     if (team === "The Future" || team === "Dream Team") {
       return '<img class="standings-logo" src="/assets/dream-team.jpg" alt="Dream Team logo" />';
     }
-    if (team === "The Lions") {
-      return '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />';
+    if (team === "Pandas") {
+      return '<img class="standings-logo" src="/assets/the-lions.png" alt="Pandas logo" />';
     }
-    if (team === "The Snipers") {
-      return '<img class="standings-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />';
+    if (team === "Super Kings") {
+      return '<img class="standings-logo" src="/assets/the-snipers.png" alt="Super Kings logo" />';
     }
     if (team === "The Phantoms") {
       return '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';

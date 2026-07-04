@@ -8,9 +8,9 @@ const TEAM_NAMES = [
   "Bad Bois",
   "Yetis",
   "Illegals",
-  "The Lions",
+  "Pandas",
   "The Future",
-  "The Snipers",
+  "Super Kings",
   "The Phantoms",
 ];
 
@@ -139,9 +139,9 @@ function normalizeTeamName(name) {
 function canonicalTeamName(name) {
   const clean = normalizeTeamName(name);
   const lower = clean.toLowerCase();
-  if (lower === "lions" || lower === "the lions") return "The Lions";
+  if (lower === "lions" || lower === "the lions") return "Pandas";
   if (lower === "future" || lower === "the future") return "The Future";
-  if (lower === "snipers" || lower === "the snipers") return "The Snipers";
+  if (lower === "snipers" || lower === "the snipers") return "Super Kings";
   if (lower === "phantoms" || lower === "the phantoms") return "The Phantoms";
   if (lower === "bullets" || lower === "storm") return "Storm";
   return clean;
@@ -413,8 +413,8 @@ function normalizeSearch(value) {
 function getTeamLogo(team) {
   const clean = canonicalTeamName(team);
   if (clean === "The Future" || clean === "Dream Team") return "/assets/dream-team.jpg";
-  if (clean === "The Lions") return "/assets/the-lions.png";
-  if (clean === "The Snipers") return "/assets/the-snipers.png";
+  if (clean === "Pandas") return "/assets/the-lions.png";
+  if (clean === "Super Kings") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
   if (clean === "Scorpions") return "/assets/mayeday.jpg";
   if (clean === "Cobras") return "/assets/cobras.png";

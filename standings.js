@@ -73,8 +73,8 @@ const DIVISIONS = {
     secondaryKey: "south",
     primaryLabel: "North",
     secondaryLabel: "Locked PSP",
-    primary: new Set(["Turkeys", "The Lions", "The Phantoms", "Gus N Em", "Illegals"]),
-    secondary: new Set(["Bad Bois", "The Snipers", "Storm", "Scorpions", "Dream Team"]),
+    primary: new Set(["Turkeys", "Pandas", "The Phantoms", "Gus N Em", "Illegals"]),
+    secondary: new Set(["Bad Bois", "Super Kings", "Storm", "Scorpions", "Dream Team"]),
   },
   c1s2: {
     primaryKey: "east",
@@ -125,9 +125,9 @@ const CURRENT_TEAMS = [
   "Bad Bois",
   "Scorpions",
   "Illegals",
-  "The Lions",
+  "Pandas",
   "Dream Team",
-  "The Snipers",
+  "Super Kings",
   "The Phantoms",
 ];
 
@@ -137,7 +137,7 @@ const CURRENT_PLAYOFF_STATUS_OVERRIDES = new Map([
 ]);
 
 const CURRENT_LOCKED_PSP_TIEBREAK_ORDER = new Map([
-  ["the snipers", 1],
+  ["super kings", 1],
   ["dream team", 2],
   ["bad bois", 3],
   ["scorpions", 4],
@@ -246,6 +246,8 @@ function displayTeamName(value) {
   if (name === "Scorpians") return "Scorpions";
   if (name === "N/A") return "Scorpions";
   if (name === "The Future") return "Dream Team";
+  if (name === "The Lions" || name === "Lions") return "Pandas";
+  if (name === "The Snipers" || name === "Snipers" || name === "Sniper") return "Super Kings";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
   if (name === "Bolts") return "The Bolts";
@@ -435,11 +437,11 @@ function getTeamLogoHtml(teamName) {
   if (teamName === "Dream Team") {
     return '<img class="standings-logo" src="/assets/dream-team.jpg" alt="Dream Team logo" />';
   }
-  if (teamName === "The Lions") {
-    return '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />';
+  if (teamName === "Pandas") {
+    return '<img class="standings-logo" src="/assets/the-lions.png" alt="Pandas logo" />';
   }
-  if (teamName === "The Snipers") {
-    return '<img class="standings-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />';
+  if (teamName === "Super Kings") {
+    return '<img class="standings-logo" src="/assets/the-snipers.png" alt="Super Kings logo" />';
   }
   if (teamName === "The Phantoms") {
     return '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';

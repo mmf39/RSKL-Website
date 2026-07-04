@@ -46,19 +46,19 @@ const TEAM_ORDER = [
   "Bad Bois",
   "Scorpions",
   "Illegals",
-  "The Lions",
+  "Pandas",
   "Dream Team",
-  "The Snipers",
+  "Super Kings",
   "The Phantoms",
 ];
 
 const CURRENT_PLAYOFF_DIVISIONS = {
-  North: new Set(["Turkeys", "The Lions", "The Phantoms", "Gus N Em", "Illegals"]),
-  "Locked PSP": new Set(["Bad Bois", "The Snipers", "Storm", "Scorpions", "Dream Team"]),
+  North: new Set(["Turkeys", "Pandas", "The Phantoms", "Gus N Em", "Illegals"]),
+  "Locked PSP": new Set(["Bad Bois", "Super Kings", "Storm", "Scorpions", "Dream Team"]),
 };
 
 const CURRENT_LOCKED_PSP_TIEBREAK_ORDER = new Map([
-  ["The Snipers", 1],
+  ["Super Kings", 1],
   ["Dream Team", 2],
   ["Bad Bois", 3],
   ["Scorpions", 4],
@@ -121,8 +121,10 @@ const KNOWN_LIVE_TEAMS = new Set(
     "bad bois",
     "scorpions",
     "illegals",
+    "pandas",
     "the lions",
     "dream team",
+    "super kings",
     "the snipers",
     "the phantoms",
     "karma avengers",
@@ -571,6 +573,8 @@ function displayTeamName(value) {
   if (name === "Scorpians") return "Scorpions";
   if (name === "N/A") return "Scorpions";
   if (name === "The Future") return "Dream Team";
+  if (name === "The Lions" || name === "Lions") return "Pandas";
+  if (name === "The Snipers" || name === "Snipers" || name === "Sniper") return "Super Kings";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
   if (name === "Bolts") return "The Bolts";
@@ -588,8 +592,8 @@ function normalizeCurrentTeamName(value) {
 function getTeamLogoSrc(name) {
   const shown = displayTeamName(name);
   if (shown === "Dream Team") return "/assets/dream-team.jpg";
-  if (shown === "The Lions") return "/assets/the-lions.png";
-  if (shown === "The Snipers") return "/assets/the-snipers.png";
+  if (shown === "Pandas") return "/assets/the-lions.png";
+  if (shown === "Super Kings") return "/assets/the-snipers.png";
   if (shown === "The Phantoms") return "/assets/the-phantoms.png";
   if (shown === "Scorpions") return "/assets/mayeday.jpg";
   if (shown === "ALEK Manoahs") return "/assets/alek-manoahs.jpg";
@@ -626,9 +630,9 @@ function getTeamColorClass(name) {
   if (clean === "bad bois") return "team-color-cheerios";
   if (clean === "scorpions" || clean === "yetis") return "team-color-yetis";
   if (clean === "illegals") return "team-color-illegals";
-  if (clean === "the lions") return "team-color-lions";
+  if (clean === "pandas" || clean === "the lions") return "team-color-lions";
   if (clean === "dream team" || clean === "the future") return "team-color-future";
-  if (clean === "the snipers") return "team-color-snipers";
+  if (clean === "super kings" || clean === "the snipers") return "team-color-snipers";
   if (clean === "the phantoms") return "team-color-phantoms";
   return "team-color-default";
 }

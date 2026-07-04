@@ -37,7 +37,7 @@ const PLAYOFF_SEASONS = {
         title: "Semifinals",
         matchups: [
           matchup("Game 3", team(1, "Turkeys", 2), team(6, "Bad Bois", 0)),
-          matchup("Game 4", team(2, "The Lions", 1), team(4, "Gus N Em", 2)),
+          matchup("Game 4", team(2, "Pandas", 1), team(4, "Gus N Em", 2)),
         ],
       },
       {
@@ -109,7 +109,7 @@ const PLAYOFF_SEASONS = {
 };
 
 const CURRENT_LOCKED_PSP_TIEBREAK_ORDER = new Map([
-  ["The Snipers", 1],
+  ["Super Kings", 1],
   ["Dream Team", 2],
   ["Bad Bois", 3],
   ["Scorpions", 4],
@@ -193,6 +193,8 @@ function displayTeamName(value) {
   if (clean === "Bullets") return "Storm";
   if (clean === "Yetis") return "Scorpions";
   if (clean === "The Future") return "Dream Team";
+  if (clean === "The Lions" || clean === "Lions") return "Pandas";
+  if (clean === "The Snipers" || clean === "Snipers" || clean === "Sniper") return "Super Kings";
   if (clean === "Avengers") return "Karma Avengers";
   if (clean === "Currents") return "The Currents";
   if (clean === "Bolts") return "The Bolts";
@@ -206,8 +208,8 @@ function normalizeTeamName(value) {
 function getTeamLogo(teamName) {
   const clean = displayTeamName(teamName);
   if (clean === "Dream Team") return "/assets/dream-team.jpg";
-  if (clean === "The Lions") return "/assets/the-lions.png";
-  if (clean === "The Snipers") return "/assets/the-snipers.png";
+  if (clean === "Pandas") return "/assets/the-lions.png";
+  if (clean === "Super Kings") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
   if (clean === "Scorpions") return "/assets/mayeday.jpg";
   if (clean === "Cobras") return "/assets/cobras.png";
@@ -492,7 +494,7 @@ function parseCurrentStandings(rows) {
 }
 
 function currentDivision(teamName) {
-  const north = new Set(["Turkeys", "The Lions", "The Phantoms", "Gus N Em", "Illegals"]);
+  const north = new Set(["Turkeys", "Pandas", "The Phantoms", "Gus N Em", "Illegals"]);
   return north.has(displayTeamName(teamName)) ? "North" : "Locked PSP";
 }
 

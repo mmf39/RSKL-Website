@@ -100,9 +100,9 @@ function displayTeamName(value) {
   if (name === "Bullets") return "Storm";
   if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
-  if (name === "Lions") return "The Lions";
+  if (name === "The Lions" || name === "Lions") return "Pandas";
   if (name === "Phantoms" || name === "Phantons") return "The Phantoms";
-  if (name === "Snipers" || name === "Sniper") return "The Snipers";
+  if (name === "The Snipers" || name === "Snipers" || name === "Sniper") return "Super Kings";
   return name;
 }
 
@@ -176,11 +176,11 @@ function getTeamLogo(team) {
   if (clean === "The Future") {
     return "/assets/the-future.png";
   }
-  if (clean === "The Lions" || raw === "Lions") return "/assets/the-lions.png";
-  if (clean === "The Snipers" || raw === "Snipers" || raw === "Sniper") return "/assets/the-snipers.png";
+  if (clean === "Pandas" || raw === "Lions") return "/assets/the-lions.png";
+  if (clean === "Super Kings" || raw === "Snipers" || raw === "Sniper") return "/assets/the-snipers.png";
   if (clean === "The Phantoms" || raw === "Phantoms" || raw === "Phantons") return "/assets/the-phantoms.png";
-  if (clean === "The Lions") return "/assets/the-lions.png";
-  if (clean === "The Snipers") return "/assets/the-snipers.png";
+  if (clean === "Pandas") return "/assets/the-lions.png";
+  if (clean === "Super Kings") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
   if (clean === "Scorpions") return "/assets/mayeday.jpg";
   if (clean === "Cobras") return "/assets/cobras.png";

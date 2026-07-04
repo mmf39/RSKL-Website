@@ -102,10 +102,10 @@ const ROUND_RANGES_BY_YEAR = {
 
 const PROSPECTS_RANGE = "G1:K76";
 const EXPANSION_RANGES = [
-  { title: "The Snipers", range: "E1:F7" },
+  { title: "Super Kings", range: "E1:F7" },
   { title: "The Phantoms", range: "E9:F15" },
   { title: "The Future", range: "E17:F23" },
-  { title: "The Lions", range: "E25:F31" },
+  { title: "Pandas", range: "E25:F31" },
 ];
 
 const TEAM_NAMES = new Set([
@@ -144,10 +144,10 @@ const TEAM_NAMES = new Set([
   "Yetis",
   "Scorpions",
   "Illegals",
-  "The Lions",
+  "Pandas",
   "The Future",
   "Dream Team",
-  "The Snipers",
+  "Super Kings",
   "The Phantoms",
 ]);
 
@@ -370,6 +370,8 @@ function displayTeamName(value) {
   if (name === "Bullets") return "Storm";
   if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
+  if (name === "The Lions" || name === "Lions") return "Pandas";
+  if (name === "The Snipers" || name === "Snipers" || name === "Sniper") return "Super Kings";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
   if (name === "Bolts") return "The Bolts";
@@ -408,11 +410,11 @@ function getTeamLogo(team) {
   if (clean === "The Future" || clean === "Dream Team") {
     return '<img class="standings-logo" src="/assets/dream-team.jpg" alt="Dream Team logo" />';
   }
-  if (clean === "The Lions") {
-    return '<img class="standings-logo" src="/assets/the-lions.png" alt="The Lions logo" />';
+  if (clean === "Pandas") {
+    return '<img class="standings-logo" src="/assets/the-lions.png" alt="Pandas logo" />';
   }
-  if (clean === "The Snipers") {
-    return '<img class="standings-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />';
+  if (clean === "Super Kings") {
+    return '<img class="standings-logo" src="/assets/the-snipers.png" alt="Super Kings logo" />';
   }
   if (clean === "The Phantoms") {
     return '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';
@@ -481,16 +483,16 @@ function escapeRegExp(value) {
 function canonicalTeamName(value) {
   const clean = displayTeamName(value);
   const lower = clean.toLowerCase();
-  if (lower === "thesnipers") return "The Snipers";
+  if (lower === "thesnipers") return "Super Kings";
   if (lower === "thephantoms") return "The Phantoms";
   if (lower === "thefuture") return "The Future";
   if (lower === "dreamteam") return "Dream Team";
-  if (lower === "thelions") return "The Lions";
-  if (lower === "lions") return "The Lions";
+  if (lower === "thelions") return "Pandas";
+  if (lower === "lions") return "Pandas";
   if (lower === "phantoms") return "The Phantoms";
   if (lower === "future") return "The Future";
   if (lower === "mayeday") return "Scorpions";
-  if (lower === "snipers") return "The Snipers";
+  if (lower === "snipers") return "Super Kings";
   if (lower === "bullets") return "Storm";
   return clean;
 }
@@ -524,9 +526,9 @@ function linkifyTeamsAndPlayers(text) {
     Yetis: "Scorpions",
     Scorpions: "Scorpions",
     Illegals: "Illegals",
-    "The Lions": "The Lions",
-    Lions: "The Lions",
-    TheLions: "The Lions",
+    "Pandas": "Pandas",
+    Lions: "Pandas",
+    TheLions: "Pandas",
     "The Phantoms": "The Phantoms",
     Phantoms: "The Phantoms",
     ThePhantoms: "The Phantoms",
@@ -534,9 +536,9 @@ function linkifyTeamsAndPlayers(text) {
     "Dream Team": "Dream Team",
     Future: "Dream Team",
     TheFuture: "Dream Team",
-    "The Snipers": "The Snipers",
-    Snipers: "The Snipers",
-    TheSnipers: "The Snipers",
+    "Super Kings": "Super Kings",
+    Snipers: "Super Kings",
+    TheSnipers: "Super Kings",
   };
   const teamLabels = Object.keys(teamMap).sort((a, b) => b.length - a.length);
   const teamRegex = new RegExp(
@@ -676,10 +678,10 @@ function parseDraftCapitalRows(rows, season = "c2s3") {
     "Storm",
     "Bad Bois",
     "Yetis",
-    "The Lions",
+    "Pandas",
     "The Phantoms",
     "The Future",
-    "The Snipers",
+    "Super Kings",
     "Illegals",
   ];
   const ownersByCol = (rows[0] || []).some((cell) => String(cell || "").trim())
@@ -1034,7 +1036,7 @@ function extractC2S3DraftBoardRows(rows) {
 
 function getC2S4BaseDraftRows() {
   const order = [
-    "The Lions",
+    "Pandas",
     "Storm",
     "Illegals",
     "Scorpions",
@@ -1042,16 +1044,16 @@ function getC2S4BaseDraftRows() {
     "The Phantoms",
     "Gus N Em",
     "Dream Team",
-    "The Snipers",
+    "Super Kings",
     "Turkeys",
   ];
   const tradedOwners = new Map([
-    [1, "Dream Team (via Lions)"],
-    [8, "The Lions (via Dream Team)"],
+    [1, "Dream Team (via Pandas)"],
+    [8, "Pandas (via Dream Team)"],
     [10, "Bad Bois (via Turkeys)"],
-    [11, "Dream Team (via Lions)"],
-    [18, "The Lions (via Dream Team)"],
-    [19, "Scorpions (via The Snipers)"],
+    [11, "Dream Team (via Pandas)"],
+    [18, "Pandas (via Dream Team)"],
+    [19, "Scorpions (via Super Kings)"],
     [20, "Turkeys"],
     [21, "Bad Bois (via Turkeys)"],
   ]);
@@ -1306,8 +1308,8 @@ function renderExpansion(rows) {
       row.some((cell) => String(cell || "").trim() !== "")
     );
     const disclaimer =
-      title === "The Lions"
-        ? '<p class="expansion-disclaimer">The lions used last 2 picks in trade with Bad Bois</p>'
+      title === "Pandas"
+        ? '<p class="expansion-disclaimer">Pandas used last 2 picks in trade with Bad Bois</p>'
         : "";
     return `
       <section class="panel draft-round">

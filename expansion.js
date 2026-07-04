@@ -6,10 +6,10 @@ const els = {
 };
 
 const EXPANSION_RANGES = [
-  { title: "The Snipers", range: "E1:F7" },
+  { title: "Super Kings", range: "E1:F7" },
   { title: "The Phantoms", range: "E9:F15" },
   { title: "The Future", range: "E17:F23" },
-  { title: "The Lions", range: "E25:F31" },
+  { title: "Pandas", range: "E25:F31" },
 ];
 
 function parseCSV(text) {
@@ -118,8 +118,8 @@ function renderSection(title, rows) {
     row.some((cell) => String(cell || "").trim() !== "")
   );
   const disclaimer =
-    title === "The Lions"
-      ? '<p class="expansion-disclaimer">The lions used last 2 picks in trade with Bad Bois</p>'
+    title === "Pandas"
+      ? '<p class="expansion-disclaimer">Pandas used last 2 picks in trade with Bad Bois</p>'
       : "";
   return `
     <section class="panel draft-round">

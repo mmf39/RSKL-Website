@@ -68,8 +68,10 @@ const KNOWN_LIVE_TEAMS = new Set(
     "bad bois",
     "scorpions",
     "illegals",
+    "pandas",
     "the lions",
     "dream team",
+    "super kings",
     "the snipers",
     "the phantoms",
     "karma avengers",
@@ -324,6 +326,8 @@ function displayTeamName(value) {
   if (name === "Bullets") return "Storm";
   if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
+  if (name === "The Lions" || name === "Lions") return "Pandas";
+  if (name === "The Snipers" || name === "Snipers" || name === "Sniper") return "Super Kings";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
   if (name === "Bolts") return "The Bolts";
@@ -348,8 +352,8 @@ function normalizeTeamName(value) {
 function getTeamLogo(team) {
   const clean = displayTeamName(team);
   if (clean === "The Future" || clean === "Dream Team") return "/assets/dream-team.jpg";
-  if (clean === "The Lions") return "/assets/the-lions.png";
-  if (clean === "The Snipers") return "/assets/the-snipers.png";
+  if (clean === "Pandas") return "/assets/the-lions.png";
+  if (clean === "Super Kings") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
   if (clean === "Scorpions") return "/assets/mayeday.jpg";
   if (clean === "Cobras") return "/assets/cobras.png";

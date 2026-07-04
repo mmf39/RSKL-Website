@@ -58,9 +58,9 @@ const TEAM_NAMES = [
   "Bad Bois",
   "Yetis",
   "Illegals",
-  "The Lions",
+  "Pandas",
   "The Future",
-  "The Snipers",
+  "Super Kings",
   "The Phantoms",
 ];
 
@@ -71,9 +71,9 @@ const TEAM_RANGES = {
   "Bad Bois": "B17:C28",
   Yetis: "E17:F28",
   Illegals: "H17:I28",
-  "The Lions": "B32:C43",
+  "Pandas": "B32:C43",
   "The Future": "E32:F43",
-  "The Snipers": "H32:I43",
+  "Super Kings": "H32:I43",
   "The Phantoms": "B45:C56",
 };
 

@@ -51,10 +51,10 @@ const DRAFT_ROUND_RANGES = [
   { title: "Round 4", range: "A34:C44" },
 ];
 const EXPANSION_DRAFT_RANGES = [
-  { team: "The Snipers", range: "E1:F7" },
+  { team: "Super Kings", range: "E1:F7" },
   { team: "The Phantoms", range: "E9:F15" },
   { team: "The Future", range: "E17:F23" },
-  { team: "The Lions", range: "E25:F31" },
+  { team: "Pandas", range: "E25:F31" },
 ];
 
 const ARCHIVE_RANGES = {
@@ -76,10 +76,10 @@ const TEAM_RANGES = {
   Yetis: "E17:F28",
   Scorpions: "E17:F28",
   Illegals: "H17:I28",
-  "The Lions": "B32:C43",
+  "Pandas": "B32:C43",
   "The Future": "E32:F43",
   "Dream Team": "E32:F43",
-  "The Snipers": "H32:I43",
+  "Super Kings": "H32:I43",
   "The Phantoms": "B45:C56",
 };
 
@@ -583,6 +583,8 @@ function displayTeamName(value) {
   if (name === "Bullets") return "Storm";
   if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
+  if (name === "The Lions" || name === "Lions") return "Pandas";
+  if (name === "The Snipers" || name === "Snipers" || name === "Sniper") return "Super Kings";
   return name;
 }
 
@@ -1507,10 +1509,10 @@ function getTeamLogoHtml(teamName) {
   const shownTeam = displayTeamName(teamName);
   return shownTeam === "The Future" || shownTeam === "Dream Team"
     ? '<img class="player-team-logo" src="/assets/dream-team.jpg" alt="Dream Team logo" />'
-    : shownTeam === "The Lions"
-    ? '<img class="player-team-logo" src="/assets/the-lions.png" alt="The Lions logo" />'
-    : shownTeam === "The Snipers"
-    ? '<img class="player-team-logo" src="/assets/the-snipers.png" alt="The Snipers logo" />'
+    : shownTeam === "Pandas"
+    ? '<img class="player-team-logo" src="/assets/the-lions.png" alt="Pandas logo" />'
+    : shownTeam === "Super Kings"
+    ? '<img class="player-team-logo" src="/assets/the-snipers.png" alt="Super Kings logo" />'
     : shownTeam === "The Phantoms"
     ? '<img class="player-team-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />'
     : shownTeam === "Scorpions"

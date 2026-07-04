@@ -437,9 +437,9 @@ const C2S3_ROSTER_LAYOUT = {
   "Bad Bois": { row: 16, col: 1 },
   Scorpions: { row: 16, col: 4 },
   Illegals: { row: 16, col: 7 },
-  "The Lions": { row: 31, col: 1 },
+  "Pandas": { row: 31, col: 1 },
   "Dream Team": { row: 31, col: 4 },
-  "The Snipers": { row: 31, col: 7 },
+  "Super Kings": { row: 31, col: 7 },
   "The Phantoms": { row: 44, col: 1 },
 };
 
@@ -456,6 +456,10 @@ function extractC2S3RosterMap(text) {
     .map((row) => row.slice(22, 32));
   const wantedTeams = Object.keys(C2S3_ROSTER_LAYOUT);
   const teamByKey = new Map(wantedTeams.map((team) => [normalizeSheetTeamName(team), team]));
+  teamByKey.set(normalizeSheetTeamName("The Lions"), "Pandas");
+  teamByKey.set(normalizeSheetTeamName("Lions"), "Pandas");
+  teamByKey.set(normalizeSheetTeamName("The Snipers"), "Super Kings");
+  teamByKey.set(normalizeSheetTeamName("Snipers"), "Super Kings");
   const rosters = new Map();
 
   for (let r = 0; r < rows.length; r += 1) {

@@ -49,9 +49,9 @@ const TEAM_ORDER = [
   "Bad Bois",
   "Scorpions",
   "Illegals",
-  "The Lions",
+  "Pandas",
   "Dream Team",
-  "The Snipers",
+  "Super Kings",
   "The Phantoms",
 ];
 const TRANSACTIONS_RANGE = "A3:E81";
@@ -67,10 +67,10 @@ const TEAM_RANGES = {
   Yetis: "E17:F28",
   Scorpions: "E17:F28",
   Illegals: "H17:I28",
-  "The Lions": "B32:C43",
+  "Pandas": "B32:C43",
   "The Future": "E32:F43",
   "Dream Team": "E32:F43",
-  "The Snipers": "H32:I43",
+  "Super Kings": "H32:I43",
   "The Phantoms": "B45:C56",
 };
 
@@ -100,7 +100,7 @@ const C2S2_PLAYOFF_HISTORY_ROWS = [
   ["C2S2 Game 1", "The Phantoms", "Bad Bois", "Wild Card Round", "Playoffs", "1", "Bad Bois", "1"],
   ["C2S2 Game 2", "Gus N Em", "Illegals", "Wild Card Round", "Playoffs", "1", "Gus N Em", "1"],
   ["C2S2 Game 3", "Turkeys", "Bad Bois", "Semi Finals", "Playoffs", "2", "Turkeys", "2"],
-  ["C2S2 Game 4", "The Lions", "Gus N Em", "Semi Finals", "Playoffs", "3", "Gus N Em", "2"],
+  ["C2S2 Game 4", "Pandas", "Gus N Em", "Semi Finals", "Playoffs", "3", "Gus N Em", "2"],
   ["C2S2 Game 5", "Turkeys", "Gus N Em", "Finals", "Playoffs", "3", "Gus N Em", "3"],
 ];
 const LIVE_GAME_RANGES = [
@@ -170,10 +170,10 @@ const DRAFT_CAPITAL_COLUMNS = {
   "Bad Bois": "D",
   Yetis: "E",
   Scorpions: "E",
-  "The Lions": "F",
+  "Pandas": "F",
   "The Phantoms": "G",
   "The Future": "H",
-  "The Snipers": "I",
+  "Super Kings": "I",
   Illegals: "J",
 };
 const TEAM_STANDINGS_METRIC_KEY = "team_standings_metric";
@@ -233,6 +233,8 @@ function displayTeamName(value) {
   if (name === "Scorpians") return "Scorpions";
   if (name === "N/A") return "Scorpions";
   if (name === "The Future") return "Dream Team";
+  if (name === "The Lions" || name === "Lions") return "Pandas";
+  if (name === "The Snipers" || name === "Snipers" || name === "Sniper") return "Super Kings";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
   if (name === "Bolts") return "The Bolts";
@@ -447,8 +449,8 @@ function parseMetricValue(metric, value) {
 function getTeamLogoSrc(team) {
   const clean = displayTeamName(team);
   if (clean === "The Future" || clean === "Dream Team") return "/assets/dream-team.jpg";
-  if (clean === "The Lions") return "/assets/the-lions.png";
-  if (clean === "The Snipers") return "/assets/the-snipers.png";
+  if (clean === "Pandas") return "/assets/the-lions.png";
+  if (clean === "Super Kings") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
   if (clean === "Scorpions") return "/assets/mayeday.jpg";
   if (clean === "ALEK Manoahs") return "/assets/alek-manoahs.jpg";
@@ -2528,8 +2530,8 @@ function linkifyPlayers(text) {
 function getTeamLogo(team) {
   const clean = displayTeamName(team);
   if (clean === "The Future" || clean === "Dream Team") return "/assets/dream-team.jpg";
-  if (clean === "The Lions") return "/assets/the-lions.png";
-  if (clean === "The Snipers") return "/assets/the-snipers.png";
+  if (clean === "Pandas") return "/assets/the-lions.png";
+  if (clean === "Super Kings") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
   if (clean === "Scorpions") return "/assets/mayeday.jpg";
   if (clean === "Cobras") return "/assets/cobras.png";

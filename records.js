@@ -34,7 +34,7 @@ const SUPPLEMENTAL_REGULAR_WIN_STREAKS = [
   { team: "Masdog N Em", season: "C1S3", length: 14 },
   { team: "Turkeys", season: "C2S2", length: 15 },
   { team: "Cobras", season: "C1S4", length: 11 },
-  { team: "The Snipers", season: "C2S3", length: 9 },
+  { team: "Super Kings", season: "C2S3", length: 9 },
   { team: "The Phantoms", season: "C2S2", length: 8 },
   { team: "Whatsgrass", season: "C1S4", length: 7 },
   { team: "Gus N Em", season: "C1S5", length: 7 },
@@ -133,10 +133,15 @@ function displayTeamName(value) {
     "dream team": "The Future",
     "gus nem": "Gus N Em",
     "gus n em": "Gus N Em",
+    lions: "Pandas",
+    pandas: "Pandas",
     scorpions: "Yetis",
+    snipers: "Super Kings",
     storm: "Storm",
     "the currents": "The Currents",
     "the future": "The Future",
+    "the lions": "Pandas",
+    "the snipers": "Super Kings",
     turkeys: "Turkeys",
     yetis: "Yetis",
   };
@@ -146,8 +151,8 @@ function displayTeamName(value) {
 function getTeamLogoSrc(team) {
   const clean = displayTeamName(team);
   if (clean === "The Future" || clean === "Dream Team") return "/assets/dream-team.jpg";
-  if (clean === "The Lions") return "/assets/the-lions.png";
-  if (clean === "The Snipers") return "/assets/the-snipers.png";
+  if (clean === "Pandas") return "/assets/the-lions.png";
+  if (clean === "Super Kings") return "/assets/the-snipers.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
   if (clean === "Scorpions") return "/assets/mayeday.jpg";
   if (clean === "ALEK Manoahs") return "/assets/alek-manoahs.jpg";
