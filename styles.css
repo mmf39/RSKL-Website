@@ -6195,8 +6195,7 @@ input[type="text"] {
 #gm-tab-manage > .gm-card,
 #gm-tab-rename > .gm-card,
 #gm-tab-lineup > .gm-card,
-#gm-tab-power > .gm-card,
-#gm-tab-stats > .gm-card {
+#gm-tab-power > .gm-card {
   position: relative;
   overflow: hidden;
 }
@@ -6863,32 +6862,6 @@ input[type="text"] {
 
 .gm-tab-panel[hidden] {
   display: none;
-}
-
-.gm-recap-embed-card {
-  padding: clamp(18px, 2.5vw, 28px);
-}
-
-.gm-recap-embed-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
-}
-
-.gm-recap-embed-frame {
-  width: 100%;
-  overflow: hidden;
-  border: 1px solid rgba(255, 176, 86, 0.22);
-  border-radius: 14px;
-  background: #111;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), 0 18px 40px rgba(0, 0, 0, 0.28);
-}
-
-.gm-recap-embed-frame iframe {
-  display: block;
-  min-height: 650px;
 }
 
 .gm-row {
