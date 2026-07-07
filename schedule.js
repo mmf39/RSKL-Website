@@ -1,11 +1,15 @@
 const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
 const SCHEDULE_PLAYOFF_URL = "/api/sheet?name=schedule-playoffs";
+const C2S4_SCHEDULE_URL = "/api/sheet?name=c2s4-schedule";
 const C2S2_PLAYOFF_SCHEDULE_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=507537612&single=true&output=csv";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const BOXSCORE_PLAYOFF_URL = "/api/sheet?name=boxscore-playoffs";
+const C2S4_BOXSCORE_URL = "/api/sheet?name=c2s4-boxscore";
 const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
+const C2S4_LIVE_CSV_URL = "/api/sheet?name=c2s4-live-scoring";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
+const C2S4_PLAYER_STATS_URL = "/api/sheet?name=c2s4-player-stats";
 const GAME_FLOW_API = "/api/game-flow";
 const NEWS_ARTICLES_API = "/api/articles";
 const ARCHIVE_URL = "/api/sheet?name=archive";
@@ -114,12 +118,6 @@ function writeCachedScheduleRows(seasonRaw, rows) {
   } catch (error) {
     // ignore cache failures
   }
-}
-
-function getC2S4BackfillSeason(seasonRaw) {
-  if (seasonRaw === "c2s4-regular") return "c2s3-regular";
-  if (seasonRaw === "c2s4-playoffs") return "c2s3-playoffs";
-  return seasonRaw;
 }
 
 function readCachedScheduleEnhancements(seasonRaw) {
@@ -326,7 +324,7 @@ function displayTeamName(value) {
   if (name === "Bullets") return "Storm";
   if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
-  if (name === "The Lions" || name === "Lions") return "Pandas";
+  if (name === "The Pandas" || name === "Pandas" || name === "The Lions" || name === "Lions") return "Pandas";
   if (name === "The Snipers" || name === "Snipers" || name === "Sniper") return "Super Kings";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
@@ -1621,12 +1619,18 @@ function applyInitialScheduleRows(rows, season) {
 }
 
 async function hydrateCurrentSeasonSchedule(loadToken, seasonRaw = getSeasonRaw()) {
-  const dataSeasonRaw = getC2S4BackfillSeason(seasonRaw);
-  const boxscoreUrl = dataSeasonRaw === "c2s3-regular" ? BOXSCORE_CSV_URL : BOXSCORE_PLAYOFF_URL;
+  const boxscoreUrl =
+    seasonRaw === "c2s4-regular"
+      ? C2S4_BOXSCORE_URL
+      : seasonRaw === "c2s3-regular"
+      ? BOXSCORE_CSV_URL
+      : BOXSCORE_PLAYOFF_URL;
+  const liveUrl = seasonRaw === "c2s4-regular" ? C2S4_LIVE_CSV_URL : LIVE_CSV_URL;
+  const playerStatsUrl = seasonRaw === "c2s4-regular" ? C2S4_PLAYER_STATS_URL : PLAYER_STATS_URL;
   const [boxRes, liveRes, playerStatsRes] = await Promise.allSettled([
     fetch(boxscoreUrl, { cache: "no-store" }),
-    fetch(LIVE_CSV_URL, { cache: "no-store" }),
-    fetch(PLAYER_STATS_URL, { cache: "no-store" }),
+    fetch(liveUrl, { cache: "no-store" }),
+    fetch(playerStatsUrl, { cache: "no-store" }),
   ]);
 
   if (loadToken !== scheduleLoadToken) {
@@ -1711,13 +1715,29 @@ async function loadSchedule() {
     }
     hydrateCachedEnhancements(seasonRaw);
 
-    const dataSeasonRaw = getC2S4BackfillSeason(seasonRaw);
+    if (seasonRaw === "c2s4-playoffs") {
+      scheduleGames = [];
+      gamesByDate = new Map();
+      selectedDateKey = "";
+      if (els.upcomingGamesTitle) {
+        els.upcomingGamesTitle.textContent = "C2S4 Playoffs";
+      }
+      if (els.dayGamesTitle) {
+        els.dayGamesTitle.textContent = "No Games Scheduled";
+      }
+      renderGameSection(els.nextGames, [], "C2S4 playoff games will appear once the bracket is set.");
+      renderGameSection(els.dayGames, [], "No C2S4 playoff games are scheduled yet.");
+      updateLastUpdated();
+      return;
+    }
 
-    if (dataSeasonRaw === "c2s3-regular" || dataSeasonRaw === "c2s3-playoffs" || dataSeasonRaw === "c2s2-playoffs") {
+    if (seasonRaw === "c2s4-regular" || seasonRaw === "c2s3-regular" || seasonRaw === "c2s3-playoffs" || seasonRaw === "c2s2-playoffs") {
       const scheduleUrl =
-        dataSeasonRaw === "c2s3-playoffs"
+        seasonRaw === "c2s4-regular"
+          ? C2S4_SCHEDULE_URL
+          : seasonRaw === "c2s3-playoffs"
           ? SCHEDULE_PLAYOFF_URL
-          : dataSeasonRaw === "c2s2-playoffs"
+          : seasonRaw === "c2s2-playoffs"
           ? C2S2_PLAYOFF_SCHEDULE_URL
           : SCHEDULE_CSV_URL;
       const scheduleRes = await fetch(scheduleUrl, { cache: "no-store" });

@@ -225,7 +225,7 @@ function displayTeamName(value) {
   if (name === "Bullets") return "Storm";
   if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
-  if (name === "The Lions" || name === "Lions") return "Pandas";
+  if (name === "The Pandas" || name === "Pandas" || name === "The Lions" || name === "Lions") return "Pandas";
   if (name === "The Snipers" || name === "Snipers" || name === "Sniper") return "Super Kings";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";

@@ -4,6 +4,10 @@ const TEAMS_CSV_URL = "/api/sheet?name=teams";
 const SCHEDULE_URL = "/api/sheet?name=schedule";
 const SCHEDULE_PLAYOFF_URL = "/api/sheet?name=schedule-playoffs";
 const LIVE_SCORING_URL = "/api/sheet?name=live-scoring";
+const C2S4_STANDINGS_URL = "/api/sheet?name=c2s4-standings";
+const C2S4_SCHEDULE_URL = "/api/sheet?name=c2s4-schedule";
+const C2S4_LIVE_SCORING_URL = "/api/sheet?name=c2s4-live-scoring";
+const C2S4_PLAYER_STATS_URL = "/api/sheet?name=c2s4-player-stats";
 const GAME_FLOW_API = "/api/game-flow";
 const PLAYER_PROFILE_URL = "/api/player-profile";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
@@ -573,7 +577,7 @@ function displayTeamName(value) {
   if (name === "Scorpians") return "Scorpions";
   if (name === "N/A") return "Scorpions";
   if (name === "The Future") return "Dream Team";
-  if (name === "The Lions" || name === "Lions") return "Pandas";
+  if (name === "The Pandas" || name === "Pandas" || name === "The Lions" || name === "Lions") return "Pandas";
   if (name === "The Snipers" || name === "Snipers" || name === "Sniper") return "Super Kings";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
@@ -2812,12 +2816,6 @@ function renderC2S4DashboardPage(seasonRaw) {
   updateLastUpdated();
 }
 
-function getC2S4BackfillSeason(seasonRaw) {
-  if (seasonRaw === "c2s4-regular") return "c2s3-regular";
-  if (seasonRaw === "c2s4-playoffs") return "c2s3-playoffs";
-  return seasonRaw;
-}
-
 function formatArticleDate(value) {
   if (!value) return "Recently";
   const date = new Date(value);
@@ -3068,16 +3066,20 @@ async function loadData() {
   }
 
   try {
-    const dataSeasonRaw = getC2S4BackfillSeason(seasonRaw);
+    if (seasonRaw === "c2s4-playoffs") {
+      renderC2S4DashboardPage(seasonRaw);
+      return;
+    }
 
-    if (dataSeasonRaw === "c2s3-regular" || dataSeasonRaw === "c2s3-playoffs") {
+    if (seasonRaw === "c2s4-regular" || seasonRaw === "c2s3-regular" || seasonRaw === "c2s3-playoffs") {
+      const isC2S4 = seasonRaw === "c2s4-regular";
       const results = await Promise.allSettled([
-        fetchSheet(STANDINGS_CSV_URL),
-        fetchSheet(LIVE_SCORING_URL),
-        fetchSheet(dataSeasonRaw === "c2s3-playoffs" ? SCHEDULE_PLAYOFF_URL : SCHEDULE_URL),
-        fetchSheet(dataSeasonRaw === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL),
+        fetchSheet(isC2S4 ? C2S4_STANDINGS_URL : STANDINGS_CSV_URL),
+        fetchSheet(isC2S4 ? C2S4_LIVE_SCORING_URL : LIVE_SCORING_URL),
+        fetchSheet(isC2S4 ? C2S4_SCHEDULE_URL : seasonRaw === "c2s3-playoffs" ? SCHEDULE_PLAYOFF_URL : SCHEDULE_URL),
+        fetchSheet(isC2S4 ? C2S4_PLAYER_STATS_URL : seasonRaw === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL),
         fetchSheet(TRANSACTIONS_CSV_URL),
-        fetchSheet(PLAYER_STATS_URL),
+        fetchSheet(isC2S4 ? C2S4_PLAYER_STATS_URL : PLAYER_STATS_URL),
       ]);
 
       const standingsRows = results[0].status === "fulfilled" ? results[0].value : [];

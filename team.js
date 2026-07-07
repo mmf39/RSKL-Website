@@ -1,16 +1,22 @@
 const ROSTER_CSV_URL = "/api/sheet?name=roster";
+const C2S4_ROSTER_CSV_URL = "/api/sheet?name=c2s4-roster";
 const STANDINGS_CSV_URL = "/api/sheet?name=standings-dashboard";
+const C2S4_STANDINGS_CSV_URL = "/api/sheet?name=c2s4-standings";
 const SCHEDULE_CSV_URL = "/api/sheet?name=schedule";
 const SCHEDULE_PLAYOFF_URL = "/api/sheet?name=schedule-playoffs";
+const C2S4_SCHEDULE_URL = "/api/sheet?name=c2s4-schedule";
 const C2S2_PLAYOFF_SCHEDULE_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=507537612&single=true&output=csv";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const BOXSCORE_PLAYOFF_URL = "/api/sheet?name=boxscore-playoffs";
+const C2S4_BOXSCORE_URL = "/api/sheet?name=c2s4-boxscore";
 const GAME_FLOW_API = "/api/game-flow";
 const NEWS_ARTICLES_API = "/api/articles";
 const LIVE_CSV_URL = "/api/sheet?name=live-scoring";
+const C2S4_LIVE_CSV_URL = "/api/sheet?name=c2s4-live-scoring";
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const PLAYER_STATS_PLAYOFF_URL = "/api/sheet?name=player-stats-playoffs";
+const C2S4_PLAYER_STATS_URL = "/api/sheet?name=c2s4-player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const C2S1_ROSTERS_URL = "/assets/data/c2s1-rosters.csv";
@@ -73,12 +79,6 @@ const TEAM_RANGES = {
   "Super Kings": "H32:I43",
   "The Phantoms": "B45:C56",
 };
-
-function getC2S4BackfillSeason(season) {
-  if (season === "c2s4-regular") return "c2s3-regular";
-  if (season === "c2s4-playoffs") return "c2s3-playoffs";
-  return season;
-}
 
 const ARCHIVE_RANGES = {
   standings: "A1:F7",
@@ -233,7 +233,7 @@ function displayTeamName(value) {
   if (name === "Scorpians") return "Scorpions";
   if (name === "N/A") return "Scorpions";
   if (name === "The Future") return "Dream Team";
-  if (name === "The Lions" || name === "Lions") return "Pandas";
+  if (name === "The Pandas" || name === "Pandas" || name === "The Lions" || name === "Lions") return "Pandas";
   if (name === "The Snipers" || name === "Snipers" || name === "Sniper") return "Super Kings";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
@@ -2848,25 +2848,36 @@ async function loadRoster() {
     const isAllTimeSeason = season === ALL_TIME_SEASON;
     if (isAllTimeSeason) {
       await loadAllTimeTeamSnapshot(teamName);
-    } else if (
-      getC2S4BackfillSeason(season) === "c2s3-regular" ||
-      getC2S4BackfillSeason(season) === "c2s3-playoffs" ||
-      getC2S4BackfillSeason(season) === "c2s2-playoffs"
-    ) {
-      const dataSeason = getC2S4BackfillSeason(season);
+    } else if (season === "c2s4-playoffs") {
+      renderRosterMessage("C2S4 playoff rosters are not available yet.");
+      clearAdvancedTeamStats();
+      liveScoreMap = new Map();
+      boxScoreRows = [];
+      finalScoreMap = new Map();
+      teamLeadersMap = new Map();
+      updateTeamSchedule(teamName, [], [], season);
+    } else if (season === "c2s4-regular" || season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {
       const scheduleUrl =
-        dataSeason === "c2s3-playoffs"
+        season === "c2s4-regular"
+          ? C2S4_SCHEDULE_URL
+          : season === "c2s3-playoffs"
           ? SCHEDULE_PLAYOFF_URL
-          : dataSeason === "c2s2-playoffs"
+          : season === "c2s2-playoffs"
           ? C2S2_PLAYOFF_SCHEDULE_URL
           : SCHEDULE_CSV_URL;
       const [rosterRes, standingsRes, scheduleRes, boxscoreRes, playerStatsRes, liveRes] = await Promise.all([
-        fetch(ROSTER_CSV_URL, { cache: "no-store" }),
-        fetch(STANDINGS_CSV_URL, { cache: "no-store" }),
+        fetch(season === "c2s4-regular" ? C2S4_ROSTER_CSV_URL : ROSTER_CSV_URL, { cache: "no-store" }),
+        fetch(season === "c2s4-regular" ? C2S4_STANDINGS_CSV_URL : STANDINGS_CSV_URL, { cache: "no-store" }),
         fetch(scheduleUrl, { cache: "no-store" }),
-        fetch(dataSeason === "c2s3-playoffs" ? BOXSCORE_PLAYOFF_URL : BOXSCORE_CSV_URL, { cache: "no-store" }),
-        fetch(dataSeason === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" }),
-        fetch(LIVE_CSV_URL, { cache: "no-store" }),
+        fetch(
+          season === "c2s4-regular" ? C2S4_BOXSCORE_URL : season === "c2s3-playoffs" ? BOXSCORE_PLAYOFF_URL : BOXSCORE_CSV_URL,
+          { cache: "no-store" }
+        ),
+        fetch(
+          season === "c2s4-regular" ? C2S4_PLAYER_STATS_URL : season === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL,
+          { cache: "no-store" }
+        ),
+        fetch(season === "c2s4-regular" ? C2S4_LIVE_CSV_URL : LIVE_CSV_URL, { cache: "no-store" }),
       ]);
 
       if (!rosterRes.ok) {

@@ -1,5 +1,6 @@
 const SEASON_KEY = "season";
 const CURRENT_STANDINGS_URL = "/api/sheet?name=standings-dashboard";
+const C2S4_STANDINGS_URL = "/api/sheet?name=c2s4-standings";
 const C1S2_POST_URL = "/assets/data/c1s2-post-schedule.csv";
 const C1S3_POST_URL = "/assets/data/c1s3-post-schedule.csv";
 const C1S4_POST_URL = "/assets/data/c1s4-post-schedule.csv";
@@ -15,10 +16,12 @@ const PLAYOFF_SEASONS = {
   "c2s4-playoffs": {
     label: "C2S4 Playoffs",
     type: "current",
+    standingsUrl: C2S4_STANDINGS_URL,
   },
   "c2s3-playoffs": {
     label: "C2S3 Playoffs",
     type: "current",
+    standingsUrl: CURRENT_STANDINGS_URL,
   },
   "c2s2-playoffs": {
     label: "C2S2 Playoffs",
@@ -193,7 +196,7 @@ function displayTeamName(value) {
   if (clean === "Bullets") return "Storm";
   if (clean === "Yetis") return "Scorpions";
   if (clean === "The Future") return "Dream Team";
-  if (clean === "The Lions" || clean === "Lions") return "Pandas";
+  if (clean === "The Pandas" || clean === "Pandas" || clean === "The Lions" || clean === "Lions") return "Pandas";
   if (clean === "The Snipers" || clean === "Snipers" || clean === "Sniper") return "Super Kings";
   if (clean === "Avengers") return "Karma Avengers";
   if (clean === "Currents") return "The Currents";
@@ -498,8 +501,8 @@ function currentDivision(teamName) {
   return north.has(displayTeamName(teamName)) ? "North" : "Locked PSP";
 }
 
-async function buildCurrentBracket(label = "C2S3") {
-  const rows = parseCurrentStandings(await fetchRows(CURRENT_STANDINGS_URL));
+async function buildCurrentBracket(label = "C2S3", standingsUrl = CURRENT_STANDINGS_URL) {
+  const rows = parseCurrentStandings(await fetchRows(standingsUrl));
   const grouped = new Map([
     ["North", []],
     ["Locked PSP", []],
@@ -572,7 +575,7 @@ async function loadBracket() {
 
   try {
     if (config.type === "current") {
-      renderBracket(await buildCurrentBracket(config.label));
+      renderBracket(await buildCurrentBracket(config.label, config.standingsUrl || CURRENT_STANDINGS_URL));
     } else if (config.type === "schedule") {
       renderBracket(await buildScheduleBracket(config));
     } else {

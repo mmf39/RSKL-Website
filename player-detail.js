@@ -2,6 +2,8 @@ const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const BOXSCORE_CSV_URL = "/api/sheet?name=boxscore";
 const PLAYER_STATS_PLAYOFF_URL = "/api/sheet?name=player-stats-playoffs";
 const BOXSCORE_PLAYOFF_URL = "/api/sheet?name=boxscore-playoffs";
+const C2S4_PLAYER_STATS_URL = "/api/sheet?name=c2s4-player-stats";
+const C2S4_BOXSCORE_URL = "/api/sheet?name=c2s4-boxscore";
 const GAME_FLOW_API = "/api/game-flow";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
@@ -583,7 +585,7 @@ function displayTeamName(value) {
   if (name === "Bullets") return "Storm";
   if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
-  if (name === "The Lions" || name === "Lions") return "Pandas";
+  if (name === "The Pandas" || name === "Pandas" || name === "The Lions" || name === "Lions") return "Pandas";
   if (name === "The Snipers" || name === "Snipers" || name === "Sniper") return "Super Kings";
   return name;
 }
@@ -866,9 +868,11 @@ async function ensureBoxScoreRows(season) {
     return window.__boxScoreRows;
   }
 
-  const dataSeason = getC2S4BackfillSeason(season);
-  if (dataSeason === "c2s3-regular" || dataSeason === "c2s3-playoffs") {
-    const response = await fetch(dataSeason === "c2s3-playoffs" ? BOXSCORE_PLAYOFF_URL : BOXSCORE_CSV_URL, { cache: "no-store" });
+  if (season === "c2s4-regular" || season === "c2s3-regular" || season === "c2s3-playoffs") {
+    const response = await fetch(
+      season === "c2s4-regular" ? C2S4_BOXSCORE_URL : season === "c2s3-playoffs" ? BOXSCORE_PLAYOFF_URL : BOXSCORE_CSV_URL,
+      { cache: "no-store" }
+    );
     if (!response.ok) {
       throw new Error(`Fetch failed: ${response.status}`);
     }
@@ -928,9 +932,13 @@ async function findTeamForPlayer(season, playerName) {
   if (!aliases.length) {
     return "";
   }
-  if (season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-regular" || season === "career") {
+  if (season === "c2s4-regular" || season === "c2s4-playoffs" || season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-regular" || season === "career") {
     const rosterUrl =
-      season === "c2s2-regular" ? C2S2_REGULAR_URL : "/api/sheet?name=roster";
+      season === "c2s2-regular"
+        ? C2S2_REGULAR_URL
+        : season === "c2s4-regular" || season === "c2s4-playoffs"
+        ? "/api/sheet?name=c2s4-roster"
+        : "/api/sheet?name=roster";
     const response = await fetch(rosterUrl, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`Fetch failed: ${response.status}`);
@@ -1247,12 +1255,6 @@ function normalizeSeason(value) {
     return "c2s2-regular";
   }
   return "c2s3-regular";
-}
-
-function getC2S4BackfillSeason(season) {
-  if (season === "c2s4-regular") return "c2s3-regular";
-  if (season === "c2s4-playoffs") return "c2s3-playoffs";
-  return season;
 }
 
 function getSeason() {
@@ -2823,10 +2825,15 @@ async function loadPlayer() {
     let dataRows = [];
     let supplementalRows = [];
     let contractRows = contractRowsCache;
-    const dataSeason = getC2S4BackfillSeason(season);
-    if (dataSeason === "c2s3-regular" || dataSeason === "c2s3-playoffs" || dataSeason === "c2s2-playoffs") {
+    if (season === "c2s4-playoffs") {
+      playerColumns = detectPlayerColumns(["Date", "Team", "Player", "Score", "Rank", "Opponent"]);
+      dataRows = [];
+    } else if (season === "c2s4-regular" || season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {
       const [playerRes, contractRes] = await Promise.all([
-        fetch(dataSeason === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" }),
+        fetch(
+          season === "c2s4-regular" ? C2S4_PLAYER_STATS_URL : season === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL,
+          { cache: "no-store" }
+        ),
         fetch(CONTRACTS_URL, { cache: "no-store" }),
       ]);
       if (!playerRes.ok) {

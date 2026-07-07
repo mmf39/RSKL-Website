@@ -27,6 +27,14 @@ const C2S3_PLAYOFF_PLAYER_STATS_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=2091759853&single=true&output=csv";
 const C2S3_PLAYOFF_BOXSCORE_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=321367914&single=true&output=csv";
+const C2S4_LIVE_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=1722620417&single=true&output=csv";
+const C2S4_TEAMS_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=847666124&single=true&output=csv";
+const C2S4_SCHEDULE_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=507537612&single=true&output=csv";
+const C2S4_STANDINGS_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=2115060088&single=true&output=csv";
 const LIVE_ROSTER_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=0&single=true&output=csv";
 const PLAYER_PROFILE_SCRIPT_URL =
@@ -51,11 +59,18 @@ const SHEETS = {
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vTr6cIsrgXTBa6ndhiGle_qOOUWgzH3KDUgPTANYDG2O_9u3_zdhOUGdzgz9yzMnqs1dgv54qg0TudU/pub?gid=959105096&single=true&output=csv",
   boxscore: C2S3_STATS_URL,
   "boxscore-playoffs": C2S3_PLAYOFF_BOXSCORE_URL,
+  "c2s4-boxscore": C2S4_SCHEDULE_URL,
   "c2s3-draft": C2S3_STATS_URL,
   "c2s4-draft": DRAFT_URL,
   draft: DRAFT_URL,
   "draft-capital":
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=1378560378&single=true&output=csv",
+  "c2s4-live-scoring": C2S4_LIVE_URL,
+  "c2s4-player-stats": C2S4_SCHEDULE_URL,
+  "c2s4-roster": C2S4_TEAMS_URL,
+  "c2s4-schedule": C2S4_SCHEDULE_URL,
+  "c2s4-standings": C2S4_STANDINGS_URL,
+  "c2s4-teams": C2S4_TEAMS_URL,
   "live-scoring":
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=1486072019&single=true&output=csv",
   "player-stats": C2S3_STATS_URL,
@@ -430,6 +445,46 @@ function sliceC2S4Draft(text) {
   return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
 }
 
+function normalizeCurrentSheetTeamName(value) {
+  const clean = String(value || "").trim();
+  if (clean === "The Pandas" || clean === "The Lions" || clean === "Lions") return "Pandas";
+  if (clean === "The Snipers" || clean === "Snipers") return "Super Kings";
+  return clean;
+}
+
+function stripGmLabel(value) {
+  return String(value || "")
+    .replace(/^gm\s*=\s*/i, "")
+    .trim();
+}
+
+function sliceC2S4Schedule(text) {
+  const rows = parseCSV(text).map((row) => row.slice(0, 5));
+  return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
+}
+
+function sliceC2S4Standings(text) {
+  const rows = parseCSV(text);
+  const header = ["Team", "GP", "Wins", "Loss", "GB", "Win %"];
+  const dataRows = rows
+    .map((row) => row.slice(1, 7))
+    .filter((row) => {
+      const team = String(row[0] || "").trim().toLowerCase();
+      const gp = String(row[1] || "").trim();
+      return team && team !== "team" && /^\d+$/.test(gp);
+    })
+    .map((row) => [normalizeCurrentSheetTeamName(row[0]), ...row.slice(1)]);
+  return `${formatCSV([header, ...dataRows])}\n`;
+}
+
+function sliceEmptyPlayerStats() {
+  return "Date,Team,Player,Score,Rank,Opponent\n";
+}
+
+function sliceEmptyBoxScores() {
+  return "Team A,Karma A,Rank A,Base A,Boost A,Team B,Karma B,Rank B\n";
+}
+
 const C2S3_ROSTER_LAYOUT = {
   "Gus N Em": { row: 1, col: 1 },
   Storm: { row: 1, col: 4 },
@@ -479,8 +534,37 @@ function extractC2S3RosterMap(text) {
   return rosters;
 }
 
-function sliceC2S3Rosters(text) {
-  const rosters = extractC2S3RosterMap(text);
+function extractC2S4RosterMap(text) {
+  const rows = parseCSV(text)
+    .slice(1, 58)
+    .map((row) => row.slice(0, 10));
+  const wantedTeams = Object.keys(C2S3_ROSTER_LAYOUT);
+  const teamByKey = new Map(wantedTeams.map((team) => [normalizeSheetTeamName(team), team]));
+  teamByKey.set(normalizeSheetTeamName("The Pandas"), "Pandas");
+  teamByKey.set(normalizeSheetTeamName("The Lions"), "Pandas");
+  teamByKey.set(normalizeSheetTeamName("Lions"), "Pandas");
+  teamByKey.set(normalizeSheetTeamName("The Snipers"), "Super Kings");
+  teamByKey.set(normalizeSheetTeamName("Snipers"), "Super Kings");
+  const rosters = new Map();
+
+  for (let r = 0; r < rows.length; r += 1) {
+    for (let c = 0; c < rows[r].length; c += 1) {
+      const team = teamByKey.get(normalizeSheetTeamName(rows[r][c]));
+      if (!team || rosters.has(team)) continue;
+      const gm = stripGmLabel(rows[r + 1]?.[c] || "");
+      const players = [];
+      for (let offset = 2; offset < 12; offset += 1) {
+        const player = String(rows[r + offset]?.[c] || "").trim();
+        if (player) players.push(player);
+      }
+      rosters.set(team, { gm, players });
+    }
+  }
+
+  return rosters;
+}
+
+function buildRosterGrid(rosters) {
   const grid = Array.from({ length: 56 }, () => Array.from({ length: 9 }, () => ""));
 
   Object.entries(C2S3_ROSTER_LAYOUT).forEach(([team, position]) => {
@@ -494,13 +578,33 @@ function sliceC2S3Rosters(text) {
     });
   });
 
+  return grid;
+}
+
+function sliceC2S3Rosters(text) {
+  const rosters = extractC2S3RosterMap(text);
+  const grid = buildRosterGrid(rosters);
+
+  return `${formatCSV(trimTrailingBlankRows(grid))}\n`;
+}
+
+function sliceC2S4Rosters(text) {
+  const rosters = extractC2S4RosterMap(text);
+  const grid = buildRosterGrid(rosters);
+
   return `${formatCSV(trimTrailingBlankRows(grid))}\n`;
 }
 
 const SHEET_TRANSFORMS = {
   boxscore: sliceC2S3BoxScores,
+  "c2s4-boxscore": sliceEmptyBoxScores,
   "c2s3-draft": sliceC2S3Draft,
   "c2s4-draft": sliceC2S4Draft,
+  "c2s4-player-stats": sliceEmptyPlayerStats,
+  "c2s4-roster": sliceC2S4Rosters,
+  "c2s4-schedule": sliceC2S4Schedule,
+  "c2s4-standings": sliceC2S4Standings,
+  "c2s4-teams": sliceC2S4Rosters,
   "player-stats": sliceC2S3PlayerStats,
   roster: sliceC2S3Rosters,
   schedule: sliceC2S3RegularSchedule,

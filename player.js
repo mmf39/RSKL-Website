@@ -1,5 +1,6 @@
 const PLAYER_STATS_URL = "/api/sheet?name=player-stats";
 const PLAYER_STATS_PLAYOFF_URL = "/api/sheet?name=player-stats-playoffs";
+const C2S4_PLAYER_STATS_URL = "/api/sheet?name=c2s4-player-stats";
 const ARCHIVE_URL = "/api/sheet?name=archive";
 const C2S2_REGULAR_URL = "/api/sheet?name=c2s2-regular";
 const PLAYER_PROFILE_URL = "/api/player-profile";
@@ -70,12 +71,6 @@ const ARCHIVE_RANGES = {
 const C2S2_REGULAR_RANGES = {
   player_stats: "A151:G1150",
 };
-
-function getC2S4BackfillSeason(season) {
-  if (season === "c2s4-regular") return "c2s3-regular";
-  if (season === "c2s4-playoffs") return "c2s3-playoffs";
-  return season;
-}
 
 function requireSupabaseConfig() {
   return Boolean(supabaseUrl && supabaseAnon);
@@ -564,7 +559,7 @@ function displayTeamName(value) {
   if (name === "Bullets") return "Storm";
   if (name === "Yetis") return "Scorpions";
   if (name === "The Future") return "Dream Team";
-  if (name === "The Lions" || name === "Lions") return "Pandas";
+  if (name === "The Pandas" || name === "Pandas" || name === "The Lions" || name === "Lions") return "Pandas";
   if (name === "The Snipers" || name === "Snipers" || name === "Sniper") return "Super Kings";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
@@ -1048,9 +1043,14 @@ async function loadPlayerStats() {
     await loadPlayerOverrides();
     await Promise.all([loadRookieSeasonCache(), loadAllStarSeasonCache()]);
     const season = getPlayerSeason();
-    const dataSeason = getC2S4BackfillSeason(season);
-    if (dataSeason === "c2s3-regular" || dataSeason === "c2s3-playoffs" || dataSeason === "c2s2-playoffs") {
-      const response = await fetch(dataSeason === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL, { cache: "no-store" });
+    if (season === "c2s4-playoffs") {
+      playerColumns = detectPlayerColumns(["Date", "Team", "Player", "Score", "Rank", "Opponent"]);
+      playerRows = [];
+    } else if (season === "c2s4-regular" || season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {
+      const response = await fetch(
+        season === "c2s4-regular" ? C2S4_PLAYER_STATS_URL : season === "c2s3-playoffs" ? PLAYER_STATS_PLAYOFF_URL : PLAYER_STATS_URL,
+        { cache: "no-store" }
+      );
       if (!response.ok) {
         throw new Error(`Fetch failed: ${response.status}`);
       }
