@@ -24,6 +24,7 @@ const GM_DRAFT_SEASON = "c2s4";
 const GM_DRAFT_PICKS_TABLE = "draft_picks";
 const GM_DRAFT_PROSPECTS_TABLE = "draft_prospects";
 const GM_DRAFT_SETTINGS_TABLE = "draft_settings";
+const GM_DRAFT_QUEUE_TABLE = "draft_queues";
 const POWER_REPORTER_VALUE = "__REPORTER__";
 const GM_GAME_LOCKS_TABLE = "gm_game_locks";
 const GM_ALL_STAR_VOTES_TABLE = "gm_all_star_votes_public";
@@ -93,6 +94,7 @@ const els = {
   draftClear: document.getElementById("gm-draft-clear"),
   draftStatus: document.getElementById("gm-draft-status"),
   draftBoard: document.getElementById("gm-draft-board"),
+  gmDraftQueue: document.getElementById("gm-draft-queue"),
   gmDraftPick: document.getElementById("gm-draft-gm-pick"),
   gmDraftStatus: document.getElementById("gm-draft-gm-status"),
   draftUsedFields: Array.from(document.querySelectorAll("[data-draft-used-field]")),
@@ -225,6 +227,8 @@ let gmDraftSaveInFlightKeys = new Set();
 let gmDraftUnlockedPickKeys = new Set();
 let draftAutoPickInFlightKey = "";
 let draftHandledTimerStartAt = "";
+let draftQueueCache = [];
+let draftQueueSaveInFlight = false;
 
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
@@ -365,6 +369,7 @@ function setActiveTab(tab) {
     });
   }
   if (active === "draft" || active === "commish") {
+    renderDraftQueue();
     renderDraftProspectSelects();
     renderGmDraftPick();
   }
@@ -672,6 +677,11 @@ function subscribeToDraftRealtime() {
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: GM_DRAFT_SETTINGS_TABLE, filter: `season=eq.${GM_DRAFT_SEASON}` },
+      scheduleSupabaseDraftRefresh
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: GM_DRAFT_QUEUE_TABLE, filter: `season=eq.${GM_DRAFT_SEASON}` },
       scheduleSupabaseDraftRefresh
     )
     .subscribe();
@@ -1312,6 +1322,32 @@ function buildDraftProspectsFromSupabase(rows) {
     });
 }
 
+async function fetchOwnDraftQueueRows(team) {
+  const cleanTeam = String(team || "").trim();
+  if (!cleanTeam || !gmSession?.user?.id) return [];
+  try {
+    return await requestJson(
+      supabaseRestUrl(
+        `/${GM_DRAFT_QUEUE_TABLE}?select=id,season,team,user_id,player,position&season=eq.${encodeURIComponent(GM_DRAFT_SEASON)}&team=eq.${encodeURIComponent(cleanTeam)}&order=position.asc`
+      ),
+      { headers: await authHeadersFresh() }
+    );
+  } catch (_) {
+    return [];
+  }
+}
+
+function getAvailableDraftProspectKeys() {
+  return new Set(draftProspectsCache.map((prospect) => normalizeName(prospect.name)).filter(Boolean));
+}
+
+function getVisibleDraftQueue() {
+  const available = getAvailableDraftProspectKeys();
+  return draftQueueCache
+    .filter((item) => available.has(normalizeName(item.player)))
+    .sort((a, b) => Number(a.position) - Number(b.position));
+}
+
 function buildSubmittedDraftPickSetFromSupabase(rows) {
   const out = new Set();
   (Array.isArray(rows) ? rows : []).forEach((row) => {
@@ -1329,7 +1365,8 @@ function buildSubmittedDraftPickSetFromSupabase(rows) {
 async function loadSupabaseDraftData() {
   if (!supabaseUrl || !supabaseAnon) return false;
   const headers = supabasePublicHeaders();
-  const [prospects, picks, settingsRows] = await Promise.all([
+  const team = getAuthorizedTeam();
+  const [prospects, picks, settingsRows, queueRows] = await Promise.all([
     requestJson(
       supabaseRestUrl(
         `/${GM_DRAFT_PROSPECTS_TABLE}?select=player,monthly,ranked_days,available&season=eq.${encodeURIComponent(GM_DRAFT_SEASON)}&order=created_at.asc`
@@ -1348,11 +1385,14 @@ async function loadSupabaseDraftData() {
       ),
       { headers }
     ),
+    fetchOwnDraftQueueRows(team),
   ]);
   liveDraftPicksCache = Array.isArray(picks) ? picks : [];
   draftProspectsCache = buildDraftProspectsFromSupabase(prospects);
   submittedDraftPicksCache = buildSubmittedDraftPickSetFromSupabase(picks);
   draftSettingsCache = Array.isArray(settingsRows) ? settingsRows[0] || null : null;
+  draftQueueCache = Array.isArray(queueRows) ? queueRows : [];
+  renderDraftQueue();
   renderDraftProspectSelects();
   renderGmDraftPick();
   renderDraftRunner();
@@ -1424,13 +1464,193 @@ function removeLocalDraftProspect(player) {
   const key = normalizeName(player);
   if (!key) return;
   draftProspectsCache = draftProspectsCache.filter((prospect) => normalizeName(prospect.name) !== key);
+  draftQueueCache = draftQueueCache.filter((item) => normalizeName(item.player) !== key);
   if (els.draftPlayer && normalizeName(els.draftPlayer.value) === key) {
     els.draftPlayer.value = "";
   }
   document.querySelectorAll("[data-gm-draft-player]").forEach((input) => {
     if (normalizeName(input.value) === key) input.value = "";
   });
+  renderDraftQueue();
   renderDraftProspectSelects();
+}
+
+function renderDraftQueue() {
+  if (!els.gmDraftQueue) return;
+  const team = getAuthorizedTeam();
+  if (!isSignedInGm() || isReporter() || !team) {
+    els.gmDraftQueue.innerHTML = "";
+    return;
+  }
+  const queue = getVisibleDraftQueue();
+  const queuedKeys = new Set(queue.map((item) => normalizeName(item.player)));
+  const available = draftProspectsCache.filter((prospect) => !queuedKeys.has(normalizeName(prospect.name)));
+  els.gmDraftQueue.innerHTML = `
+    <section class="gm-draft-queue-card">
+      <div class="gm-draft-queue-head">
+        <div>
+          <div class="label">Draft Queue</div>
+          <p>Auto pick will use your queue first if your timer runs out.</p>
+        </div>
+        <span>${queue.length} queued</span>
+      </div>
+      <div class="gm-draft-queue-list">
+        ${
+          queue.length
+            ? queue
+                .map(
+                  (item, index) => `
+                    <div class="gm-draft-queue-row" data-draft-queue-player="${escapeHtml(item.player)}">
+                      <strong>${escapeHtml(index + 1)}. ${escapeHtml(item.player)}</strong>
+                      <div class="gm-draft-queue-actions">
+                        <button class="btn ghost" type="button" data-draft-queue-move="up" ${index === 0 ? "disabled" : ""}>Up</button>
+                        <button class="btn ghost" type="button" data-draft-queue-move="down" ${index === queue.length - 1 ? "disabled" : ""}>Down</button>
+                        <button class="btn ghost" type="button" data-draft-queue-remove>Remove</button>
+                      </div>
+                    </div>
+                  `
+                )
+                .join("")
+            : '<div class="gm-empty">No queued players yet.</div>'
+        }
+      </div>
+      <div class="gm-draft-queue-add">
+        <div class="label">Available Prospects</div>
+        <div class="gm-draft-queue-prospects">
+          ${
+            available.length
+              ? available
+                  .map(
+                    (prospect) => `
+                      <button class="gm-draft-prospect-row" type="button" data-draft-queue-add="${escapeHtml(prospect.name)}">
+                        <span class="gm-draft-prospect-name">${escapeHtml(prospect.name)}</span>
+                        <span class="gm-draft-prospect-stats">
+                          ${
+                            prospect.stats.length
+                              ? prospect.stats
+                                  .map(
+                                    (stat) => `
+                                      <span class="gm-draft-prospect-stat">
+                                        <span>${escapeHtml(stat.label)}</span>
+                                        <strong>${escapeHtml(stat.value)}</strong>
+                                      </span>
+                                    `
+                                  )
+                                  .join("")
+                              : '<span class="gm-draft-prospect-stat"><span>Stats</span><strong>--</strong></span>'
+                          }
+                        </span>
+                        <span class="gm-draft-prospect-action">Queue</span>
+                      </button>
+                    `
+                  )
+                  .join("")
+              : '<div class="gm-empty">No available prospects to queue.</div>'
+          }
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+async function saveDraftQueue(players) {
+  if (!supabaseUrl || !supabaseAnon) {
+    throw new Error("Supabase draft queue is not connected.");
+  }
+  if (!isSignedInGm() || isReporter()) {
+    throw new Error("Sign in with a GM team account first.");
+  }
+  const team = getAuthorizedTeam();
+  const userId = String(gmSession?.user?.id || "").trim();
+  if (!team || !userId) {
+    throw new Error("Missing GM team assignment.");
+  }
+  const cleanPlayers = Array.from(
+    new Set((players || []).map((player) => String(player || "").trim()).filter(Boolean))
+  );
+  const availableKeys = getAvailableDraftProspectKeys();
+  const validPlayers = cleanPlayers.filter((player) => availableKeys.has(normalizeName(player)));
+  const headers = await authHeadersFresh({ Prefer: "return=minimal" });
+  await requestJson(
+    supabaseRestUrl(
+      `/${GM_DRAFT_QUEUE_TABLE}?season=eq.${encodeURIComponent(GM_DRAFT_SEASON)}&team=eq.${encodeURIComponent(team)}`
+    ),
+    {
+      method: "DELETE",
+      headers,
+    }
+  );
+  if (validPlayers.length) {
+    await requestJson(supabaseRestUrl(`/${GM_DRAFT_QUEUE_TABLE}`), {
+      method: "POST",
+      headers,
+      body: JSON.stringify(
+        validPlayers.map((player, index) => ({
+          season: GM_DRAFT_SEASON,
+          team,
+          user_id: userId,
+          player,
+          position: index + 1,
+        }))
+      ),
+    });
+  }
+  draftQueueCache = validPlayers.map((player, index) => ({
+    season: GM_DRAFT_SEASON,
+    team,
+    user_id: userId,
+    player,
+    position: index + 1,
+  }));
+  renderDraftQueue();
+}
+
+async function updateDraftQueue(players, successMessage = "Draft queue updated.") {
+  if (draftQueueSaveInFlight) return;
+  draftQueueSaveInFlight = true;
+  setGmDraftStatus("Saving draft queue...");
+  try {
+    await saveDraftQueue(players);
+    setGmDraftStatus(successMessage);
+  } catch (error) {
+    setGmDraftStatus(error?.message || "Draft queue could not be saved.", true);
+  } finally {
+    draftQueueSaveInFlight = false;
+  }
+}
+
+function getCurrentDraftQueuePlayers() {
+  return getVisibleDraftQueue().map((item) => item.player);
+}
+
+function addPlayerToDraftQueue(player) {
+  const clean = String(player || "").trim();
+  if (!clean) return;
+  const players = getCurrentDraftQueuePlayers();
+  if (players.some((item) => normalizeName(item) === normalizeName(clean))) {
+    setGmDraftStatus(`${clean} is already in your queue.`);
+    return;
+  }
+  updateDraftQueue([...players, clean], `${clean} added to your draft queue.`);
+}
+
+function removePlayerFromDraftQueue(player) {
+  const key = normalizeName(player);
+  if (!key) return;
+  const players = getCurrentDraftQueuePlayers().filter((item) => normalizeName(item) !== key);
+  updateDraftQueue(players, "Player removed from your draft queue.");
+}
+
+function movePlayerInDraftQueue(player, direction) {
+  const key = normalizeName(player);
+  const players = getCurrentDraftQueuePlayers();
+  const index = players.findIndex((item) => normalizeName(item) === key);
+  if (index < 0) return;
+  const nextIndex = direction === "up" ? index - 1 : index + 1;
+  if (nextIndex < 0 || nextIndex >= players.length) return;
+  const nextPlayers = players.slice();
+  [nextPlayers[index], nextPlayers[nextIndex]] = [nextPlayers[nextIndex], nextPlayers[index]];
+  updateDraftQueue(nextPlayers, "Draft queue order updated.");
 }
 
 function getAllDraftPickOptions(season = "c2s4") {
@@ -4449,6 +4669,26 @@ function bindEvents() {
       if (!button) return;
       const card = button.closest("[data-gm-draft-pick-card]");
       saveGmDraftPick(card, button);
+    });
+  }
+  if (els.gmDraftQueue) {
+    els.gmDraftQueue.addEventListener("click", (event) => {
+      const addButton = event.target.closest("[data-draft-queue-add]");
+      if (addButton) {
+        addPlayerToDraftQueue(addButton.dataset.draftQueueAdd || "");
+        return;
+      }
+      const row = event.target.closest("[data-draft-queue-player]");
+      if (!row) return;
+      const player = row.dataset.draftQueuePlayer || "";
+      if (event.target.closest("[data-draft-queue-remove]")) {
+        removePlayerFromDraftQueue(player);
+        return;
+      }
+      const moveButton = event.target.closest("[data-draft-queue-move]");
+      if (moveButton) {
+        movePlayerInDraftQueue(player, moveButton.dataset.draftQueueMove || "");
+      }
     });
   }
   if (els.lockSave) {

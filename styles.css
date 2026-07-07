@@ -6374,6 +6374,76 @@ input[type="text"] {
   gap: 12px;
 }
 
+.gm-draft-queue-card {
+  border: 1px solid rgba(255, 140, 26, 0.28);
+  border-radius: var(--radius-sm);
+  background: rgba(6, 15, 40, 0.5);
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.gm-draft-queue-head {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.gm-draft-queue-head p {
+  color: var(--muted);
+  font-weight: 650;
+  margin: 4px 0 0;
+}
+
+.gm-draft-queue-head > span {
+  border: 1px solid rgba(255, 140, 26, 0.22);
+  border-radius: 999px;
+  color: var(--accent);
+  font-weight: 950;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.gm-draft-queue-list,
+.gm-draft-queue-prospects {
+  display: grid;
+  gap: 8px;
+}
+
+.gm-draft-queue-row {
+  align-items: center;
+  background: rgba(9, 18, 38, 0.78);
+  border: 1px solid rgba(193, 199, 214, 0.14);
+  border-radius: 9px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 12px;
+}
+
+.gm-draft-queue-row strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.gm-draft-queue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.gm-draft-queue-actions .btn {
+  min-height: 34px;
+  padding: 7px 10px;
+}
+
+.gm-draft-queue-add {
+  display: grid;
+  gap: 8px;
+}
+
 .gm-draft-gm-next {
   border: 1px solid rgba(255, 140, 26, 0.34);
   border-radius: var(--radius-sm);
