@@ -838,6 +838,16 @@ function renderRosterTableWithNotice(players, notice) {
   els.body.innerHTML = `${noticeRow}${playerRows}`;
 }
 
+function getC2S4RosterDisplay(slicedRows) {
+  const headers = slicedRows[0] || ["Player"];
+  const gm = String(slicedRows[1]?.[0] || "").trim();
+  return {
+    headers,
+    gm,
+    players: slicedRows.slice(2),
+  };
+}
+
 function getFranchiseKey(value) {
   const team = displayTeamName(value);
   if (
@@ -2911,7 +2921,17 @@ async function loadRoster() {
         throw new Error("No roster data in that range.");
       }
 
-      renderTable(sliced[0], sliced.slice(1), teamName);
+      if (season === "c2s4-regular") {
+        const c2s4Roster = getC2S4RosterDisplay(sliced);
+        if (els.sub) {
+          els.sub.textContent = c2s4Roster.gm
+            ? `${displayTeamName(teamName)} • GM: ${c2s4Roster.gm}`
+            : displayTeamName(teamName);
+        }
+        renderTable(c2s4Roster.headers, c2s4Roster.players, teamName);
+      } else {
+        renderTable(sliced[0], sliced.slice(1), teamName);
+      }
       const standingsRows = parseCSV(await standingsRes.text());
       const scheduleRows = getC2S2ScheduleRows(
         parseCSV(await scheduleRes.text())
