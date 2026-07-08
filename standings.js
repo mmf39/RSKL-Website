@@ -146,7 +146,8 @@ const CURRENT_FRANCHISE_NAMES = new Map(
 );
 
 function getSeasonRaw() {
-  const raw = localStorage.getItem(SEASON_KEY) || "c2s3-regular";
+  const raw = localStorage.getItem(SEASON_KEY) || "c2s4-regular";
+  if (raw === "c2s4-playoffs") return "c2s4-regular";
   if (raw === ALL_TIME_SEASON) return ALL_TIME_SEASON;
   if (raw === "c2s2") return "c2s3-regular";
   return raw;

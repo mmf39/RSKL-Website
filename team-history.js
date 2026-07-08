@@ -19,7 +19,7 @@ const C1S4_POST_SCHEDULE_URL = "/assets/data/c1s4-post-schedule.csv";
 const C1S4_PLAYER_STATS_URL = "/assets/data/c1s4-player-stats.csv";
 const AWARDS_URL = "/api/sheet?name=awards";
 const SEASON_KEY = "season";
-const DEFAULT_SEASON = "c2s3-regular";
+const DEFAULT_SEASON = "c2s4-regular";
 const DEFAULT_HISTORY_SCOPE = "franchise";
 const HISTORY_SCOPE_KEY = "team_history_scope";
 const ALL_TIME_SEASON = "all-time";
@@ -59,8 +59,8 @@ const SEASON_ALIASES = {
   c2s2: "c2s3-regular",
   "c2s3-regular": "c2s3-regular",
   "c2s3-playoffs": "c2s3-playoffs",
-  "c2s4-regular": "c2s3-regular",
-  "c2s4-playoffs": "c2s3-playoffs",
+  "c2s4-regular": "c2s4-regular",
+  "c2s4-playoffs": "c2s4-regular",
   "c2s1-playoffs": "c2s1-post",
   "c2s2-playoffs": "c2s2-playoffs",
   "c2s2-regular": "c2s2-regular",

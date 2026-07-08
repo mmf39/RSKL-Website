@@ -1223,11 +1223,13 @@ function normalizeSeason(value) {
   if (value === "all-time") {
     return "c2s3-regular";
   }
+  if (value === "c2s4-playoffs") {
+    return "c2s4-regular";
+  }
   if (
     value === "c2s3-regular" ||
     value === "c2s3-playoffs" ||
     value === "c2s4-regular" ||
-    value === "c2s4-playoffs" ||
     value === "c2s2-playoffs"
   ) {
     return value;
@@ -1254,7 +1256,7 @@ function normalizeSeason(value) {
   if (value === "c2s2" || value === "c2s2-regular") {
     return "c2s2-regular";
   }
-  return "c2s3-regular";
+  return "c2s4-regular";
 }
 
 function getSeason() {

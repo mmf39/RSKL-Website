@@ -1354,11 +1354,27 @@ function getSelectedDraftYear() {
   if (DRAFT_YEAR_VALUES.has(saved)) {
     return saved;
   }
-  return "c2s3";
+  return "c2s4";
+}
+
+function syncDraftViewOptions() {
+  if (!els.viewSelect) return;
+  const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
+  const expansionOption = els.viewSelect.querySelector('option[value="expansion"]');
+  const hideExpansion = selectedYear === "c2s4";
+
+  if (expansionOption) {
+    expansionOption.hidden = hideExpansion;
+    expansionOption.disabled = hideExpansion;
+  }
+  if (hideExpansion && els.viewSelect.value === "expansion") {
+    els.viewSelect.value = "teams";
+  }
 }
 
 async function loadDraft() {
   try {
+    syncDraftViewOptions();
     const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
     const selectedView = els.viewSelect ? els.viewSelect.value : "teams";
     if (els.lotteryPanel) els.lotteryPanel.hidden = true;
@@ -1460,8 +1476,10 @@ if (els.roundSelect) {
 
 if (els.yearSelect) {
   els.yearSelect.value = getSelectedDraftYear();
+  syncDraftViewOptions();
   els.yearSelect.addEventListener("change", () => {
     localStorage.setItem(DRAFT_YEAR_KEY, els.yearSelect.value);
+    syncDraftViewOptions();
     loadDraft();
   });
 }

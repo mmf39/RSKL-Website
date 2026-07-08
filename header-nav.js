@@ -14,7 +14,6 @@
     "c2s3-regular",
     "c2s3-playoffs",
     "c2s4-regular",
-    "c2s4-playoffs",
   ];
   const rookieCache = new Map();
   const allStarCache = new Map();
@@ -524,14 +523,16 @@
   }
 
   const normalizeSeason = (value) => {
+    if (value === "c2s4-playoffs") return "c2s4-regular";
     if (value === "c2s2") return "c2s3-playoffs";
-    return value || "c2s3-playoffs";
+    return value || "c2s4-regular";
   };
 
   const saved = normalizeSeason(localStorage.getItem("season"));
-  if (saved) {
-    seasonSelect.value = saved;
-  }
+  const availableSeasons = new Set(Array.from(seasonSelect.options, (option) => option.value));
+  const initialSeason = availableSeasons.has(saved) ? saved : "c2s4-regular";
+  seasonSelect.value = initialSeason;
+  localStorage.setItem("season", initialSeason);
 
   seasonSelect.addEventListener("change", () => {
     const nextSeason = normalizeSeason(seasonSelect.value);
@@ -541,7 +542,6 @@
       career: "career",
       "c2s3-playoffs": "c2s3-playoffs",
       "c2s4-regular": "c2s4-regular",
-      "c2s4-playoffs": "c2s4-playoffs",
       "c2s2-regular": "c2s2-regular",
       "c2s2-playoffs": "c2s2-playoffs",
       "c1s6-regular": "c1s6-regular",

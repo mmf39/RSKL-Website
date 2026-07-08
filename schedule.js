@@ -181,7 +181,8 @@ function scheduleRenderScheduleViews() {
 }
 
 function getSeasonRaw() {
-  const raw = localStorage.getItem(SEASON_KEY) || "c2s3-playoffs";
+  const raw = localStorage.getItem(SEASON_KEY) || "c2s4-regular";
+  if (raw === "c2s4-playoffs") return "c2s4-regular";
   if (raw === "all-time") return "c2s3-playoffs";
   if (raw === "c2s2") return "c2s3-playoffs";
   if (raw === "c2s3") return "c2s3-playoffs";
@@ -190,7 +191,8 @@ function getSeasonRaw() {
 }
 
 function getSelectedSeasonRaw() {
-  const raw = localStorage.getItem(SEASON_KEY) || "c2s3-playoffs";
+  const raw = localStorage.getItem(SEASON_KEY) || "c2s4-regular";
+  if (raw === "c2s4-playoffs") return "c2s4-regular";
   if (raw === "all-time" || raw === "c2s2" || raw === "c2s3") return "c2s3-playoffs";
   return raw;
 }

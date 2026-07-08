@@ -178,7 +178,7 @@ const DRAFT_CAPITAL_COLUMNS = {
 };
 const TEAM_STANDINGS_METRIC_KEY = "team_standings_metric";
 const HISTORY_SCOPE_KEY = "team_history_scope";
-const DEFAULT_SEASON = "c2s3-regular";
+const DEFAULT_SEASON = "c2s4-regular";
 const DEFAULT_HISTORY_SCOPE = "franchise";
 const ALL_TIME_SEASON = "all-time";
 const SEASON_ALIASES = {
@@ -187,7 +187,7 @@ const SEASON_ALIASES = {
   "c2s3-regular": "c2s3-regular",
   "c2s3-playoffs": "c2s3-playoffs",
   "c2s4-regular": "c2s4-regular",
-  "c2s4-playoffs": "c2s4-playoffs",
+  "c2s4-playoffs": "c2s4-regular",
   "c2s1-playoffs": "c2s1-post",
   "c2s2-playoffs": "c2s2-playoffs",
   "c2s2-regular": "c2s2-regular",

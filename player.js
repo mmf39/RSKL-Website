@@ -111,11 +111,15 @@ async function loadSupabaseConfig() {
 
 function getPlayerSeason() {
   const playerSeason = localStorage.getItem(PLAYER_SEASON_KEY);
+  if (playerSeason === "c2s4-playoffs") {
+    return "c2s4-regular";
+  }
   if (isPlayerSeason(playerSeason)) {
     return playerSeason;
   }
   const season = localStorage.getItem(SEASON_KEY);
-  return navSeasonToPlayerSeason(season) || "c2s2-regular";
+  if (season === "c2s4-playoffs") return "c2s4-regular";
+  return navSeasonToPlayerSeason(season) || "c2s4-regular";
 }
 
 const PLAYER_SEASON_OPTIONS = new Set([
