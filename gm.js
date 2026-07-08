@@ -380,6 +380,11 @@ function displayTeamName(value) {
   return team;
 }
 
+function getC2S4SheetTeamName(value) {
+  const team = displayTeamName(value);
+  return team === "Pandas" ? "The Pandas" : team;
+}
+
 function parseDraftPickTeamText(value) {
   const text = String(value || "").trim();
   const viaMatch = text.match(/^(.*?)\s*\(\s*via\s+(.+?)\s*\)\s*$/i);
@@ -2838,7 +2843,7 @@ async function updatePlayerNameInSheet(team, oldTag, newName) {
       rosterSheetGid: GM_ROSTER_SHEET_GID,
       rosterRange: GM_ROSTER_SHEET_RANGE,
       rosterLayout: "team-gm-players",
-      team,
+      team: getC2S4SheetTeamName(team),
       oldTag,
       newDisplay: newName,
       newTag: newName,
@@ -2895,7 +2900,7 @@ async function submitLineupToSheet(team, lineup, captain) {
       rosterSheetGid: GM_ROSTER_SHEET_GID,
       rosterRange: GM_ROSTER_SHEET_RANGE,
       rosterLayout: "team-gm-players",
-      team,
+      team: getC2S4SheetTeamName(team),
       lineup,
       captain,
       submittedAt: new Date().toISOString(),
@@ -2926,7 +2931,7 @@ async function saveQueuedLineupToSheet(team, lineup, captain, target) {
       rosterSheetGid: GM_ROSTER_SHEET_GID,
       rosterRange: GM_ROSTER_SHEET_RANGE,
       rosterLayout: "team-gm-players",
-      team,
+      team: getC2S4SheetTeamName(team),
       lineup,
       captain,
       date: normalizeScheduleDateKey(target?.dateText || ""),

@@ -6602,14 +6602,63 @@ input[type="text"] {
 @media (max-width: 720px) {
   .gm-draft-prospect-row {
     grid-template-columns: 1fr;
+    min-width: 0;
+    padding: 10px;
   }
 
   .gm-draft-prospect-stats {
+    display: grid;
+    grid-template-columns: 1fr;
     justify-content: flex-start;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .gm-draft-prospect-stat {
+    justify-content: space-between;
+    min-width: 0;
+    white-space: normal;
+    width: 100%;
+  }
+
+  .gm-draft-prospect-stat span {
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
   }
 
   .gm-draft-prospect-action {
-    justify-self: start;
+    justify-self: stretch;
+    width: 100%;
+  }
+}
+
+@media (max-width: 720px) {
+  .prospects-table-wrap {
+    overflow-x: hidden;
+    padding: 4px;
+  }
+
+  .prospects-table {
+    min-width: 0;
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .prospects-table thead th,
+  .prospects-table tbody td {
+    font-size: 0.72rem;
+    overflow-wrap: anywhere;
+    padding: 8px 4px;
+    white-space: normal;
+  }
+
+  .prospects-table thead th:first-child,
+  .prospects-table tbody td:first-child {
+    width: 34%;
+  }
+
+  .prospects-table tbody td:first-child {
+    font-size: 0.82rem;
   }
 }
 
@@ -8114,7 +8163,7 @@ input[type="text"] {
   }
 
   .prospects-table {
-    min-width: 640px;
+    min-width: 0;
   }
 
   /* Mobile-friendly team page layout */
