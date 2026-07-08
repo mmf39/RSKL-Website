@@ -7,6 +7,14 @@ const PLAYER_UPDATE_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbybgKT1WjHN7G13XiymsMNM6eO_sOtfchPsWGJfPZwLvEFJ6_QsYJ9pBt7jNWTkM9msXA/exec";
 const POWER_RANKINGS_SCRIPT_URL =
   "https://script.google.com/macros/s/AKfycbybxaExeUCMjSrkMVdTkFKxwIXcyQ6TEyO3Yi_LQPZs1CTD-EFN80OcgE7ipm0kUM1u/exec";
+const C2S4_ROSTER_TARGET = {
+  season: "c2s4",
+  targetSeason: "c2s4",
+  sheetSeason: "c2s4",
+  rosterSheetGid: "847666124",
+  rosterRange: "A2:J58",
+  rosterLayout: "team-gm-players",
+};
 
 function parseQueryFromReq(req) {
   if (req && req.query && typeof req.query === "object") {
@@ -49,12 +57,22 @@ function getScriptUrlByAction(action) {
 }
 
 function normalizePayloadForAction(payloadObj) {
-  if (payloadObj.action === "updatePlayer") {
+  if (
+    payloadObj.action === "updatePlayer" ||
+    payloadObj.action === "submitLineup" ||
+    payloadObj.action === "saveQueuedLineup"
+  ) {
     return {
+      ...C2S4_ROSTER_TARGET,
       ...payloadObj,
-      season: payloadObj.season || "c2s4",
-      targetSeason: payloadObj.targetSeason || payloadObj.season || "c2s4",
-      sheetSeason: payloadObj.sheetSeason || payloadObj.targetSeason || payloadObj.season || "c2s4",
+      season: payloadObj.season || C2S4_ROSTER_TARGET.season,
+      targetSeason:
+        payloadObj.targetSeason || payloadObj.season || C2S4_ROSTER_TARGET.targetSeason,
+      sheetSeason:
+        payloadObj.sheetSeason ||
+        payloadObj.targetSeason ||
+        payloadObj.season ||
+        C2S4_ROSTER_TARGET.sheetSeason,
     };
   }
   return payloadObj;

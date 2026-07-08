@@ -1,4 +1,4 @@
-const ROSTER_URL = "/api/sheet?name=roster";
+const ROSTER_URL = "/api/sheet?name=c2s4-roster";
 const GM_LINEUP_CSV_URL = ROSTER_URL;
 const DRAFT_URL = "/api/sheet?name=draft";
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
@@ -22,6 +22,8 @@ const GM_DRAFT_SUBMISSIONS_OPEN = true;
 const GM_DRAFT_PROSPECTS_RANGE = "G1:K76";
 const GM_DRAFT_SEASON = "c2s4";
 const GM_NAME_CHANGE_SEASON = "c2s4";
+const GM_ROSTER_SHEET_GID = "847666124";
+const GM_ROSTER_SHEET_RANGE = "A2:J58";
 const GM_DRAFT_PICKS_TABLE = "draft_picks";
 const GM_DRAFT_PROSPECTS_TABLE = "draft_prospects";
 const GM_DRAFT_SETTINGS_TABLE = "draft_settings";
@@ -2833,6 +2835,9 @@ async function updatePlayerNameInSheet(team, oldTag, newName) {
       season: GM_NAME_CHANGE_SEASON,
       targetSeason: GM_NAME_CHANGE_SEASON,
       sheetSeason: GM_NAME_CHANGE_SEASON,
+      rosterSheetGid: GM_ROSTER_SHEET_GID,
+      rosterRange: GM_ROSTER_SHEET_RANGE,
+      rosterLayout: "team-gm-players",
       team,
       oldTag,
       newDisplay: newName,
@@ -2884,6 +2889,12 @@ async function submitLineupToSheet(team, lineup, captain) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       action: "submitLineup",
+      season: GM_NAME_CHANGE_SEASON,
+      targetSeason: GM_NAME_CHANGE_SEASON,
+      sheetSeason: GM_NAME_CHANGE_SEASON,
+      rosterSheetGid: GM_ROSTER_SHEET_GID,
+      rosterRange: GM_ROSTER_SHEET_RANGE,
+      rosterLayout: "team-gm-players",
       team,
       lineup,
       captain,
@@ -2909,6 +2920,12 @@ async function saveQueuedLineupToSheet(team, lineup, captain, target) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       action: "saveQueuedLineup",
+      season: GM_NAME_CHANGE_SEASON,
+      targetSeason: GM_NAME_CHANGE_SEASON,
+      sheetSeason: GM_NAME_CHANGE_SEASON,
+      rosterSheetGid: GM_ROSTER_SHEET_GID,
+      rosterRange: GM_ROSTER_SHEET_RANGE,
+      rosterLayout: "team-gm-players",
       team,
       lineup,
       captain,
