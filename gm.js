@@ -2725,12 +2725,19 @@ async function saveTradeBlockToSheet(team, block) {
 }
 
 async function submitTransactionRequestToSheet(request) {
+  const normalizedRequest = {
+    ...request,
+    team: getC2S4SheetTeamName(request?.team),
+    ...(request?.partnerTeam
+      ? { partnerTeam: getC2S4SheetTeamName(request.partnerTeam) }
+      : {}),
+  };
   return requestJson(TRADE_BLOCKS_API, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       action: "submitTransactionRequest",
-      ...request,
+      ...normalizedRequest,
       submittedBy: gmSession?.user?.email || gmSession?.user?.id || "",
       submittedAt: new Date().toISOString(),
     }),

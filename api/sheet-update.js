@@ -16,6 +16,15 @@ const C2S4_ROSTER_TARGET = {
   rosterLayout: "team-gm-players",
 };
 
+function getC2S4SheetTeamName(value) {
+  const team = String(value || "").trim();
+  if (team === "Pandas") return "The Pandas";
+  if (team === "Bullets") return "Storm";
+  if (team === "Yetis") return "Scorpions";
+  if (team === "The Future") return "Dream Team";
+  return team;
+}
+
 function parseQueryFromReq(req) {
   if (req && req.query && typeof req.query === "object") {
     return { ...req.query };
@@ -57,6 +66,21 @@ function getScriptUrlByAction(action) {
 }
 
 function normalizePayloadForAction(payloadObj) {
+  const usesC2S4TeamNames =
+    payloadObj.action === "updatePlayer" ||
+    payloadObj.action === "submitLineup" ||
+    payloadObj.action === "saveQueuedLineup" ||
+    payloadObj.action === "submitTransactionRequest";
+
+  const normalizedTeams = usesC2S4TeamNames
+    ? {
+        team: getC2S4SheetTeamName(payloadObj.team),
+        ...(payloadObj.partnerTeam
+          ? { partnerTeam: getC2S4SheetTeamName(payloadObj.partnerTeam) }
+          : {}),
+      }
+    : {};
+
   if (
     payloadObj.action === "updatePlayer" ||
     payloadObj.action === "submitLineup" ||
@@ -65,6 +89,7 @@ function normalizePayloadForAction(payloadObj) {
     return {
       ...C2S4_ROSTER_TARGET,
       ...payloadObj,
+      ...normalizedTeams,
       season: payloadObj.season || C2S4_ROSTER_TARGET.season,
       targetSeason:
         payloadObj.targetSeason || payloadObj.season || C2S4_ROSTER_TARGET.targetSeason,
@@ -75,7 +100,10 @@ function normalizePayloadForAction(payloadObj) {
         C2S4_ROSTER_TARGET.sheetSeason,
     };
   }
-  return payloadObj;
+  return {
+    ...payloadObj,
+    ...normalizedTeams,
+  };
 }
 
 function forward(url, payload, redirects, res, method = "POST") {
