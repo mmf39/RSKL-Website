@@ -1310,6 +1310,16 @@ function buildDraftProspectsFromSupabase(rows) {
       if (row.ranked_days !== null && row.ranked_days !== undefined && String(row.ranked_days).trim() !== "") {
         stats.push({ label: "Ranked Days", value: String(row.ranked_days) });
       }
+      if (
+        row.average_ranked_day_rank !== null &&
+        row.average_ranked_day_rank !== undefined &&
+        String(row.average_ranked_day_rank).trim() !== ""
+      ) {
+        stats.push({
+          label: "Average Ranked Day Rank",
+          value: String(row.average_ranked_day_rank),
+        });
+      }
       return {
         name: String(row.player || "").trim(),
         stats,
@@ -1364,7 +1374,7 @@ async function loadSupabaseDraftData() {
   const [prospects, picks, settingsRows, queueRows] = await Promise.all([
     requestJson(
       supabaseRestUrl(
-        `/${GM_DRAFT_PROSPECTS_TABLE}?select=player,monthly,ranked_days,available&season=eq.${encodeURIComponent(GM_DRAFT_SEASON)}&order=created_at.asc`
+        `/${GM_DRAFT_PROSPECTS_TABLE}?select=player,monthly,ranked_days,average_ranked_day_rank,available&season=eq.${encodeURIComponent(GM_DRAFT_SEASON)}&order=created_at.asc`
       ),
       { headers }
     ),

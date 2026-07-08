@@ -1074,7 +1074,7 @@ async function fetchLiveDraftPicks() {
 
 async function fetchLiveDraftProspects() {
   return fetchSupabaseRows(
-    `/${LIVE_DRAFT_PROSPECTS_TABLE}?select=player,monthly,ranked_days,available&season=eq.${encodeURIComponent(LIVE_DRAFT_SEASON)}&order=created_at.asc`
+    `/${LIVE_DRAFT_PROSPECTS_TABLE}?select=player,monthly,ranked_days,average_ranked_day_rank,available&season=eq.${encodeURIComponent(LIVE_DRAFT_SEASON)}&order=created_at.asc`
   );
 }
 
@@ -1197,11 +1197,12 @@ async function renderLiveC2S4Prospects() {
   const rows = await fetchLiveDraftProspects();
   const availableRows = rows.filter((row) => row?.available !== false);
   const tableRows = [
-    ["Player", "Monthly", "Ranked Days"],
+    ["Player", "Monthly", "Ranked Days", "Average Ranked Day Rank"],
     ...availableRows.map((row) => [
       String(row.player || "").trim(),
       row.monthly ?? "",
       row.ranked_days ?? "",
+      row.average_ranked_day_rank ?? "",
     ]),
   ];
   draftRowsCache = tableRows;
@@ -1225,7 +1226,7 @@ async function renderLiveC2S4Prospects() {
                   </tr>
                 `
               )
-              .join("") || '<tr><td colspan="3">No Supabase draft prospects available.</td></tr>'}
+              .join("") || `<tr><td colspan="${tableRows[0].length}">No Supabase draft prospects available.</td></tr>`}
           </tbody>
         </table>
       </div>
