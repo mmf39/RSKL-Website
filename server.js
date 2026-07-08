@@ -270,12 +270,58 @@ function serveFile(res, filePath) {
   });
 }
 
-function proxyCsv(res, url, depth = 0, options = {}) {
-  if (depth > 3) {
-    send(res, 508, "Too many redirects");
+const SHEET_CACHE_TTL_MS = 60 * 1000;
+const SHEET_STALE_TTL_MS = 10 * 60 * 1000;
+const SHEET_REQUEST_TIMEOUT_MS = 10000;
+const sheetResponseCache = new Map();
+
+function getSheetCacheKey(url, options = {}) {
+  return `${url}::${options.transform ? options.transform.name || "transform" : "raw"}`;
+}
+
+function sendCachedCsv(res, body, cacheState = "miss") {
+  res.writeHead(200, {
+    "Content-Type": "text/csv; charset=utf-8",
+    "Access-Control-Allow-Origin": "*",
+    "Cache-Control": "s-maxage=90, stale-while-revalidate=300",
+    "X-RSKL-Cache": cacheState,
+  });
+  res.end(body);
+}
+
+function getCachedSheetResponse(cacheKey, allowStale = false) {
+  const cached = sheetResponseCache.get(cacheKey);
+  if (!cached) return null;
+  const age = Date.now() - cached.at;
+  if (age <= SHEET_CACHE_TTL_MS || (allowStale && age <= SHEET_STALE_TTL_MS)) {
+    return cached.body;
+  }
+  sheetResponseCache.delete(cacheKey);
+  return null;
+}
+
+function sendStaleSheetOrError(res, cacheKey, status, message) {
+  const stale = getCachedSheetResponse(cacheKey, true);
+  if (stale !== null) {
+    sendCachedCsv(res, stale, "stale");
     return;
   }
-  https
+  send(res, status, message);
+}
+
+function proxyCsv(res, url, depth = 0, options = {}) {
+  const cacheKey = getSheetCacheKey(url, options);
+  const cached = depth === 0 ? getCachedSheetResponse(cacheKey) : null;
+  if (cached !== null) {
+    sendCachedCsv(res, cached, "hit");
+    return;
+  }
+
+  if (depth > 3) {
+    sendStaleSheetOrError(res, cacheKey, 508, "Too many redirects");
+    return;
+  }
+  const request = https
     .get(url, (proxyRes) => {
       const status = proxyRes.statusCode || 200;
       const location = proxyRes.headers.location;
@@ -288,16 +334,24 @@ function proxyCsv(res, url, depth = 0, options = {}) {
       proxyRes.on("data", (chunk) => (data += chunk));
       proxyRes.on("end", () => {
         if (status >= 400) {
-          send(res, status, `Upstream error ${status}`);
+          sendStaleSheetOrError(res, cacheKey, status, `Upstream error ${status}`);
           return;
         }
-        const body = options.transform ? options.transform(data) : data;
-        send(res, 200, body, "text/csv; charset=utf-8");
+        try {
+          const body = options.transform ? options.transform(data) : data;
+          sheetResponseCache.set(cacheKey, { at: Date.now(), body });
+          sendCachedCsv(res, body);
+        } catch (error) {
+          sendStaleSheetOrError(res, cacheKey, 500, `Transform error: ${error.message}`);
+        }
       });
     })
     .on("error", (err) => {
-      send(res, 500, `Proxy error: ${err.message}`);
+      sendStaleSheetOrError(res, cacheKey, 500, `Proxy error: ${err.message}`);
     });
+  request.setTimeout(SHEET_REQUEST_TIMEOUT_MS, () => {
+    request.destroy(new Error("Sheet request timed out"));
+  });
 }
 
 function formatCSV(rows) {
