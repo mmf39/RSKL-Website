@@ -48,6 +48,18 @@ function getScriptUrlByAction(action) {
   return TRADEBLOCK_SCRIPT_URL;
 }
 
+function normalizePayloadForAction(payloadObj) {
+  if (payloadObj.action === "updatePlayer") {
+    return {
+      ...payloadObj,
+      season: payloadObj.season || "c2s4",
+      targetSeason: payloadObj.targetSeason || payloadObj.season || "c2s4",
+      sheetSeason: payloadObj.sheetSeason || payloadObj.targetSeason || payloadObj.season || "c2s4",
+    };
+  }
+  return payloadObj;
+}
+
 function forward(url, payload, redirects, res, method = "POST") {
   const target = new URL(url);
   const request = https.request(
@@ -148,10 +160,11 @@ module.exports = (req, res) => {
     if (!payloadObj.action) {
       payloadObj.action = "getTradeBlocks";
     }
-    const scriptUrl = getScriptUrlByAction(payloadObj.action);
+    const normalizedPayloadObj = normalizePayloadForAction(payloadObj);
+    const scriptUrl = getScriptUrlByAction(normalizedPayloadObj.action);
     forward(
-      withAction(scriptUrl, payloadObj.action),
-      JSON.stringify(payloadObj),
+      withAction(scriptUrl, normalizedPayloadObj.action),
+      JSON.stringify(normalizedPayloadObj),
       5,
       res,
       "POST"
@@ -178,11 +191,12 @@ module.exports = (req, res) => {
     if (!payloadObj.action) {
       payloadObj.action = "getTradeBlocks";
     }
-    const scriptUrl = getScriptUrlByAction(payloadObj.action);
+    const normalizedPayloadObj = normalizePayloadForAction(payloadObj);
+    const scriptUrl = getScriptUrlByAction(normalizedPayloadObj.action);
 
     forward(
-      withAction(scriptUrl, payloadObj.action),
-      JSON.stringify(payloadObj),
+      withAction(scriptUrl, normalizedPayloadObj.action),
+      JSON.stringify(normalizedPayloadObj),
       5,
       res,
       "POST"

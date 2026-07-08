@@ -21,6 +21,7 @@ const GM_DRAFT_RUNNER_KEY = "rskl_commish_test_draft_picks";
 const GM_DRAFT_SUBMISSIONS_OPEN = true;
 const GM_DRAFT_PROSPECTS_RANGE = "G1:K76";
 const GM_DRAFT_SEASON = "c2s4";
+const GM_NAME_CHANGE_SEASON = "c2s4";
 const GM_DRAFT_PICKS_TABLE = "draft_picks";
 const GM_DRAFT_PROSPECTS_TABLE = "draft_prospects";
 const GM_DRAFT_SETTINGS_TABLE = "draft_settings";
@@ -2819,6 +2820,9 @@ async function updatePlayerNameInSheet(team, oldTag, newName) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       action: "updatePlayer",
+      season: GM_NAME_CHANGE_SEASON,
+      targetSeason: GM_NAME_CHANGE_SEASON,
+      sheetSeason: GM_NAME_CHANGE_SEASON,
       team,
       oldTag,
       newDisplay: newName,

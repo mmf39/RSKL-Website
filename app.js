@@ -1999,10 +1999,14 @@ function parseLiveGames(rows) {
 function renderLiveScoring(games, seasonRaw) {
   if (!els.liveRow) return;
   currentLiveGames = games || [];
-  if (seasonRaw !== "c2s3-regular" && seasonRaw !== "c2s3-playoffs") {
+  if (
+    seasonRaw !== "c2s4-regular" &&
+    seasonRaw !== "c2s3-regular" &&
+    seasonRaw !== "c2s3-playoffs"
+  ) {
     els.liveRow.innerHTML = buildStateCard(
       "Live Scoring Off",
-      "Live box scores are only available during the current C2S3 feed."
+      "Live box scores are only available during active season feeds."
     );
     return;
   }
