@@ -903,7 +903,7 @@ function renderLeaderboard(list, query, metric, minGp = 0, teamFilter = "") {
       return '<img class="standings-logo" src="/assets/dream-team.jpg" alt="Dream Team logo" />';
     }
     if (team === "Pandas") {
-      return '<img class="standings-logo" src="/assets/the-lions.png" alt="Pandas logo" />';
+      return '<img class="standings-logo" src="/assets/pandas.png" alt="Pandas logo" />';
     }
     if (team === "Super Kings") {
       return '<img class="standings-logo" src="/assets/super-kings.png" alt="Super Kings logo" />';

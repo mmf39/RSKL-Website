@@ -271,7 +271,7 @@ function getFranchiseKey(value) {
 function getTeamLogoSrc(team) {
   const clean = displayTeamName(team);
   if (clean === "The Future" || clean === "Dream Team") return "/assets/dream-team.jpg";
-  if (clean === "Pandas") return "/assets/the-lions.png";
+  if (clean === "Pandas") return "/assets/pandas.png";
   if (clean === "Super Kings") return "/assets/super-kings.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
   if (clean === "Scorpions") return "/assets/mayeday.jpg";

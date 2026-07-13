@@ -597,7 +597,7 @@ function normalizeCurrentTeamName(value) {
 function getTeamLogoSrc(name) {
   const shown = displayTeamName(name);
   if (shown === "Dream Team") return "/assets/dream-team.jpg";
-  if (shown === "Pandas") return "/assets/the-lions.png";
+  if (shown === "Pandas") return "/assets/pandas.png";
   if (shown === "Super Kings") return "/assets/super-kings.png";
   if (shown === "The Phantoms") return "/assets/the-phantoms.png";
   if (shown === "Scorpions") return "/assets/mayeday.jpg";

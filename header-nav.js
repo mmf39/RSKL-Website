@@ -23,6 +23,8 @@
   let supabaseAnon = "";
   let supabaseConfigPromise = null;
   let playerPhotoCachePromise = null;
+  const DRAFT_EVENT_AT = new Date("2026-07-15T18:00:00-04:00");
+  const DRAFT_EVENT_LINK = "/draft.html?year=c2s4";
 
   const normalize = (value) =>
     String(value || "").trim().replace(/^@/, "").toLowerCase();
@@ -95,6 +97,56 @@
 
   function requireSupabaseConfig() {
     return Boolean(supabaseUrl && supabaseAnon);
+  }
+
+  function formatCountdown(ms) {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return [
+      days ? `${days}d` : "",
+      `${String(hours).padStart(2, "0")}h`,
+      `${String(minutes).padStart(2, "0")}m`,
+      `${String(seconds).padStart(2, "0")}s`,
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  function ensureDraftCountdownBanner() {
+    if (document.querySelector(".draft-countdown-banner")) return;
+    const header = document.querySelector(".hero");
+    if (!header) return;
+
+    const banner = document.createElement("a");
+    banner.className = "draft-countdown-banner";
+    banner.href = DRAFT_EVENT_LINK;
+    banner.setAttribute("aria-label", "Watch the C2S4 draft live");
+    banner.innerHTML = `
+      <span class="draft-countdown-kicker">C2S4 Draft</span>
+      <strong>Wednesday at 6:00 PM ET</strong>
+      <span class="draft-countdown-time" data-draft-countdown>Loading...</span>
+      <span class="draft-countdown-action">Watch Draft</span>
+    `;
+
+    header.insertAdjacentElement("afterend", banner);
+
+    const countdown = banner.querySelector("[data-draft-countdown]");
+    const update = () => {
+      const remaining = DRAFT_EVENT_AT.getTime() - Date.now();
+      if (remaining <= 0) {
+        countdown.textContent = "Draft is live";
+        banner.classList.add("is-live");
+        return;
+      }
+      countdown.textContent = formatCountdown(remaining);
+      banner.classList.remove("is-live");
+    };
+
+    update();
+    window.setInterval(update, 1000);
   }
 
   function supabaseHeaders() {
@@ -516,6 +568,8 @@
 
     setClosed();
   }
+
+  ensureDraftCountdownBanner();
 
   const seasonSelect = document.getElementById("season-select");
   if (!seasonSelect) {

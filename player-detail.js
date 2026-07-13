@@ -1514,7 +1514,7 @@ function getTeamLogoHtml(teamName) {
   return shownTeam === "The Future" || shownTeam === "Dream Team"
     ? '<img class="player-team-logo" src="/assets/dream-team.jpg" alt="Dream Team logo" />'
     : shownTeam === "Pandas"
-    ? '<img class="player-team-logo" src="/assets/the-lions.png" alt="Pandas logo" />'
+    ? '<img class="player-team-logo" src="/assets/pandas.png" alt="Pandas logo" />'
     : shownTeam === "Super Kings"
     ? '<img class="player-team-logo" src="/assets/super-kings.png" alt="Super Kings logo" />'
     : shownTeam === "The Phantoms"
