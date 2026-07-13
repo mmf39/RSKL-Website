@@ -148,6 +148,8 @@ const TEAM_NAMES = new Set([
   "The Future",
   "Dream Team",
   "Super Kings",
+  "The Super Kings",
+  "Super Team",
   "The Phantoms",
 ]);
 
@@ -372,6 +374,7 @@ function displayTeamName(value) {
   if (name === "The Future") return "Dream Team";
   if (name === "The Pandas" || name === "Pandas" || name === "The Lions" || name === "Lions") return "Pandas";
   if (name === "The Snipers" || name === "Snipers" || name === "Sniper") return "Super Kings";
+  if (name === "The Super Kings" || name === "Super Team") return "Super Kings";
   if (name === "Avengers") return "Karma Avengers";
   if (name === "Currents") return "The Currents";
   if (name === "Bolts") return "The Bolts";
@@ -537,6 +540,8 @@ function linkifyTeamsAndPlayers(text) {
     Future: "Dream Team",
     TheFuture: "Dream Team",
     "Super Kings": "Super Kings",
+    "The Super Kings": "Super Kings",
+    "Super Team": "Super Kings",
     Snipers: "Super Kings",
     TheSnipers: "Super Kings",
   };
@@ -592,9 +597,7 @@ function renderCell(value, header, index) {
       return escapeHtml(text);
     }
     const logo = getTeamLogo(team);
-    return `<a class="draft-link" href="team.html?team=${encodeURIComponent(
-      team
-    )}">${logo}${escapeHtml(text)}</a>`;
+    return `<span class="draft-team-cell">${logo}${linkifyTeamsAndPlayers(text)}</span>`;
   }
   if (likelyPlayerCol) {
     return linkifyTeamsAndPlayers(text);
@@ -1115,6 +1118,18 @@ function getLiveDraftPickLabel(pick) {
   return `Pick ${pickNumber}: ${team} - ${selection}`;
 }
 
+function getLiveDraftPickHtml(pick) {
+  if (!pick) return "—";
+  const player = String(pick.player || "").trim();
+  const team = String(pick.team || "").trim() || "Unknown Team";
+  const pickNumber = Number(pick.pick) || "";
+  const selection =
+    String(pick.status || "").trim().toLowerCase() === "forfeit"
+      ? "FORFEITED"
+      : player || "No selection yet";
+  return `Pick ${escapeHtml(pickNumber)}: ${linkifyTeamsAndPlayers(team)} - ${linkifyTeamsAndPlayers(selection)}`;
+}
+
 function isPublicLiveDraftBoardView() {
   const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
   const selectedView = els.viewSelect ? els.viewSelect.value : "teams";
@@ -1144,10 +1159,10 @@ function renderPublicDraftStatus() {
       : "Draft not started";
 
   if (els.publicDraftPrevious) {
-    els.publicDraftPrevious.textContent = getLiveDraftPickLabel(previousPick);
+    els.publicDraftPrevious.innerHTML = getLiveDraftPickHtml(previousPick);
   }
   if (els.publicDraftClockTeam) {
-    els.publicDraftClockTeam.textContent = clockTeam;
+    els.publicDraftClockTeam.innerHTML = linkifyTeamsAndPlayers(clockTeam);
   }
   if (els.publicDraftTime) {
     els.publicDraftTime.textContent = formatLiveDraftTime(getLiveDraftTimerRemainingMs());

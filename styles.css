@@ -5948,6 +5948,14 @@ input[type="text"] {
   text-decoration: underline;
 }
 
+.draft-team-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .prospects-wrap {
   max-width: 560px;
   margin: 0 auto;
