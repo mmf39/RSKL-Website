@@ -2761,27 +2761,55 @@ h2 {
 
 .draft-countdown-banner {
   width: min(1180px, calc(100% - 32px));
-  margin: -18px auto 22px;
-  min-height: 78px;
+  margin: -14px auto 24px;
+  min-height: 92px;
+  position: relative;
+  overflow: hidden;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  gap: 18px;
+  grid-template-columns: auto minmax(0, 1fr) minmax(190px, auto) auto;
+  gap: 22px;
   align-items: center;
-  padding: 16px 20px;
-  border: 1px solid rgba(255, 140, 26, 0.52);
-  border-radius: 16px;
+  padding: 18px 22px 18px 28px;
+  border: 1px solid rgba(255, 179, 71, 0.54);
+  border-radius: 18px;
   background:
-    linear-gradient(135deg, rgba(255, 179, 71, 0.22), transparent 42%),
-    rgba(7, 15, 36, 0.96);
+    linear-gradient(90deg, rgba(255, 140, 26, 0.18), transparent 44%),
+    linear-gradient(135deg, rgba(255, 179, 71, 0.18), rgba(2, 8, 23, 0.08) 42%),
+    rgba(5, 13, 32, 0.98);
   color: #fff7ed;
   text-decoration: none;
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.35);
+  box-shadow:
+    0 22px 54px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.draft-countdown-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 7px;
+  background: linear-gradient(180deg, #ffb347, #ff8c1a);
+}
+
+.draft-countdown-banner::after {
+  content: "";
+  position: absolute;
+  right: 148px;
+  top: -48px;
+  width: 150px;
+  height: 150px;
+  border: 1px solid rgba(255, 179, 71, 0.16);
+  border-radius: 999px;
+  pointer-events: none;
 }
 
 .draft-countdown-banner:hover {
   border-color: rgba(255, 179, 71, 0.9);
-  box-shadow: 0 22px 52px rgba(0, 0, 0, 0.44);
+  box-shadow:
+    0 26px 60px rgba(0, 0, 0, 0.5),
+    0 0 0 3px rgba(255, 140, 26, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   transform: translateY(-1px);
 }
 
@@ -2793,41 +2821,54 @@ h2 {
 }
 
 .draft-countdown-kicker {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-bottom: 6px;
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 179, 71, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 140, 26, 0.09);
   color: #ffd6a8;
-  font-size: 1.1rem;
+  font-size: 0.9rem;
 }
 
 .draft-countdown-banner strong {
+  display: block;
   color: #fff7ed;
-  font-size: clamp(1.35rem, 2.3vw, 2.15rem);
+  font-size: clamp(1.55rem, 2.6vw, 2.35rem);
   line-height: 1;
+  letter-spacing: 0;
 }
 
 .draft-countdown-time {
   justify-self: end;
-  min-width: 172px;
-  padding: 10px 14px;
-  border: 1px solid rgba(255, 140, 26, 0.28);
-  border-radius: 12px;
-  background: rgba(3, 10, 28, 0.7);
-  color: #ffb347;
+  min-width: 190px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 179, 71, 0.32);
+  border-radius: 14px;
+  background: rgba(2, 8, 23, 0.72);
+  color: #ffd28d;
+  font-size: 1.04rem;
   font-weight: 900;
   text-align: center;
   font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
 }
 
 .draft-countdown-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 42px;
-  padding: 0 16px;
+  min-height: 50px;
+  padding: 0 20px;
   border-radius: 999px;
   background: linear-gradient(135deg, #ffb347, #ff8c1a);
   color: #140b02;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 900;
   white-space: nowrap;
+  box-shadow: 0 12px 28px rgba(255, 140, 26, 0.24);
 }
 
 .draft-countdown-banner.is-live .draft-countdown-time {
@@ -8569,16 +8610,27 @@ input[type="text"] {
 @media (max-width: 680px) {
   .draft-countdown-banner {
     width: calc(100% - 28px);
-    margin: -8px auto 18px;
+    margin: -6px auto 18px;
     grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
-    padding: 16px;
+    gap: 12px;
+    padding: 18px 16px 16px;
     text-align: center;
+  }
+
+  .draft-countdown-banner::after {
+    right: -46px;
+    top: -68px;
+  }
+
+  .draft-countdown-kicker {
+    justify-self: center;
+    margin-bottom: 0;
   }
 
   .draft-countdown-time,
   .draft-countdown-action {
     justify-self: stretch;
+    min-width: 0;
     width: 100%;
   }
 
