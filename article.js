@@ -10,7 +10,7 @@ const ARTICLE_TEAMS = [
   { name: "Illegals", logo: "/assets/illegals.png", aliases: ["Illegals"] },
   { name: "Pandas", logo: "/assets/the-lions.png", aliases: ["Pandas", "Lions"] },
   { name: "Dream Team", logo: "/assets/dream-team.jpg", aliases: ["Dream Team", "The Future"] },
-  { name: "Super Kings", logo: "/assets/the-snipers.png", aliases: ["Super Kings", "Snipers"] },
+  { name: "Super Kings", logo: "/assets/super-kings.png", aliases: ["Super Kings", "Snipers"] },
   { name: "The Phantoms", logo: "/assets/the-phantoms.png", aliases: ["The Phantoms", "Phantoms"] },
   { name: "Scorpions", logo: "/assets/mayeday.jpg", aliases: ["Scorpions", "Yetis", "Scorpians"] },
   { name: "Cobras", logo: "/assets/cobras.png", aliases: ["Cobras"] },

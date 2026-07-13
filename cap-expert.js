@@ -177,10 +177,10 @@ function getTeamLogo(team) {
     return "/assets/the-future.png";
   }
   if (clean === "Pandas" || raw === "Lions") return "/assets/the-lions.png";
-  if (clean === "Super Kings" || raw === "Snipers" || raw === "Sniper") return "/assets/the-snipers.png";
+  if (clean === "Super Kings" || raw === "Snipers" || raw === "Sniper") return "/assets/super-kings.png";
   if (clean === "The Phantoms" || raw === "Phantoms" || raw === "Phantons") return "/assets/the-phantoms.png";
   if (clean === "Pandas") return "/assets/the-lions.png";
-  if (clean === "Super Kings") return "/assets/the-snipers.png";
+  if (clean === "Super Kings") return "/assets/super-kings.png";
   if (clean === "The Phantoms") return "/assets/the-phantoms.png";
   if (clean === "Scorpions") return "/assets/mayeday.jpg";
   if (clean === "Cobras") return "/assets/cobras.png";

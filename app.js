@@ -598,7 +598,7 @@ function getTeamLogoSrc(name) {
   const shown = displayTeamName(name);
   if (shown === "Dream Team") return "/assets/dream-team.jpg";
   if (shown === "Pandas") return "/assets/the-lions.png";
-  if (shown === "Super Kings") return "/assets/the-snipers.png";
+  if (shown === "Super Kings") return "/assets/super-kings.png";
   if (shown === "The Phantoms") return "/assets/the-phantoms.png";
   if (shown === "Scorpions") return "/assets/mayeday.jpg";
   if (shown === "ALEK Manoahs") return "/assets/alek-manoahs.jpg";

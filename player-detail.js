@@ -1516,7 +1516,7 @@ function getTeamLogoHtml(teamName) {
     : shownTeam === "Pandas"
     ? '<img class="player-team-logo" src="/assets/the-lions.png" alt="Pandas logo" />'
     : shownTeam === "Super Kings"
-    ? '<img class="player-team-logo" src="/assets/the-snipers.png" alt="Super Kings logo" />'
+    ? '<img class="player-team-logo" src="/assets/super-kings.png" alt="Super Kings logo" />'
     : shownTeam === "The Phantoms"
     ? '<img class="player-team-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />'
     : shownTeam === "Scorpions"

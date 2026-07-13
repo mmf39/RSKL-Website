@@ -906,7 +906,7 @@ function renderLeaderboard(list, query, metric, minGp = 0, teamFilter = "") {
       return '<img class="standings-logo" src="/assets/the-lions.png" alt="Pandas logo" />';
     }
     if (team === "Super Kings") {
-      return '<img class="standings-logo" src="/assets/the-snipers.png" alt="Super Kings logo" />';
+      return '<img class="standings-logo" src="/assets/super-kings.png" alt="Super Kings logo" />';
     }
     if (team === "The Phantoms") {
       return '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';

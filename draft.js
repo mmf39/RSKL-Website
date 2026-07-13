@@ -414,7 +414,7 @@ function getTeamLogo(team) {
     return '<img class="standings-logo" src="/assets/the-lions.png" alt="Pandas logo" />';
   }
   if (clean === "Super Kings") {
-    return '<img class="standings-logo" src="/assets/the-snipers.png" alt="Super Kings logo" />';
+    return '<img class="standings-logo" src="/assets/super-kings.png" alt="Super Kings logo" />';
   }
   if (clean === "The Phantoms") {
     return '<img class="standings-logo" src="/assets/the-phantoms.png" alt="The Phantoms logo" />';
