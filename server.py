@@ -38,6 +38,8 @@ BOXSCORE_URL = (
 PLAYER_STATS_URL = (
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=2091759853&single=true&output=csv"
 )
+C2S4_BOXSCORE_URL = BOXSCORE_URL
+C2S4_PLAYER_STATS_URL = PLAYER_STATS_URL
 LIVE_SCORING_URL = (
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=1486072019&single=true&output=csv"
 )
@@ -81,10 +83,12 @@ SHEETS = {
     "awards": AWARDS_URL,
     "contracts": CONTRACTS_URL,
     "boxscore": BOXSCORE_URL,
+    "c2s4-boxscore": C2S4_BOXSCORE_URL,
     "c2s2-regular": C2S2_REGULAR_URL,
     "draft": "https://docs.google.com/spreadsheets/d/e/2PACX-1vSQ0tNTY-47XuVq8Z7W9zi_imn1WqUtrZFt8LmX_yb75g-L-oEE0dUN0SGxfiqoY-4webnYoo4APCsY/pub?gid=894447035&single=true&output=csv",
     "live-scoring": LIVE_SCORING_URL,
     "player-stats": PLAYER_STATS_URL,
+    "c2s4-player-stats": C2S4_PLAYER_STATS_URL,
     "roster": ROSTER_URL,
     "schedule": SCHEDULE_URL,
     "standings": STANDINGS_URL,
