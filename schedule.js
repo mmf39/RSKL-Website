@@ -35,6 +35,10 @@ const els = {
   upcomingGamesTitle: document.getElementById("upcoming-games-title"),
   nextGames: document.getElementById("next-games"),
   dayGames: document.getElementById("day-games"),
+  totalGames: document.getElementById("schedule-total-games"),
+  liveGames: document.getElementById("schedule-live-games"),
+  finalGames: document.getElementById("schedule-final-games"),
+  nextDay: document.getElementById("schedule-next-day"),
   modal: document.getElementById("boxscore-modal"),
   boxDetails: document.getElementById("boxscore-details"),
 };
@@ -1421,9 +1425,15 @@ function buildGameCards(games) {
         includePreview: scoreState.status === "upcoming" || scoreState.status === "final",
         includeSummary: scoreState.status === "final" || scoreState.status === "live",
       });
+      const gameTypeBadge = g.gameType?.label
+        ? `<span class="game-type-badge">${escapeHtml(g.gameType.label)}</span>`
+        : "";
       return `
         <div class="calendar-game ${isTodayGame ? "today-game" : ""}" data-game-index="${g.idx}" aria-expanded="false">
-          <div class="calendar-game-date">${escapeHtml(g.dateToken)}</div>
+          <div class="calendar-game-topline">
+            <div class="calendar-game-date">${escapeHtml(formatDayLabel(g.dateToken))}</div>
+            ${gameTypeBadge}
+          </div>
           <div class="calendar-game-matchup">
             <a class="schedule-team-link" href="/team.html?team=${encodeURIComponent(g.team1)}">${l1}<span class="team-name-stack"><span>${escapeHtml(displayTeamName(g.team1))}</span>${team1ScoreLine}</span></a>
             <span>vs</span>
@@ -1469,9 +1479,27 @@ function getUpcomingGameDay() {
   };
 }
 
+function updateScheduleSummary(upcomingDay) {
+  let liveCount = 0;
+  let finalCount = 0;
+  scheduleGames.forEach((game) => {
+    const state = getGameScoreState(game);
+    if (state.status === "live") liveCount += 1;
+    if (state.status === "final") finalCount += 1;
+  });
+  if (els.totalGames) els.totalGames.textContent = String(scheduleGames.length);
+  if (els.liveGames) els.liveGames.textContent = String(liveCount);
+  if (els.finalGames) els.finalGames.textContent = String(finalCount);
+  if (els.nextDay) {
+    const nextGame = upcomingDay?.games?.[0];
+    els.nextDay.textContent = nextGame ? formatDayLabel(nextGame.dateToken) : "—";
+  }
+}
+
 function renderScheduleViews() {
   populateDaySelect();
   const upcomingDay = getUpcomingGameDay();
+  updateScheduleSummary(upcomingDay);
   if (els.upcomingGamesTitle) {
     els.upcomingGamesTitle.textContent = upcomingDay.label;
   }

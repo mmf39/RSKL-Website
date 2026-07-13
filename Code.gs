@@ -3,6 +3,7 @@ const MIRROR_SHEET_ID = "1EEFztFGUNtQqhHkftJHma3WHILDjZjv2WGErHEIuCbg";
 const THIRD_SHEET_ID = "1-dtF8p4hyTtJcLM5upFokocaxA9zmPoPoKXRHGXDbxs";
 
 const PRIMARY_TEAMS_SHEET = "Teams";
+const PRIMARY_TEAMS_SHEET_GID = 847666124;
 const TRADEBLOCKS_SHEET = "TradeBlocks";
 const QUEUED_LINEUPS_SHEET = "Queued Lineups";
 const TRANSACTION_REQUESTS_SHEET = "Transaction Requests";
@@ -75,6 +76,14 @@ function escapeRegExp(str) {
 
 function getSheetByIdAndName(sheetId, name) {
   return SpreadsheetApp.openById(sheetId).getSheetByName(name);
+}
+
+function getPrimaryTeamsSheet_() {
+  const ss = SpreadsheetApp.openById(PRIMARY_SHEET_ID);
+  return (
+    ss.getSheets().find((sheet) => sheet.getSheetId() === PRIMARY_TEAMS_SHEET_GID) ||
+    ss.getSheetByName(PRIMARY_TEAMS_SHEET)
+  );
 }
 
 function getLineupWorkbook_() {
@@ -172,8 +181,14 @@ function updatePlayerInPrimary(payload) {
   const newTagRaw = clean_(payload.newTag || newDisplay) || newDisplay;
   const newTagNorm = normalize(newTagRaw);
 
-  const sheet = getSheetByIdAndName(PRIMARY_SHEET_ID, PRIMARY_TEAMS_SHEET);
-  if (!sheet) return { ok: false, updated: false, message: "Primary Teams sheet not found" };
+  const sheet = getPrimaryTeamsSheet_();
+  if (!sheet) {
+    return {
+      ok: false,
+      updated: false,
+      message: `C2S4 Teams tab (${PRIMARY_TEAMS_SHEET_GID}) was not found in PRIMARY_SHEET_ID.`,
+    };
+  }
 
   let updated = false;
   let updatedRows = 0;
@@ -777,10 +792,13 @@ function addPlayerToTeam_(team, player) {
   if (!team || !player) throw new Error("Missing team or player.");
 
   const teamName = canonicalTeamName_(team);
-  const primary = SpreadsheetApp.openById(PRIMARY_SHEET_ID).getSheetByName(PRIMARY_TEAMS_SHEET);
+  const primary = getPrimaryTeamsSheet_();
   const rangeInfo = getPrimaryTeamRangeInfo_(teamName);
 
-  if (!primary || !rangeInfo) throw new Error(`Team range not found for ${teamName}.`);
+  if (!primary) {
+    throw new Error(`C2S4 Teams tab (${PRIMARY_TEAMS_SHEET_GID}) was not found in PRIMARY_SHEET_ID.`);
+  }
+  if (!rangeInfo) throw new Error(`Team range not found for ${teamName}.`);
 
   const range = primary.getRange(rangeInfo.range);
   const values = range.getDisplayValues();
@@ -807,10 +825,13 @@ function removePlayerFromTeam_(team, player) {
   if (!team || !player) throw new Error("Missing team or player.");
 
   const teamName = canonicalTeamName_(team);
-  const primary = SpreadsheetApp.openById(PRIMARY_SHEET_ID).getSheetByName(PRIMARY_TEAMS_SHEET);
+  const primary = getPrimaryTeamsSheet_();
   const rangeInfo = getPrimaryTeamRangeInfo_(teamName);
 
-  if (!primary || !rangeInfo) throw new Error(`Team range not found for ${teamName}.`);
+  if (!primary) {
+    throw new Error(`C2S4 Teams tab (${PRIMARY_TEAMS_SHEET_GID}) was not found in PRIMARY_SHEET_ID.`);
+  }
+  if (!rangeInfo) throw new Error(`Team range not found for ${teamName}.`);
 
   const range = primary.getRange(rangeInfo.range);
   const values = range.getDisplayValues();
@@ -885,7 +906,10 @@ function moveDraftPicks_(fromTeam, toTeam, picks) {
 
 function findDraftCapitalTeamCol_(values, team) {
   const header = values[0] || [];
-  return header.findIndex((cell) => normalize(cell) === normalize(team));
+  const target = normalize(canonicalTeamName_(team));
+  return header.findIndex(
+    (cell) => normalize(canonicalTeamName_(cell)) === target
+  );
 }
 
 function findFirstEmptyInColumn_(sheet, col, startRow) {
@@ -1084,7 +1108,7 @@ function normalizeDraftName_(value) {
 function route(payload) {
   const action = clean_(payload.action);
 
-  if (action === "ping") return json({ ok: true, v: "gm-full-transactions-v8" });
+  if (action === "ping") return json({ ok: true, v: "gm-full-transactions-v10-draft-capital" });
 
   if (action === "getTradeBlocks") return actionGetTradeBlocks();
   if (action === "saveTradeBlock") return actionSaveTradeBlock(payload);
@@ -1161,10 +1185,10 @@ function moveDraftPicks_(fromTeam, toTeam, picks) {
 
 function findDraftCapitalTeamRow_(sheet, team) {
   const values = sheet.getDataRange().getDisplayValues();
-  const target = normalize(team);
+  const target = normalize(canonicalTeamName_(team));
 
   for (let r = 0; r < values.length; r++) {
-    if (normalize(values[r][0]) === target) {
+    if (normalize(canonicalTeamName_(values[r][0])) === target) {
       return r + 1;
     }
   }

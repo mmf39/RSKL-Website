@@ -2755,6 +2755,116 @@ h2 {
   min-width: 0;
 }
 
+.schedule-container {
+  gap: 18px;
+}
+
+.schedule-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: stretch;
+  padding: 22px;
+  border: 1px solid rgba(255, 140, 26, 0.32);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(255, 140, 26, 0.16), transparent 38%),
+    rgba(8, 16, 36, 0.94);
+  box-shadow: var(--shadow);
+}
+
+.schedule-overview-copy {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+}
+
+.schedule-overview-copy .eyebrow {
+  color: #e8c8a6;
+  font-family: var(--font-head);
+  font-size: 1.05rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.schedule-overview-copy h2 {
+  color: #fff7ed;
+  font-size: clamp(2rem, 4vw, 3.8rem);
+  line-height: 0.95;
+}
+
+.schedule-overview-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(110px, 1fr));
+  gap: 10px;
+  min-width: min(100%, 560px);
+}
+
+.schedule-stat {
+  display: grid;
+  gap: 8px;
+  align-content: center;
+  min-height: 92px;
+  padding: 14px;
+  border: 1px solid rgba(255, 140, 26, 0.22);
+  border-radius: 12px;
+  background: rgba(3, 10, 28, 0.72);
+}
+
+.schedule-stat span {
+  color: #c8b6a3;
+  font-family: var(--font-head);
+  font-size: 0.92rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.schedule-stat strong {
+  color: #fff7ed;
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  line-height: 1.05;
+}
+
+.schedule-page .schedule-panel {
+  padding: 24px;
+  background:
+    linear-gradient(180deg, rgba(14, 25, 54, 0.92), rgba(2, 8, 23, 0.96)),
+    var(--panel);
+}
+
+.schedule-page .panel-head {
+  align-items: end;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(255, 140, 26, 0.16);
+}
+
+.schedule-page .panel-head h2 {
+  color: #fff7ed;
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+}
+
+.schedule-page .controls {
+  display: grid;
+  grid-template-columns: auto minmax(170px, 230px) auto minmax(190px, 280px);
+  gap: 10px;
+  align-items: center;
+}
+
+.schedule-page .controls .label {
+  color: #e8c8a6;
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.schedule-page .controls select,
+.schedule-page .controls input {
+  width: 100%;
+  border-color: rgba(255, 140, 26, 0.3);
+  background: rgba(3, 10, 28, 0.9);
+}
+
 .schedule-group + .schedule-group {
   margin-top: 20px;
 }
@@ -2768,10 +2878,11 @@ h2 {
 
 .schedule-group-head h3 {
   margin: 0;
-  font-size: 1rem;
-  letter-spacing: 0.03em;
+  font-family: var(--font-head);
+  font-size: 1.35rem;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: #e8c8a6;
 }
 
 .fa-controls {
@@ -4015,24 +4126,31 @@ input[type="text"] {
 .calendar-games {
   margin-top: 16px;
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .calendar-game {
   width: 100%;
-  border: 1px solid rgba(255, 140, 0, 0.5);
-  border-radius: 14px;
-  background: rgba(8, 22, 54, 0.92);
+  border: 1px solid rgba(255, 140, 26, 0.34);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(255, 140, 26, 0.08), transparent 34%),
+    rgba(4, 12, 31, 0.94);
   color: var(--ink);
-  padding: 14px;
+  padding: 16px;
   display: grid;
-  gap: 8px;
-  text-align: center;
+  grid-template-columns: minmax(150px, 0.34fr) minmax(260px, 1fr) minmax(130px, auto);
+  gap: 14px;
+  align-items: center;
+  text-align: left;
   cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease,
+    background 0.15s ease;
 }
 
 .calendar-game:hover {
-  border-color: rgba(255, 140, 0, 0.9);
+  border-color: rgba(255, 140, 26, 0.72);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.24);
   transform: translateY(-1px);
 }
 
@@ -4050,18 +4168,37 @@ input[type="text"] {
   box-shadow: 0 0 0 2px rgba(255, 140, 0, 0.24);
 }
 
+.calendar-game-topline {
+  display: grid;
+  gap: 8px;
+  align-content: center;
+  justify-items: start;
+}
+
 .calendar-game-date {
-  font-size: 1.4rem;
+  font-family: var(--font-head);
+  font-size: clamp(1.4rem, 2.4vw, 2rem);
   font-weight: 800;
-  color: var(--accent);
+  letter-spacing: 0.05em;
+  color: #ffd9a8;
+  line-height: 1;
 }
 
 .calendar-game-matchup {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  justify-content: stretch;
+  gap: 14px;
+  min-width: 0;
+}
+
+.calendar-game-matchup > span {
+  color: rgba(255, 247, 237, 0.68);
+  font-family: var(--font-head);
+  font-size: 1.05rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .calendar-game-status {
@@ -4070,7 +4207,8 @@ input[type="text"] {
   justify-content: center;
   gap: 8px;
   width: fit-content;
-  margin: 0 auto;
+  justify-self: end;
+  margin: 0;
   padding: 5px 10px;
   border-radius: 999px;
   border: 1px solid rgba(255, 140, 0, 0.45);
@@ -4117,6 +4255,7 @@ input[type="text"] {
 }
 
 .calendar-game-details {
+  grid-column: 1 / -1;
   margin-top: 8px;
   display: grid;
   gap: 10px;
@@ -7444,6 +7583,35 @@ input[type="text"] {
   margin-right: 0;
 }
 
+.schedule-page .schedule-team-link {
+  justify-content: flex-start;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(255, 140, 26, 0.12);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.34);
+  color: #fff7ed;
+}
+
+.schedule-page .schedule-team-link:hover {
+  border-color: rgba(255, 140, 26, 0.35);
+  background: rgba(255, 140, 26, 0.08);
+}
+
+.schedule-page .schedule-team-link .standings-logo {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+}
+
+.schedule-page .team-name-stack {
+  min-width: 0;
+}
+
+.schedule-page .team-name-stack > span:first-child {
+  overflow-wrap: anywhere;
+}
+
 .team-name-stack {
   display: inline-flex;
   flex-direction: column;
@@ -7645,7 +7813,12 @@ input[type="text"] {
 }
 
 .calendar-game .game-type-badge {
-  margin: 0 auto 8px;
+  margin: 0;
+}
+
+.calendar-game > .boxscore-action-row {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
 }
 
 .transactions-list {
@@ -8284,6 +8457,98 @@ input[type="text"] {
   #standings-table,
   .career-breakdown-table {
     min-width: 500px;
+  }
+}
+
+@media (max-width: 920px) {
+  .schedule-overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .schedule-overview-stats {
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .schedule-page .controls {
+    width: 100%;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .calendar-game {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .calendar-game-topline {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .calendar-game-status {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 680px) {
+  .schedule-overview {
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  .schedule-overview-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .schedule-stat {
+    min-height: 76px;
+  }
+
+  .schedule-page .schedule-panel {
+    padding: 18px 14px;
+  }
+
+  .schedule-page .panel-head {
+    align-items: stretch;
+  }
+
+  .schedule-page .controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .calendar-game {
+    padding: 14px;
+  }
+
+  .calendar-game-topline {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .calendar-game-matchup {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .calendar-game-matchup > span {
+    justify-self: start;
+    padding-left: 12px;
+    font-size: 0.9rem;
+  }
+
+  .schedule-page .schedule-team-link {
+    width: 100%;
+  }
+
+  .calendar-game > .boxscore-action-row {
+    justify-content: stretch;
+  }
+
+  .calendar-game > .boxscore-action-row .game-preview-link {
+    width: 100%;
+  }
+
+  .preview-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

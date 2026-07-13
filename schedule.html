@@ -7,9 +7,9 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css?v=20260605linksonly1" />
+    <link rel="stylesheet" href="styles.css?v=20260713schedule1" />
   </head>
-  <body>
+  <body class="schedule-page">
     <div class="bg"></div>
     <header class="hero">
       <div class="hero-inner">
@@ -58,7 +58,31 @@
       </div>
     </header>
 
-    <main class="container">
+    <main class="container schedule-container">
+      <section class="schedule-overview">
+        <div class="schedule-overview-copy">
+          <span class="eyebrow">Game Center</span>
+          <h2>League Schedule</h2>
+        </div>
+        <div class="schedule-overview-stats" aria-label="Schedule summary">
+          <div class="schedule-stat">
+            <span>Total Games</span>
+            <strong id="schedule-total-games">—</strong>
+          </div>
+          <div class="schedule-stat">
+            <span>Live</span>
+            <strong id="schedule-live-games">—</strong>
+          </div>
+          <div class="schedule-stat">
+            <span>Finals</span>
+            <strong id="schedule-final-games">—</strong>
+          </div>
+          <div class="schedule-stat">
+            <span>Next Day</span>
+            <strong id="schedule-next-day">—</strong>
+          </div>
+        </div>
+      </section>
       <section class="panel schedule-panel">
         <div class="panel-head">
           <h2>Schedule</h2>
@@ -98,7 +122,7 @@
       Built for the RSKL league • Powered by Google Sheets • <a class="footer-link" href="/gm.html">GM Admin</a>
     </footer>
 
-    <script src="schedule.js?v=20260708c2s4default1" defer></script>
+    <script src="schedule.js?v=20260713schedule1" defer></script>
     <script src="header-nav.js?v=20260708c2s4default1" defer></script>
   </body>
 </html>
