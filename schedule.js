@@ -886,6 +886,14 @@ function populateDaySelect() {
     .join("");
 }
 
+function getDefaultScheduleDateKey() {
+  const upcomingGames = getUpcomingGameDay().games;
+  if (upcomingGames[0]?.dateToken) {
+    return upcomingGames[0].dateToken;
+  }
+  return scheduleGames[0]?.dateToken || "";
+}
+
 function findBoxScoreRowsForGame(game) {
   if (!game || !game.dateToken || !cachedBoxScoreRows.length) return [];
   const tokenMatches = (cell, token) => normalizeDateToken(cell) === token;
@@ -1497,18 +1505,17 @@ function updateScheduleSummary(upcomingDay) {
 }
 
 function renderScheduleViews() {
-  populateDaySelect();
   const upcomingDay = getUpcomingGameDay();
-  updateScheduleSummary(upcomingDay);
-  if (els.upcomingGamesTitle) {
-    els.upcomingGamesTitle.textContent = upcomingDay.label;
+  if (!selectedDateKey || !gamesByDate.has(selectedDateKey)) {
+    selectedDateKey = getDefaultScheduleDateKey();
   }
+  populateDaySelect();
+  updateScheduleSummary(upcomingDay);
   if (els.dayGamesTitle) {
     els.dayGamesTitle.textContent = selectedDateKey
       ? `Games for ${formatDayLabel(selectedDateKey)}`
       : "Games By Day";
   }
-  renderGameSection(els.nextGames, upcomingDay.games, "No upcoming games found.");
   renderGameSection(
     els.dayGames,
     selectedDateKey ? gamesByDate.get(selectedDateKey) || [] : [],
@@ -1636,13 +1643,9 @@ function applyInitialScheduleRows(rows, season) {
     throw new Error("No games found.");
   }
 
-  const todayToken = getTodayToken();
-  const upcomingGames = getUpcomingGameDay().games;
-  selectedDateKey = gamesByDate.has(todayToken)
-    ? todayToken
-    : upcomingGames[0]
-    ? upcomingGames[0].dateToken
-    : scheduleGames[0].dateToken;
+  if (!selectedDateKey || !gamesByDate.has(selectedDateKey)) {
+    selectedDateKey = getDefaultScheduleDateKey();
+  }
   scheduleRenderScheduleViews();
   loadGameContent();
   updateLastUpdated();
