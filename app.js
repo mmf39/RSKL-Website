@@ -2634,7 +2634,10 @@ function renderLeaderMetricCard(metric, seasonRaw) {
         data-leader-name="${escapeHtml(item.displayName || item.tag || "Player")}"
         data-leader-avatar="${escapeHtml(item.tag || "")}">
         <span class="dashboard-leader-rankpos">${index + 1}.</span>
-        <span class="dashboard-leader-rankname">${escapeHtml(item.displayName || item.tag || "Player")}</span>
+        <span class="dashboard-leader-rankname">
+          <span>${escapeHtml(item.displayName || item.tag || "Player")}</span>
+          <small>${escapeHtml(item.team || "—")} • ${escapeHtml(String(item.gp || 0))} GP</small>
+        </span>
         <span class="dashboard-leader-rankvalue">${escapeHtml(String(value))}</span>
       </button>
     `;
@@ -2672,8 +2675,10 @@ function updateLeaderPreview(card, row) {
   const gp = String(row.dataset.leaderGp || "0").trim();
   const value = String(row.dataset.leaderValue || "—").trim();
   const name = String(row.dataset.leaderName || "Player").trim();
-  const avatar = String(row.dataset.leaderAvatar || "P").trim().replace(/^@/, "").slice(0, 1).toUpperCase() || "P";
-  if (heroAvatar) heroAvatar.textContent = avatar;
+  const avatar = String(row.dataset.leaderAvatar || "").trim();
+  if (heroAvatar) {
+    heroAvatar.innerHTML = buildPlayerAvatarMarkup({ tag: avatar, displayName: name });
+  }
   if (heroName) heroName.textContent = name;
   if (heroSubhead) heroSubhead.textContent = `${team} • ${card.querySelector(".dashboard-leader-kicker")?.textContent || ""}`.trim();
   if (heroValue) heroValue.textContent = value;

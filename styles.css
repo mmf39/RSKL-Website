@@ -1124,7 +1124,7 @@ body.menu-open {
 .dashboard-matchup-card,
 .dashboard-team-card,
 .dashboard-transaction-card,
-.dashboard-leader-card {
+.leader-card.dashboard-leader-card {
   text-align: left;
 }
 
@@ -1991,7 +1991,7 @@ body.menu-open {
 .dashboard-matchup-card,
 .dashboard-transaction-card,
 .dashboard-team-card,
-.dashboard-leader-card {
+.leader-card.dashboard-leader-card {
   border-radius: 20px;
   border: 1px solid rgba(255, 162, 73, 0.24);
   background:
@@ -2071,30 +2071,30 @@ body.menu-open {
   justify-content: flex-end;
 }
 
-.dashboard-leader-card {
-  padding: 24px 26px 22px;
-  border-radius: 24px;
-  border: 1px solid rgba(96, 115, 145, 0.42);
-  background:
-    radial-gradient(circle at top left, rgba(24, 43, 86, 0.7), transparent 32%),
-    linear-gradient(180deg, rgba(8, 15, 31, 0.98), rgba(13, 20, 41, 0.98));
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+.leader-card.dashboard-leader-card {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 140, 26, 0.24);
+  background: rgba(7, 15, 36, 0.98);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
 }
 
 .dashboard-leader-kicker {
-  color: #dfb58a;
+  color: #e8c8a6;
+  font-family: var(--font-head);
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  font-size: 0.78rem;
+  font-size: 0.86rem;
   font-weight: 800;
 }
 
-.dashboard-leader-card .leader-name {
-  margin-top: 4px;
-  font-size: clamp(1.35rem, 1.5vw, 1.7rem);
+.leader-card.dashboard-leader-card .leader-name {
+  margin-top: 6px;
+  font-size: clamp(1.25rem, 1.6vw, 1.65rem);
   color: #fff7ed;
   font-weight: 800;
-  letter-spacing: -0.03em;
   overflow-wrap: anywhere;
 }
 
@@ -2102,13 +2102,13 @@ body.menu-open {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(255, 170, 86, 0.26), rgba(64, 96, 160, 0.28));
-  border: 1px solid rgba(255, 185, 116, 0.42);
+  background: rgba(2, 8, 23, 0.72);
+  border: 1px solid rgba(255, 140, 26, 0.28);
   color: #fff7ed;
-  font-size: 0.72rem;
+  font-size: 0.84rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   flex: 0 0 auto;
@@ -2138,20 +2138,20 @@ body.menu-open {
   opacity: 0;
 }
 
-.dashboard-leader-card .leader-name:hover {
+.leader-card.dashboard-leader-card .leader-name:hover {
   color: #ffbf61;
   opacity: 1;
 }
 
-.dashboard-leader-card .leader-value {
+.leader-card.dashboard-leader-card .leader-value {
   margin-top: 0;
-  font-size: clamp(2.6rem, 3vw, 3.6rem);
+  font-size: clamp(2.25rem, 3vw, 3rem);
   line-height: 0.92;
   color: #ffb44f;
   font-weight: 900;
 }
 
-.dashboard-leader-card .leader-sub {
+.leader-card.dashboard-leader-card .leader-sub {
   margin-top: 14px;
   font-size: 1.1rem;
   color: rgba(255, 236, 220, 0.78);
@@ -2202,10 +2202,46 @@ body.menu-open {
 }
 
 .dashboard-leader-subhead {
-  margin-top: 8px;
-  color: rgba(255, 223, 188, 0.74);
+  margin-top: 6px;
+  color: rgba(255, 223, 188, 0.72);
   font-size: 0.92rem;
   overflow-wrap: anywhere;
+}
+
+.dashboard-leader-headline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 140, 26, 0.14);
+}
+
+.dashboard-leader-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.dashboard-leader-hero .dashboard-player-avatar {
+  width: 58px;
+  height: 58px;
+  flex-basis: 58px;
+  border-radius: 18px;
+}
+
+.dashboard-leader-hero-copy {
+  min-width: 0;
+}
+
+.dashboard-leader-hero-value {
+  min-width: 108px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 140, 26, 0.18);
+  background: rgba(2, 8, 23, 0.48);
+  text-align: right;
 }
 
 .dashboard-leader-value-wrap {
@@ -2224,8 +2260,8 @@ body.menu-open {
 
 .dashboard-leaders-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 24px 40px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
   align-items: start;
 }
 
@@ -2239,13 +2275,13 @@ body.menu-open {
   appearance: none;
   width: 100%;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(92px, auto);
+  grid-template-columns: 34px minmax(0, 1fr) minmax(70px, auto);
   align-items: center;
-  gap: 12px;
-  padding: 13px 16px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.03);
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 140, 26, 0.12);
+  background: rgba(2, 8, 23, 0.38);
   color: #f8fafc;
   text-align: left;
   cursor: pointer;
@@ -2255,14 +2291,14 @@ body.menu-open {
 .dashboard-leader-rankrow:hover,
 .dashboard-leader-rankrow:focus-visible {
   transform: translateY(-1px);
-  border-color: rgba(255, 180, 79, 0.42);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 140, 26, 0.34);
+  background: rgba(255, 140, 26, 0.08);
   outline: none;
 }
 
 .dashboard-leader-rankrow.is-top {
-  background: linear-gradient(135deg, rgba(255, 166, 77, 0.15), rgba(255, 166, 77, 0.06));
-  border-color: rgba(255, 166, 77, 0.26);
+  background: rgba(255, 140, 26, 0.12);
+  border-color: rgba(255, 140, 26, 0.28);
 }
 
 .dashboard-leader-rankpos,
@@ -2273,10 +2309,22 @@ body.menu-open {
 
 .dashboard-leader-rankname {
   min-width: 0;
+  display: grid;
+  gap: 2px;
+  font-weight: 700;
+}
+
+.dashboard-leader-rankname > span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.dashboard-leader-rankname small {
+  color: rgba(255, 223, 188, 0.58);
+  font-size: 0.74rem;
   font-weight: 700;
+  line-height: 1.1;
 }
 
 .dashboard-leader-preview {
@@ -2285,7 +2333,7 @@ body.menu-open {
 
 @media (min-width: 1100px) {
   .dashboard-leaders-grid {
-    grid-template-columns: repeat(2, minmax(520px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -2298,11 +2346,18 @@ body.menu-open {
 
 @media (max-width: 720px) {
   .dashboard-leader-card {
-    padding: 18px 18px 16px;
+    padding: 16px;
   }
 
-  .dashboard-leader-top {
+  .dashboard-leader-headline {
+    grid-template-columns: minmax(0, 1fr);
     gap: 12px;
+  }
+
+  .dashboard-leader-hero-value {
+    width: 100%;
+    min-width: 0;
+    text-align: left;
   }
 
   .dashboard-leader-card .leader-name {
@@ -2326,6 +2381,10 @@ body.menu-open {
   .dashboard-leader-rankname {
     white-space: normal;
     line-height: 1.15;
+  }
+
+  .dashboard-leader-rankname > span {
+    white-space: normal;
   }
 
   .dashboard-leader-rankvalue {
