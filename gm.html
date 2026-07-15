@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css?v=20260713draftbanner3" />
+    <link rel="stylesheet" href="styles.css?v=20260715realqueue1" />
   </head>
   <body>
     <div class="bg"></div>
@@ -387,6 +387,23 @@
             <div id="gm-transaction-approval-list" class="gm-readonly-list"></div>
             <div id="gm-transaction-approval-status" class="gm-status"></div>
           </div>
+          <div class="gm-card" id="gm-real-post-card" hidden>
+            <div class="label">Commissioner: Real Announcement Queue</div>
+            <div class="gm-commish-draft-copy">Copy these messages manually into Real. Nothing here posts to Real automatically.</div>
+            <div class="standings-scope-tabs gm-queue-filters" id="gm-real-post-filters" aria-label="Announcement queue filters">
+              <button class="standings-scope-tab active" type="button" data-real-post-filter="pending">Pending</button>
+              <button class="standings-scope-tab" type="button" data-real-post-filter="copied">Copied</button>
+              <button class="standings-scope-tab" type="button" data-real-post-filter="posted">Posted</button>
+              <button class="standings-scope-tab" type="button" data-real-post-filter="dismissed">Dismissed</button>
+              <button class="standings-scope-tab" type="button" data-real-post-filter="all">All</button>
+            </div>
+            <div class="gm-real-post-actions">
+              <button id="gm-real-post-refresh" class="btn ghost" type="button">Refresh Queue</button>
+              <a class="btn ghost" href="https://www.realapp.com/" target="_blank" rel="noopener noreferrer">Open Real</a>
+            </div>
+            <div id="gm-real-post-list" class="gm-readonly-list"></div>
+            <div id="gm-real-post-status" class="gm-status"></div>
+          </div>
           <div class="gm-card" id="gm-commish-draft-card" hidden>
             <div class="gm-commish-draft-head">
               <div>
@@ -498,7 +515,7 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="gm.js?v=20260708c2s4teamnames2"></script>
+    <script src="gm.js?v=20260715realqueue1"></script>
       <script src="header-nav.js?v=20260713draftbanner1"></script>
   </body>
 </html>

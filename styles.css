@@ -6308,13 +6308,23 @@ input[type="text"] {
   border-radius: 18px;
   background: rgba(11, 18, 36, 0.68);
   padding: 8px;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 #cap-table,
 .cap-team-table {
   width: 100%;
-  min-width: 0;
-  table-layout: fixed;
+  table-layout: auto;
+}
+
+#cap-table {
+  min-width: 920px;
+}
+
+.cap-team-table {
+  min-width: 640px;
 }
 
 #cap-table th,
@@ -6339,33 +6349,45 @@ input[type="text"] {
 #cap-table td:nth-child(1),
 .cap-team-table th:nth-child(1),
 .cap-team-table td:nth-child(1) {
-  width: 24%;
+  width: 22%;
 }
 
 #cap-table th:nth-child(2),
 #cap-table td:nth-child(2) {
-  width: 22%;
+  width: 18%;
 }
 
 #cap-table th:nth-child(3),
 #cap-table td:nth-child(3),
 .cap-team-table th:nth-child(2),
 .cap-team-table td:nth-child(2) {
-  width: 12%;
+  width: 10%;
 }
 
 #cap-table th:nth-child(4),
 #cap-table td:nth-child(4),
 .cap-team-table th:nth-child(3),
 .cap-team-table td:nth-child(3) {
-  width: 20%;
+  width: 10%;
 }
 
 #cap-table th:nth-child(5),
 #cap-table td:nth-child(5),
 .cap-team-table th:nth-child(4),
 .cap-team-table td:nth-child(4) {
-  width: 18%;
+  width: 14%;
+}
+
+#cap-table th:nth-child(6),
+#cap-table td:nth-child(6),
+#cap-table th:nth-child(7),
+#cap-table td:nth-child(7) {
+  width: 13%;
+}
+
+#cap-table th:nth-child(8),
+#cap-table td:nth-child(8) {
+  width: 10%;
 }
 
 .cap-team-link,
@@ -6440,12 +6462,21 @@ input[type="text"] {
     padding: 12px;
   }
 
+  #cap-table {
+    min-width: 760px;
+  }
+
+  .cap-team-table {
+    min-width: 560px;
+  }
+
   #cap-table th,
   #cap-table td,
   .cap-team-table th,
   .cap-team-table td {
     padding-top: 12px;
     padding-bottom: 12px;
+    font-size: 0.86rem;
   }
 }
 
@@ -7244,6 +7275,50 @@ input[type="text"] {
 .gm-readonly-group {
   display: grid;
   gap: 4px;
+}
+
+.gm-queue-filters {
+  margin: 12px 0;
+}
+
+.gm-real-post-actions,
+.gm-real-post-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.gm-real-post-card {
+  gap: 14px;
+}
+
+.gm-real-post-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.gm-real-post-meta span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 176, 86, 0.08);
+  border: 1px solid rgba(255, 176, 86, 0.14);
+}
+
+.gm-real-post-preview {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.45;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 176, 86, 0.14);
+  background: rgba(2, 8, 23, 0.42);
 }
 
 .gm-transaction-grid {

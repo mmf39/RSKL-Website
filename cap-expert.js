@@ -1,5 +1,5 @@
 const CONTRACTS_URL = "/api/sheet?name=contracts";
-const TEAM_CAP_LIMIT = 5000;
+const TEAM_CAP_LIMIT = 50000;
 const CAP_CHART_COLORS = [
   "#ff9f43",
   "#feca57",
@@ -111,6 +111,16 @@ function parseMoney(value) {
   return Number.isFinite(amount) ? amount : 0;
 }
 
+function cleanCell(row, index) {
+  return String(row?.[index] || "").trim();
+}
+
+function getContractNotes(row) {
+  return [cleanCell(row, 8), cleanCell(row, 9), cleanCell(row, 10), cleanCell(row, 11)]
+    .filter(Boolean)
+    .join(" • ");
+}
+
 function formatNumber(value) {
   return Number(value || 0).toLocaleString(undefined, {
     maximumFractionDigits: Number(value || 0) % 1 === 0 ? 0 : 2,
@@ -210,17 +220,37 @@ function getTeamLogo(team) {
 }
 
 function normalizeContracts(rows) {
+  const headers = rows[0] || [];
+  const hasSeasonCapColumns = headers.some((header) =>
+    String(header || "").trim().toLowerCase().includes("c2s4")
+  );
   return rows
     .slice(1)
-    .map((row) => ({
-      team: displayTeamName(row[0] || ""),
-      player: String(row[1] || "").trim(),
-      years: String(row[2] || "").trim(),
-      totalRax: parseMoney(row[3]),
-      totalRaxRaw: String(row[3] || "").trim(),
-      capHit: parseMoney(row[4]),
-      capHitRaw: String(row[4] || "").trim(),
-    }))
+    .map((row) => {
+      const years = cleanCell(row, 2);
+      const yearsLeft = hasSeasonCapColumns ? cleanCell(row, 3) : "";
+      const totalRaxIndex = hasSeasonCapColumns ? 4 : 3;
+      const raxPerSeasonIndex = hasSeasonCapColumns ? 5 : 4;
+      const capHitIndex = hasSeasonCapColumns ? 6 : 4;
+
+      return {
+        team: displayTeamName(row[0] || ""),
+        player: cleanCell(row, 1),
+        years,
+        yearsLeft,
+        yearsLabel: yearsLeft ? `${years || "—"} / ${yearsLeft} left` : years,
+        totalRax: parseMoney(row[totalRaxIndex]),
+        totalRaxRaw: cleanCell(row, totalRaxIndex),
+        raxPerSeason: parseMoney(row[raxPerSeasonIndex]),
+        raxPerSeasonRaw: cleanCell(row, raxPerSeasonIndex),
+        c2s3CapHit: parseMoney(row[5]),
+        c2s4CapHit: parseMoney(row[6]),
+        c2s5CapHit: parseMoney(row[7]),
+        capHit: parseMoney(row[capHitIndex]),
+        capHitRaw: cleanCell(row, capHitIndex),
+        notes: hasSeasonCapColumns ? getContractNotes(row) : cleanCell(row, 7),
+      };
+    })
     .filter(
       (row) =>
         row.team &&
@@ -487,8 +517,9 @@ function renderTeamBreakdown(teamMap) {
           <tr>
             <th>Player</th>
             <th>Years</th>
+            <th>Left</th>
             <th>Total Rax</th>
-            <th>Cap Hit</th>
+            <th>C2S4 Cap</th>
           </tr>
         </thead>
         <tbody>
@@ -499,6 +530,7 @@ function renderTeamBreakdown(teamMap) {
                 <tr>
                   <td><a class="draft-link" href="/player-detail.html?player=${encodeURIComponent(row.player)}">${escapeHtml(row.player)}${window.rsklPlayerBadgeHtml ? window.rsklPlayerBadgeHtml({ player: row.player, rookie: true, risingStars: true }) : ""}</a></td>
                   <td>${escapeHtml(row.years || "—")}</td>
+                  <td>${escapeHtml(row.yearsLeft || "—")}</td>
                   <td>${formatNumber(row.totalRax)}</td>
                   <td>${formatNumber(row.capHit)}</td>
                 </tr>
@@ -527,8 +559,11 @@ function renderLeagueTable() {
       <th>Player</th>
       <th>Team</th>
       <th>Years</th>
+      <th>Left</th>
       <th>Total Rax</th>
-      <th>Cap Hit</th>
+      <th>Per Season</th>
+      <th>C2S4 Cap</th>
+      <th>Notes</th>
     </tr>
   `;
 
@@ -545,13 +580,16 @@ function renderLeagueTable() {
                 </a>
               </td>
               <td>${escapeHtml(row.years || "—")}</td>
+              <td>${escapeHtml(row.yearsLeft || "—")}</td>
               <td>${formatNumber(row.totalRax)}</td>
+              <td>${formatNumber(row.raxPerSeason)}</td>
               <td>${formatNumber(row.capHit)}</td>
+              <td>${escapeHtml(row.notes || "—")}</td>
             </tr>
           `
         )
         .join("")
-    : `<tr><td colspan="5">No cap matches found.</td></tr>`;
+    : `<tr><td colspan="8">No cap matches found.</td></tr>`;
 }
 
 function hydrateTeamControls(teamMap) {
@@ -608,7 +646,7 @@ async function loadCapPage() {
     }
     els.teamCards.innerHTML = `<div class="dashboard-state-card">${message}</div>`;
     els.teamBreakdown.innerHTML = `<div class="dashboard-state-card">${message}</div>`;
-    els.tableBody.innerHTML = `<tr><td colspan="5">${message}</td></tr>`;
+    els.tableBody.innerHTML = `<tr><td colspan="8">${message}</td></tr>`;
   }
 }
 

@@ -792,6 +792,10 @@ function formatContractValue(value) {
   return text || "—";
 }
 
+function cleanContractCell(row, index) {
+  return String(row?.[index] || "").trim();
+}
+
 function findPlayerContract(rows, playerName, preferredTeams = []) {
   if (!rows || !rows.length || !playerName) {
     return null;
@@ -802,14 +806,32 @@ function findPlayerContract(rows, playerName, preferredTeams = []) {
   );
 
   const matches = rows
-    .map((row) => ({
-      team: displayTeamName(row[0] || ""),
-      player: String(row[1] || "").trim(),
-      years: String(row[2] || "").trim(),
-      totalTax: String(row[3] || "").trim(),
-      capHit: String(row[4] || "").trim(),
-      notes: String(row[7] || "").trim(),
-    }))
+    .map((row) => {
+      const headerRow = rows[0] || [];
+      const hasSeasonCapColumns = headerRow.some((header) =>
+        String(header || "").trim().toLowerCase().includes("c2s4")
+      );
+      const years = cleanContractCell(row, 2);
+      const yearsLeft = hasSeasonCapColumns ? cleanContractCell(row, 3) : "";
+      const totalRaxIndex = hasSeasonCapColumns ? 4 : 3;
+      const capHitIndex = hasSeasonCapColumns ? 6 : 4;
+      const notes = hasSeasonCapColumns
+        ? [cleanContractCell(row, 8), cleanContractCell(row, 9), cleanContractCell(row, 10), cleanContractCell(row, 11)]
+            .filter(Boolean)
+            .join(" • ")
+        : cleanContractCell(row, 7);
+
+      return {
+        team: displayTeamName(row[0] || ""),
+        player: cleanContractCell(row, 1),
+        years,
+        yearsLeft,
+        yearsLabel: yearsLeft ? `${years || "—"} / ${yearsLeft} left` : years,
+        totalTax: cleanContractCell(row, totalRaxIndex),
+        capHit: cleanContractCell(row, capHitIndex),
+        notes,
+      };
+    })
     .filter((entry) => matchesAnyAlias(entry.player, aliases));
 
   if (!matches.length) {
@@ -834,7 +856,7 @@ function renderPlayerContract(contract) {
     els.contractTeam.textContent = contract.team || "—";
   }
   if (els.contractYears) {
-    els.contractYears.textContent = contract.years || "—";
+    els.contractYears.textContent = contract.yearsLabel || contract.years || "—";
   }
   if (els.contractTotal) {
     els.contractTotal.textContent = formatContractValue(contract.totalTax);
