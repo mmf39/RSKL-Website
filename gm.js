@@ -1268,7 +1268,7 @@ function compareGmDraftProspectsByMonthly(a, b) {
   const bMonthly = parseGmDraftProspectNumber(b?.monthly ?? getGmDraftProspectStat(b, "Monthly"));
   if (aMonthly === null && bMonthly !== null) return 1;
   if (aMonthly !== null && bMonthly === null) return -1;
-  if (aMonthly !== null && bMonthly !== null && aMonthly !== bMonthly) return bMonthly - aMonthly;
+  if (aMonthly !== null && bMonthly !== null && aMonthly !== bMonthly) return aMonthly - bMonthly;
 
   const aAverageRank = parseGmDraftProspectNumber(
     a?.average_ranked_day_rank ?? getGmDraftProspectStat(a, "Average Ranked Day Rank")
@@ -1419,7 +1419,7 @@ async function loadSupabaseDraftData() {
   const [prospects, picks, settingsRows, queueRows] = await Promise.all([
     requestJson(
       supabaseRestUrl(
-        `/${GM_DRAFT_PROSPECTS_TABLE}?select=player,monthly,ranked_days,average_ranked_day_rank,available&season=eq.${encodeURIComponent(GM_DRAFT_SEASON)}&order=monthly.desc.nullslast,created_at.asc`
+        `/${GM_DRAFT_PROSPECTS_TABLE}?select=player,monthly,ranked_days,average_ranked_day_rank,available&season=eq.${encodeURIComponent(GM_DRAFT_SEASON)}&order=monthly.asc.nullslast,created_at.asc`
       ),
       { headers }
     ),

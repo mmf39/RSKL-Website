@@ -1077,7 +1077,7 @@ async function fetchLiveDraftPicks() {
 
 async function fetchLiveDraftProspects() {
   return fetchSupabaseRows(
-    `/${LIVE_DRAFT_PROSPECTS_TABLE}?select=player,monthly,ranked_days,average_ranked_day_rank,available&season=eq.${encodeURIComponent(LIVE_DRAFT_SEASON)}&order=monthly.desc.nullslast,created_at.asc`
+    `/${LIVE_DRAFT_PROSPECTS_TABLE}?select=player,monthly,ranked_days,average_ranked_day_rank,available&season=eq.${encodeURIComponent(LIVE_DRAFT_SEASON)}&order=monthly.asc.nullslast,created_at.asc`
   );
 }
 
@@ -1091,7 +1091,7 @@ function compareDraftProspectsByMonthly(a, b) {
   const bMonthly = parseDraftProspectNumber(b?.monthly);
   if (aMonthly === null && bMonthly !== null) return 1;
   if (aMonthly !== null && bMonthly === null) return -1;
-  if (aMonthly !== null && bMonthly !== null && aMonthly !== bMonthly) return bMonthly - aMonthly;
+  if (aMonthly !== null && bMonthly !== null && aMonthly !== bMonthly) return aMonthly - bMonthly;
 
   const aAverageRank = parseDraftProspectNumber(a?.average_ranked_day_rank);
   const bAverageRank = parseDraftProspectNumber(b?.average_ranked_day_rank);
