@@ -1457,12 +1457,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (url.pathname === "/api/cron-game-of-the-day") {
-    const handler = require("./api/cron-game-of-the-day");
-    handler(req, res);
-    return;
-  }
-
   if (url.pathname === "/api/sheet-update") {
     const handler = require("./api/sheet-update");
     handler(req, res);

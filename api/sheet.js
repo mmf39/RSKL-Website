@@ -1,4 +1,4 @@
-const proxy = require("./_proxy");
+const proxy = require("../lib/proxy");
 
 const C2S3_STATS_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vS5rm7eqJcdWIX78vETTfsf40lMpXzvJCSdG8dGdkFBbXXC2zEzidcpGTLUzqcZQPTTVquYuLCeXoPL/pub?gid=1201938197&single=true&output=csv";
