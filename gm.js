@@ -1252,6 +1252,39 @@ function buildSubmittedDraftPickSet(rows, season = "c2s4") {
   return out;
 }
 
+function parseGmDraftProspectNumber(value) {
+  const number = Number(String(value ?? "").replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(number) ? number : null;
+}
+
+function getGmDraftProspectStat(prospect, label) {
+  const key = String(label || "").trim().toLowerCase();
+  const stat = (prospect?.stats || []).find((item) => String(item?.label || "").trim().toLowerCase() === key);
+  return stat?.value ?? "";
+}
+
+function compareGmDraftProspectsByMonthly(a, b) {
+  const aMonthly = parseGmDraftProspectNumber(a?.monthly ?? getGmDraftProspectStat(a, "Monthly"));
+  const bMonthly = parseGmDraftProspectNumber(b?.monthly ?? getGmDraftProspectStat(b, "Monthly"));
+  if (aMonthly === null && bMonthly !== null) return 1;
+  if (aMonthly !== null && bMonthly === null) return -1;
+  if (aMonthly !== null && bMonthly !== null && aMonthly !== bMonthly) return bMonthly - aMonthly;
+
+  const aAverageRank = parseGmDraftProspectNumber(
+    a?.average_ranked_day_rank ?? getGmDraftProspectStat(a, "Average Ranked Day Rank")
+  );
+  const bAverageRank = parseGmDraftProspectNumber(
+    b?.average_ranked_day_rank ?? getGmDraftProspectStat(b, "Average Ranked Day Rank")
+  );
+  if (aAverageRank === null && bAverageRank !== null) return 1;
+  if (aAverageRank !== null && bAverageRank === null) return -1;
+  if (aAverageRank !== null && bAverageRank !== null && aAverageRank !== bAverageRank) {
+    return aAverageRank - bAverageRank;
+  }
+
+  return String(a?.name || "").localeCompare(String(b?.name || ""));
+}
+
 function buildDraftProspects(rows) {
   let prospectsRows = sliceRange(rows, GM_DRAFT_PROSPECTS_RANGE).filter((row) =>
     row.some((cell) => String(cell || "").trim())
@@ -1303,7 +1336,8 @@ function buildDraftProspects(rows) {
       if (!key || seen.has(key)) return false;
       seen.add(key);
       return true;
-    });
+    })
+    .sort(compareGmDraftProspectsByMonthly);
 }
 
 function buildDraftProspectsFromSupabase(rows) {
@@ -1329,9 +1363,13 @@ function buildDraftProspectsFromSupabase(rows) {
       }
       return {
         name: String(row.player || "").trim(),
+        monthly: row.monthly,
+        ranked_days: row.ranked_days,
+        average_ranked_day_rank: row.average_ranked_day_rank,
         stats,
       };
-    });
+    })
+    .sort(compareGmDraftProspectsByMonthly);
 }
 
 async function fetchOwnDraftQueueRows(team) {
@@ -1381,7 +1419,7 @@ async function loadSupabaseDraftData() {
   const [prospects, picks, settingsRows, queueRows] = await Promise.all([
     requestJson(
       supabaseRestUrl(
-        `/${GM_DRAFT_PROSPECTS_TABLE}?select=player,monthly,ranked_days,average_ranked_day_rank,available&season=eq.${encodeURIComponent(GM_DRAFT_SEASON)}&order=created_at.asc`
+        `/${GM_DRAFT_PROSPECTS_TABLE}?select=player,monthly,ranked_days,average_ranked_day_rank,available&season=eq.${encodeURIComponent(GM_DRAFT_SEASON)}&order=monthly.desc.nullslast,created_at.asc`
       ),
       { headers }
     ),

@@ -1077,8 +1077,31 @@ async function fetchLiveDraftPicks() {
 
 async function fetchLiveDraftProspects() {
   return fetchSupabaseRows(
-    `/${LIVE_DRAFT_PROSPECTS_TABLE}?select=player,monthly,ranked_days,average_ranked_day_rank,available&season=eq.${encodeURIComponent(LIVE_DRAFT_SEASON)}&order=created_at.asc`
+    `/${LIVE_DRAFT_PROSPECTS_TABLE}?select=player,monthly,ranked_days,average_ranked_day_rank,available&season=eq.${encodeURIComponent(LIVE_DRAFT_SEASON)}&order=monthly.desc.nullslast,created_at.asc`
   );
+}
+
+function parseDraftProspectNumber(value) {
+  const number = Number(String(value ?? "").replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(number) ? number : null;
+}
+
+function compareDraftProspectsByMonthly(a, b) {
+  const aMonthly = parseDraftProspectNumber(a?.monthly);
+  const bMonthly = parseDraftProspectNumber(b?.monthly);
+  if (aMonthly === null && bMonthly !== null) return 1;
+  if (aMonthly !== null && bMonthly === null) return -1;
+  if (aMonthly !== null && bMonthly !== null && aMonthly !== bMonthly) return bMonthly - aMonthly;
+
+  const aAverageRank = parseDraftProspectNumber(a?.average_ranked_day_rank);
+  const bAverageRank = parseDraftProspectNumber(b?.average_ranked_day_rank);
+  if (aAverageRank === null && bAverageRank !== null) return 1;
+  if (aAverageRank !== null && bAverageRank === null) return -1;
+  if (aAverageRank !== null && bAverageRank !== null && aAverageRank !== bAverageRank) {
+    return aAverageRank - bAverageRank;
+  }
+
+  return String(a?.player || "").localeCompare(String(b?.player || ""));
 }
 
 async function fetchLiveDraftSettings() {
@@ -1210,7 +1233,9 @@ async function renderLiveC2S4DraftBoard() {
 
 async function renderLiveC2S4Prospects() {
   const rows = await fetchLiveDraftProspects();
-  const availableRows = rows.filter((row) => row?.available !== false);
+  const availableRows = rows
+    .filter((row) => row?.available !== false)
+    .sort(compareDraftProspectsByMonthly);
   const tableRows = [
     ["Player", "Monthly", "Ranked Days", "Average Ranked Day Rank"],
     ...availableRows.map((row) => [
