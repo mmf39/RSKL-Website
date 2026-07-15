@@ -1451,12 +1451,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (url.pathname === "/api/real-post-queue") {
-    const handler = require("./api/real-post-queue");
-    handler(req, res);
-    return;
-  }
-
   if (url.pathname === "/api/sheet-update") {
     const handler = require("./api/sheet-update");
     handler(req, res);

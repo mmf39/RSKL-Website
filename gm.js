@@ -9,7 +9,6 @@ const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const PLAYER_RENAME_SYNC_API = "/api/player-rename-sync";
 const NEWS_ARTICLES_API = "/api/articles";
 const GM_ASSIGNMENTS_API = "/api/gm-assignments";
-const REAL_POST_QUEUE_API = "/api/real-post-queue";
 const GM_ACCESS_TOKEN_KEY = "rskl_gm_access_token";
 const GM_REFRESH_TOKEN_KEY = "rskl_gm_refresh_token";
 const GM_SESSION_USER_KEY = "rskl_gm_user";
@@ -111,11 +110,6 @@ const els = {
   lockSave: document.getElementById("gm-lock-save"),
   lockStatus: document.getElementById("gm-lock-status"),
   commishTransactionsCard: document.getElementById("gm-commish-transactions-card"),
-  realPostCard: document.getElementById("gm-real-post-card"),
-  realPostFilters: document.getElementById("gm-real-post-filters"),
-  realPostRefresh: document.getElementById("gm-real-post-refresh"),
-  realPostList: document.getElementById("gm-real-post-list"),
-  realPostStatus: document.getElementById("gm-real-post-status"),
   transactionRefresh: document.getElementById("gm-transaction-refresh"),
   transactionApprovalList: document.getElementById("gm-transaction-approval-list"),
   transactionApprovalStatus: document.getElementById("gm-transaction-approval-status"),
@@ -237,8 +231,6 @@ let draftAutoPickInFlightKey = "";
 let draftHandledTimerStartAt = "";
 let draftQueueCache = [];
 let draftQueueSaveInFlight = false;
-let realPostQueueFilter = "pending";
-let realPostQueueCache = [];
 
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
@@ -462,10 +454,6 @@ function setTransactionStatus(message, isError = false) {
 
 function setTransactionApprovalStatus(message, isError = false) {
   setStatus(els.transactionApprovalStatus, message, isError);
-}
-
-function setRealPostStatus(message, isError = false) {
-  setStatus(els.realPostStatus, message, isError);
 }
 
 function setRenameStatus(message, isError = false) {
@@ -2502,9 +2490,6 @@ function applyAuthUi() {
   if (els.commishTransactionsCard) {
     els.commishTransactionsCard.hidden = !commishAccess;
   }
-  if (els.realPostCard) {
-    els.realPostCard.hidden = !commishAccess;
-  }
   renderDraftRunner();
   if (els.articleCard) {
     els.articleCard.hidden = !(signedIn && canWriteArticles());
@@ -2532,7 +2517,6 @@ function applyAuthUi() {
   }
   if (commishAccess) {
     loadPendingTransactionsForCommish();
-    loadRealPostQueue();
   }
   if (els.sessionMeta) {
     els.sessionMeta.hidden = !signedIn;
@@ -3482,124 +3466,6 @@ async function loadPendingTransactionsForCommish() {
   } catch (error) {
     setTransactionApprovalStatus(error.message || "Unable to load pending transactions.", true);
   }
-}
-
-function formatQueueDate(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-function getQueueActionButtons(item) {
-  const id = escapeHtml(item.id || "");
-  const status = String(item.status || "pending").toLowerCase();
-  const restore = status === "copied" || status === "dismissed";
-  return `
-    <div class="gm-real-post-card-actions">
-      <button class="btn" type="button" data-real-post-copy="${id}">Copy Message</button>
-      <a class="btn ghost" href="https://www.realapp.com/" target="_blank" rel="noopener noreferrer">Open Real</a>
-      <button class="btn ghost" type="button" data-real-post-status="posted" data-real-post-id="${id}">Mark Posted</button>
-      <button class="btn ghost" type="button" data-real-post-status="dismissed" data-real-post-id="${id}">Dismiss</button>
-      ${restore ? `<button class="btn ghost" type="button" data-real-post-status="pending" data-real-post-id="${id}">Restore</button>` : ""}
-    </div>
-  `;
-}
-
-function renderRealPostQueue(items) {
-  if (!els.realPostList) return;
-  if (!items.length) {
-    els.realPostList.innerHTML = `<div class="gm-empty">No ${escapeHtml(realPostQueueFilter)} announcements.</div>`;
-    return;
-  }
-  els.realPostList.innerHTML = items
-    .map((item) => {
-      const title = item.title || item.announcementType || "Announcement";
-      const preview = String(item.message || "").split(/\n+/).slice(0, 4).join("\n");
-      return `
-        <div class="gm-readonly-card gm-real-post-card" data-real-post-card="${escapeHtml(item.id)}">
-          <div class="gm-readonly-title">${escapeHtml(title)}</div>
-          <div class="gm-real-post-meta">
-            <span>${escapeHtml(item.announcementType || "announcement")}</span>
-            <span>${escapeHtml(item.status || "pending")}</span>
-            <span>${escapeHtml(formatQueueDate(item.createdAt))}</span>
-          </div>
-          <pre class="gm-real-post-preview">${escapeHtml(preview)}</pre>
-          <div class="gm-readonly-group">
-            <div class="label">Event Key</div>
-            <div>${escapeHtml(item.eventKey || "—")}</div>
-          </div>
-          ${getQueueActionButtons(item)}
-        </div>
-      `;
-    })
-    .join("");
-}
-
-async function loadRealPostQueue() {
-  if (!isSignedInGm() || !isCommish() || !els.realPostList) return;
-  try {
-    setRealPostStatus("Loading announcement queue...");
-    const response = await fetch(`${REAL_POST_QUEUE_API}?status=${encodeURIComponent(realPostQueueFilter)}`, {
-      headers: await authHeadersFresh(),
-      cache: "no-store",
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok || payload?.ok === false) {
-      throw new Error(payload?.message || `Request failed (${response.status})`);
-    }
-    realPostQueueCache = Array.isArray(payload.announcements) ? payload.announcements : [];
-    renderRealPostQueue(realPostQueueCache);
-    setRealPostStatus(realPostQueueCache.length ? `${realPostQueueCache.length} announcement(s).` : "No announcements in this filter.");
-  } catch (error) {
-    if (els.realPostList) {
-      els.realPostList.innerHTML = `<div class="gm-empty">${escapeHtml(error.message || "Unable to load announcements.")}</div>`;
-    }
-    setRealPostStatus(error.message || "Unable to load announcements.", true);
-  }
-}
-
-async function updateRealPostStatus(id, status) {
-  const response = await fetch(REAL_POST_QUEUE_API, {
-    method: "PATCH",
-    headers: await authHeadersFresh(),
-    body: JSON.stringify({ id, status }),
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload?.ok === false) {
-    throw new Error(payload?.message || `Request failed (${response.status})`);
-  }
-  return payload.announcement;
-}
-
-async function writeClipboardText(text) {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "readonly");
-  textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
-  document.body.appendChild(textarea);
-  textarea.select();
-  const copied = document.execCommand("copy");
-  textarea.remove();
-  if (!copied) throw new Error("Clipboard copy failed.");
-}
-
-async function copyRealPostMessage(id) {
-  const item = realPostQueueCache.find((entry) => String(entry.id) === String(id));
-  if (!item) throw new Error("Announcement not found in the current queue.");
-  await writeClipboardText(String(item.message || ""));
-  await updateRealPostStatus(id, "copied");
-  setRealPostStatus("Message copied. Open Real and paste it into the group.");
-  await loadRealPostQueue();
 }
 
 function renderRenameTeam(team) {
@@ -4922,46 +4788,6 @@ function bindEvents() {
         await loadPendingTransactionsForCommish();
       } catch (error) {
         setTransactionApprovalStatus(error.message || "Unable to review transaction.", true);
-      }
-    });
-  }
-  if (els.realPostFilters) {
-    els.realPostFilters.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-real-post-filter]");
-      if (!button) return;
-      realPostQueueFilter = String(button.dataset.realPostFilter || "pending").trim() || "pending";
-      Array.from(els.realPostFilters.querySelectorAll("[data-real-post-filter]")).forEach((node) => {
-        node.classList.toggle("active", node === button);
-      });
-      loadRealPostQueue();
-    });
-  }
-  if (els.realPostRefresh) {
-    els.realPostRefresh.addEventListener("click", loadRealPostQueue);
-  }
-  if (els.realPostList) {
-    els.realPostList.addEventListener("click", async (event) => {
-      const copyButton = event.target.closest("[data-real-post-copy]");
-      const statusButton = event.target.closest("[data-real-post-status]");
-      if (!copyButton && !statusButton) return;
-      if (!isSignedInGm() || !isCommish()) {
-        setRealPostStatus("Commissioner access required.", true);
-        return;
-      }
-      try {
-        if (copyButton) {
-          setRealPostStatus("Copying message...");
-          await copyRealPostMessage(copyButton.dataset.realPostCopy || "");
-          return;
-        }
-        const id = statusButton.dataset.realPostId || "";
-        const status = statusButton.dataset.realPostStatus || "";
-        setRealPostStatus("Updating announcement...");
-        await updateRealPostStatus(id, status);
-        setRealPostStatus(status === "posted" ? "Announcement marked posted." : "Announcement updated.");
-        await loadRealPostQueue();
-      } catch (error) {
-        setRealPostStatus(error.message || "Unable to update announcement.", true);
       }
     });
   }
