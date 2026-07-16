@@ -1159,6 +1159,20 @@ function isPublicLiveDraftBoardView() {
   return selectedYear === LIVE_DRAFT_SEASON && selectedView === "teams";
 }
 
+function isLiveC2S4DraftComplete() {
+  const totalPicks = Math.max(0, getC2S4BaseDraftRows().length - 1);
+  const completedPicks = new Set(
+    liveDraftPicksCache
+      .filter((pick) => {
+        const status = String(pick.status || "").trim().toLowerCase();
+        return String(pick.player || "").trim() || status === "forfeit";
+      })
+      .map((pick) => Number(pick.pick))
+      .filter((pick) => Number.isFinite(pick) && pick > 0)
+  );
+  return totalPicks > 0 && completedPicks.size >= totalPicks;
+}
+
 function renderPublicDraftStatus() {
   const showStatus = isPublicLiveDraftBoardView();
 
@@ -1168,11 +1182,13 @@ function renderPublicDraftStatus() {
   if (!showStatus) return;
 
   const currentPickNumber = Number(liveDraftSettingsCache?.current_pick) || 0;
+  const draftComplete = isLiveC2S4DraftComplete();
   const currentPick = liveDraftPicksCache.find((pick) => Number(pick.pick) === currentPickNumber);
   const previousPick = liveDraftPicksCache
     .filter((pick) => {
       const status = String(pick.status || "").trim().toLowerCase();
-      return Number(pick.pick) < currentPickNumber && (String(pick.player || "").trim() || status === "forfeit");
+      const isCompleted = String(pick.player || "").trim() || status === "forfeit";
+      return draftComplete ? isCompleted : Number(pick.pick) < currentPickNumber && isCompleted;
     })
     .sort((a, b) => Number(b.pick) - Number(a.pick))[0];
   const clockTeam = currentPick
@@ -1185,10 +1201,10 @@ function renderPublicDraftStatus() {
     els.publicDraftPrevious.innerHTML = getLiveDraftPickHtml(previousPick);
   }
   if (els.publicDraftClockTeam) {
-    els.publicDraftClockTeam.innerHTML = linkifyTeamsAndPlayers(clockTeam);
+    els.publicDraftClockTeam.innerHTML = draftComplete ? "Draft Complete" : linkifyTeamsAndPlayers(clockTeam);
   }
   if (els.publicDraftTime) {
-    els.publicDraftTime.textContent = formatLiveDraftTime(getLiveDraftTimerRemainingMs());
+    els.publicDraftTime.textContent = draftComplete ? "Final" : formatLiveDraftTime(getLiveDraftTimerRemainingMs());
   }
 }
 

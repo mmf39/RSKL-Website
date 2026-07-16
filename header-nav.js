@@ -25,6 +25,7 @@
   let playerPhotoCachePromise = null;
   const DRAFT_EVENT_AT = new Date("2026-07-15T18:00:00-04:00");
   const DRAFT_EVENT_LINK = "/draft.html?year=c2s4";
+  const DRAFT_EVENT_COMPLETE = true;
 
   const normalize = (value) =>
     String(value || "").trim().replace(/^@/, "").toLowerCase();
@@ -116,6 +117,7 @@
   }
 
   function ensureDraftCountdownBanner() {
+    if (DRAFT_EVENT_COMPLETE) return;
     if (document.querySelector(".draft-countdown-banner")) return;
     const header = document.querySelector(".hero");
     if (!header) return;
