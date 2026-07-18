@@ -4,7 +4,7 @@ const DRAFT_URL = "/api/sheet?name=draft";
 const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
 const STANDINGS_DASHBOARD_URL = "/api/sheet?name=standings-dashboard";
 const POWER_RANKINGS_URL = "/api/sheet?name=power-rankings";
-const SCHEDULE_URL = "/api/sheet?name=schedule";
+const SCHEDULE_URL = "/api/sheet?name=c2s4-schedule";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const PLAYER_RENAME_SYNC_API = "/api/player-rename-sync";
 const NEWS_ARTICLES_API = "/api/articles";
@@ -3993,11 +3993,11 @@ async function loadUpcomingScheduleGames() {
 
   const header = rows[0].map((h) => String(h || "").trim().toLowerCase());
   const body = rows.slice(1);
-  const dateIdx = header.findIndex((h) => h === "date");
-  const t1Idx = header.findIndex((h) => h === "team 1" || h === "away");
-  const t2Idx = header.findIndex((h) => h === "team 2" || h === "home");
-  const statusIdx = header.findIndex((h) => h === "status");
-  const typeIdx = header.findIndex((h) => h === "type" || h === "game type");
+  const dateIdx = header.findIndex((h) => h === "date" || h === "game date");
+  const t1Idx = header.findIndex((h) => h === "team 1" || h === "away" || h === "away team");
+  const t2Idx = header.findIndex((h) => h === "team 2" || h === "home" || h === "home team");
+  const statusIdx = header.findIndex((h) => h === "status" || h === "result" || h === "winner");
+  const typeIdx = header.findIndex((h) => h === "type" || h === "game type" || h === "game");
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
