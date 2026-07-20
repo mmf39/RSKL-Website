@@ -306,12 +306,32 @@
 
   function observePlayerLinks() {
     if (!document.body) return;
+    let pendingRoot = null;
+    let pendingTimer = 0;
+    const scheduleEnhancement = (root) => {
+      pendingRoot = pendingRoot === document || root === document ? document : root || pendingRoot || document;
+      window.clearTimeout(pendingTimer);
+      pendingTimer = window.setTimeout(() => {
+        const rootToEnhance = pendingRoot || document;
+        pendingRoot = null;
+        enhancePlayerLinks(rootToEnhance);
+      }, 250);
+    };
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         if (mutation.type === "childList" && mutation.addedNodes.length) {
-          enhancePlayerLinks(document);
-          hydrateRookieBadges(document);
-          break;
+          const addedElement = Array.from(mutation.addedNodes).find((node) => node.nodeType === 1);
+          if (!addedElement) continue;
+          const root =
+            addedElement.matches?.('a[href*="player-detail.html?player="], .rookie-mark[data-rookie-player]')
+              ? addedElement.parentElement || addedElement
+              : addedElement.querySelector?.('a[href*="player-detail.html?player="], .rookie-mark[data-rookie-player]')
+              ? addedElement
+              : null;
+          if (root) {
+            scheduleEnhancement(root);
+            break;
+          }
         }
       }
     });

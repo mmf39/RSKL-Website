@@ -337,7 +337,7 @@ const els = {
   boxDetails: document.getElementById("boxscore-details"),
 };
 
-const AUTO_REFRESH_MS = 60 * 1000;
+const AUTO_REFRESH_MS = 5 * 60 * 1000;
 let isTeamPageRefreshing = false;
 
 let leagueStandingsMetrics = [];
@@ -4795,4 +4795,7 @@ initStandingsInteractions();
 initHistoryTabs();
 initTeamViewTabs();
 loadGameContent().finally(() => loadRoster());
-setInterval(loadRoster, AUTO_REFRESH_MS);
+setInterval(() => {
+  if (document.hidden) return;
+  loadRoster();
+}, AUTO_REFRESH_MS);

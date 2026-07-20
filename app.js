@@ -42,6 +42,7 @@ const C1S3_STANDINGS_URL = "/assets/data/c1s3-standings.csv";
 const SEASON_KEY = "season";
 
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
+let isDashboardRefreshing = false;
 
 const TEAM_ORDER = [
   "Turkeys",
@@ -3358,5 +3359,18 @@ document.addEventListener("change", (event) => {
 });
 
 initSeasonSelect();
-loadData();
-setInterval(loadData, AUTO_REFRESH_MS);
+async function refreshDashboard() {
+  if (isDashboardRefreshing) return;
+  isDashboardRefreshing = true;
+  try {
+    await loadData();
+  } finally {
+    isDashboardRefreshing = false;
+  }
+}
+
+refreshDashboard();
+setInterval(() => {
+  if (document.hidden) return;
+  refreshDashboard();
+}, AUTO_REFRESH_MS);
