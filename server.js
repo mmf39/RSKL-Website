@@ -72,7 +72,9 @@ const SHEETS = {
   "c2s4-roster": C2S4_TEAMS_URL,
   "c2s4-schedule": C2S4_SCHEDULE_URL,
   "c2s4-standings": C2S4_STANDINGS_URL,
+  "c2s4-standings-edit": C2S4_STANDINGS_URL,
   "c2s4-teams": C2S4_TEAMS_URL,
+  "c2s4-teams-raw": C2S4_TEAMS_URL,
   "live-scoring":
     "https://docs.google.com/spreadsheets/d/e/2PACX-1vSyMvwXHxfA-8oojTmWqs3yMMwItbmrWrSGoWf8NFs2msKpTD6WmWkPKBsBRAE3m3yuQja7ed5FxgMI/pub?gid=1486072019&single=true&output=csv",
   "player-stats": C2S3_STATS_URL,
@@ -501,6 +503,13 @@ function sliceC2S4Draft(text) {
   return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
 }
 
+function sliceC2S4TeamsRaw(text) {
+  const rows = parseCSV(text)
+    .slice(1, 58)
+    .map((row) => row.slice(0, 10));
+  return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
+}
+
 function normalizeCurrentSheetTeamName(value) {
   const clean = String(value || "").trim();
   if (clean === "The Pandas" || clean === "The Lions" || clean === "Lions") return "Pandas";
@@ -531,6 +540,13 @@ function sliceC2S4Standings(text) {
     })
     .map((row) => [normalizeCurrentSheetTeamName(row[0]), ...row.slice(1)]);
   return `${formatCSV([header, ...dataRows])}\n`;
+}
+
+function sliceC2S4StandingsEdit(text) {
+  const rows = parseCSV(text)
+    .slice(0, 16)
+    .map((row) => row.slice(1, 7));
+  return `${formatCSV(trimTrailingBlankRows(rows))}\n`;
 }
 
 const C2S3_ROSTER_LAYOUT = {
@@ -650,7 +666,9 @@ const SHEET_TRANSFORMS = {
   "c2s4-roster": sliceC2S4Rosters,
   "c2s4-schedule": sliceC2S4Schedule,
   "c2s4-standings": sliceC2S4Standings,
+  "c2s4-standings-edit": sliceC2S4StandingsEdit,
   "c2s4-teams": sliceC2S4Rosters,
+  "c2s4-teams-raw": sliceC2S4TeamsRaw,
   "player-stats": sliceC2S3PlayerStats,
   roster: sliceC2S3Rosters,
   schedule: sliceC2S3RegularSchedule,

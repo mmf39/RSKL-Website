@@ -7003,6 +7003,18 @@ input[type="text"] {
 }
 
 @media (max-width: 760px) {
+  .gm-sheet-roster-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .gm-sheet-edit-head {
+    align-items: stretch;
+  }
+
+  .gm-sheet-edit-head .btn {
+    width: 100%;
+  }
+
   .gm-commish-draft-head {
     align-items: flex-start;
     flex-direction: column;
@@ -7326,6 +7338,76 @@ input[type="text"] {
   border-color: rgba(255, 176, 86, 0.4);
   background: rgba(14, 24, 48, 0.92);
   transform: translateY(-1px);
+}
+
+.gm-sheet-edit-card h3 {
+  margin: 4px 0 0;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+}
+
+.gm-sheet-edit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.gm-sheet-roster-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.gm-sheet-roster-field {
+  display: grid;
+  gap: 6px;
+}
+
+.gm-sheet-roster-field span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.gm-sheet-table-wrap {
+  width: 100%;
+  max-height: 520px;
+  overflow: auto;
+  border: 1px solid rgba(255, 164, 66, 0.18);
+  border-radius: 18px;
+  background: rgba(5, 10, 22, 0.58);
+}
+
+.gm-sheet-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+}
+
+.gm-sheet-table td {
+  min-width: 150px;
+  border: 1px solid rgba(255, 164, 66, 0.14);
+  padding: 6px;
+}
+
+.gm-sheet-cell {
+  width: 100%;
+  min-width: 136px;
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  padding: 9px 10px;
+  background: rgba(13, 20, 38, 0.88);
+  color: var(--ink);
+  font: inherit;
+}
+
+.gm-sheet-cell:focus {
+  outline: 2px solid rgba(255, 176, 86, 0.58);
+  outline-offset: 1px;
 }
 
 .gm-vote-row {

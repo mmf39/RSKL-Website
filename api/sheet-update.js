@@ -56,6 +56,8 @@ function getScriptUrlByAction(action) {
     action === "getPendingTransactionRequests" ||
     action === "reviewTransactionRequest" ||
     action === "submitDraftPick" ||
+    action === "saveSheetRoster" ||
+    action === "saveSheetGrid" ||
     action === "setGameLocks" ||
     action === "saveGameLocks" ||
     action === "getGameLocks"

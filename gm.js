@@ -5,6 +5,9 @@ const DRAFT_CAPITAL_URL = "/api/sheet?name=draft-capital";
 const STANDINGS_DASHBOARD_URL = "/api/sheet?name=standings-dashboard";
 const POWER_RANKINGS_URL = "/api/sheet?name=power-rankings";
 const SCHEDULE_URL = "/api/sheet?name=c2s4-schedule";
+const SHEET_EDIT_TEAMS_URL = "/api/sheet?name=c2s4-teams-raw";
+const SHEET_EDIT_SCHEDULE_URL = "/api/sheet?name=c2s4-schedule";
+const SHEET_EDIT_STANDINGS_URL = "/api/sheet?name=c2s4-standings-edit";
 const SUPABASE_CONFIG_URL = "/api/supabase-config";
 const PLAYER_RENAME_SYNC_API = "/api/player-rename-sync";
 const NEWS_ARTICLES_API = "/api/articles";
@@ -106,6 +109,7 @@ const els = {
   articleCard: document.getElementById("gm-article-card"),
   articlesTab: document.getElementById("gm-articles-tab"),
   commishTab: document.getElementById("gm-commish-tab"),
+  sheetEditTab: document.getElementById("gm-sheet-edit-tab"),
   lockGamesList: document.getElementById("gm-lock-games-list"),
   lockSave: document.getElementById("gm-lock-save"),
   lockStatus: document.getElementById("gm-lock-status"),
@@ -132,6 +136,7 @@ const els = {
   tabPowerPanel: document.getElementById("gm-tab-power"),
   tabArticlesPanel: document.getElementById("gm-tab-articles"),
   tabCommishPanel: document.getElementById("gm-tab-commish"),
+  tabSheetEditPanel: document.getElementById("gm-tab-sheet-edit"),
   lineupTabMeta: document.getElementById("gm-lineup-tab-meta"),
   sessionMeta: document.getElementById("gm-session-meta"),
   sessionSummary: document.getElementById("gm-session-summary"),
@@ -196,6 +201,19 @@ const els = {
   powerSave: document.getElementById("power-save"),
   powerStatus: document.getElementById("power-status"),
   powerVotesView: document.getElementById("power-votes-view"),
+  sheetEditRefresh: document.getElementById("gm-sheet-edit-refresh"),
+  sheetEditTeamSelect: document.getElementById("sheet-edit-team-select"),
+  sheetEditRosterFields: document.getElementById("sheet-edit-roster-fields"),
+  sheetEditRosterSave: document.getElementById("sheet-edit-roster-save"),
+  sheetEditRosterStatus: document.getElementById("sheet-edit-roster-status"),
+  sheetEditScheduleTable: document.getElementById("sheet-edit-schedule-table"),
+  sheetEditScheduleAdd: document.getElementById("sheet-edit-schedule-add"),
+  sheetEditScheduleSave: document.getElementById("sheet-edit-schedule-save"),
+  sheetEditScheduleStatus: document.getElementById("sheet-edit-schedule-status"),
+  sheetEditStandingsTable: document.getElementById("sheet-edit-standings-table"),
+  sheetEditStandingsAdd: document.getElementById("sheet-edit-standings-add"),
+  sheetEditStandingsSave: document.getElementById("sheet-edit-standings-save"),
+  sheetEditStandingsStatus: document.getElementById("sheet-edit-standings-status"),
 };
 
 let rosterByTeam = new Map();
@@ -231,6 +249,9 @@ let draftAutoPickInFlightKey = "";
 let draftHandledTimerStartAt = "";
 let draftQueueCache = [];
 let draftQueueSaveInFlight = false;
+let sheetEditTeamsCache = new Map();
+let sheetEditScheduleRows = [];
+let sheetEditStandingsRows = [];
 
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
@@ -331,6 +352,8 @@ function setActiveTab(tab) {
       ? "articles"
       : tab === "commish"
       ? "commish"
+      : tab === "sheet-edit"
+      ? "sheet-edit"
       : "trade";
   if (els.tabTradePanel) {
     els.tabTradePanel.hidden = active !== "trade";
@@ -359,6 +382,9 @@ function setActiveTab(tab) {
   if (els.tabCommishPanel) {
     els.tabCommishPanel.hidden = active !== "commish";
   }
+  if (els.tabSheetEditPanel) {
+    els.tabSheetEditPanel.hidden = active !== "sheet-edit";
+  }
   if (els.tabButtons && els.tabButtons.length) {
     els.tabButtons.forEach((button) => {
       const isActive = button.dataset.gmTab === active;
@@ -369,6 +395,9 @@ function setActiveTab(tab) {
     renderDraftQueue();
     renderDraftProspectSelects();
     renderGmDraftPick();
+  }
+  if (active === "sheet-edit") {
+    loadSheetEditData();
   }
 }
 
@@ -2538,6 +2567,9 @@ function applyAuthUi() {
   if (els.commishTab) {
     els.commishTab.hidden = !commishAccess;
   }
+  if (els.sheetEditTab) {
+    els.sheetEditTab.hidden = !commishAccess;
+  }
   ["trade", "manage", "rename", "lineup", "draft"].forEach((tabName) => {
     const button = els.tabButtons.find((tabButton) => tabButton.dataset.gmTab === tabName);
     if (button) {
@@ -2547,7 +2579,10 @@ function applyAuthUi() {
   renderGmDraftPick();
   if (reporterOnly) {
     setActiveTab("articles");
-  } else if (els.tabCommishPanel && !isCommish() && !els.tabCommishPanel.hidden) {
+  } else if (
+    (els.tabCommishPanel && !isCommish() && !els.tabCommishPanel.hidden) ||
+    (els.tabSheetEditPanel && !isCommish() && !els.tabSheetEditPanel.hidden)
+  ) {
     setActiveTab(canWriteArticles() ? "articles" : "trade");
   }
   if (signedIn && canWriteArticles()) {
@@ -4483,6 +4518,233 @@ function randomizePowerRankings() {
   syncPowerRankingOptions();
 }
 
+function setSheetEditStatus(node, message, isError = false) {
+  if (!node) return;
+  node.textContent = message;
+  node.className = `gm-status ${isError ? "error" : ""}`;
+}
+
+function parseSheetEditTeams(rows) {
+  const wantedTeams = TEAM_ORDER.map(displayTeamName);
+  const teamByKey = new Map(wantedTeams.map((team) => [normalizeName(team), team]));
+  teamByKey.set(normalizeName("The Pandas"), "Pandas");
+  teamByKey.set(normalizeName("Bullets"), "Storm");
+  teamByKey.set(normalizeName("Yetis"), "Scorpions");
+  teamByKey.set(normalizeName("The Future"), "Dream Team");
+
+  const map = new Map();
+  (rows || []).forEach((row, rowIndex) => {
+    (row || []).forEach((cell, colIndex) => {
+      const team = teamByKey.get(normalizeName(cell));
+      if (!team || map.has(team)) return;
+      const gm = String(rows[rowIndex + 1]?.[colIndex] || "").replace(/^gm\s*=\s*/i, "").trim();
+      const players = Array.from({ length: 10 }, (_, idx) =>
+        String(rows[rowIndex + 2 + idx]?.[colIndex] || "").trim()
+      );
+      map.set(team, { gm, players });
+    });
+  });
+  return map;
+}
+
+function renderSheetEditRoster() {
+  if (!els.sheetEditRosterFields) return;
+  const team = displayTeamName(els.sheetEditTeamSelect?.value || "");
+  if (!team) {
+    els.sheetEditRosterFields.innerHTML = '<div class="gm-empty">Select a team to edit its GM and roster spots.</div>';
+    return;
+  }
+  const roster = sheetEditTeamsCache.get(team) || { gm: "", players: [] };
+  els.sheetEditRosterFields.innerHTML = `
+    <label class="gm-sheet-roster-field">
+      <span>GM</span>
+      <input class="text-input" type="text" data-sheet-roster-gm value="${escapeHtml(roster.gm || "")}" />
+    </label>
+    ${Array.from({ length: 10 }, (_, idx) => `
+      <label class="gm-sheet-roster-field">
+        <span>Player ${idx + 1}</span>
+        <input class="text-input" type="text" data-sheet-roster-player="${idx}" value="${escapeHtml(roster.players?.[idx] || "")}" />
+      </label>
+    `).join("")}
+  `;
+}
+
+function getSheetGridWidth(rows, fallback = 5) {
+  return Math.max(
+    fallback,
+    ...(Array.isArray(rows) ? rows : []).map((row) => (Array.isArray(row) ? row.length : 0))
+  );
+}
+
+function renderSheetGrid(container, rows, key, fallbackCols = 5) {
+  if (!container) return;
+  const width = getSheetGridWidth(rows, fallbackCols);
+  const safeRows = Array.isArray(rows) && rows.length ? rows : [Array.from({ length: width }, () => "")];
+  container.innerHTML = `
+    <table class="gm-sheet-table">
+      <tbody>
+        ${safeRows
+          .map(
+            (row, rowIndex) => `
+              <tr>
+                ${Array.from({ length: width }, (_, colIndex) => `
+                  <td>
+                    <input
+                      class="gm-sheet-cell"
+                      type="text"
+                      value="${escapeHtml(row?.[colIndex] || "")}"
+                      data-sheet-grid="${escapeHtml(key)}"
+                      data-row="${rowIndex}"
+                      data-col="${colIndex}"
+                    />
+                  </td>
+                `).join("")}
+              </tr>
+            `
+          )
+          .join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function readSheetGrid(key) {
+  const inputs = Array.from(document.querySelectorAll(`[data-sheet-grid="${key}"]`));
+  const rows = [];
+  inputs.forEach((input) => {
+    const row = Number(input.dataset.row || 0);
+    const col = Number(input.dataset.col || 0);
+    if (!rows[row]) rows[row] = [];
+    rows[row][col] = String(input.value || "").trim();
+  });
+  return rows
+    .map((row) => row || [])
+    .filter((row, index, allRows) => row.some(Boolean) || index < allRows.length - 1);
+}
+
+function addSheetGridRow(key) {
+  if (key === "schedule") {
+    sheetEditScheduleRows = readSheetGrid("schedule");
+    const width = getSheetGridWidth(sheetEditScheduleRows, 5);
+    sheetEditScheduleRows.push(Array.from({ length: width }, () => ""));
+    renderSheetGrid(els.sheetEditScheduleTable, sheetEditScheduleRows, "schedule", 5);
+  } else if (key === "standings") {
+    sheetEditStandingsRows = readSheetGrid("standings");
+    const width = getSheetGridWidth(sheetEditStandingsRows, 6);
+    sheetEditStandingsRows.push(Array.from({ length: width }, () => ""));
+    renderSheetGrid(els.sheetEditStandingsTable, sheetEditStandingsRows, "standings", 6);
+  }
+}
+
+async function saveSheetEditPayload(payload) {
+  return requestJson(TRADE_BLOCKS_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+async function loadSheetEditData(force = false) {
+  if (!isSignedInGm() || !isCommish()) return;
+  if (!force && sheetEditTeamsCache.size && sheetEditScheduleRows.length && sheetEditStandingsRows.length) {
+    renderSheetEditRoster();
+    renderSheetGrid(els.sheetEditScheduleTable, sheetEditScheduleRows, "schedule", 5);
+    renderSheetGrid(els.sheetEditStandingsTable, sheetEditStandingsRows, "standings", 6);
+    return;
+  }
+
+  setSheetEditStatus(els.sheetEditRosterStatus, "Loading sheet data...");
+  setSheetEditStatus(els.sheetEditScheduleStatus, "Loading sheet data...");
+  setSheetEditStatus(els.sheetEditStandingsStatus, "Loading sheet data...");
+  try {
+    const [teamsRes, scheduleRes, standingsRes] = await Promise.all([
+      fetch(SHEET_EDIT_TEAMS_URL, { cache: "no-store" }),
+      fetch(SHEET_EDIT_SCHEDULE_URL, { cache: "no-store" }),
+      fetch(SHEET_EDIT_STANDINGS_URL, { cache: "no-store" }),
+    ]);
+    if (!teamsRes.ok) throw new Error(`Teams sheet failed: ${teamsRes.status}`);
+    if (!scheduleRes.ok) throw new Error(`Schedule sheet failed: ${scheduleRes.status}`);
+    if (!standingsRes.ok) throw new Error(`Standings sheet failed: ${standingsRes.status}`);
+
+    sheetEditTeamsCache = parseSheetEditTeams(parseCSV(await teamsRes.text()));
+    sheetEditScheduleRows = parseCSV(await scheduleRes.text());
+    sheetEditStandingsRows = parseCSV(await standingsRes.text());
+    renderSheetEditRoster();
+    renderSheetGrid(els.sheetEditScheduleTable, sheetEditScheduleRows, "schedule", 5);
+    renderSheetGrid(els.sheetEditStandingsTable, sheetEditStandingsRows, "standings", 6);
+    setSheetEditStatus(els.sheetEditRosterStatus, "Teams loaded.");
+    setSheetEditStatus(els.sheetEditScheduleStatus, "Schedule loaded.");
+    setSheetEditStatus(els.sheetEditStandingsStatus, "Standings loaded.");
+  } catch (error) {
+    const message = error.message || "Unable to load sheet editor data.";
+    setSheetEditStatus(els.sheetEditRosterStatus, message, true);
+    setSheetEditStatus(els.sheetEditScheduleStatus, message, true);
+    setSheetEditStatus(els.sheetEditStandingsStatus, message, true);
+  }
+}
+
+async function saveSheetRosterEdit() {
+  if (!isSignedInGm() || !isCommish()) {
+    setSheetEditStatus(els.sheetEditRosterStatus, "Commissioner access required.", true);
+    return;
+  }
+  const team = displayTeamName(els.sheetEditTeamSelect?.value || "");
+  if (!team) {
+    setSheetEditStatus(els.sheetEditRosterStatus, "Select a team first.", true);
+    return;
+  }
+  const gm = String(els.sheetEditRosterFields?.querySelector("[data-sheet-roster-gm]")?.value || "").trim();
+  const players = Array.from(els.sheetEditRosterFields?.querySelectorAll("[data-sheet-roster-player]") || [])
+    .sort((a, b) => Number(a.dataset.sheetRosterPlayer || 0) - Number(b.dataset.sheetRosterPlayer || 0))
+    .map((input) => String(input.value || "").trim());
+
+  if (els.sheetEditRosterSave) els.sheetEditRosterSave.disabled = true;
+  setSheetEditStatus(els.sheetEditRosterStatus, "Saving roster...");
+  try {
+    const result = await saveSheetEditPayload({
+      action: "saveSheetRoster",
+      team: getC2S4SheetTeamName(team),
+      gm,
+      players,
+    });
+    sheetEditTeamsCache.set(team, { gm, players });
+    await loadRoster();
+    renderSelectedTeam(els.teamSelect?.value || "");
+    renderRenameTeam(els.renameTeamSelect?.value || "");
+    renderLineupTeam(els.lineupTeamSelect?.value || "");
+    setSheetEditStatus(els.sheetEditRosterStatus, result.message || `Saved ${team}.`);
+  } catch (error) {
+    setSheetEditStatus(els.sheetEditRosterStatus, error.message || "Unable to save roster.", true);
+  } finally {
+    if (els.sheetEditRosterSave) els.sheetEditRosterSave.disabled = false;
+  }
+}
+
+async function saveSheetGridEdit(sheetKey, rows, statusNode, saveButton) {
+  if (!isSignedInGm() || !isCommish()) {
+    setSheetEditStatus(statusNode, "Commissioner access required.", true);
+    return;
+  }
+  if (!rows.length) {
+    setSheetEditStatus(statusNode, "Add at least one row before saving.", true);
+    return;
+  }
+  if (saveButton) saveButton.disabled = true;
+  setSheetEditStatus(statusNode, "Saving...");
+  try {
+    const result = await saveSheetEditPayload({
+      action: "saveSheetGrid",
+      sheetKey,
+      values: rows,
+    });
+    setSheetEditStatus(statusNode, result.message || "Saved.");
+  } catch (error) {
+    setSheetEditStatus(statusNode, error.message || "Unable to save.", true);
+  } finally {
+    if (saveButton) saveButton.disabled = false;
+  }
+}
+
 async function loadRoster() {
   const response = await fetch(GM_LINEUP_CSV_URL, { cache: "no-store" });
   if (!response.ok) {
@@ -4617,6 +4879,33 @@ function bindEvents() {
   if (els.lineupTeamSelect) {
     els.lineupTeamSelect.addEventListener("change", () => {
       renderLineupTeam(els.lineupTeamSelect.value);
+    });
+  }
+  if (els.sheetEditTeamSelect) {
+    els.sheetEditTeamSelect.addEventListener("change", renderSheetEditRoster);
+  }
+  if (els.sheetEditRefresh) {
+    els.sheetEditRefresh.addEventListener("click", () => loadSheetEditData(true));
+  }
+  if (els.sheetEditRosterSave) {
+    els.sheetEditRosterSave.addEventListener("click", saveSheetRosterEdit);
+  }
+  if (els.sheetEditScheduleAdd) {
+    els.sheetEditScheduleAdd.addEventListener("click", () => addSheetGridRow("schedule"));
+  }
+  if (els.sheetEditStandingsAdd) {
+    els.sheetEditStandingsAdd.addEventListener("click", () => addSheetGridRow("standings"));
+  }
+  if (els.sheetEditScheduleSave) {
+    els.sheetEditScheduleSave.addEventListener("click", () => {
+      sheetEditScheduleRows = readSheetGrid("schedule");
+      saveSheetGridEdit("c2s4-schedule", sheetEditScheduleRows, els.sheetEditScheduleStatus, els.sheetEditScheduleSave);
+    });
+  }
+  if (els.sheetEditStandingsSave) {
+    els.sheetEditStandingsSave.addEventListener("click", () => {
+      sheetEditStandingsRows = readSheetGrid("standings");
+      saveSheetGridEdit("c2s4-standings", sheetEditStandingsRows, els.sheetEditStandingsStatus, els.sheetEditStandingsSave);
     });
   }
   if (els.powerTeamSelect) {

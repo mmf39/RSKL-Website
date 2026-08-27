@@ -3,14 +3,13 @@ const MIRROR_SHEET_ID = "1EEFztFGUNtQqhHkftJHma3WHILDjZjv2WGErHEIuCbg";
 const THIRD_SHEET_ID = "1-dtF8p4hyTtJcLM5upFokocaxA9zmPoPoKXRHGXDbxs";
 
 const PRIMARY_TEAMS_SHEET = "Teams";
-const PRIMARY_TEAMS_SHEET_GID = 847666124;
-const PRIMARY_SCHEDULE_SHEET_GID = 507537612;
-const PRIMARY_STANDINGS_SHEET_GID = 2115060088;
 const TRADEBLOCKS_SHEET = "TradeBlocks";
 const QUEUED_LINEUPS_SHEET = "Queued Lineups";
 const TRANSACTION_REQUESTS_SHEET = "Transaction Requests";
 const TRANSACTIONS_SHEET = "Transactions";
 const DRAFT_CAPITAL_SHEET = "Draft Capital";
+const PRIMARY_SCHEDULE_SHEET_GID = 507537612;
+const PRIMARY_STANDINGS_SHEET_GID = 2115060088;
 
 const MIRROR_TABS = ["Player Stats", "Completed Games", "Rosters"];
 
@@ -39,22 +38,6 @@ const RANGES = [
   { name: "The Phantoms", range: "B45:C56" },
 ];
 
-const TEAM_NAME_ALIASES = {
-  bullets: "Storm",
-  storm: "Storm",
-  yetis: "Scorpions",
-  scorpions: "Scorpions",
-  thelions: "The Pandas",
-  lions: "The Pandas",
-  pandas: "The Pandas",
-  thepandas: "The Pandas",
-  thesnipers: "Super Kings",
-  snipers: "Super Kings",
-  superkings: "Super Kings",
-  thefuture: "Dream Team",
-  dreamteam: "Dream Team",
-};
-
 function json(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
@@ -78,14 +61,6 @@ function escapeRegExp(str) {
 
 function getSheetByIdAndName(sheetId, name) {
   return SpreadsheetApp.openById(sheetId).getSheetByName(name);
-}
-
-function getPrimaryTeamsSheet_() {
-  const ss = SpreadsheetApp.openById(PRIMARY_SHEET_ID);
-  return (
-    ss.getSheets().find((sheet) => sheet.getSheetId() === PRIMARY_TEAMS_SHEET_GID) ||
-    ss.getSheetByName(PRIMARY_TEAMS_SHEET)
-  );
 }
 
 function getPrimarySheetByGid_(gid) {
@@ -178,7 +153,7 @@ function actionSaveTradeBlock(payload) {
 function updatePlayerInPrimary(payload) {
   const oldTag = normalize(payload.oldTag);
   const newDisplayRaw = clean_(payload.newDisplay);
-  const teamFilter = canonicalTeamName_(payload.team);
+  const teamFilter = clean_(payload.team);
 
   if (!oldTag || !newDisplayRaw) {
     return { ok: false, updated: false, message: "Missing data" };
@@ -188,14 +163,8 @@ function updatePlayerInPrimary(payload) {
   const newTagRaw = clean_(payload.newTag || newDisplay) || newDisplay;
   const newTagNorm = normalize(newTagRaw);
 
-  const sheet = getPrimaryTeamsSheet_();
-  if (!sheet) {
-    return {
-      ok: false,
-      updated: false,
-      message: `C2S4 Teams tab (${PRIMARY_TEAMS_SHEET_GID}) was not found in PRIMARY_SHEET_ID.`,
-    };
-  }
+  const sheet = getSheetByIdAndName(PRIMARY_SHEET_ID, PRIMARY_TEAMS_SHEET);
+  if (!sheet) return { ok: false, updated: false, message: "Primary Teams sheet not found" };
 
   let updated = false;
   let updatedRows = 0;
@@ -617,9 +586,9 @@ function actionSubmitTransactionRequest(payload) {
 
   const id = Utilities.getUuid();
   const type = clean_(payload.type).toLowerCase();
-  const team = canonicalTeamName_(payload.team);
+  const team = clean_(payload.team);
   const player = clean_(payload.player);
-  const partnerTeam = canonicalTeamName_(payload.partnerTeam);
+  const partnerTeam = clean_(payload.partnerTeam);
   const outgoingAssets = parseAssetsJson_(payload.outgoingAssets);
   const incomingAssets = parseAssetsJson_(payload.incomingAssets);
   const outgoing = clean_(payload.outgoing) || assetLabels_(outgoingAssets).join(", ");
@@ -741,30 +710,51 @@ function actionReviewTransactionRequest(payload) {
 }
 
 function applyApprovedTransaction_(request) {
-  const type = clean_(request.type).toLowerCase();
-  const team = canonicalTeamName_(request.team);
-  const partnerTeam = canonicalTeamName_(request.partnerTeam);
+  const rawType = clean_(request.type).toLowerCase();
+  const type = rawType === "sign" ? "signing" : rawType;
 
   if (type === "signing") {
-    addPlayerToTeam_(team, request.player);
-    return `${team} signed ${request.player}.`;
+    addPlayerToTeam_(request.team, request.player);
+    return `${request.team} signed ${request.player}.`;
   }
 
   if (type === "cut") {
-    removePlayerFromTeam_(team, request.player);
-    return `${team} cut ${request.player}.`;
+    removePlayerFromTeam_(request.team, request.player);
+    return `${request.team} cut ${request.player}.`;
   }
 
   if (type === "trade") {
-    applyTradeAssets_({
-      ...request,
-      team,
-      partnerTeam,
-    });
-    return `Trade approved: ${team} and ${partnerTeam}.`;
+    applyTradeAssets_(request);
+    return `Trade approved: ${request.team} and ${request.partnerTeam}.`;
   }
 
-  return "Report approved and logged.";
+  if (type === "namechange") {
+    const result = actionUpdatePlayerData_(request);
+    if (!result.ok) throw new Error(result.message || "Could not update the player name.");
+    return `${request.team} changed ${request.oldTag} to ${request.newDisplay}.`;
+  }
+
+  return "Transaction approved and logged.";
+}
+
+function actionUpdatePlayerData_(request) {
+  const payload = {
+    oldTag: request.oldTag,
+    newDisplay: request.newDisplay,
+    newTag: request.newDisplay,
+    team: request.team
+  };
+
+  const primary = updatePlayerInPrimary(payload);
+  const mirror = updatePlayerInWorkbookTabs(MIRROR_SHEET_ID, MIRROR_TABS, payload);
+  const third = updatePlayerInWorkbookTabs(THIRD_SHEET_ID, THIRD_TABS, payload);
+
+  if (!primary.ok) return primary;
+
+  return {
+    ok: true,
+    updated: primary.updated || mirror.updated || third.updated
+  };
 }
 
 function applyTradeAssets_(request) {
@@ -786,26 +776,16 @@ function applyTradeAssets_(request) {
 }
 
 function getPrimaryTeamRangeInfo_(team) {
-  const teamName = canonicalTeamName_(team);
-  return RANGES.find((r) => normalize(r.name) === normalize(teamName));
-}
-
-function canonicalTeamName_(team) {
-  const cleanTeam = clean_(team);
-  return TEAM_NAME_ALIASES[normalize(cleanTeam)] || cleanTeam;
+  return RANGES.find((r) => normalize(r.name) === normalize(team));
 }
 
 function addPlayerToTeam_(team, player) {
   if (!team || !player) throw new Error("Missing team or player.");
 
-  const teamName = canonicalTeamName_(team);
-  const primary = getPrimaryTeamsSheet_();
-  const rangeInfo = getPrimaryTeamRangeInfo_(teamName);
+  const primary = SpreadsheetApp.openById(PRIMARY_SHEET_ID).getSheetByName(PRIMARY_TEAMS_SHEET);
+  const rangeInfo = getPrimaryTeamRangeInfo_(team);
 
-  if (!primary) {
-    throw new Error(`C2S4 Teams tab (${PRIMARY_TEAMS_SHEET_GID}) was not found in PRIMARY_SHEET_ID.`);
-  }
-  if (!rangeInfo) throw new Error(`Team range not found for ${teamName}.`);
+  if (!primary || !rangeInfo) throw new Error(`Team range not found for ${team}.`);
 
   const range = primary.getRange(rangeInfo.range);
   const values = range.getDisplayValues();
@@ -820,25 +800,21 @@ function addPlayerToTeam_(team, player) {
 
       primary.getRange(row, col).setValue(player);
       primary.getRange(row, col + 1).setValue(player);
-      addPlayerToMirrorRoster_(teamName, player);
+      addPlayerToMirrorRoster_(team, player);
       return;
     }
   }
 
-  throw new Error(`No open roster spot found for ${teamName}.`);
+  throw new Error(`No open roster spot found for ${team}.`);
 }
 
 function removePlayerFromTeam_(team, player) {
   if (!team || !player) throw new Error("Missing team or player.");
 
-  const teamName = canonicalTeamName_(team);
-  const primary = getPrimaryTeamsSheet_();
-  const rangeInfo = getPrimaryTeamRangeInfo_(teamName);
+  const primary = SpreadsheetApp.openById(PRIMARY_SHEET_ID).getSheetByName(PRIMARY_TEAMS_SHEET);
+  const rangeInfo = getPrimaryTeamRangeInfo_(team);
 
-  if (!primary) {
-    throw new Error(`C2S4 Teams tab (${PRIMARY_TEAMS_SHEET_GID}) was not found in PRIMARY_SHEET_ID.`);
-  }
-  if (!rangeInfo) throw new Error(`Team range not found for ${teamName}.`);
+  if (!primary || !rangeInfo) throw new Error(`Team range not found for ${team}.`);
 
   const range = primary.getRange(rangeInfo.range);
   const values = range.getDisplayValues();
@@ -852,12 +828,12 @@ function removePlayerFromTeam_(team, player) {
       const col = range.getColumn();
 
       primary.getRange(row, col, 1, 2).clearContent();
-      removePlayerFromMirrorRoster_(teamName, player);
+      removePlayerFromMirrorRoster_(team, player);
       return;
     }
   }
 
-  throw new Error(`${player} was not found on ${teamName}.`);
+  throw new Error(`${player} was not found on ${team}.`);
 }
 
 function addPlayerToMirrorRoster_(team, player) {
@@ -913,10 +889,7 @@ function moveDraftPicks_(fromTeam, toTeam, picks) {
 
 function findDraftCapitalTeamCol_(values, team) {
   const header = values[0] || [];
-  const target = normalize(canonicalTeamName_(team));
-  return header.findIndex(
-    (cell) => normalize(canonicalTeamName_(cell)) === target
-  );
+  return header.findIndex((cell) => normalize(cell) === normalize(team));
 }
 
 function findFirstEmptyInColumn_(sheet, col, startRow) {
@@ -1117,40 +1090,45 @@ function normalizeSheetEditRows_(values, maxRows, maxCols) {
 
   return values
     .slice(0, maxRows)
-    .map(function(row) {
+    .map((row) => {
       const source = Array.isArray(row) ? row : [];
       const next = [];
+
       for (let i = 0; i < maxCols; i++) {
         next.push(clean_(source[i]));
       }
+
       return next;
     })
-    .filter(function(row, index, rows) {
-      return row.some(function(cell) { return cell !== ""; }) || index < rows.length - 1;
+    .filter((row, index, rows) => {
+      return row.some((cell) => cell !== "") || index < rows.length - 1;
     });
 }
 
 function actionSaveSheetRoster(payload) {
-  const teamName = canonicalTeamName_(payload.team);
+  const rawTeam = clean_(payload.team);
+  const rangeInfo = getPrimaryTeamRangeInfo_(rawTeam);
+  const teamName = rangeInfo ? rangeInfo.name : rawTeam;
   const gm = clean_(payload.gm);
   const players = Array.isArray(payload.players)
-    ? payload.players.slice(0, 10).map(function(player) { return clean_(player); })
+    ? payload.players.slice(0, 10).map((player) => clean_(player))
     : [];
 
   if (!teamName) return json({ ok: false, message: "Missing team." });
 
-  const sheet = getPrimaryTeamsSheet_();
+  const sheet = getSheetByIdAndName(PRIMARY_SHEET_ID, PRIMARY_TEAMS_SHEET);
   if (!sheet) {
-    throw new Error(`C2S4 Teams tab (${PRIMARY_TEAMS_SHEET_GID}) was not found in PRIMARY_SHEET_ID.`);
+    throw new Error(`Could not find "${PRIMARY_TEAMS_SHEET}" tab.`);
   }
 
-  const rangeInfo = getPrimaryTeamRangeInfo_(teamName);
-  if (!rangeInfo) throw new Error(`Team range not found for ${teamName}.`);
+  if (!rangeInfo) {
+    throw new Error(`Team range not found for ${rawTeam}.`);
+  }
 
   while (players.length < 10) players.push("");
 
   const values = [[teamName, teamName], [gm, gm]].concat(
-    players.map(function(player) { return [player, player]; })
+    players.map((player) => [player, player])
   );
 
   sheet.getRange(rangeInfo.range).clearContent();
@@ -1160,13 +1138,14 @@ function actionSaveSheetRoster(payload) {
     ok: true,
     message: `Saved ${teamName} roster.`,
     team: teamName,
-    gm: gm,
-    players: players,
+    gm,
+    players,
   });
 }
 
 function getSheetEditTarget_(sheetKey) {
   const key = clean_(sheetKey).toLowerCase();
+
   if (key === "c2s4-schedule" || key === "schedule") {
     return {
       sheet: getPrimarySheetByGid_(PRIMARY_SCHEDULE_SHEET_GID),
@@ -1177,6 +1156,7 @@ function getSheetEditTarget_(sheetKey) {
       maxCols: 5,
     };
   }
+
   if (key === "c2s4-standings" || key === "standings") {
     return {
       sheet: getPrimarySheetByGid_(PRIMARY_STANDINGS_SHEET_GID),
@@ -1187,6 +1167,7 @@ function getSheetEditTarget_(sheetKey) {
       maxCols: 6,
     };
   }
+
   throw new Error(`Unknown sheet editor target: ${sheetKey}`);
 }
 
@@ -1200,6 +1181,7 @@ function actionSaveSheetGrid(payload) {
   target.sheet
     .getRange(target.startRow, target.startCol, target.maxRows, target.maxCols)
     .clearContent();
+
   target.sheet
     .getRange(target.startRow, target.startCol, values.length, target.maxCols)
     .setValues(values);
@@ -1216,7 +1198,7 @@ function actionSaveSheetGrid(payload) {
 function route(payload) {
   const action = clean_(payload.action);
 
-  if (action === "ping") return json({ ok: true, v: "gm-full-transactions-v10-draft-capital" });
+  if (action === "ping") return json({ ok: true, v: "gm-full-transactions-v8" });
 
   if (action === "getTradeBlocks") return actionGetTradeBlocks();
   if (action === "saveTradeBlock") return actionSaveTradeBlock(payload);
@@ -1226,6 +1208,8 @@ function route(payload) {
   if (action === "saveQueuedLineup") return actionSaveQueuedLineup(payload);
   if (action === "applyQueuedLineups") return json(applyQueuedLineupsForToday_());
 
+  if (action === "submitTransaction") return json(submitTransaction_(payload));
+  if (action === "approveBotTransaction") return json(approveBotTransaction_(payload));
   if (action === "submitTransactionRequest") return actionSubmitTransactionRequest(payload);
   if (action === "getPendingTransactionRequests") return actionGetPendingTransactionRequests();
   if (action === "reviewTransactionRequest") return actionReviewTransactionRequest(payload);
@@ -1295,10 +1279,10 @@ function moveDraftPicks_(fromTeam, toTeam, picks) {
 
 function findDraftCapitalTeamRow_(sheet, team) {
   const values = sheet.getDataRange().getDisplayValues();
-  const target = normalize(canonicalTeamName_(team));
+  const target = normalize(team);
 
   for (let r = 0; r < values.length; r++) {
-    if (normalize(canonicalTeamName_(values[r][0])) === target) {
+    if (normalize(values[r][0]) === target) {
       return r + 1;
     }
   }
@@ -1361,4 +1345,371 @@ function formatMovedPickLabel_(pick, fromTeam, toTeam) {
   }
 
   return `${text} via ${fromTeam}`;
+}
+
+function findTeamByUserId_(userId, submittedTeam) {
+  const id = clean_(userId);
+  const requestedTeam = clean_(submittedTeam);
+
+  // Commissioner can submit transactions for every team.
+  if (id === "Y3KdBmLn") {
+    return requestedTeam || "Commissioner";
+  }
+
+  const gmUserIds = {
+    "4JZo9wZv": "Turkeys",
+    "R3XDLZz3": "Turkeys",
+    "rner1dZJ": "Gus N Em",
+    "5nxBPRyv": "The Phantoms",
+    "5nxPZYQn": "Illegals",
+    "jvbN8dbv": "The Pandas",
+    "7JkKrbKJ": "Super Kings",
+    "qnBmomW3": "Dream Team",
+    "QvDoOXZJ": "Bad Bois",
+    "eJ9dx9bn": "Scorpions",
+    "mvg4OPG3": "Storm"
+  };
+
+  return gmUserIds[id] || "";
+}
+
+
+function parseBotAssetList_(value) {
+  return clean_(value)
+    .split(",")
+    .map((item) => clean_(item))
+    .filter(Boolean)
+    .map((label) => ({
+      type: /^@/.test(label) ? "player" : /\b(pick|round|rd)\b/i.test(label) ? "pick" : "player",
+      label
+    }));
+}
+
+function parseBotTransactionDetails_(typeValue, team, secondTeam, details) {
+  const type = clean_(typeValue).toLowerCase() === "sign"
+    ? "signing"
+    : clean_(typeValue).toLowerCase();
+
+  const parsed = {
+    type,
+    team: clean_(team),
+    player: "",
+    partnerTeam: clean_(secondTeam),
+    outgoing: "",
+    incoming: "",
+    notes: clean_(details),
+    outgoingAssets: [],
+    incomingAssets: [],
+    oldTag: "",
+    newDisplay: ""
+  };
+
+  if (type === "signing" || type === "cut") {
+    parsed.player = clean_(details);
+    return parsed;
+  }
+
+  if (type === "namechange") {
+    const parts = clean_(details).split(/\s+/).filter(Boolean);
+    parsed.oldTag = parts.shift() || "";
+    parsed.newDisplay = parts.join(" ");
+    return parsed;
+  }
+
+  if (type === "trade") {
+    const sections = clean_(details)
+      .split("|")
+      .map((section) => clean_(section))
+      .filter(Boolean);
+
+    const assetSections = sections.filter((section) => /\bgive\s*:/i.test(section));
+
+    assetSections.forEach((section) => {
+      const match = section.match(/^(.*?)\s+give\s*:\s*(.*)$/i);
+      if (!match) return;
+
+      const givingTeam = clean_(match[1]);
+      const assetsText = clean_(match[2]);
+
+      if (normalize(givingTeam) === normalize(parsed.team)) {
+        parsed.outgoing = assetsText;
+        parsed.outgoingAssets = parseBotAssetList_(assetsText);
+      } else if (
+        parsed.partnerTeam &&
+        normalize(givingTeam) === normalize(parsed.partnerTeam)
+      ) {
+        parsed.incoming = assetsText;
+        parsed.incomingAssets = parseBotAssetList_(assetsText);
+      }
+    });
+
+    if (!parsed.partnerTeam) {
+      const tradeHeader = sections[0] || "";
+      const headerMatch = tradeHeader.match(/^(.*?)\s+and\s+(.*?)\s+trade$/i);
+      if (headerMatch) {
+        if (!parsed.team) parsed.team = clean_(headerMatch[1]);
+        parsed.partnerTeam = clean_(headerMatch[2]);
+      }
+    }
+  }
+
+  return parsed;
+}
+
+function submitTransaction_(data) {
+  const submittedByUserId = clean_(data.submittedByUserId);
+  const submittedTeam = clean_(data.team);
+  const secondTeam = clean_(data.secondTeam);
+  const rawTransactionType = clean_(data.transactionType).toLowerCase();
+  const transactionType = rawTransactionType === "sign" ? "signing" : rawTransactionType;
+  const details = clean_(data.details);
+  const source = clean_(data.source) || "Real Bot";
+  const submittedAt = clean_(data.submittedAt) || new Date().toISOString();
+
+  if (!submittedByUserId) {
+    return {
+      ok: false,
+      message: "submittedByUserId is required."
+    };
+  }
+
+  if (!submittedTeam) {
+    return {
+      ok: false,
+      message: "team is required."
+    };
+  }
+
+  if (!transactionType) {
+    return {
+      ok: false,
+      message: "transactionType is required."
+    };
+  }
+
+  if (!details) {
+    return {
+      ok: false,
+      message: "details are required."
+    };
+  }
+
+  const authorizedTeam = findTeamByUserId_(
+    submittedByUserId,
+    submittedTeam
+  );
+
+  if (!authorizedTeam) {
+    return {
+      ok: false,
+      message: "You are not authorized to submit transactions."
+    };
+  }
+
+  if (
+    submittedByUserId !== "Y3KdBmLn" &&
+    normalize(authorizedTeam) !== normalize(submittedTeam)
+  ) {
+    return {
+      ok: false,
+      message: `You may only submit transactions for ${authorizedTeam}.`
+    };
+  }
+
+  const parsed = parseBotTransactionDetails_(
+    transactionType,
+    submittedTeam,
+    secondTeam,
+    details
+  );
+
+  const sh = getOrCreateTransactionRequestsSheet_();
+  const transactionId = Utilities.getUuid();
+
+  sh.appendRow([
+    transactionId,
+    "pending",
+    parsed.type,
+    parsed.team,
+    parsed.player,
+    parsed.partnerTeam,
+    parsed.outgoing,
+    parsed.incoming,
+    parsed.notes,
+    submittedByUserId,
+    submittedAt,
+    "",
+    "",
+    "",
+    "",
+    JSON.stringify(parsed.outgoingAssets),
+    JSON.stringify(parsed.incomingAssets)
+  ]);
+
+  return {
+    ok: true,
+    transactionId,
+    id: transactionId,
+    status: "pending",
+    team: parsed.team,
+    secondTeam: parsed.partnerTeam,
+    transactionType: parsed.type,
+    details,
+    source,
+    submittedByUserId,
+    submittedAt,
+    message: "Transaction submitted for commissioner approval."
+  };
+}
+
+function approveBotTransaction_(payload) {
+  const transactionId = clean_(
+    payload.transactionId ||
+    payload.id
+  );
+
+  const reviewedBy = clean_(
+    payload.reviewedBy ||
+    payload.approvedBy ||
+    "Y3KdBmLn"
+  );
+
+  const reviewedAt = clean_(
+    payload.reviewedAt ||
+    payload.approvedAt
+  ) || new Date().toISOString();
+
+  const sh = getOrCreateTransactionRequestsSheet_();
+  const rows = sh.getDataRange().getDisplayValues();
+
+  if (rows.length < 2) {
+    return {
+      ok: false,
+      message: "There are no transaction requests."
+    };
+  }
+
+  let rowIndex = -1;
+
+  if (transactionId) {
+    rowIndex = rows.findIndex((row, index) =>
+      index > 0 &&
+      clean_(row[0]) === transactionId
+    );
+  } else {
+    // No ID was supplied, so approve the newest pending transaction.
+    for (let index = rows.length - 1; index >= 1; index--) {
+      if (clean_(rows[index][1]).toLowerCase() === "pending") {
+        rowIndex = index;
+        break;
+      }
+    }
+  }
+
+  if (rowIndex === -1) {
+    return {
+      ok: false,
+      message: transactionId
+        ? "Transaction request not found."
+        : "No pending transaction requests were found."
+    };
+  }
+
+  const row = rows[rowIndex];
+  const status = clean_(row[1]).toLowerCase();
+
+  if (status !== "pending") {
+    return {
+      ok: false,
+      message: `Transaction is already ${status || "reviewed"}.`
+    };
+  }
+
+  let request = {
+    type: clean_(row[2]),
+    team: clean_(row[3]),
+    player: clean_(row[4]),
+    partnerTeam: clean_(row[5]),
+    outgoing: clean_(row[6]),
+    incoming: clean_(row[7]),
+    notes: clean_(row[8]),
+    outgoingAssets: parseAssetsJson_(row[15]),
+    incomingAssets: parseAssetsJson_(row[16]),
+    oldTag: "",
+    newDisplay: ""
+  };
+
+  const parsedBotRequest = parseBotTransactionDetails_(
+    request.type,
+    request.team,
+    request.partnerTeam,
+    request.notes
+  );
+
+  request = {
+    ...request,
+    type: parsedBotRequest.type || request.type,
+    team: parsedBotRequest.team || request.team,
+    player: request.player || parsedBotRequest.player,
+    partnerTeam: request.partnerTeam || parsedBotRequest.partnerTeam,
+    outgoing: request.outgoing || parsedBotRequest.outgoing,
+    incoming: request.incoming || parsedBotRequest.incoming,
+    outgoingAssets: request.outgoingAssets.length
+      ? request.outgoingAssets
+      : parsedBotRequest.outgoingAssets,
+    incomingAssets: request.incomingAssets.length
+      ? request.incomingAssets
+      : parsedBotRequest.incomingAssets,
+    oldTag: parsedBotRequest.oldTag,
+    newDisplay: parsedBotRequest.newDisplay
+  };
+
+  const type = clean_(request.type).toLowerCase();
+  const canApplyTransaction =
+    (type === "signing" && request.player) ||
+    (type === "cut" && request.player) ||
+    (
+      type === "trade" &&
+      request.partnerTeam &&
+      (request.outgoingAssets.length || request.incomingAssets.length)
+    ) ||
+    (
+      type === "namechange" &&
+      request.oldTag &&
+      request.newDisplay
+    );
+
+  if (!canApplyTransaction) {
+    return {
+      ok: false,
+      message: `Could not read the approved ${type || "transaction"} details: ${request.notes}`
+    };
+  }
+
+  const approvalMessage = applyApprovedTransaction_(request);
+  logApprovedTransaction_(request);
+
+  const sheetRow = rowIndex + 1;
+
+  sh.getRange(sheetRow, 2).setValue("approved");
+  sh.getRange(sheetRow, 12).setValue(reviewedBy);
+  sh.getRange(sheetRow, 13).setValue(reviewedAt);
+  sh.getRange(sheetRow, 14).setValue("approved");
+  sh.getRange(sheetRow, 15).setValue(approvalMessage);
+
+  return {
+    ok: true,
+    transactionId: clean_(row[0]),
+    id: clean_(row[0]),
+    status: "approved",
+    team: request.team,
+    transactionType: request.type,
+    details: request.notes,
+    source: "Real Bot",
+    submittedByUserId: clean_(row[9]),
+    submittedAt: clean_(row[10]),
+    reviewedBy,
+    reviewedAt,
+    message: approvalMessage
+  };
 }

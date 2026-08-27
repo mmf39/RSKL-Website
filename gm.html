@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css?v=20260715realqueue1" />
+    <link rel="stylesheet" href="styles.css?v=20260827sheetedit1" />
   </head>
   <body>
     <div class="bg"></div>
@@ -79,6 +79,7 @@
             <button class="gm-tab" type="button" data-gm-tab="power">Power Rankings Vote</button>
             <button class="gm-tab" type="button" data-gm-tab="articles" id="gm-articles-tab" hidden>Articles</button>
             <button class="gm-tab" type="button" data-gm-tab="commish" id="gm-commish-tab" hidden>Commish</button>
+            <button class="gm-tab" type="button" data-gm-tab="sheet-edit" id="gm-sheet-edit-tab" hidden>Sheet Edit</button>
             <div id="gm-lineup-tab-meta" class="gm-tab gm-tab-info">Due —</div>
           </div>
           <div id="gm-session-meta" class="gm-session-meta" hidden>
@@ -489,6 +490,60 @@
             </div>
           </div>
         </div>
+        <div id="gm-tab-sheet-edit" class="gm-tab-panel" hidden>
+          <div class="gm-card gm-sheet-edit-card">
+            <div class="gm-sheet-edit-head">
+              <div>
+                <div class="label">Commissioner: Sheet Edit</div>
+                <h3>Teams</h3>
+              </div>
+              <button id="gm-sheet-edit-refresh" class="btn ghost" type="button">Refresh Sheet Data</button>
+            </div>
+            <label class="label" for="sheet-edit-team-select">Team</label>
+            <select id="sheet-edit-team-select" class="text-input">
+              <option value="">Select team</option>
+              <option value="Gus N Em">Gus N Em</option>
+              <option value="Storm">Storm</option>
+              <option value="Turkeys">Turkeys</option>
+              <option value="Bad Bois">Bad Bois</option>
+              <option value="Scorpions">Scorpions</option>
+              <option value="Illegals">Illegals</option>
+              <option value="Pandas">Pandas</option>
+              <option value="Dream Team">Dream Team</option>
+              <option value="Super Kings">Super Kings</option>
+              <option value="The Phantoms">The Phantoms</option>
+            </select>
+            <div id="sheet-edit-roster-fields" class="gm-sheet-roster-fields"></div>
+            <button id="sheet-edit-roster-save" class="btn" type="button">Save Team Roster</button>
+            <div id="sheet-edit-roster-status" class="gm-status"></div>
+          </div>
+
+          <div class="gm-card gm-sheet-edit-card">
+            <div class="gm-sheet-edit-head">
+              <div>
+                <div class="label">Schedule</div>
+                <h3>Full Schedule Editor</h3>
+              </div>
+              <button id="sheet-edit-schedule-add" class="btn ghost" type="button">Add Row</button>
+            </div>
+            <div id="sheet-edit-schedule-table" class="gm-sheet-table-wrap"></div>
+            <button id="sheet-edit-schedule-save" class="btn" type="button">Save Schedule</button>
+            <div id="sheet-edit-schedule-status" class="gm-status"></div>
+          </div>
+
+          <div class="gm-card gm-sheet-edit-card">
+            <div class="gm-sheet-edit-head">
+              <div>
+                <div class="label">Standings</div>
+                <h3>Standings Editor</h3>
+              </div>
+              <button id="sheet-edit-standings-add" class="btn ghost" type="button">Add Row</button>
+            </div>
+            <div id="sheet-edit-standings-table" class="gm-sheet-table-wrap"></div>
+            <button id="sheet-edit-standings-save" class="btn" type="button">Save Standings</button>
+            <div id="sheet-edit-standings-status" class="gm-status"></div>
+          </div>
+        </div>
         </div>
       </section>
     </main>
@@ -498,7 +553,7 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="gm.js?v=20260717c2s4lineups1"></script>
+    <script src="gm.js?v=20260827sheetedit1"></script>
       <script src="header-nav.js?v=20260719perf1"></script>
   </body>
 </html>
