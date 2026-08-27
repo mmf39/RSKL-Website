@@ -7345,6 +7345,47 @@ input[type="text"] {
   font-size: clamp(1.35rem, 3vw, 2rem);
 }
 
+.gm-sheet-edit-picker {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+
+.gm-sheet-edit-option {
+  align-items: center;
+  background: rgba(8, 16, 35, 0.82);
+  border: 1px solid rgba(193, 199, 214, 0.16);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: clamp(1rem, 2vw, 1.22rem);
+  font-weight: 950;
+  justify-content: center;
+  min-height: 74px;
+  padding: 16px;
+  text-align: center;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.gm-sheet-edit-option:hover,
+.gm-sheet-edit-option:focus-visible {
+  background: rgba(12, 24, 51, 0.94);
+  border-color: rgba(255, 164, 66, 0.38);
+  color: var(--ink);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.gm-sheet-edit-option.active {
+  background: rgba(255, 164, 66, 0.1);
+  border-color: rgba(255, 164, 66, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(255, 164, 66, 0.12);
+  color: var(--accent);
+}
+
 .gm-sheet-edit-head {
   display: flex;
   justify-content: space-between;
@@ -7403,6 +7444,16 @@ input[type="text"] {
   background: rgba(13, 20, 38, 0.88);
   color: var(--ink);
   font: inherit;
+}
+
+@media (max-width: 760px) {
+  .gm-sheet-edit-picker {
+    grid-template-columns: 1fr;
+  }
+
+  .gm-sheet-edit-option {
+    min-height: 62px;
+  }
 }
 
 .gm-sheet-cell:focus {

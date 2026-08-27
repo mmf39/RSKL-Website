@@ -201,6 +201,8 @@ const els = {
   powerSave: document.getElementById("power-save"),
   powerStatus: document.getElementById("power-status"),
   powerVotesView: document.getElementById("power-votes-view"),
+  sheetEditOptions: document.querySelectorAll("[data-sheet-edit-section]"),
+  sheetEditPanels: document.querySelectorAll("[data-sheet-edit-panel]"),
   sheetEditRefresh: document.getElementById("gm-sheet-edit-refresh"),
   sheetEditTeamSelect: document.getElementById("sheet-edit-team-select"),
   sheetEditRosterFields: document.getElementById("sheet-edit-roster-fields"),
@@ -252,6 +254,7 @@ let draftQueueSaveInFlight = false;
 let sheetEditTeamsCache = new Map();
 let sheetEditScheduleRows = [];
 let sheetEditStandingsRows = [];
+let activeSheetEditSection = "teams";
 
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
@@ -397,6 +400,7 @@ function setActiveTab(tab) {
     renderGmDraftPick();
   }
   if (active === "sheet-edit") {
+    setActiveSheetEditSection(activeSheetEditSection);
     loadSheetEditData();
   }
 }
@@ -4524,6 +4528,19 @@ function setSheetEditStatus(node, message, isError = false) {
   node.className = `gm-status ${isError ? "error" : ""}`;
 }
 
+function setActiveSheetEditSection(section) {
+  const active = ["teams", "schedule", "standings"].includes(section) ? section : "teams";
+  activeSheetEditSection = active;
+
+  els.sheetEditOptions?.forEach((button) => {
+    button.classList.toggle("active", button.dataset.sheetEditSection === active);
+  });
+
+  els.sheetEditPanels?.forEach((panel) => {
+    panel.hidden = panel.dataset.sheetEditPanel !== active;
+  });
+}
+
 function parseSheetEditTeams(rows) {
   const wantedTeams = TEAM_ORDER.map(displayTeamName);
   const teamByKey = new Map(wantedTeams.map((team) => [normalizeName(team), team]));
@@ -4883,6 +4900,13 @@ function bindEvents() {
   }
   if (els.sheetEditTeamSelect) {
     els.sheetEditTeamSelect.addEventListener("change", renderSheetEditRoster);
+  }
+  if (els.sheetEditOptions && els.sheetEditOptions.length) {
+    els.sheetEditOptions.forEach((button) => {
+      button.addEventListener("click", () => {
+        setActiveSheetEditSection(button.dataset.sheetEditSection);
+      });
+    });
   }
   if (els.sheetEditRefresh) {
     els.sheetEditRefresh.addEventListener("click", () => loadSheetEditData(true));

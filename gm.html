@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="/assets/rskl-logo.png?v=4" />
     <link rel="shortcut icon" href="/assets/rskl-logo.png?v=4" />
     <link rel="apple-touch-icon" href="/assets/rskl-logo.png?v=4" />
-    <link rel="stylesheet" href="styles.css?v=20260827sheetedit1" />
+    <link rel="stylesheet" href="styles.css?v=20260827sheetedit2" />
   </head>
   <body>
     <div class="bg"></div>
@@ -491,7 +491,13 @@
           </div>
         </div>
         <div id="gm-tab-sheet-edit" class="gm-tab-panel" hidden>
-          <div class="gm-card gm-sheet-edit-card">
+          <div class="gm-sheet-edit-picker" aria-label="Sheet editor sections">
+            <button class="gm-sheet-edit-option active" type="button" data-sheet-edit-section="teams">Teams</button>
+            <button class="gm-sheet-edit-option" type="button" data-sheet-edit-section="schedule">Schedule</button>
+            <button class="gm-sheet-edit-option" type="button" data-sheet-edit-section="standings">Standings</button>
+          </div>
+
+          <div class="gm-card gm-sheet-edit-card" data-sheet-edit-panel="teams">
             <div class="gm-sheet-edit-head">
               <div>
                 <div class="label">Commissioner: Sheet Edit</div>
@@ -518,7 +524,7 @@
             <div id="sheet-edit-roster-status" class="gm-status"></div>
           </div>
 
-          <div class="gm-card gm-sheet-edit-card">
+          <div class="gm-card gm-sheet-edit-card" data-sheet-edit-panel="schedule" hidden>
             <div class="gm-sheet-edit-head">
               <div>
                 <div class="label">Schedule</div>
@@ -531,7 +537,7 @@
             <div id="sheet-edit-schedule-status" class="gm-status"></div>
           </div>
 
-          <div class="gm-card gm-sheet-edit-card">
+          <div class="gm-card gm-sheet-edit-card" data-sheet-edit-panel="standings" hidden>
             <div class="gm-sheet-edit-head">
               <div>
                 <div class="label">Standings</div>
@@ -553,7 +559,7 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="gm.js?v=20260827sheetedit1"></script>
+    <script src="gm.js?v=20260827sheetedit2"></script>
       <script src="header-nav.js?v=20260719perf1"></script>
   </body>
 </html>
