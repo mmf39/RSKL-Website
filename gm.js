@@ -264,6 +264,14 @@ let sheetEditDirtyGridCells = {
   schedule: new Set(),
   standings: new Set(),
 };
+let sheetEditOriginalGridRowCounts = {
+  schedule: 0,
+  standings: 0,
+};
+let sheetEditOriginalGridRows = {
+  schedule: [],
+  standings: [],
+};
 
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
@@ -4661,6 +4669,12 @@ function getSheetGridWidth(rows, fallback = 5) {
 
 function renderSheetGrid(container, rows, key, fallbackCols = 5, resetDirty = true) {
   if (!container) return;
+  const originalValues = new Map();
+  if (!resetDirty) {
+    container.querySelectorAll(`[data-sheet-grid="${key}"]`).forEach((input) => {
+      originalValues.set(`${input.dataset.row}:${input.dataset.col}`, String(input.dataset.originalValue || ""));
+    });
+  }
   if (resetDirty && sheetEditDirtyGridCells[key]) {
     sheetEditDirtyGridCells[key] = new Set();
   }
@@ -4675,6 +4689,9 @@ function renderSheetGrid(container, rows, key, fallbackCols = 5, resetDirty = tr
               <tr>
                 ${Array.from({ length: width }, (_, colIndex) => `
                   <td>
+                    ${(() => {
+                      const originalValue = originalValues.get(`${rowIndex}:${colIndex}`) ?? String(row?.[colIndex] || "");
+                      return `
                     <input
                       class="gm-sheet-cell"
                       type="text"
@@ -4682,8 +4699,10 @@ function renderSheetGrid(container, rows, key, fallbackCols = 5, resetDirty = tr
                       data-sheet-grid="${escapeHtml(key)}"
                       data-row="${rowIndex}"
                       data-col="${colIndex}"
-                      data-original-value="${escapeHtml(row?.[colIndex] || "")}"
+                      data-original-value="${escapeHtml(originalValue)}"
                     />
+                      `;
+                    })()}
                   </td>
                 `).join("")}
               </tr>
@@ -4765,14 +4784,14 @@ function getSheetRosterChanges() {
 }
 
 function getSheetGridChanges(key) {
-  const dirty = sheetEditDirtyGridCells[key] || new Set();
   return Array.from(document.querySelectorAll(`[data-sheet-grid="${key}"]`))
     .filter((input) => {
-      const cellKey = `${input.dataset.row}:${input.dataset.col}`;
-      return (
-        dirty.has(cellKey) ||
-        String(input.value || "").trim() !== String(input.dataset.originalValue || "").trim()
-      );
+      const rowIndex = Number(input.dataset.row || 0);
+      const colIndex = Number(input.dataset.col || 0);
+      const current = String(input.value || "").trim();
+      const original = String(sheetEditOriginalGridRows[key]?.[rowIndex]?.[colIndex] || "").trim();
+      const isNewFilledCell = rowIndex >= (sheetEditOriginalGridRowCounts[key] || 0) && current !== "";
+      return isNewFilledCell || current !== original;
     })
     .map((input) => ({
       row: Number(input.dataset.row || 0),
@@ -4828,6 +4847,10 @@ async function loadSheetEditData(force = false) {
     sheetEditTeamsCache = parseSheetEditTeams(parseCSV(await teamsRes.text()));
     sheetEditScheduleRows = parseCSV(await scheduleRes.text());
     sheetEditStandingsRows = parseCSV(await standingsRes.text());
+    sheetEditOriginalGridRows.schedule = sheetEditScheduleRows.map((row) => [...row]);
+    sheetEditOriginalGridRows.standings = sheetEditStandingsRows.map((row) => [...row]);
+    sheetEditOriginalGridRowCounts.schedule = sheetEditScheduleRows.length;
+    sheetEditOriginalGridRowCounts.standings = sheetEditStandingsRows.length;
     renderSheetEditRoster();
     renderSheetGrid(els.sheetEditScheduleTable, sheetEditScheduleRows, "schedule", 5);
     renderSheetGrid(els.sheetEditStandingsTable, sheetEditStandingsRows, "standings", 6);
@@ -4908,6 +4931,16 @@ async function saveSheetGridEdit(sheetKey, rows, statusNode, saveButton) {
       sheetKey,
       cells: changes,
     });
+    changes.forEach((cell) => {
+      if (!sheetEditOriginalGridRows[key][cell.row]) {
+        sheetEditOriginalGridRows[key][cell.row] = [];
+      }
+      sheetEditOriginalGridRows[key][cell.row][cell.col] = cell.value;
+    });
+    sheetEditOriginalGridRowCounts[key] = Math.max(
+      sheetEditOriginalGridRowCounts[key] || 0,
+      sheetEditOriginalGridRows[key].length
+    );
     document.querySelectorAll(`[data-sheet-grid="${key}"]`).forEach((input) => {
       input.dataset.originalValue = String(input.value || "").trim();
       input.classList.remove("dirty");
