@@ -202,7 +202,9 @@ const els = {
   powerSave: document.getElementById("power-save"),
   powerStatus: document.getElementById("power-status"),
   powerVotesView: document.getElementById("power-votes-view"),
+  sheetEditPicker: document.getElementById("gm-sheet-edit-picker"),
   sheetEditOptions: document.querySelectorAll("[data-sheet-edit-section]"),
+  sheetEditBackButtons: document.querySelectorAll("[data-sheet-edit-back]"),
   sheetEditPanels: document.querySelectorAll("[data-sheet-edit-panel]"),
   sheetEditRefresh: document.getElementById("gm-sheet-edit-refresh"),
   sheetEditTeamSelect: document.getElementById("sheet-edit-team-select"),
@@ -234,6 +236,7 @@ let tradeBlocksCache = {};
 let powerVotesCache = {};
 let supabaseUrl = "";
 let supabaseAnon = "";
+let supabaseConfigPromise = null;
 let gmSession = null;
 let gmAssignment = null;
 let gmAssignmentsCache = [];
@@ -255,7 +258,12 @@ let draftQueueSaveInFlight = false;
 let sheetEditTeamsCache = new Map();
 let sheetEditScheduleRows = [];
 let sheetEditStandingsRows = [];
-let activeSheetEditSection = "teams";
+let activeSheetEditSection = "";
+let sheetEditDirtyRosterFields = new Set();
+let sheetEditDirtyGridCells = {
+  schedule: new Set(),
+  standings: new Set(),
+};
 
 function requireSupabaseConfig() {
   if (!supabaseUrl || !supabaseAnon) {
@@ -700,6 +708,16 @@ async function loadSupabaseConfig() {
   }
 }
 
+async function ensureSupabaseConfigLoaded() {
+  if (supabaseUrl && supabaseAnon) return;
+  if (!supabaseConfigPromise) {
+    supabaseConfigPromise = loadSupabaseConfig().finally(() => {
+      supabaseConfigPromise = null;
+    });
+  }
+  await supabaseConfigPromise;
+}
+
 function getDraftRealtimeClient() {
   if (draftRealtimeClient) return draftRealtimeClient;
   if (!window.supabase?.createClient || !supabaseUrl || !supabaseAnon) return null;
@@ -815,7 +833,7 @@ async function fetchLegacyGmProfile(userId) {
 }
 
 async function signUpAuth(email, password) {
-  requireSupabaseConfig();
+  await ensureSupabaseConfigLoaded();
   return requestJson(supabaseUrlWithApiKey("/auth/v1/signup"), {
     method: "POST",
     headers: authHeaders(false),
@@ -824,7 +842,7 @@ async function signUpAuth(email, password) {
 }
 
 async function signInAuth(email, password) {
-  requireSupabaseConfig();
+  await ensureSupabaseConfigLoaded();
   const data = await requestJson(
     supabaseUrlWithApiKey("/auth/v1/token?grant_type=password"),
     {
@@ -840,7 +858,7 @@ async function signInAuth(email, password) {
 }
 
 async function refreshAuthSession(refreshToken) {
-  requireSupabaseConfig();
+  await ensureSupabaseConfigLoaded();
   const data = await requestJson(
     supabaseUrlWithApiKey("/auth/v1/token?grant_type=refresh_token"),
     {
@@ -4572,8 +4590,12 @@ function setSheetEditStatus(node, message, isError = false) {
 }
 
 function setActiveSheetEditSection(section) {
-  const active = ["teams", "schedule", "standings"].includes(section) ? section : "teams";
+  const active = ["teams", "schedule", "standings"].includes(section) ? section : "";
   activeSheetEditSection = active;
+
+  if (els.sheetEditPicker) {
+    els.sheetEditPicker.hidden = !!active;
+  }
 
   els.sheetEditOptions?.forEach((button) => {
     button.classList.toggle("active", button.dataset.sheetEditSection === active);
@@ -4609,6 +4631,7 @@ function parseSheetEditTeams(rows) {
 
 function renderSheetEditRoster() {
   if (!els.sheetEditRosterFields) return;
+  sheetEditDirtyRosterFields = new Set();
   const team = displayTeamName(els.sheetEditTeamSelect?.value || "");
   if (!team) {
     els.sheetEditRosterFields.innerHTML = '<div class="gm-empty">Select a team to edit its GM and roster spots.</div>';
@@ -4618,12 +4641,12 @@ function renderSheetEditRoster() {
   els.sheetEditRosterFields.innerHTML = `
     <label class="gm-sheet-roster-field">
       <span>GM</span>
-      <input class="text-input" type="text" data-sheet-roster-gm value="${escapeHtml(roster.gm || "")}" />
+      <input class="text-input" type="text" data-sheet-roster-gm value="${escapeHtml(roster.gm || "")}" data-original-value="${escapeHtml(roster.gm || "")}" />
     </label>
     ${Array.from({ length: 10 }, (_, idx) => `
       <label class="gm-sheet-roster-field">
         <span>Player ${idx + 1}</span>
-        <input class="text-input" type="text" data-sheet-roster-player="${idx}" value="${escapeHtml(roster.players?.[idx] || "")}" />
+        <input class="text-input" type="text" data-sheet-roster-player="${idx}" value="${escapeHtml(roster.players?.[idx] || "")}" data-original-value="${escapeHtml(roster.players?.[idx] || "")}" />
       </label>
     `).join("")}
   `;
@@ -4636,8 +4659,11 @@ function getSheetGridWidth(rows, fallback = 5) {
   );
 }
 
-function renderSheetGrid(container, rows, key, fallbackCols = 5) {
+function renderSheetGrid(container, rows, key, fallbackCols = 5, resetDirty = true) {
   if (!container) return;
+  if (resetDirty && sheetEditDirtyGridCells[key]) {
+    sheetEditDirtyGridCells[key] = new Set();
+  }
   const width = getSheetGridWidth(rows, fallbackCols);
   const safeRows = Array.isArray(rows) && rows.length ? rows : [Array.from({ length: width }, () => "")];
   container.innerHTML = `
@@ -4656,6 +4682,7 @@ function renderSheetGrid(container, rows, key, fallbackCols = 5) {
                       data-sheet-grid="${escapeHtml(key)}"
                       data-row="${rowIndex}"
                       data-col="${colIndex}"
+                      data-original-value="${escapeHtml(row?.[colIndex] || "")}"
                     />
                   </td>
                 `).join("")}
@@ -4682,17 +4709,61 @@ function readSheetGrid(key) {
     .filter((row, index, allRows) => row.some(Boolean) || index < allRows.length - 1);
 }
 
+function markSheetEditInputDirty(input, dirtySet, key) {
+  const current = String(input.value || "").trim();
+  const original = String(input.dataset.originalValue || "").trim();
+  if (current === original) {
+    dirtySet.delete(key);
+    input.classList.remove("dirty");
+  } else {
+    dirtySet.add(key);
+    input.classList.add("dirty");
+  }
+}
+
+function getSheetRosterChanges() {
+  const changes = [];
+  const gmInput = els.sheetEditRosterFields?.querySelector("[data-sheet-roster-gm]");
+  if (gmInput && sheetEditDirtyRosterFields.has("gm")) {
+    changes.push({ field: "gm", value: String(gmInput.value || "").trim() });
+  }
+
+  Array.from(els.sheetEditRosterFields?.querySelectorAll("[data-sheet-roster-player]") || []).forEach((input) => {
+    const index = Number(input.dataset.sheetRosterPlayer || 0);
+    const key = `player:${index}`;
+    if (!sheetEditDirtyRosterFields.has(key)) return;
+    changes.push({
+      field: "player",
+      index,
+      value: String(input.value || "").trim(),
+    });
+  });
+
+  return changes;
+}
+
+function getSheetGridChanges(key) {
+  const dirty = sheetEditDirtyGridCells[key] || new Set();
+  return Array.from(document.querySelectorAll(`[data-sheet-grid="${key}"]`))
+    .filter((input) => dirty.has(`${input.dataset.row}:${input.dataset.col}`))
+    .map((input) => ({
+      row: Number(input.dataset.row || 0),
+      col: Number(input.dataset.col || 0),
+      value: String(input.value || "").trim(),
+    }));
+}
+
 function addSheetGridRow(key) {
   if (key === "schedule") {
     sheetEditScheduleRows = readSheetGrid("schedule");
     const width = getSheetGridWidth(sheetEditScheduleRows, 5);
     sheetEditScheduleRows.push(Array.from({ length: width }, () => ""));
-    renderSheetGrid(els.sheetEditScheduleTable, sheetEditScheduleRows, "schedule", 5);
+    renderSheetGrid(els.sheetEditScheduleTable, sheetEditScheduleRows, "schedule", 5, false);
   } else if (key === "standings") {
     sheetEditStandingsRows = readSheetGrid("standings");
     const width = getSheetGridWidth(sheetEditStandingsRows, 6);
     sheetEditStandingsRows.push(Array.from({ length: width }, () => ""));
-    renderSheetGrid(els.sheetEditStandingsTable, sheetEditStandingsRows, "standings", 6);
+    renderSheetGrid(els.sheetEditStandingsTable, sheetEditStandingsRows, "standings", 6, false);
   }
 }
 
@@ -4757,6 +4828,12 @@ async function saveSheetRosterEdit() {
   const players = Array.from(els.sheetEditRosterFields?.querySelectorAll("[data-sheet-roster-player]") || [])
     .sort((a, b) => Number(a.dataset.sheetRosterPlayer || 0) - Number(b.dataset.sheetRosterPlayer || 0))
     .map((input) => String(input.value || "").trim());
+  const changes = getSheetRosterChanges();
+
+  if (!changes.length) {
+    setSheetEditStatus(els.sheetEditRosterStatus, "No roster changes to save.");
+    return;
+  }
 
   if (els.sheetEditRosterSave) els.sheetEditRosterSave.disabled = true;
   setSheetEditStatus(els.sheetEditRosterStatus, "Saving roster...");
@@ -4764,10 +4841,14 @@ async function saveSheetRosterEdit() {
     const result = await saveSheetEditPayload({
       action: "saveSheetRoster",
       team: getC2S4SheetTeamName(team),
-      gm,
-      players,
+      changes,
     });
     sheetEditTeamsCache.set(team, { gm, players });
+    els.sheetEditRosterFields?.querySelectorAll("[data-sheet-roster-gm], [data-sheet-roster-player]").forEach((input) => {
+      input.dataset.originalValue = String(input.value || "").trim();
+      input.classList.remove("dirty");
+    });
+    sheetEditDirtyRosterFields = new Set();
     await loadRoster();
     renderSelectedTeam(els.teamSelect?.value || "");
     renderRenameTeam(els.renameTeamSelect?.value || "");
@@ -4785,8 +4866,10 @@ async function saveSheetGridEdit(sheetKey, rows, statusNode, saveButton) {
     setSheetEditStatus(statusNode, "Commissioner access required.", true);
     return;
   }
-  if (!rows.length) {
-    setSheetEditStatus(statusNode, "Add at least one row before saving.", true);
+  const key = sheetKey.includes("standings") ? "standings" : "schedule";
+  const changes = getSheetGridChanges(key);
+  if (!changes.length) {
+    setSheetEditStatus(statusNode, "No sheet changes to save.");
     return;
   }
   if (saveButton) saveButton.disabled = true;
@@ -4795,8 +4878,13 @@ async function saveSheetGridEdit(sheetKey, rows, statusNode, saveButton) {
     const result = await saveSheetEditPayload({
       action: "saveSheetGrid",
       sheetKey,
-      values: rows,
+      cells: changes,
     });
+    document.querySelectorAll(`[data-sheet-grid="${key}"]`).forEach((input) => {
+      input.dataset.originalValue = String(input.value || "").trim();
+      input.classList.remove("dirty");
+    });
+    sheetEditDirtyGridCells[key] = new Set();
     setSheetEditStatus(statusNode, result.message || "Saved.");
   } catch (error) {
     setSheetEditStatus(statusNode, error.message || "Unable to save.", true);
@@ -4944,10 +5032,41 @@ function bindEvents() {
   if (els.sheetEditTeamSelect) {
     els.sheetEditTeamSelect.addEventListener("change", renderSheetEditRoster);
   }
+  if (els.sheetEditRosterFields) {
+    els.sheetEditRosterFields.addEventListener("input", (event) => {
+      const input = event.target.closest("[data-sheet-roster-gm], [data-sheet-roster-player]");
+      if (!input) return;
+      const key = input.hasAttribute("data-sheet-roster-gm")
+        ? "gm"
+        : `player:${Number(input.dataset.sheetRosterPlayer || 0)}`;
+      markSheetEditInputDirty(input, sheetEditDirtyRosterFields, key);
+    });
+  }
+  if (els.sheetEditScheduleTable) {
+    els.sheetEditScheduleTable.addEventListener("input", (event) => {
+      const input = event.target.closest('[data-sheet-grid="schedule"]');
+      if (!input) return;
+      markSheetEditInputDirty(input, sheetEditDirtyGridCells.schedule, `${input.dataset.row}:${input.dataset.col}`);
+    });
+  }
+  if (els.sheetEditStandingsTable) {
+    els.sheetEditStandingsTable.addEventListener("input", (event) => {
+      const input = event.target.closest('[data-sheet-grid="standings"]');
+      if (!input) return;
+      markSheetEditInputDirty(input, sheetEditDirtyGridCells.standings, `${input.dataset.row}:${input.dataset.col}`);
+    });
+  }
   if (els.sheetEditOptions && els.sheetEditOptions.length) {
     els.sheetEditOptions.forEach((button) => {
       button.addEventListener("click", () => {
         setActiveSheetEditSection(button.dataset.sheetEditSection);
+      });
+    });
+  }
+  if (els.sheetEditBackButtons && els.sheetEditBackButtons.length) {
+    els.sheetEditBackButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setActiveSheetEditSection("");
       });
     });
   }
@@ -5213,6 +5332,8 @@ function bindEvents() {
         return;
       }
       try {
+        els.authSignUp.disabled = true;
+        setAuthStatus("Creating account...");
         await signUpAuth(email, password);
         setAuthStatus("Account created. Confirm email, then sign in.");
       } catch (error) {
@@ -5244,6 +5365,8 @@ function bindEvents() {
           }
         }
         setAuthStatus(msg, true);
+      } finally {
+        els.authSignUp.disabled = false;
       }
     });
   }
@@ -5256,6 +5379,8 @@ function bindEvents() {
         return;
       }
       try {
+        els.authSignIn.disabled = true;
+        setAuthStatus("Signing in...");
         const tokenData = await signInAuth(email, password);
         const user = await fetchAuthUser(tokenData.access_token);
         gmSession = {
@@ -5286,6 +5411,8 @@ function bindEvents() {
         clearAuthState();
         applyAuthUi();
         setAuthStatus(getReadableAuthError(error, "signin"), true);
+      } finally {
+        els.authSignIn.disabled = false;
       }
     });
   }
@@ -5653,7 +5780,7 @@ async function init() {
       applyAuthUi();
     }
     try {
-      await loadSupabaseConfig();
+      await ensureSupabaseConfigLoaded();
       subscribeToDraftRealtime();
     } catch (configError) {
       setAuthStatus(configError.message || "Supabase config could not load.", true);

@@ -1132,11 +1132,6 @@ function normalizeSheetEditRows_(values, maxRows, maxCols) {
 
 function actionSaveSheetRoster(payload) {
   const teamName = canonicalTeamName_(payload.team);
-  const gm = clean_(payload.gm);
-  const players = Array.isArray(payload.players)
-    ? payload.players.slice(0, 10).map(function(player) { return clean_(player); })
-    : [];
-
   if (!teamName) return json({ ok: false, message: "Missing team." });
 
   const sheet = getPrimaryTeamsSheet_();
@@ -1147,21 +1142,39 @@ function actionSaveSheetRoster(payload) {
   const rangeInfo = getPrimaryTeamRangeInfo_(teamName);
   if (!rangeInfo) throw new Error(`Team range not found for ${teamName}.`);
 
-  while (players.length < 10) players.push("");
+  const changes = Array.isArray(payload.changes) ? payload.changes : [];
+  if (!changes.length) return json({ ok: false, message: "No roster changes to save." });
 
-  const values = [[teamName, teamName], [gm, gm]].concat(
-    players.map(function(player) { return [player, player]; })
-  );
+  const range = sheet.getRange(rangeInfo.range);
+  let saved = 0;
 
-  sheet.getRange(rangeInfo.range).clearContent();
-  sheet.getRange(rangeInfo.range).setValues(values);
+  changes.forEach(function(change) {
+    const field = clean_(change.field).toLowerCase();
+    let offset = -1;
+
+    if (field === "gm") {
+      offset = 1;
+    } else if (field === "player") {
+      const index = Number(change.index);
+      if (Number.isFinite(index) && index >= 0 && index < 10) {
+        offset = index + 2;
+      }
+    }
+
+    if (offset < 0 || offset >= range.getNumRows()) return;
+
+    const row = range.getRow() + offset;
+    const col = range.getColumn();
+    const value = clean_(change.value);
+    sheet.getRange(row, col, 1, 2).setValues([[value, value]]);
+    saved++;
+  });
 
   return json({
     ok: true,
-    message: `Saved ${teamName} roster.`,
+    message: `Saved ${saved} ${teamName} roster cell${saved === 1 ? "" : "s"}.`,
     team: teamName,
-    gm: gm,
-    players: players,
+    saved: saved,
   });
 }
 
@@ -1194,21 +1207,29 @@ function actionSaveSheetGrid(payload) {
   const target = getSheetEditTarget_(payload.sheetKey);
   if (!target.sheet) throw new Error(`${target.label} sheet tab was not found.`);
 
-  const values = normalizeSheetEditRows_(payload.values, target.maxRows, target.maxCols);
-  if (!values.length) return json({ ok: false, message: "No rows to save." });
+  const cells = Array.isArray(payload.cells) ? payload.cells : [];
+  if (!cells.length) return json({ ok: false, message: "No sheet changes to save." });
 
-  target.sheet
-    .getRange(target.startRow, target.startCol, target.maxRows, target.maxCols)
-    .clearContent();
-  target.sheet
-    .getRange(target.startRow, target.startCol, values.length, target.maxCols)
-    .setValues(values);
+  let saved = 0;
+
+  cells.forEach(function(cell) {
+    const rowIndex = Number(cell.row);
+    const colIndex = Number(cell.col);
+    if (!Number.isFinite(rowIndex) || !Number.isFinite(colIndex)) return;
+    if (rowIndex < 0 || rowIndex >= target.maxRows) return;
+    if (colIndex < 0 || colIndex >= target.maxCols) return;
+
+    target.sheet
+      .getRange(target.startRow + rowIndex, target.startCol + colIndex)
+      .setValue(clean_(cell.value));
+    saved++;
+  });
 
   return json({
     ok: true,
-    message: `Saved ${values.length} ${target.label} row${values.length === 1 ? "" : "s"}.`,
+    message: `Saved ${saved} ${target.label} cell${saved === 1 ? "" : "s"}.`,
     sheetKey: payload.sheetKey,
-    rows: values.length,
+    saved: saved,
   });
 }
 

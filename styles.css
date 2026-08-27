@@ -7352,6 +7352,11 @@ input[type="text"] {
   margin-bottom: 18px;
 }
 
+.gm-sheet-edit-picker[hidden],
+.gm-sheet-edit-card[hidden] {
+  display: none !important;
+}
+
 .gm-sheet-edit-option {
   align-items: center;
   background: rgba(8, 16, 35, 0.82);
@@ -7392,6 +7397,10 @@ input[type="text"] {
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
+}
+
+.gm-sheet-edit-back {
+  justify-self: start;
 }
 
 .gm-sheet-roster-fields {
@@ -7459,6 +7468,12 @@ input[type="text"] {
 .gm-sheet-cell:focus {
   outline: 2px solid rgba(255, 176, 86, 0.58);
   outline-offset: 1px;
+}
+
+.gm-sheet-cell.dirty,
+.gm-sheet-roster-field .text-input.dirty {
+  border-color: rgba(255, 176, 86, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(255, 176, 86, 0.2);
 }
 
 .gm-vote-row {
