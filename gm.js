@@ -14,6 +14,7 @@ const NEWS_ARTICLES_API = "/api/articles";
 const GM_ASSIGNMENTS_API = "/api/gm-assignments";
 const GM_ACCESS_TOKEN_KEY = "rskl_gm_access_token";
 const GM_REFRESH_TOKEN_KEY = "rskl_gm_refresh_token";
+const GM_TOKEN_EXPIRES_AT_KEY = "rskl_gm_token_expires_at";
 const GM_SESSION_USER_KEY = "rskl_gm_user";
 const GM_ASSIGNMENT_KEY = "rskl_gm_assignment";
 const GM_LOCAL_LOCKS_KEY = "rskl_local_game_locks";
@@ -285,6 +286,11 @@ function persistAuthState() {
   } else {
     localStorage.removeItem(GM_REFRESH_TOKEN_KEY);
   }
+  if (gmSession?.expires_at) {
+    localStorage.setItem(GM_TOKEN_EXPIRES_AT_KEY, String(gmSession.expires_at));
+  } else {
+    localStorage.removeItem(GM_TOKEN_EXPIRES_AT_KEY);
+  }
   if (gmSession?.user) {
     localStorage.setItem(GM_SESSION_USER_KEY, JSON.stringify(gmSession.user));
   } else {
@@ -300,8 +306,30 @@ function persistAuthState() {
 function clearAuthState() {
   localStorage.removeItem(GM_ACCESS_TOKEN_KEY);
   localStorage.removeItem(GM_REFRESH_TOKEN_KEY);
+  localStorage.removeItem(GM_TOKEN_EXPIRES_AT_KEY);
   localStorage.removeItem(GM_SESSION_USER_KEY);
   localStorage.removeItem(GM_ASSIGNMENT_KEY);
+}
+
+function restoreCachedAuthState() {
+  const savedToken = localStorage.getItem(GM_ACCESS_TOKEN_KEY) || "";
+  const savedRefresh = localStorage.getItem(GM_REFRESH_TOKEN_KEY) || "";
+  const savedExpiresAt = Number(localStorage.getItem(GM_TOKEN_EXPIRES_AT_KEY) || 0);
+  const cachedUser = safeJsonParse(localStorage.getItem(GM_SESSION_USER_KEY), null);
+  const cachedAssignment = safeJsonParse(localStorage.getItem(GM_ASSIGNMENT_KEY), null);
+
+  if (!cachedUser || !cachedAssignment || (!savedToken && !savedRefresh)) {
+    return false;
+  }
+
+  gmSession = {
+    access_token: savedToken,
+    refresh_token: savedRefresh,
+    expires_at: savedExpiresAt,
+    user: cachedUser,
+  };
+  gmAssignment = cachedAssignment;
+  return true;
 }
 
 function loadLocalGameLocks() {
@@ -827,9 +855,23 @@ async function refreshAuthSession(refreshToken) {
   return data;
 }
 
+function getAuthExpiresAt(tokenData, fallback = 0) {
+  const direct = Number(tokenData?.expires_at || tokenData?.expiresAt || 0);
+  if (direct) return direct < 1000000000000 ? direct * 1000 : direct;
+
+  const expiresIn = Number(tokenData?.expires_in || tokenData?.expiresIn || 0);
+  if (expiresIn) return Date.now() + expiresIn * 1000;
+
+  return Number(fallback || 0);
+}
+
 async function ensureFreshAccessToken() {
   if (!gmSession?.access_token && !gmSession?.refresh_token) {
     throw new Error("Sign in again to continue.");
+  }
+  const expiresAt = Number(gmSession?.expires_at || 0);
+  if (gmSession?.access_token && (!gmSession?.refresh_token || expiresAt > Date.now() + 60000)) {
+    return gmSession.access_token;
   }
   if (!gmSession?.refresh_token) {
     return gmSession.access_token;
@@ -840,6 +882,7 @@ async function ensureFreshAccessToken() {
       ...gmSession,
       access_token: tokenData.access_token,
       refresh_token: tokenData.refresh_token || gmSession.refresh_token,
+      expires_at: getAuthExpiresAt(tokenData),
     };
     persistAuthState();
     return gmSession.access_token;
@@ -2589,10 +2632,10 @@ function applyAuthUi() {
   ) {
     setActiveTab(canWriteArticles() ? "articles" : "trade");
   }
-  if (signedIn && canWriteArticles()) {
+  if (signedIn && canWriteArticles() && supabaseUrl && supabaseAnon) {
     loadArticlesForWriter();
   }
-  if (commishAccess) {
+  if (commishAccess && supabaseUrl && supabaseAnon) {
     loadPendingTransactionsForCommish();
   }
   if (els.sessionMeta) {
@@ -5181,6 +5224,7 @@ function bindEvents() {
             gmSession = {
               access_token: tokenData.access_token,
               refresh_token: tokenData.refresh_token || "",
+              expires_at: getAuthExpiresAt(tokenData),
               user,
             };
             gmAssignment = await fetchGmAssignment(user.id);
@@ -5217,6 +5261,7 @@ function bindEvents() {
         gmSession = {
           access_token: tokenData.access_token,
           refresh_token: tokenData.refresh_token || "",
+          expires_at: getAuthExpiresAt(tokenData),
           user,
         };
         gmAssignment = await fetchGmAssignment(user.id);
@@ -5604,6 +5649,9 @@ async function init() {
     loadFreeAgencySelection();
     loadTestDraftPicks();
     syncDraftRoundOptions();
+    if (restoreCachedAuthState()) {
+      applyAuthUi();
+    }
     try {
       await loadSupabaseConfig();
       subscribeToDraftRealtime();
@@ -5622,6 +5670,7 @@ async function init() {
     }
     const savedToken = localStorage.getItem(GM_ACCESS_TOKEN_KEY) || "";
     const savedRefresh = localStorage.getItem(GM_REFRESH_TOKEN_KEY) || "";
+    const savedExpiresAt = Number(localStorage.getItem(GM_TOKEN_EXPIRES_AT_KEY) || 0);
     const cachedUser = safeJsonParse(
       localStorage.getItem(GM_SESSION_USER_KEY),
       null
@@ -5643,6 +5692,7 @@ async function init() {
         gmSession = {
           access_token: tokenData.access_token,
           refresh_token: tokenData.refresh_token || savedRefresh || "",
+          expires_at: getAuthExpiresAt(tokenData, savedExpiresAt),
           user,
         };
         gmAssignment = await fetchGmAssignment(user.id);
@@ -5655,6 +5705,7 @@ async function init() {
           gmSession = {
             access_token: savedToken || "",
             refresh_token: savedRefresh || "",
+            expires_at: savedExpiresAt,
             user: cachedUser,
           };
           gmAssignment = cachedAssignment;
@@ -5668,6 +5719,7 @@ async function init() {
       gmSession = {
         access_token: "",
         refresh_token: "",
+        expires_at: 0,
         user: cachedUser,
       };
       gmAssignment = cachedAssignment;
@@ -5685,6 +5737,7 @@ async function init() {
         gmSession = {
           access_token: tokenData.access_token,
           refresh_token: tokenData.refresh_token || gmSession.refresh_token,
+          expires_at: getAuthExpiresAt(tokenData, gmSession.expires_at),
           user,
         };
         if (!gmAssignment) {
