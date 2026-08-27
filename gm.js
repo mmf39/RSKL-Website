@@ -4800,6 +4800,29 @@ function getSheetGridChanges(key) {
     }));
 }
 
+function getSheetGridDomChanges(key) {
+  return Array.from(document.querySelectorAll(`[data-sheet-grid="${key}"]`))
+    .filter((input) => String(input.value || "").trim() !== String(input.dataset.originalValue || "").trim())
+    .map((input) => ({
+      row: Number(input.dataset.row || 0),
+      col: Number(input.dataset.col || 0),
+      value: String(input.value || "").trim(),
+    }));
+}
+
+function mergeSheetGridChanges(primary, fallback) {
+  const map = new Map();
+  [...(primary || []), ...(fallback || [])].forEach((cell) => {
+    if (!Number.isFinite(Number(cell.row)) || !Number.isFinite(Number(cell.col))) return;
+    map.set(`${Number(cell.row)}:${Number(cell.col)}`, {
+      row: Number(cell.row),
+      col: Number(cell.col),
+      value: String(cell.value || "").trim(),
+    });
+  });
+  return Array.from(map.values());
+}
+
 function addSheetGridRow(key) {
   if (key === "schedule") {
     sheetEditScheduleRows = readSheetGrid("schedule");
@@ -4918,18 +4941,19 @@ async function saveSheetGridEdit(sheetKey, rows, statusNode, saveButton) {
     return;
   }
   const key = sheetKey.includes("standings") ? "standings" : "schedule";
-  const changes = getSheetGridChanges(key);
+  const changes = mergeSheetGridChanges(getSheetGridChanges(key), getSheetGridDomChanges(key));
   if (!changes.length) {
     setSheetEditStatus(statusNode, "No sheet changes to save.");
     return;
   }
   if (saveButton) saveButton.disabled = true;
-  setSheetEditStatus(statusNode, "Saving...");
+  setSheetEditStatus(statusNode, `Saving ${changes.length} changed cell${changes.length === 1 ? "" : "s"}...`);
   try {
     const result = await saveSheetEditPayload({
       action: "saveSheetGrid",
       sheetKey,
       cells: changes,
+      values: rows,
     });
     changes.forEach((cell) => {
       if (!sheetEditOriginalGridRows[key][cell.row]) {
