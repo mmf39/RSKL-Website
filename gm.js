@@ -4721,17 +4721,39 @@ function markSheetEditInputDirty(input, dirtySet, key) {
   }
 }
 
+function trackSheetRosterDirtyEvent(event) {
+  const input = event.target.closest("[data-sheet-roster-gm], [data-sheet-roster-player]");
+  if (!input) return;
+  const key = input.hasAttribute("data-sheet-roster-gm")
+    ? "gm"
+    : `player:${Number(input.dataset.sheetRosterPlayer || 0)}`;
+  markSheetEditInputDirty(input, sheetEditDirtyRosterFields, key);
+}
+
+function trackSheetGridDirtyEvent(event, key) {
+  const input = event.target.closest(`[data-sheet-grid="${key}"]`);
+  if (!input) return;
+  markSheetEditInputDirty(input, sheetEditDirtyGridCells[key], `${input.dataset.row}:${input.dataset.col}`);
+}
+
 function getSheetRosterChanges() {
   const changes = [];
   const gmInput = els.sheetEditRosterFields?.querySelector("[data-sheet-roster-gm]");
-  if (gmInput && sheetEditDirtyRosterFields.has("gm")) {
+  if (
+    gmInput &&
+    (sheetEditDirtyRosterFields.has("gm") ||
+      String(gmInput.value || "").trim() !== String(gmInput.dataset.originalValue || "").trim())
+  ) {
     changes.push({ field: "gm", value: String(gmInput.value || "").trim() });
   }
 
   Array.from(els.sheetEditRosterFields?.querySelectorAll("[data-sheet-roster-player]") || []).forEach((input) => {
     const index = Number(input.dataset.sheetRosterPlayer || 0);
     const key = `player:${index}`;
-    if (!sheetEditDirtyRosterFields.has(key)) return;
+    const changed =
+      sheetEditDirtyRosterFields.has(key) ||
+      String(input.value || "").trim() !== String(input.dataset.originalValue || "").trim();
+    if (!changed) return;
     changes.push({
       field: "player",
       index,
@@ -4745,7 +4767,13 @@ function getSheetRosterChanges() {
 function getSheetGridChanges(key) {
   const dirty = sheetEditDirtyGridCells[key] || new Set();
   return Array.from(document.querySelectorAll(`[data-sheet-grid="${key}"]`))
-    .filter((input) => dirty.has(`${input.dataset.row}:${input.dataset.col}`))
+    .filter((input) => {
+      const cellKey = `${input.dataset.row}:${input.dataset.col}`;
+      return (
+        dirty.has(cellKey) ||
+        String(input.value || "").trim() !== String(input.dataset.originalValue || "").trim()
+      );
+    })
     .map((input) => ({
       row: Number(input.dataset.row || 0),
       col: Number(input.dataset.col || 0),
@@ -5033,28 +5061,16 @@ function bindEvents() {
     els.sheetEditTeamSelect.addEventListener("change", renderSheetEditRoster);
   }
   if (els.sheetEditRosterFields) {
-    els.sheetEditRosterFields.addEventListener("input", (event) => {
-      const input = event.target.closest("[data-sheet-roster-gm], [data-sheet-roster-player]");
-      if (!input) return;
-      const key = input.hasAttribute("data-sheet-roster-gm")
-        ? "gm"
-        : `player:${Number(input.dataset.sheetRosterPlayer || 0)}`;
-      markSheetEditInputDirty(input, sheetEditDirtyRosterFields, key);
-    });
+    els.sheetEditRosterFields.addEventListener("input", trackSheetRosterDirtyEvent);
+    els.sheetEditRosterFields.addEventListener("change", trackSheetRosterDirtyEvent);
   }
   if (els.sheetEditScheduleTable) {
-    els.sheetEditScheduleTable.addEventListener("input", (event) => {
-      const input = event.target.closest('[data-sheet-grid="schedule"]');
-      if (!input) return;
-      markSheetEditInputDirty(input, sheetEditDirtyGridCells.schedule, `${input.dataset.row}:${input.dataset.col}`);
-    });
+    els.sheetEditScheduleTable.addEventListener("input", (event) => trackSheetGridDirtyEvent(event, "schedule"));
+    els.sheetEditScheduleTable.addEventListener("change", (event) => trackSheetGridDirtyEvent(event, "schedule"));
   }
   if (els.sheetEditStandingsTable) {
-    els.sheetEditStandingsTable.addEventListener("input", (event) => {
-      const input = event.target.closest('[data-sheet-grid="standings"]');
-      if (!input) return;
-      markSheetEditInputDirty(input, sheetEditDirtyGridCells.standings, `${input.dataset.row}:${input.dataset.col}`);
-    });
+    els.sheetEditStandingsTable.addEventListener("input", (event) => trackSheetGridDirtyEvent(event, "standings"));
+    els.sheetEditStandingsTable.addEventListener("change", (event) => trackSheetGridDirtyEvent(event, "standings"));
   }
   if (els.sheetEditOptions && els.sheetEditOptions.length) {
     els.sheetEditOptions.forEach((button) => {
