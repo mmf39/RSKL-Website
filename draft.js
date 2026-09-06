@@ -28,6 +28,14 @@ const DRAFT_YEAR_VALUES = new Set([
   "c2s3",
 ]);
 
+function getActiveLeague() {
+  return String(window.RSKL_ACTIVE_LEAGUE || localStorage.getItem("league") || "rskl")
+    .trim()
+    .toLowerCase() === "nflkl"
+    ? "nflkl"
+    : "rskl";
+}
+
 const els = {
   lastUpdated: document.getElementById("last-updated"),
   sections: document.getElementById("draft-sections"),
@@ -1463,19 +1471,43 @@ function renderExpansion(rows) {
 }
 
 function getSelectedDraftYear() {
+  if (getActiveLeague() === "nflkl") {
+    return "nflkl-s1";
+  }
   const params = new URLSearchParams(window.location.search);
   const queryYear = params.get("year") || params.get("draftYear");
-  if (DRAFT_YEAR_VALUES.has(queryYear)) {
+  if (DRAFT_YEAR_VALUES.has(queryYear) && queryYear !== "nflkl-s1") {
     return queryYear;
   }
   const saved = localStorage.getItem(DRAFT_YEAR_KEY);
-  if (DRAFT_YEAR_VALUES.has(saved)) {
+  if (DRAFT_YEAR_VALUES.has(saved) && saved !== "nflkl-s1") {
     return saved;
   }
   return "c2s4";
 }
 
 function syncDraftViewOptions() {
+  if (els.yearSelect) {
+    if (!els.yearSelect.__rsklOriginalOptions) {
+      els.yearSelect.__rsklOriginalOptions = Array.from(els.yearSelect.options).map((option) => ({
+        value: option.value,
+        label: option.textContent,
+      }));
+    }
+    if (getActiveLeague() === "nflkl") {
+      els.yearSelect.innerHTML = '<option value="nflkl-s1">S1</option>';
+      els.yearSelect.value = "nflkl-s1";
+      localStorage.setItem(DRAFT_YEAR_KEY, "nflkl-s1");
+    } else {
+      els.yearSelect.innerHTML = els.yearSelect.__rsklOriginalOptions
+        .filter((option) => option.value !== "nflkl-s1")
+        .map((option) => `<option value="${option.value}">${option.label}</option>`)
+        .join("");
+      const selectedYear = getSelectedDraftYear();
+      els.yearSelect.value = selectedYear;
+      localStorage.setItem(DRAFT_YEAR_KEY, selectedYear);
+    }
+  }
   if (!els.viewSelect) return;
   const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
   const expansionOption = els.viewSelect.querySelector('option[value="expansion"]');

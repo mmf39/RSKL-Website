@@ -73,6 +73,14 @@ const C2S2_REGULAR_RANGES = {
   player_stats: "A151:G1150",
 };
 
+function getActiveLeague() {
+  return String(window.RSKL_ACTIVE_LEAGUE || localStorage.getItem("league") || "rskl")
+    .trim()
+    .toLowerCase() === "nflkl"
+    ? "nflkl"
+    : "rskl";
+}
+
 function requireSupabaseConfig() {
   return Boolean(supabaseUrl && supabaseAnon);
 }
@@ -111,6 +119,9 @@ async function loadSupabaseConfig() {
 }
 
 function getPlayerSeason() {
+  if (getActiveLeague() === "nflkl") {
+    return "nflkl-s1";
+  }
   const playerSeason = localStorage.getItem(PLAYER_SEASON_KEY);
   if (playerSeason === "c2s4-playoffs") {
     return "c2s4-regular";
@@ -174,6 +185,11 @@ function playerSeasonToNavSeason(value) {
 }
 
 function storePlayerSeason(value) {
+  if (getActiveLeague() === "nflkl") {
+    localStorage.setItem(PLAYER_SEASON_KEY, "nflkl-s1");
+    localStorage.setItem(SEASON_KEY, "nflkl-s1");
+    return "nflkl-s1";
+  }
   const season = isPlayerSeason(value) ? value : "c2s2-regular";
   localStorage.setItem(PLAYER_SEASON_KEY, season);
   localStorage.setItem(SEASON_KEY, playerSeasonToNavSeason(season));

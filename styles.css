@@ -991,6 +991,64 @@ body.menu-open {
   background: #0f172a;
 }
 
+.league-select {
+  min-width: 128px;
+  max-width: 150px;
+  border-color: rgba(232, 200, 166, 0.42);
+  grid-column: auto;
+  grid-row: auto;
+  justify-self: auto;
+  align-self: auto;
+}
+
+.league-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.league-gate-card {
+  width: min(520px, 100%);
+  padding: 28px;
+  border: 1px solid rgba(255, 140, 26, 0.42);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(3, 7, 18, 0.98));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.46);
+  text-align: center;
+}
+
+.league-gate-kicker {
+  display: block;
+  margin-bottom: 10px;
+  color: #e8c8a6;
+  font-family: var(--font-head);
+  font-size: 0.9rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.league-gate-card h2 {
+  margin: 0 0 22px;
+  color: #fff7ed;
+  font-size: clamp(1.8rem, 5vw, 2.7rem);
+  letter-spacing: 0;
+}
+
+.league-gate-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.league-gate-actions .btn {
+  width: 100%;
+}
+
 .league-hero-logo {
   display: none !important;
 }

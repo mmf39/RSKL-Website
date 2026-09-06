@@ -167,6 +167,14 @@ let supabaseUrl = "";
 let supabaseAnon = "";
 let supabaseConfigPromise = null;
 
+function getActiveLeague() {
+  return String(window.RSKL_ACTIVE_LEAGUE || localStorage.getItem("league") || "rskl")
+    .trim()
+    .toLowerCase() === "nflkl"
+    ? "nflkl"
+    : "rskl";
+}
+
 function requireSupabaseConfig() {
   return Boolean(supabaseUrl && supabaseAnon);
 }
@@ -1284,6 +1292,11 @@ function normalizeSeason(value) {
 }
 
 function getSeason() {
+  if (getActiveLeague() === "nflkl") {
+    localStorage.setItem(PLAYER_SEASON_KEY, "nflkl-s1");
+    localStorage.setItem(SEASON_KEY, "nflkl-s1");
+    return "nflkl-s1";
+  }
   const params = new URLSearchParams(window.location.search);
   const rawFromQuery = params.get("season");
   if (rawFromQuery) {

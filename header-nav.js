@@ -26,9 +26,29 @@
   const DRAFT_EVENT_AT = new Date("2026-07-15T18:00:00-04:00");
   const DRAFT_EVENT_LINK = "/draft.html?year=c2s4";
   const DRAFT_FEATURE_ENABLED = true;
+  const LEAGUE_KEY = "league";
+  const NFLKL_SEASON = "nflkl-s1";
+  const RSKL_DEFAULT_SEASON = "c2s4-regular";
 
   const normalize = (value) =>
     String(value || "").trim().replace(/^@/, "").toLowerCase();
+
+  function getActiveLeague() {
+    return String(window.RSKL_ACTIVE_LEAGUE || localStorage.getItem(LEAGUE_KEY) || "rskl")
+      .trim()
+      .toLowerCase() === "nflkl"
+      ? "nflkl"
+      : "rskl";
+  }
+
+  function setLeague(league) {
+    if (window.rsklSetLeague) {
+      window.rsklSetLeague(league);
+      return;
+    }
+    localStorage.setItem(LEAGUE_KEY, league === "nflkl" ? "nflkl" : "rskl");
+    location.assign("/");
+  }
 
   function ensureAvatarStyles() {
     if (document.getElementById("rskl-player-avatar-style")) return;
@@ -118,6 +138,7 @@
 
   function ensureDraftCountdownBanner() {
     if (!DRAFT_FEATURE_ENABLED) return;
+    if (getActiveLeague() !== "rskl") return;
     if (document.querySelector(".draft-countdown-banner")) return;
     const header = document.querySelector(".hero");
     if (!header) return;
@@ -149,6 +170,112 @@
 
     update();
     window.setInterval(update, 1000);
+  }
+
+  function ensureLeagueSelector() {
+    const nav = document.querySelector(".site-nav-main");
+    if (!nav || document.getElementById("league-select")) return;
+    const select = document.createElement("select");
+    select.id = "league-select";
+    select.className = "season-select league-select";
+    select.setAttribute("aria-label", "League");
+    select.innerHTML = `
+      <option value="rskl">RSKL</option>
+      <option value="nflkl">NFLKL</option>
+    `;
+    select.value = getActiveLeague();
+    const seasonSelect = document.getElementById("season-select");
+    nav.insertBefore(select, seasonSelect || null);
+    select.addEventListener("change", () => setLeague(select.value));
+  }
+
+  function configureSeasonSelectsForLeague() {
+    const league = getActiveLeague();
+    document.querySelectorAll("#season-select, #player-season-select, #awards-season").forEach((select) => {
+      if (!select.__rsklOriginalOptions) {
+        select.__rsklOriginalOptions = Array.from(select.options).map((option) => ({
+          value: option.value,
+          label: option.textContent,
+          selected: option.selected,
+        }));
+      }
+
+      if (league === "nflkl") {
+        select.innerHTML = '<option value="nflkl-s1">S1</option>';
+        select.value = NFLKL_SEASON;
+        localStorage.setItem("season", NFLKL_SEASON);
+        localStorage.setItem("playerSeason", NFLKL_SEASON);
+        return;
+      }
+
+      select.innerHTML = select.__rsklOriginalOptions
+        .filter((option) => option.value !== NFLKL_SEASON)
+        .map((option) => `<option value="${option.value}">${option.label}</option>`)
+        .join("");
+      if (localStorage.getItem("season") === NFLKL_SEASON) {
+        localStorage.setItem("season", RSKL_DEFAULT_SEASON);
+      }
+      if (localStorage.getItem("playerSeason") === NFLKL_SEASON) {
+        localStorage.setItem("playerSeason", RSKL_DEFAULT_SEASON);
+      }
+    });
+  }
+
+  function ensureLeagueGate() {
+    if (!window.RSKL_NEEDS_LEAGUE_CHOICE || document.querySelector(".league-gate")) return;
+    const gate = document.createElement("div");
+    gate.className = "league-gate";
+    gate.innerHTML = `
+      <div class="league-gate-card" role="dialog" aria-modal="true" aria-labelledby="league-gate-title">
+        <span class="league-gate-kicker">Choose League</span>
+        <h2 id="league-gate-title">Where do you want to go?</h2>
+        <div class="league-gate-actions">
+          <button class="btn" type="button" data-league-choice="rskl">RSKL</button>
+          <button class="btn ghost" type="button" data-league-choice="nflkl">NFLKL</button>
+        </div>
+      </div>
+    `;
+    gate.querySelectorAll("[data-league-choice]").forEach((button) => {
+      button.addEventListener("click", () => setLeague(button.dataset.leagueChoice));
+    });
+    document.body.appendChild(gate);
+  }
+
+  function applyLeagueChrome() {
+    if (getActiveLeague() !== "nflkl") return;
+    document.querySelectorAll(".badge").forEach((badge) => {
+      if (/real sports karma league/i.test(badge.textContent || "")) {
+        badge.textContent = "NFLKL";
+      }
+    });
+    const title = document.querySelector(".hero h1");
+    if (title && window.location.pathname === "/") {
+      title.textContent = "NFLKL";
+    }
+  }
+
+  function guardNflklUnsupportedPages() {
+    if (getActiveLeague() !== "nflkl") return;
+    const supportedPaths = new Set([
+      "/",
+      "/index.html",
+      "/schedule.html",
+      "/standings.html",
+      "/player.html",
+      "/player-detail.html",
+      "/team.html",
+      "/draft.html",
+    ]);
+    const path = window.location.pathname || "/";
+    if (supportedPaths.has(path)) return;
+    const main = document.querySelector("main.container");
+    if (!main) return;
+    main.innerHTML = `
+      <section class="panel">
+        <div class="panel-head"><h2>NFLKL S1</h2></div>
+        <p>NFLKL info for this page is not available yet.</p>
+      </section>
+    `;
   }
 
   function supabaseHeaders() {
@@ -591,6 +718,11 @@
     setClosed();
   }
 
+  ensureLeagueSelector();
+  configureSeasonSelectsForLeague();
+  ensureLeagueGate();
+  applyLeagueChrome();
+  guardNflklUnsupportedPages();
   ensureDraftCountdownBanner();
 
   const seasonSelect = document.getElementById("season-select");
@@ -604,9 +736,9 @@
     return value || "c2s4-regular";
   };
 
-  const saved = normalizeSeason(localStorage.getItem("season"));
+  const saved = getActiveLeague() === "nflkl" ? NFLKL_SEASON : normalizeSeason(localStorage.getItem("season"));
   const availableSeasons = new Set(Array.from(seasonSelect.options, (option) => option.value));
-  const initialSeason = availableSeasons.has(saved) ? saved : "c2s4-regular";
+  const initialSeason = availableSeasons.has(saved) ? saved : RSKL_DEFAULT_SEASON;
   seasonSelect.value = initialSeason;
   localStorage.setItem("season", initialSeason);
 
