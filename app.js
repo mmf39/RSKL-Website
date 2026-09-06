@@ -57,6 +57,41 @@ const TEAM_ORDER = [
   "The Phantoms",
 ];
 
+const NFLKL_TEAMS = [
+  "Jacksonville Jaguars",
+  "Philadelphia Eagles",
+  "Houston Texans",
+  "New York Giants",
+  "New Orleans Saints",
+  "Green Bay Packers",
+  "Cincinnati Bengals",
+  "Atlanta Falcons",
+  "New York Jets",
+  "Chicago Bears",
+  "Minnesota Vikings",
+  "Carolina Panthers",
+  "Kansas City Chiefs",
+  "Detroit Lions",
+  "Tampa Bay Buccaneers",
+  "Los Angeles Chargers",
+  "Baltimore Ravens",
+  "Dallas Cowboys",
+  "Miami Dolphins",
+  "Seattle Seahawks",
+  "Buffalo Bills",
+  "Cleveland Browns",
+  "Arizona Cardinals",
+  "Denver Broncos",
+  "Tennessee Titans",
+  "San Francisco 49ers",
+  "Washington Commanders",
+  "Los Angeles Rams",
+  "Las Vegas Raiders",
+  "Indianapolis Colts",
+  "New England Patriots",
+  "Pittsburgh Steelers",
+];
+
 const CURRENT_PLAYOFF_DIVISIONS = {
   North: new Set(["Turkeys", "Pandas", "The Phantoms", "Gus N Em", "Illegals"]),
   "Locked PSP": new Set(["Bad Bois", "Super Kings", "Storm", "Scorpions", "Dream Team"]),
@@ -3080,7 +3115,16 @@ async function loadData() {
 
   try {
     if (seasonRaw === "nflkl-s1") {
-      renderLeagueSnapshot([]);
+      renderLeagueSnapshot(
+        NFLKL_TEAMS.map((team, index) => ({
+          team,
+          rank: index + 1,
+          wins: 0,
+          losses: 0,
+          gb: "-",
+          winPct: 0,
+        }))
+      );
       renderLiveScoring([], seasonRaw);
       renderFeaturedMatchups([], seasonRaw);
       renderLeagueLeaders([], seasonRaw);

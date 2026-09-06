@@ -28,6 +28,41 @@ const DRAFT_YEAR_VALUES = new Set([
   "c2s3",
 ]);
 
+const NFLKL_DRAFT_ORDER = [
+  "Jacksonville Jaguars",
+  "Philadelphia Eagles",
+  "Houston Texans",
+  "New York Giants",
+  "New Orleans Saints",
+  "Green Bay Packers",
+  "Cincinnati Bengals",
+  "Atlanta Falcons",
+  "New York Jets",
+  "Chicago Bears",
+  "Minnesota Vikings",
+  "Carolina Panthers",
+  "Kansas City Chiefs",
+  "Detroit Lions",
+  "Tampa Bay Buccaneers",
+  "Los Angeles Chargers",
+  "Baltimore Ravens",
+  "Dallas Cowboys",
+  "Miami Dolphins",
+  "Seattle Seahawks",
+  "Buffalo Bills",
+  "Cleveland Browns",
+  "Arizona Cardinals",
+  "Denver Broncos",
+  "Tennessee Titans",
+  "San Francisco 49ers",
+  "Washington Commanders",
+  "Los Angeles Rams",
+  "Las Vegas Raiders",
+  "Indianapolis Colts",
+  "New England Patriots",
+  "Pittsburgh Steelers",
+];
+
 function getActiveLeague() {
   return String(window.RSKL_ACTIVE_LEAGUE || localStorage.getItem("league") || "rskl")
     .trim()
@@ -1546,17 +1581,20 @@ async function loadDraft() {
     }
 
     if (selectedYear === "nflkl-s1") {
-      draftRowsCache = [];
+      const nflklRows = [
+        ["Pick", "Team", "Selection"],
+        ...NFLKL_DRAFT_ORDER.map((team, index) => [String(index + 1), team, ""]),
+      ];
       const title = selectedView === "prospects" ? "NFLKL S1 Draft Prospects" : "NFLKL S1 Draft Board";
-      const message = selectedView === "prospects"
-        ? "NFLKL S1 prospects are not available yet."
-        : "NFLKL S1 draft picks are not available yet.";
-      els.sections.innerHTML = `
-        <section class="panel draft-round" data-round="round-1">
-          <div class="panel-head"><h2>${title}</h2></div>
-          <p>${message}</p>
-        </section>
-      `;
+      draftRowsCache = selectedView === "prospects" ? [] : nflklRows;
+      els.sections.innerHTML = selectedView === "prospects"
+        ? `
+          <section class="panel draft-round" data-round="round-1">
+            <div class="panel-head"><h2>${title}</h2></div>
+            <p>NFLKL S1 prospects are not available yet.</p>
+          </section>
+        `
+        : renderRound("round-1", title, nflklRows);
       updateLastUpdated();
       return;
     }

@@ -128,6 +128,41 @@ const CURRENT_TEAMS = [
   "The Phantoms",
 ];
 
+const NFLKL_TEAMS = [
+  "Jacksonville Jaguars",
+  "Philadelphia Eagles",
+  "Houston Texans",
+  "New York Giants",
+  "New Orleans Saints",
+  "Green Bay Packers",
+  "Cincinnati Bengals",
+  "Atlanta Falcons",
+  "New York Jets",
+  "Chicago Bears",
+  "Minnesota Vikings",
+  "Carolina Panthers",
+  "Kansas City Chiefs",
+  "Detroit Lions",
+  "Tampa Bay Buccaneers",
+  "Los Angeles Chargers",
+  "Baltimore Ravens",
+  "Dallas Cowboys",
+  "Miami Dolphins",
+  "Seattle Seahawks",
+  "Buffalo Bills",
+  "Cleveland Browns",
+  "Arizona Cardinals",
+  "Denver Broncos",
+  "Tennessee Titans",
+  "San Francisco 49ers",
+  "Washington Commanders",
+  "Los Angeles Rams",
+  "Las Vegas Raiders",
+  "Indianapolis Colts",
+  "New England Patriots",
+  "Pittsburgh Steelers",
+];
+
 const CURRENT_PLAYOFF_STATUS_OVERRIDES = new Map([
   ["bad bois", { key: "clinched", label: "Clinched" }],
   ["scorpions", { key: "eliminated", label: "Eliminated" }],
@@ -2002,10 +2037,20 @@ async function loadStandings() {
       standingsRows = [];
       scheduleRowsForTiebreakers = [];
       transactionsByTeam = new Map();
-      leagueStandingsMetrics = [];
-      if (els.leaderboard) {
-        els.leaderboard.innerHTML = "<p>NFLKL S1 standings are not available yet.</p>";
-      }
+      leagueStandingsMetrics = NFLKL_TEAMS.map((team) => ({
+        team,
+        gp: 0,
+        wins: 0,
+        loss: 0,
+        gb: "-",
+        winpct: 0,
+        sos: null,
+        pam: null,
+        trel: null,
+        transactions: 0,
+      }));
+      localStorage.setItem(STANDINGS_SCOPE_KEY, "league");
+      renderStandings();
       updateLastUpdated();
     } else if (seasonRaw === "c2s4-playoffs") {
       standingsHeaders = [];
