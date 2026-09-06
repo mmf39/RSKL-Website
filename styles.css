@@ -2901,6 +2901,18 @@ h2 {
   color: #86efac;
 }
 
+.draft-fallback-note {
+  width: min(1180px, 100%);
+  margin: 0 auto 16px;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 140, 26, 0.32);
+  border-radius: 12px;
+  background: rgba(7, 15, 36, 0.94);
+  color: #e8c8a6;
+  font-weight: 800;
+  text-align: center;
+}
+
 .schedule-overview {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

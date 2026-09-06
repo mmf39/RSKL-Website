@@ -25,7 +25,7 @@
   let playerPhotoCachePromise = null;
   const DRAFT_EVENT_AT = new Date("2026-07-15T18:00:00-04:00");
   const DRAFT_EVENT_LINK = "/draft.html?year=c2s4";
-  const DRAFT_EVENT_COMPLETE = true;
+  const DRAFT_FEATURE_ENABLED = true;
 
   const normalize = (value) =>
     String(value || "").trim().replace(/^@/, "").toLowerCase();
@@ -117,7 +117,7 @@
   }
 
   function ensureDraftCountdownBanner() {
-    if (DRAFT_EVENT_COMPLETE) return;
+    if (!DRAFT_FEATURE_ENABLED) return;
     if (document.querySelector(".draft-countdown-banner")) return;
     const header = document.querySelector(".hero");
     if (!header) return;
@@ -125,12 +125,12 @@
     const banner = document.createElement("a");
     banner.className = "draft-countdown-banner";
     banner.href = DRAFT_EVENT_LINK;
-    banner.setAttribute("aria-label", "Watch the C2S4 draft live");
+    banner.setAttribute("aria-label", "Open the C2S4 draft room");
     banner.innerHTML = `
       <span class="draft-countdown-kicker">C2S4 Draft</span>
-      <strong>Wednesday at 6:00 PM ET</strong>
-      <span class="draft-countdown-time" data-draft-countdown>Loading...</span>
-      <span class="draft-countdown-action">Watch Draft</span>
+      <strong>Draft room is open</strong>
+      <span class="draft-countdown-time" data-draft-countdown>Live board and prospects</span>
+      <span class="draft-countdown-action">Open Draft</span>
     `;
 
     header.insertAdjacentElement("afterend", banner);
@@ -139,7 +139,7 @@
     const update = () => {
       const remaining = DRAFT_EVENT_AT.getTime() - Date.now();
       if (remaining <= 0) {
-        countdown.textContent = "Draft is live";
+        countdown.textContent = "Live draft room";
         banner.classList.add("is-live");
         return;
       }

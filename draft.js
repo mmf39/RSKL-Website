@@ -1037,6 +1037,64 @@ function extractC2S3DraftBoardRows(rows) {
     .filter(hasText);
 }
 
+function getDraftBoardRowsFromSheet(rows) {
+  const cleanRows = rows
+    .map((row) => [row[0] || "", row[1] || "", row[2] || ""])
+    .filter(hasText);
+  const headerIndex = cleanRows.findIndex((row) => {
+    const first = String(row[0] || "").trim().toLowerCase();
+    const second = String(row[1] || "").trim().toLowerCase();
+    return first.includes("pick") && second.includes("team");
+  });
+  const header = headerIndex >= 0 ? cleanRows[headerIndex] : ["Pick", "Team", "Selection"];
+  const bodyRows = cleanRows
+    .slice(headerIndex >= 0 ? headerIndex + 1 : 0)
+    .filter((row) => {
+      const first = String(row[0] || "").trim();
+      return first && !/^round\s+\d+/i.test(first) && Number.isFinite(Number(first));
+    });
+
+  return bodyRows.length ? [header, ...bodyRows] : getC2S4BaseDraftRows();
+}
+
+async function renderSheetBackedC2S4DraftBoard(reason = "") {
+  let rows = [];
+  try {
+    rows = await fetchRows(DRAFT_CSV_URL);
+  } catch (_) {
+    rows = getC2S4BaseDraftRows();
+  }
+
+  const boardRows = getDraftBoardRowsFromSheet(rows);
+  const header = boardRows[0] || ["Pick", "Team", "Selection"];
+  const picks = boardRows.slice(1);
+  const roundOneRows = [header, ...picks.filter((row) => Number(row[0]) <= 10)];
+  const roundTwoRows = [header, ...picks.filter((row) => Number(row[0]) > 10)];
+  const fallbackNote = reason
+    ? `<div class="draft-fallback-note">Live draft is temporarily unavailable. Showing the sheet backup.</div>`
+    : "";
+
+  draftRowsCache = boardRows;
+  els.sections.innerHTML = [
+    fallbackNote,
+    renderRound("round-1", "Round 1", roundOneRows),
+    renderRound("round-2", "Round 2", roundTwoRows),
+  ].join("");
+  applyRoundFilter();
+  updateLastUpdated();
+}
+
+async function renderSheetBackedC2S4Prospects(reason = "") {
+  const rows = await fetchRows(DRAFT_CSV_URL);
+  renderProspects(rows, "c2s4");
+  if (reason && els.sections) {
+    els.sections.insertAdjacentHTML(
+      "afterbegin",
+      `<div class="draft-fallback-note">Live prospects are temporarily unavailable. Showing the sheet backup.</div>`
+    );
+  }
+}
+
 function getC2S4BaseDraftRows() {
   const order = [
     "Pandas",
@@ -1452,12 +1510,20 @@ async function loadDraft() {
     }
 
     if (selectedYear === "c2s4" && selectedView === "teams") {
-      await renderLiveC2S4DraftBoard();
+      try {
+        await renderLiveC2S4DraftBoard();
+      } catch (error) {
+        await renderSheetBackedC2S4DraftBoard(error.message);
+      }
       return;
     }
 
     if (selectedYear === "c2s4" && selectedView === "prospects") {
-      await renderLiveC2S4Prospects();
+      try {
+        await renderLiveC2S4Prospects();
+      } catch (error) {
+        await renderSheetBackedC2S4Prospects(error.message);
+      }
       return;
     }
 
