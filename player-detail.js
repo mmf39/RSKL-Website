@@ -28,6 +28,7 @@ const C1S6_ROSTERS_URL = "/assets/data/c1s6-rosters.csv";
 const C1S6_PLAYER_STATS_URL = "/assets/data/c1s6-player-stats.csv";
 const RISING_STARS_HANDLES = new Set();
 const ROOKIE_SEASON_ORDER = [
+  "nflkl-s1",
   "c1s2-regular",
   "c1s3-regular",
   "c1s4-regular",
@@ -1257,6 +1258,7 @@ function normalizeSeason(value) {
     return value;
   }
   if (
+    value === "nflkl-s1" ||
     value === "career" ||
     value === "c1s7-playoffs" ||
     value === "c1s7-regular" ||
@@ -1323,6 +1325,8 @@ function getSeason() {
         ? "c2s1-regular"
         : normalized === "c2s2-regular"
         ? "c2s2-regular"
+        : normalized === "nflkl-s1"
+        ? "nflkl-s1"
         : "c2s3-regular"
     );
     return normalized;
@@ -1382,6 +1386,9 @@ function getSeason() {
   if (season === "c2s2-regular" || season === "c2s2") {
     return "c2s2-regular";
   }
+  if (season === "nflkl-s1") {
+    return "nflkl-s1";
+  }
   return "c2s3-regular";
 }
 
@@ -1397,6 +1404,8 @@ function initSeasonSelect() {
     navSelect.value =
       current === "career" || current === "c2s3-regular"
         ? "c2s3-regular"
+        : current === "nflkl-s1"
+        ? "nflkl-s1"
         : current === "c2s3-playoffs"
         ? "c2s3-playoffs"
         : current === "c2s4-regular"
@@ -1444,6 +1453,8 @@ function initSeasonSelect() {
       SEASON_KEY,
       value === "c2s3-playoffs"
         ? "c2s3-playoffs"
+        : value === "nflkl-s1"
+        ? "nflkl-s1"
         : value === "c2s4-regular"
         ? "c2s4-regular"
         : value === "c2s4-playoffs"
@@ -1493,6 +1504,8 @@ function initSeasonSelect() {
       const mapped =
         navSelect.value === "c2s3-playoffs"
           ? "c2s3-playoffs"
+          : navSelect.value === "nflkl-s1"
+          ? "nflkl-s1"
           : navSelect.value === "c2s4-regular"
           ? "c2s4-regular"
           : navSelect.value === "c2s4-playoffs"
@@ -2849,7 +2862,10 @@ async function loadPlayer() {
     let dataRows = [];
     let supplementalRows = [];
     let contractRows = contractRowsCache;
-    if (season === "c2s4-playoffs") {
+    if (season === "nflkl-s1") {
+      playerColumns = detectPlayerColumns(["Date", "Team", "Player", "Score", "Rank", "Opponent"]);
+      dataRows = [];
+    } else if (season === "c2s4-playoffs") {
       playerColumns = detectPlayerColumns(["Date", "Team", "Player", "Score", "Rank", "Opponent"]);
       dataRows = [];
     } else if (season === "c2s4-regular" || season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {

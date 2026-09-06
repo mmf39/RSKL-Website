@@ -183,6 +183,7 @@ const DEFAULT_HISTORY_SCOPE = "franchise";
 const ALL_TIME_SEASON = "all-time";
 const SEASON_ALIASES = {
   "all-time": ALL_TIME_SEASON,
+  "nflkl-s1": "nflkl-s1",
   c2s2: "c2s3-regular",
   "c2s3-regular": "c2s3-regular",
   "c2s3-playoffs": "c2s3-playoffs",
@@ -2858,6 +2859,14 @@ async function loadRoster() {
     const isAllTimeSeason = season === ALL_TIME_SEASON;
     if (isAllTimeSeason) {
       await loadAllTimeTeamSnapshot(teamName);
+    } else if (season === "nflkl-s1") {
+      renderRosterMessage("NFLKL S1 rosters are not available yet.");
+      clearAdvancedTeamStats();
+      liveScoreMap = new Map();
+      boxScoreRows = [];
+      finalScoreMap = new Map();
+      teamLeadersMap = new Map();
+      updateTeamSchedule(teamName, [], [], season);
     } else if (season === "c2s4-playoffs") {
       renderRosterMessage("C2S4 playoff rosters are not available yet.");
       clearAdvancedTeamStats();

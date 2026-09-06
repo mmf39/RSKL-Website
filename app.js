@@ -189,7 +189,8 @@ function isArchiveSeason(seasonRaw) {
     seasonRaw !== "c2s3-regular" &&
     seasonRaw !== "c2s3-playoffs" &&
     seasonRaw !== "c2s4-regular" &&
-    seasonRaw !== "c2s4-playoffs"
+    seasonRaw !== "c2s4-playoffs" &&
+    seasonRaw !== "nflkl-s1"
   );
 }
 
@@ -650,6 +651,7 @@ function renderSmallTeamLogo(name) {
 }
 
 function getSeasonLabel(seasonRaw) {
+  if (seasonRaw === "nflkl-s1") return "NFLKL S1";
   if (seasonRaw === "c2s4-regular") return "C2S4 Regular Season";
   if (seasonRaw === "c2s4-playoffs") return "C2S4 Playoffs";
   if (seasonRaw === "c2s3-regular") return "C2S3 Regular Season";
@@ -3077,6 +3079,16 @@ async function loadData() {
   }
 
   try {
+    if (seasonRaw === "nflkl-s1") {
+      renderLeagueSnapshot([]);
+      renderLiveScoring([], seasonRaw);
+      renderFeaturedMatchups([], seasonRaw);
+      renderLeagueLeaders([], seasonRaw);
+      renderRecentTransactions([]);
+      updateLastUpdated();
+      return;
+    }
+
     if (seasonRaw === "c2s4-playoffs") {
       renderC2S4DashboardPage(seasonRaw);
       return;

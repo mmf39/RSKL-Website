@@ -44,6 +44,7 @@ let supabaseAnon = "";
 let supabaseConfigPromise = null;
 const RISING_STARS_HANDLES = new Set();
 const ROOKIE_SEASON_ORDER = [
+  "nflkl-s1",
   "c1s2-regular",
   "c1s3-regular",
   "c1s4-regular",
@@ -124,6 +125,7 @@ function getPlayerSeason() {
 
 const PLAYER_SEASON_OPTIONS = new Set([
   "career",
+  "nflkl-s1",
   "c2s3-regular",
   "c2s3-playoffs",
   "c2s4-regular",
@@ -1049,7 +1051,11 @@ async function loadPlayerStats() {
     await loadPlayerOverrides();
     await Promise.all([loadRookieSeasonCache(), loadAllStarSeasonCache()]);
     const season = getPlayerSeason();
-    if (season === "c2s4-playoffs") {
+    if (season === "nflkl-s1") {
+      playerColumns = detectPlayerColumns(["Date", "Team", "Player", "Score", "Rank", "Opponent"]);
+      playerRows = [];
+      leaderboardRows = [];
+    } else if (season === "c2s4-playoffs") {
       playerColumns = detectPlayerColumns(["Date", "Team", "Player", "Score", "Rank", "Opponent"]);
       playerRows = [];
     } else if (season === "c2s4-regular" || season === "c2s3-regular" || season === "c2s3-playoffs" || season === "c2s2-playoffs") {

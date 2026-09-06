@@ -203,6 +203,7 @@ function getSelectedSeasonRaw() {
 
 function getSeason() {
   const raw = getSeasonRaw();
+  if (raw === "nflkl-s1") return "nflkl-s1";
   if (raw === "c2s3-regular" || raw === "c2s3-playoffs" || raw === "c2s2-playoffs" || raw === "c2s2-regular") return "c2s2";
   return raw;
 }
@@ -1747,6 +1748,22 @@ async function loadSchedule() {
       }
     }
     hydrateCachedEnhancements(seasonRaw);
+
+    if (seasonRaw === "nflkl-s1") {
+      scheduleGames = [];
+      gamesByDate = new Map();
+      selectedDateKey = "";
+      if (els.upcomingGamesTitle) {
+        els.upcomingGamesTitle.textContent = "NFLKL S1 Schedule";
+      }
+      if (els.dayGamesTitle) {
+        els.dayGamesTitle.textContent = "No Games Scheduled";
+      }
+      renderGameSection(els.nextGames, [], "NFLKL S1 games are not scheduled yet.");
+      renderGameSection(els.dayGames, [], "No NFLKL S1 games are scheduled yet.");
+      updateLastUpdated();
+      return;
+    }
 
     if (seasonRaw === "c2s4-playoffs") {
       scheduleGames = [];

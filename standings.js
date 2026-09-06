@@ -156,6 +156,7 @@ function getSeasonRaw() {
 function getSeason() {
   const raw = getSeasonRaw();
   if (raw === ALL_TIME_SEASON) return ALL_TIME_SEASON;
+  if (raw === "nflkl-s1") return "nflkl-s1";
   if (raw === "c2s3-regular" || raw === "c2s3-playoffs" || raw === "c2s2-playoffs" || raw === "c2s2-regular") return "c2s2";
   if (raw === "c2s1-playoffs") return "c2s1-post";
   return raw;
@@ -1996,6 +1997,16 @@ async function loadStandings() {
         requestedMetric = "wins";
       }
       renderStandings();
+    } else if (seasonRaw === "nflkl-s1") {
+      standingsHeaders = [];
+      standingsRows = [];
+      scheduleRowsForTiebreakers = [];
+      transactionsByTeam = new Map();
+      leagueStandingsMetrics = [];
+      if (els.leaderboard) {
+        els.leaderboard.innerHTML = "<p>NFLKL S1 standings are not available yet.</p>";
+      }
+      updateLastUpdated();
     } else if (seasonRaw === "c2s4-playoffs") {
       standingsHeaders = [];
       standingsRows = [];

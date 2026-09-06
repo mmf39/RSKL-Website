@@ -16,6 +16,7 @@ const LIVE_DRAFT_PICKS_TABLE = "draft_picks";
 const LIVE_DRAFT_PROSPECTS_TABLE = "draft_prospects";
 const LIVE_DRAFT_SETTINGS_TABLE = "draft_settings";
 const DRAFT_YEAR_VALUES = new Set([
+  "nflkl-s1",
   "c2s4",
   "c1s2",
   "c1s3",
@@ -45,6 +46,9 @@ const els = {
 };
 
 const ROUND_RANGES_BY_YEAR = {
+  "nflkl-s1": [
+    { id: "round-1", title: "Round 1", range: "" },
+  ],
   c2s4: [
     { id: "round-1", title: "Round 1", range: "" },
     { id: "round-2", title: "Round 2", range: "" },
@@ -1475,7 +1479,7 @@ function syncDraftViewOptions() {
   if (!els.viewSelect) return;
   const selectedYear = els.yearSelect ? els.yearSelect.value : getSelectedDraftYear();
   const expansionOption = els.viewSelect.querySelector('option[value="expansion"]');
-  const hideExpansion = selectedYear === "c2s4";
+  const hideExpansion = selectedYear === "c2s4" || selectedYear === "nflkl-s1";
 
   if (expansionOption) {
     expansionOption.hidden = hideExpansion;
@@ -1505,6 +1509,22 @@ async function loadDraft() {
         "C2S3 Draft Board",
         boardRows
       );
+      updateLastUpdated();
+      return;
+    }
+
+    if (selectedYear === "nflkl-s1") {
+      draftRowsCache = [];
+      const title = selectedView === "prospects" ? "NFLKL S1 Draft Prospects" : "NFLKL S1 Draft Board";
+      const message = selectedView === "prospects"
+        ? "NFLKL S1 prospects are not available yet."
+        : "NFLKL S1 draft picks are not available yet.";
+      els.sections.innerHTML = `
+        <section class="panel draft-round" data-round="round-1">
+          <div class="panel-head"><h2>${title}</h2></div>
+          <p>${message}</p>
+        </section>
+      `;
       updateLastUpdated();
       return;
     }
